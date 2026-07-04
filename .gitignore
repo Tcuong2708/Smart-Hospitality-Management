@@ -1,0 +1,35 @@
+# Cấu hình chặn file rác hệ thống
+
+# === RATIONAL ROSE ===
+*.bak
+*.~mdl
+*.lok
+*.log
+*.err
+
+# === NET CORE ===
+[Dd]ebug/
+[Rr]elease/
+bin/
+obj/
+.vs/
+*.user
+
+# === FLUTTER / DART ===
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+
+# === PYTHON / AI ===
+__pycache__/
+.venv/
+venv/
+*.h5
+*.pkl
+
+# === OS & IDE ===
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
