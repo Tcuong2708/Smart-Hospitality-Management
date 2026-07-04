@@ -1,6 +1,6 @@
 # Smart Hospitality Management System (May Hotel)
 
-## 🛠️ THÔNG TIN DỰ ÁN KHÓA LUẬN TỐT NGHIỆP 2026
+## 🛠️ THÔNG TIN DỰ ÁN KHÓA LUẬN CỬ NHÂN
 - **Kiến trúc:** Monorepo (Quản lý tập trung toàn bộ cấu trúc dự án)
 - **Team Leader / Backend & AI Core:** Võ Trí Cường
 - **Thành viên 2:** Mobile Developer (Flutter & Hardware Integration)
