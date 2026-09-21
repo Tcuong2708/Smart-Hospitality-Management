@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -11,10 +11,14 @@
         .invoice-box { background: #fff; max-width: 800px; margin: 30px auto; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); display: none; }
         .theme-color { color: #0F2942; }
         .gold-color { color: #C5A017; }
+        @page {
+            size: A4;
+            margin: 15mm;
+        }
         @media print {
             .no-print { display: none !important; }
             .invoice-box { box-shadow: none; margin: 0; width: 100%; max-width: 100%; padding: 0; display: block !important; }
-            body { background: #fff; }
+            body { background: #fff; width: 100%; height: 100%; }
         }
     </style>
 
@@ -55,7 +59,7 @@
 <div class="invoice-box" id="invoice-content">
     <div class="row border-bottom pb-4 mb-4 align-items-center">
         <div class="col-8">
-            <h2 class="fw-bold theme-color m-0">MAY HOTEL LUXURY</h2>
+            <h2 class="fw-bold theme-color m-0 mb-1">MAY HOTEL</h2>
             <div class="small text-muted">CN1: 140 Lê Trọng Tấn, TP. HCM</div>
             <div class="small text-muted">CN2: 86 Tân Hòa Đông, Q.6, TP. HCM</div>
             <div class="small text-muted">Hotline: 1800 9327 | Email: MayHotel.hotel@gmail.com</div>
@@ -106,7 +110,7 @@
 
     <div class="row mt-5 pt-3 border-top align-items-center">
         <div class="col-6">
-            <p class="fst-italic text-muted small m-0">Cảm ơn quý khách đã tin tưởng chọn May Hotel Luxury!</p>
+            <p class="fst-italic text-muted small m-0">Cảm ơn quý khách đã tin tưởng chọn May Hotel!</p>
         </div>
         <div class="col-6 text-end">
             <h5 class="fw-bold theme-color mb-1">TỔNG THANH TOÁN</h5>
