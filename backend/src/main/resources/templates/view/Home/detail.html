@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/layout}">
+<head>
+    <meta charset="UTF-8">
+    <title th:text="'Chi tiết phòng ' + ${phong.name}"></title>
+</head>
+<body>
+
+<div th:fragment="body_content">
+    <div th:fragment="extra_css">
+        <link rel="stylesheet" th:href="@{/css/Home/detail.css}" />
+    </div>
+    <div class="container py-5">
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb bg-transparent p-0">
+                <li class="breadcrumb-item">
+                    <a th:href="@{/}" class="text-decoration-none text-muted">Trang chủ</a>
+                </li>
+
+                <li class="breadcrumb-item active text-navy fw-bold"
+                    aria-current="page"
+                    th:text="${phong.name}">Tên phòng</li>
+            </ol>
+        </nav>
+        <div class="row">
+            <div class="col-lg-7 mb-4">
+                <div class="detail-img-container position-relative">
+                    <img th:src="@{'/images/' + ${phong.imageUrl}}"
+                         class="img-fluid w-100 detail-img"
+                         th:alt="${phong.name}"
+                         style="object-fit: cover; min-height: 400px;" />
+
+                    <th:block th:if="${phong.price < 1000000}">
+                    <span class="position-absolute top-0 start-0 m-3 badge bg-danger fs-6 py-2 px-3 shadow">
+                        <i class="bi bi-fire me-1"></i>HOT DEAL
+                    </span>
+                    </th:block>
+                </div>
+
+                <div class="row mt-3 g-2">
+                    <div class="col-3">
+                        <img th:src="@{'/images/' + ${phong.imageUrl}}"
+                             class="img-fluid rounded border border-warning"
+                             style="cursor: pointer; opacity: 0.7"
+                             alt="Thumbnail 1" />
+                    </div>
+
+                    <div class="col-3">
+                        <div class="bg-light rounded h-100 d-flex align-items-center justify-content-center text-muted">
+                            <i class="bi bi-image"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-3">
+                        <div class="bg-light rounded h-100 d-flex align-items-center justify-content-center text-muted">
+                            <i class="bi bi-image"></i>
+                        </div>
+                    </div>
+
+                    <div class="col-3">
+                        <div class="bg-light rounded h-100 d-flex align-items-center justify-content-center text-muted">
+                            <i class="bi bi-image"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-5">
+                <h4 class="text-muted text-uppercase small ls-1"
+                    th:text="${phong.roomType != null ? phong.roomType.name : 'Luxury Room'}">Luxury Room</h4>
+
+                <h2 class="fw-bold text-navy mb-3" th:text="${phong.name}">Tên phòng</h2>
+
+                <div class="d-flex align-items-center mb-3">
+                    <div class="text-warning">
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                        <i class="bi bi-star-fill"></i>
+                    </div>
+                    <span class="ms-2 text-muted small">(Đánh giá 5/5 từ khách hàng)</span>
+                </div>
+
+                <div class="price-wrapper mb-4 border-bottom pb-4">
+            <span class="price-tag-large"
+                  th:text="${#numbers.formatDecimal(phong.price, 0, 'COMMA', 0, 'POINT')}">500,000</span>
+                    <span class="text-muted fs-5"> vnđ / đêm</span>
+                </div>
+
+                <div class="description mb-4 text-secondary" style="line-height: 1.8; white-space: pre-line;">
+                    <p th:text="${phong.detail}">Mô tả chi tiết...</p>
+                </div>
+
+                <div class="row g-2 mb-4">
+                    <div class="col-4">
+                        <div class="feature-box">
+                            <i class="bi bi-wifi fs-4 text-navy"></i>
+                            <div class="small mt-1">Wifi Free</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="feature-box">
+                            <i class="bi bi-tv fs-4 text-navy"></i>
+                            <div class="small mt-1">Smart TV</div>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <div class="feature-box">
+                            <i class="bi bi-wind fs-4 text-navy"></i>
+                            <div class="small mt-1">Máy lạnh</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="action-buttons">
+                    <th:block th:if="${conPhong}">
+                        <a th:href="@{/booking/book(maLoai=${phong.roomType != null ? phong.roomType.id : ''})}"
+                           class="btn btn-book-now w-100 rounded-pill shadow fw-bold">
+                            <i class="bi bi-calendar-check-fill me-2"></i> ĐẶT PHÒNG NGAY
+                        </a>
+
+                        <p class="text-center mt-2 small text-success">
+                            <i class="bi bi-check-circle-fill me-1"></i>Còn phòng trống
+                        </p>
+                    </th:block>
+
+                    <th:block th:unless="${conPhong}">
+                        <button class="btn btn-secondary w-100 rounded-pill" disabled>
+                            <i class="bi bi-x-circle me-2"></i> HẾT PHÒNG
+                        </button>
+
+                        <p class="text-center mt-2 small text-danger">Vui lòng chọn hạng phòng khác</p>
+                    </th:block>
+                </div>
+
+                <div class="mt-4 pt-3 border-top">
+                    <div class="d-flex align-items-center text-muted small">
+                        <i class="bi bi-shield-check fs-4 me-2 text-gold"></i>
+                        <span>Cam kết giá tốt nhất • Thanh toán an toàn • Hỗ trợ 24/7</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div th:fragment="extra_js"></div>
+    </div>
+</div>
+</body>
+</html>

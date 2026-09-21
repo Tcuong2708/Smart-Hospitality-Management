@@ -1,0 +1,159 @@
+/* --- BIẾN MÀU CHỦ ĐẠO (NAVY & GOLD) --- */
+:root {
+    --primary-navy: #0F2942;
+    --accent-gold: #C5A017;
+    --gold-hover: #a68512;
+    --bg-light: #f8f9fa;
+    --text-muted: #6c757d;
+}
+
+/* --- CẤU TRÚC CARD CHUNG --- */
+.admin-card, .admin-form-card, .delete-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 5px 20px rgba(15, 41, 66, 0.1);
+    overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+}
+
+.admin-header, .admin-header-navy {
+    background-color: var(--primary-navy);
+    color: white;
+    padding: 20px 25px;
+    border-bottom: 4px solid var(--accent-gold);
+}
+
+/* --- ĐỊNH DẠNG BẢNG (INDEX) --- */
+.table thead {
+    background-color: var(--bg-light);
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table th {
+    text-transform: uppercase;
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(197, 160, 23, 0.05);
+    transition: 0.3s;
+}
+
+.img-thumb {
+    width: 80px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+}
+
+/* --- NÚT BẤM VÀ THAO TÁC --- */
+button.btn.btn-gold {
+    background-color: #C5A017 !important;
+    color: #ffffff !important;
+    border: 1px solid #C5A017 !important;
+    font-weight: 700 !important;
+    padding: 12px 30px !important;
+    transition: all 0.3s ease-in-out !important;
+    box-shadow: 0 4px 15px rgba(197, 160, 23, 0.3) !important;
+}
+
+button.btn.btn-gold:hover {
+    background-color: #a68512 !important;
+    border-color: #a68512 !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(197, 160, 23, 0.5) !important;
+}
+
+
+.btn-gold i {
+    font-size: 1.1rem;
+}
+
+.btn-action {
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    line-height: 35px;
+    border-radius: 50%;
+    text-align: center;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s;
+    border: none;
+    color: white !important;
+}
+
+.btn-action:hover {
+    transform: scale(1.1);
+}
+
+/* --- TRẠNG THÁI VÀ BADGE --- */
+.badge-category {
+    background-color: #e9ecef;
+    color: var(--primary-navy);
+    font-weight: 600;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--primary-navy);
+}
+
+.price-text {
+    color: var(--accent-gold);
+    font-weight: 700;
+    font-size: 1.1rem;
+}
+
+/* --- FORM NHẬP LIỆU (CREATE/EDIT) --- */
+.form-label {
+    font-weight: 600;
+    color: var(--primary-navy);
+    margin-bottom: 0.5rem;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 0 0.25rem rgba(197, 160, 23, 0.2);
+}
+
+/* --- CHI TIẾT PHÒNG (DETAILS) --- */
+.info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 0;
+    border-bottom: 1px dashed #eee;
+}
+
+.info-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.avatar-circle {
+    width: 80px;
+    height: 80px;
+    background: var(--bg-light);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+    font-size: 2.5rem;
+    color: var(--primary-navy);
+    border: 2px solid var(--accent-gold);
+}
+
+/* --- CẢNH BÁO XÓA (DELETE) --- */
+.warning-box {
+    background-color: #fff5f5;
+    color: #c0392b;
+    padding: 15px;
+    border-radius: 8px;
+    border-left: 5px solid #dc3545;
+    margin: 20px 0;
+}

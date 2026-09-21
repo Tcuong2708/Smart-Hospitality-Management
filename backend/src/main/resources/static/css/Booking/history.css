@@ -1,0 +1,41 @@
+:root {
+    --color-navy: #0f172a;
+    --color-gold: #d4af37;
+}
+
+.text-navy {
+    color: var(--color-navy) !important;
+}
+
+.bg-navy {
+    background-color: var(--color-navy) !important;
+    color: white;
+}
+
+.text-gold {
+    color: var(--color-gold) !important;
+}
+
+.table thead th {
+    border: none;
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-upcoming {
+    background-color: #e0f2fe;
+    color: #0369a1;
+}
+
+.badge-completed {
+    background-color: #f0fdf4;
+    color: #15803d;
+}

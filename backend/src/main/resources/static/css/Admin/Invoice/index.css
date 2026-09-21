@@ -1,0 +1,57 @@
+:root {
+    --navy: #0F2942;
+    --gold: #C5A017;
+}
+
+.text-navy {
+    color: var(--navy) !important;
+}
+
+.bg-navy {
+    background-color: var(--navy) !important;
+    color: white;
+}
+
+.text-gold {
+    color: var(--gold) !important;
+}
+
+.bg-gold {
+    background-color: var(--gold) !important;
+    color: white;
+}
+
+.page-title {
+    border-left: 6px solid var(--gold);
+    padding-left: 15px;
+    color: var(--navy);
+}
+
+.btn-create-booking {
+    background-color: var(--navy);
+    color: white;
+    transition: 0.3s;
+}
+
+.btn-create-booking:hover {
+    background-color: var(--gold);
+    color: var(--navy);
+    font-weight: bold;
+}
+
+.status-badge {
+    font-size: 0.75rem;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+}
+
+.status-active {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+}
+/* Xanh dương nhạt */
+.status-completed {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+}

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAY HOTEL - Danh Sách Phòng</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="list.css">
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+
+    <div class="container py-4">
+        <div class="admin-card mb-4">
+            <div class="admin-header d-flex justify-content-center align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0">
+                    <i class="bi bi-grid-fill me-2"></i>Danh Sách Phòng Nghỉ
+                </h3>
+            </div>
+            
+            <div class="card-body p-4">
+                <div class="card shadow-sm mb-4 border-0 bg-light">
+                    <div class="card-body p-4">
+                        <form id="search-form">
+                            <div class="row gx-3 align-items-center justify-content-center">
+                                <div class="col-md-8">
+                                    <div class="input-group">
+                                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                                        <input type="text" id="searchInput" class="form-control border-start-0 py-2" placeholder="Tìm theo tên phòng..." />
+                                        <button type="submit" class="btn btn-search fw-bold text-uppercase">TÌM KIẾM</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-3 order-md-1 order-2 mt-4 mt-md-0">
+                        <div class="filter-card">
+                            <div class="filter-header"><i class="bi bi-bookmark-star-fill me-2"></i>Loại Phòng</div>
+                            <div class="list-group list-group-flush" id="category-filter">
+                                <a href="#" data-id="" class="list-group-item list-group-item-action active">Tất cả</a>
+                                <!-- Các danh mục sẽ được load bằng JS -->
+                            </div>
+                        </div>
+
+                        <div class="filter-card">
+                            <div class="filter-header"><i class="bi bi-cash-stack me-2"></i>Khoảng Giá</div>
+                            <div class="list-group list-group-flush" id="price-filter">
+                                <a href="#" data-price="" class="list-group-item list-group-item-action active">Tất cả mức giá</a>
+                                <a href="#" data-price="lt500" class="list-group-item list-group-item-action">Dưới 500k</a>
+                                <a href="#" data-price="gt2000" class="list-group-item list-group-item-action">Trên 2 triệu</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-9 order-md-2 order-1">
+                        <div class="row gx-4 gy-4" id="room-list">
+                            <!-- Danh sách phòng sẽ được render bằng JS -->
+                        </div>
+
+                        <div id="no-results" class="text-center py-5 d-none">
+                            <i class="bi bi-search display-1 text-muted opacity-25"></i>
+                            <h3 class="mt-3 text-muted">Không tìm thấy phòng phù hợp.</h3>
+                            <button class="btn btn-outline-secondary mt-2" id="btn-clear-filter">Xóa bộ lọc</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="list.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thống Kê Kinh Doanh - MAY HOTEL</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/index.css" />
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-4">
+
+        <div class="admin-card mb-4">
+            <div class="admin-header d-flex justify-content-center align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0">
+                    <i class="bi bi-bar-chart-fill me-2"></i>Thống kê kinh doanh năm <span id="current-year">...</span>
+                </h3>
+            </div>
+            <div class="card-body p-4">
+
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="text-muted mt-2">Đang tải dữ liệu thống kê...</p>
+        </div>
+
+        <div id="dashboard-content" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card bg-primary text-white mb-3 h-100 stat-card">
+                        <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                            <h5 class="card-title opacity-75 small text-uppercase fw-bold">Tổng Doanh Thu Năm</h5>
+                            <h2 class="fw-bold mt-2" id="total-revenue">0 đ</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card bg-success text-white mb-3 h-100 stat-card">
+                        <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                            <h5 class="card-title opacity-75 small text-uppercase fw-bold">Tổng Đơn Đặt Phòng</h5>
+                            <h2 class="fw-bold mt-2" id="total-orders">0 đơn</h2>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card bg-warning text-dark mb-3 h-100 stat-card">
+                        <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                            <h5 class="card-title opacity-75 small text-uppercase fw-bold">Trung bình / Tháng</h5>
+                            <h2 class="fw-bold mt-2" id="average-month">0 đ</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 chart-card">
+                <div class="card-header fw-bold py-3" style="color: var(--navy-color, #0F2942);">
+                    <i class="bi bi-bar-chart-line-fill me-2" style="color: #C5A017;"></i>Biểu đồ doanh thu từng tháng
+                </div>
+                <div class="card-body p-4">
+                    <div style="position: relative; height:380px; width:100%">
+                        <canvas id="myChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="error-message" class="alert alert-danger text-center mt-4" style="display: none;">
+            <i class="bi bi-exclamation-triangle fs-4 d-block mb-2"></i>
+            Không thể tải dữ liệu thống kê. Vui lòng kiểm tra lại kết nối Backend.
+        </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Custom JS -->
+    <script src="js/index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

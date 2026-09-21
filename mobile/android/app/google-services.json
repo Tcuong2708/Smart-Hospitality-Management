@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "894387322753",
+    "project_id": "mayhotelproject",
+    "storage_bucket": "mayhotelproject.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:894387322753:android:2d72f83fcfc03cd4eaf280",
+        "android_client_info": {
+          "package_name": "com.mayhotel.may_hotel_app.may_hotel_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "894387322753-rcgi6ubsemqjrcjbquk2c6p18trnkfss.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.mayhotel.may_hotel_app.may_hotel_app",
+            "certificate_hash": "9cfde362ca1db4a963a525b09bcee58d47bb2834"
+          }
+        },
+        {
+          "client_id": "894387322753-mj60o5rne2c3k4sdi38mhn6r68fs7iqs.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDiRidqlBDO9kA1EHOoe1Eik6vb3ScZuqo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "894387322753-mj60o5rne2c3k4sdi38mhn6r68fs7iqs.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

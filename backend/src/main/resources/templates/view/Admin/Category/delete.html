@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Admin/Category/delete.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <div class="delete-card">
+            <div class="delete-header">
+                <h3 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">
+                    <i class="bi bi-trash3-fill me-2 text-gold"></i>Xóa Loại Phòng
+                </h3>
+            </div>
+
+            <div class="card-body p-4 text-center">
+                <p class="text-muted mb-4 fs-5">Bạn có chắc chắn muốn xóa danh mục này?</p>
+
+                <div class="py-2">
+                    <h2 class="fw-bold text-navy mb-1" th:text="${loaiPhong.name}">Tên loại phòng</h2>
+                    <span class="badge bg-light text-dark border" th:text="'Mã số: #' + ${loaiPhong.maLoai}">Mã số: #0</span>
+                </div>
+
+                <div class="warning-box shadow-sm">
+                    <div class="d-flex">
+                        <i class="bi bi-exclamation-triangle-fill text-gold me-3 fs-4"></i>
+                        <div>
+                            <strong>Lưu ý quan trọng:</strong><br />
+                            Hành động này <span class="text-danger fw-bold">không thể hoàn tác</span>. All các phòng thuộc loại này có thể bị ảnh hưởng dữ liệu.
+                        </div>
+                    </div>
+                </div>
+
+                <form th:action="@{/admin/categories/delete/{id}(id=${loaiPhong.maLoai})}" method="post">
+                    <div class="d-flex justify-content-center gap-3 mt-4">
+                        <a th:href="@{/admin/categories}" class="btn btn-back px-4 py-2 fw-bold">
+                            <i class="bi bi-arrow-left me-1"></i> Hủy bỏ
+                        </a>
+                        <button type="submit" class="btn btn-delete px-4 py-2 fw-bold shadow-sm">
+                            <i class="bi bi-trash-fill me-1"></i> Xóa vĩnh viễn
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="extra_js"></div>
+</html>

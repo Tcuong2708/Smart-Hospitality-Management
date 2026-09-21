@@ -1,0 +1,53 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+}
+
+.admin-form-card {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(15, 41, 66, 0.15);
+    overflow: hidden;
+    border: 1px solid #eee;
+}
+
+/* Header màu Navy + Viền Vàng */
+.admin-header {
+    background-color: var(--navy-color);
+    color: white;
+    padding: 25px;
+    text-align: center;
+    border-bottom: 3px solid var(--gold-color);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--navy-color);
+}
+
+/* Input focus màu Vàng Kim */
+.form-control:focus {
+    border-color: var(--gold-color);
+    box-shadow: 0 0 0 0.2rem rgba(197, 160, 23, 0.25);
+}
+
+/* Nút Lưu màu Vàng Kim */
+.btn-gold {
+    background-color: var(--gold-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-gold:hover {
+    background-color: var(--gold-hover);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Icon màu vàng */
+.text-gold {
+    color: var(--gold-color) !important;
+}

@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận mã OTP</title>
+</head>
+<body>
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Account/verify_otp.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="login-wrapper py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                    <div class="card card-login shadow-lg border-0">
+                        <div class="card-header-login text-center py-4 text-white bg-navy">
+                            <h3 class="fw-bold text-white mb-1">Xác nhận bảo mật</h3>
+                            <p class="mb-0 small opacity-75 px-2">Vui lòng kiểm tra Email hoặc Tin nhắn để lấy mã OTP 6 số</p>
+                        </div>
+                        <div class="card-body p-4 p-md-5">
+
+                            <div th:if="${error != null}" class="alert alert-danger text-center mb-4 border-0 shadow-sm">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+                            </div>
+
+                            <form th:action="@{/account/verify_otp}" method="post">
+                                <div class="mb-4 text-start">
+                                    <label class="form-label fw-bold text-navy">Nhập mã OTP <span class="text-danger">*</span></label>
+                                    <input type="text" name="otp" class="form-control form-control-lg text-center fw-bold letter-spacing-lg text-navy" placeholder="• • • • • •" maxlength="6" required />
+                                </div>
+
+                                <div class="mb-4 text-start">
+                                    <label class="form-label fw-bold text-navy">Mật khẩu mới <span class="text-danger">*</span></label>
+                                    <input type="password" name="newpassword" class="form-control form-control-lg"
+                                           placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)" minlength="6" required />
+                                </div>
+
+                                <button type="submit" class="btn btn-gold w-100 py-3 fw-bold text-white shadow-sm text-uppercase">
+                                    ĐỔI MẬT KHẨU <i class="bi bi-check-lg ms-1"></i>
+                                </button>
+                            </form>
+
+                            <div class="mt-3 text-end">
+                                <form th:action="@{/account/find_account}" method="post"
+                                      onsubmit="return confirm('Hệ thống sẽ tạo và gửi lại mã OTP mới cho bạn?')">
+                                    <button type="submit" class="btn btn-link p-0 small fw-bold text-decoration-none text-gold-hover">
+                                        <i class="bi bi-arrow-clockwise"></i> Gửi lại mã
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="text-center mt-4 border-top pt-3">
+                                <a th:href="@{/account/forgot_password}" class="text-decoration-none text-muted small">Thử lại bằng tài khoản khác</a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

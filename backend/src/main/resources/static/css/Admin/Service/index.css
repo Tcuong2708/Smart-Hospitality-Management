@@ -1,0 +1,59 @@
+:root {
+    --color-navy: #0f172a; /* Xanh than đậm */
+    --color-gold: #d4af37; /* Vàng kim loại */
+    --color-gold-hover: #b4932a;
+}
+
+/* --- CÁC CLASS MÀU SẮC --- */
+.text-navy {
+    color: var(--color-navy) !important;
+}
+
+.bg-navy {
+    background-color: var(--color-navy) !important;
+    color: white;
+}
+
+/* Tinh chỉnh nút màu vàng */
+.btn-gold {
+    background-color: var(--color-gold);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+    background-color: var(--color-gold-hover);
+    color: white;
+    transform: translateY(-2px); /* Hiệu ứng nhấc nút lên nhẹ */
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Tinh chỉnh tiêu đề cột bảng */
+.table thead th {
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    border-bottom: none;
+}
+
+/* Hiệu ứng hover cho dòng trong bảng */
+.table-hover tbody tr:hover {
+    background-color: rgba(212, 175, 55, 0.05); /* Màu vàng rất nhạt khi di chuột */
+}
+
+/* Badge đơn vị tính */
+.badge {
+    font-weight: 500;
+    padding: 0.5em 0.8em;
+}
+
+/* Ghi đè màu warning mặc định cho đồng bộ */
+.text-warning {
+    color: #b8860b !important; /* Dark GoldenRod */
+}
+
+.border-warning {
+    border-color: var(--color-gold) !important;
+}

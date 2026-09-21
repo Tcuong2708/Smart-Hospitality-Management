@@ -1,0 +1,55 @@
+:root {
+    --color-navy: #0f172a;
+    --color-gold: #d4af37;
+}
+
+.bg-navy {
+    background-color: var(--color-navy);
+    color: white;
+}
+
+.text-navy {
+    color: var(--color-navy);
+}
+
+.text-gold {
+    color: var(--color-gold);
+    font-weight: bold;
+}
+
+.invoice-card {
+    border: none;
+    box-shadow: 0 0 20px rgba(0,0,0,0.08);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.invoice-header {
+    background-color: var(--color-navy);
+    padding: 20px 30px;
+    color: white;
+    border-bottom: 5px solid var(--color-gold);
+}
+
+.section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-navy);
+    text-transform: uppercase;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 8px;
+}
+
+.room-thumb {
+    width: 140px !important;
+    height: 90px !important;
+    object-fit: cover !important;
+    border-radius: 8px;
+    border: 2px solid #eee;
+    flex-shrink: 0;
+}
+.total-row {
+    background-color: #f8fafc;
+    border-top: 2px dashed #cbd5e1;
+}

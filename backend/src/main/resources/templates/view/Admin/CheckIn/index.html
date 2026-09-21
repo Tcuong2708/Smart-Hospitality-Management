@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Nghiệp vụ Nhận phòng (Check-in) - MAY HOTEL</title>
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+  <link rel="stylesheet" th:href="@{/css/Admin/Checkin/index.css}" />
+
+</th:block>
+
+<div th:fragment="body_content">
+  <div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h3 class="fw-bold text-uppercase text-navy">
+        <i class="bi bi-box-arrow-in-right me-2 text-gold"></i>Nghiệp vụ Nhận phòng (Check-in)
+      </h3>
+    </div>
+
+    <div th:if="${success}" class="alert alert-success border-0 shadow-sm text-center mb-4" th:text="${success}"></div>
+    <div th:if="${error}" class="alert alert-danger border-0 shadow-sm text-center mb-4" th:text="${error}"></div>
+
+    <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-navy text-white text-uppercase small">
+            <tr>
+              <th class="ps-4 py-3">Mã HD</th>
+              <th>Khách hàng</th>
+              <th>Số điện thoại</th>
+              <th class="text-center">Số phòng phân bổ</th>
+              <th>Thời gian dự kiến</th>
+              <th class="text-end">Tổng tiền tạm tính</th>
+              <th class="text-center" style="width: 220px;">Thao tác nghiệp vụ</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${invoices == null or #lists.isEmpty(invoices)}">
+              <td colspan="7" class="text-center py-5 text-muted">
+                <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
+                Hiện tại chưa có phiếu đặt phòng nào chờ làm thủ tục Check-in.
+              </td>
+            </tr>
+            <tr th:unless="${invoices == null or #lists.isEmpty(invoices)}" th:each="item : ${invoices}">
+              <td class="ps-4 fw-bold text-navy" th:text="'#' + ${item.id}">#1</td>
+              <td class="fw-bold text-secondary">
+                <span th:text="${item.hoTen}">Tên khách</span>
+                <span th:if="${item.idTaiKhoan == null}" class="badge bg-light text-dark border small ms-1" style="font-size: 0.65rem;">Khách vãng lai</span>
+              </td>
+              <td th:text="${item.sdt}">SĐT</td>
+
+              <td class="text-center">
+                <span th:if="${item.maPhong != null}" class="badge bg-success px-3 py-2 rounded-pill fw-bold">
+                  <i class="bi bi-door-open-fill me-1"></i> <span th:text="'Phòng ' + ${item.maPhong}">Phòng 101</span>
+                </span>
+                <span th:unless="${item.maPhong != null}" class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                  <i class="bi bi-exclamation-triangle-fill me-1"></i> Chưa xếp phòng
+                </span>
+              </td>
+
+              <td>
+                <small class="d-block text-muted">Nhận: <strong class="text-dark" th:text="${item.ngayCheckIn}">01/01</strong></small>
+                <small class="d-block text-muted">Trả: <strong class="text-dark" th:text="${item.ngayCheckOut}">02/01</strong></small>
+              </td>
+              <td class="text-end fw-bold text-danger"
+                  th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+
+              <td class="text-center">
+                <form th:action="@{/receptionist/checkin/execute/{id}(id=${item.id})}" method="get" class="d-flex flex-column gap-2 p-2 rounded bg-light border">
+
+                  <div class="input-group input-group-sm">
+                    <label class="input-group-text bg-navy text-white small" th:for="'room-' + ${item.id}"><i class="bi bi-key-fill"></i></label>
+                    <select name="maPhong" th:id="'room-' + ${item.id}" class="form-select form-select-sm fw-bold text-navy" required>
+                      <option value="">-- Gán số phòng --</option>
+                      <option th:if="${item.maPhong != null}" th:value="${item.maPhong}" th:text="'Phòng ' + ${item.maPhong}" selected></option>
+                      <option th:each="p : ${emptyRooms}"
+                              th:value="${p.id}"
+                              th:text="'Phòng ' + ${p.id}"
+                              th:if="${item.maPhong == null or p.id != item.maPhong}"
+                              th:selected="${p.id == autoSelectedRoomId}"></option>
+                    </select>
+                  </div>
+
+                  <div class="form-check form-switch m-0 text-start ps-5">
+                    <input class="form-check-input cursor-pointer" type="checkbox" name="isPaidUpfront" value="true" th:id="'checkPaid-' + ${item.id}"
+                           th:checked="${item.idTaiKhoan == null}">
+                    <label class="form-check-label small fw-bold text-secondary" th:for="'checkPaid-' + ${item.id}" style="font-size: 0.75rem;">Thu trước 1 đêm (TM)</label>
+                  </div>
+
+                  <button type="submit" class="btn btn-gold btn-sm w-100 rounded-pill fw-bold small py-1"
+                          onclick="return confirm('Xác nhận số phòng vật lý bàn giao, lập biên bản cọc và tiến hành Check-in?')">
+                    <i class="bi bi-check2-circle me-1"></i> Duyệt nhận phòng
+                  </button>
+
+                </form>
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<th:block th:fragment="extra_js">
+</th:block>
+
+</body>
+</html>

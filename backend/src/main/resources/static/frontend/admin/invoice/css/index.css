@@ -1,0 +1,62 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --light-bg: #f8f9fa;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    --transition-speed: 0.3s;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.text-gold { color: var(--gold-color) !important; }
+.text-navy { color: var(--navy-color) !important; }
+
+.bg-navy { background-color: var(--navy-color) !important; color: white !important; }
+
+/* Status Badges */
+.status-badge {
+    padding: 0.4rem 0.8rem;
+    border-radius: 50rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+.status-completed {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+    border: 1px solid #c8e6c9;
+}
+.status-active {
+    background-color: #e3f2fd;
+    color: #1565c0;
+    border: 1px solid #bbdefb;
+}
+
+.btn-create-booking {
+    background-color: var(--gold-color);
+    color: white;
+    font-weight: 600;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-create-booking:hover {
+    background-color: var(--gold-hover);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(197, 160, 23, 0.3) !important;
+}
+
+/* Card & Table */
+.card {
+    border-radius: 12px;
+    box-shadow: var(--card-shadow) !important;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(15, 41, 66, 0.03);
+}

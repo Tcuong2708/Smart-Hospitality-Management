@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ cá nhân - MAY HOTEL</title>
+    <link rel="stylesheet" href="css/profile.css" />
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+
+<body>
+
+    <div class="profile-wrapper fade-in-box">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card card-profile">
+                        <div class="row g-0">
+
+                            <!-- Sidebar -->
+                            <div class="col-md-4 p-0">
+                                <div class="profile-sidebar h-100 w-100">
+                                    <div class="avatar-circle">
+                                        <i class="bi bi-person-fill"></i>
+                                    </div>
+                                    <div class="profile-name" id="display-name">Đang tải...</div>
+                                    <div class="profile-role" id="display-role">MEMBER</div>
+                                    <p class="mt-4 small fst-italic">"Trải nghiệm đẳng cấp thượng lưu"</p>
+                                </div>
+                            </div>
+
+                            <!-- Content -->
+                            <div class="col-md-8 p-0">
+                                <div class="profile-content h-100 w-100">
+                                    <h3 class="form-header">
+                                        <i class="bi bi-gear-fill me-2 text-warning"
+                                            style="color: var(--primary-gold) !important;"></i>Cập nhật hồ sơ
+                                    </h3>
+
+                                <div id="alert-message" class="alert alert-dismissible fade show shadow-sm" role="alert"
+                                    style="display: none;">
+                                    <i class="bi me-2" id="alert-icon"></i> <span id="alert-text"></span>
+                                    <button type="button" class="btn-close"
+                                        onclick="this.parentElement.style.display='none';"></button>
+                                </div>
+
+                                <form id="profile-form">
+                                    <input type="hidden" id="idTaiKhoan" />
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tên đăng nhập</label>
+                                            <input type="text" id="tenDangNhap"
+                                                class="form-control form-control-profile" readonly />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Họ và tên</label>
+                                            <input type="text" id="hoTen" class="form-control form-control-profile"
+                                                required />
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Số điện thoại</label>
+                                            <input type="text" id="soDienThoai"
+                                                class="form-control form-control-profile" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Quốc tịch</label>
+                                            <input type="text" id="quocTich" class="form-control form-control-profile"
+                                                placeholder="Việt Nam" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Địa chỉ</label>
+                                        <textarea id="diaChi" class="form-control form-control-profile"
+                                            rows="3"></textarea>
+                                    </div>
+
+                                    <div class="d-flex justify-content-end pt-2 border-top">
+                                        <button type="submit" id="btn-update" class="btn btn-update">
+                                            <i class="bi bi-save2-fill me-2"></i>Lưu thông tin
+                                        </button>
+                                    </div>
+                                </form>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../layout.js"></script>
+    <script src="../app.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,47 @@
+:root {
+    --color-navy: #0f172a;
+    --color-gold: #d4af37;
+    --color-gold-hover: #b4932a;
+}
+
+/* Text & Background colors */
+.text-navy {
+    color: var(--color-navy) !important;
+}
+
+.bg-navy {
+    background-color: var(--color-navy) !important;
+    color: white;
+}
+
+/* Nút bấm Vàng Gold */
+.btn-gold {
+    background-color: var(--color-gold);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+    background-color: var(--color-gold-hover);
+    color: white;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+/* Tùy chỉnh ô nhập liệu */
+.form-control:focus {
+    border-color: var(--color-gold);
+    box-shadow: 0 0 0 0.25rem rgba(212, 175, 55, 0.25);
+}
+
+.form-label {
+    font-size: 0.95rem;
+}
+
+/* Badge ID riêng cho trang Edit */
+.badge-id {
+    background-color: rgba(255, 255, 255, 0.2);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.4);
+}

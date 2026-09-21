@@ -1,0 +1,72 @@
+﻿<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Admin/Service/index.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="text-navy fw-bold text-uppercase border-start border-5 border-warning ps-3">
+                Danh sách Dịch vụ
+            </h2>
+            <a th:href="@{/admin/services/create}" class="btn btn-gold fw-bold shadow-sm">
+                <i class="bi bi-plus-circle me-2"></i>Thêm dịch vụ mới
+            </a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show">
+            <i class="bi bi-check-circle me-2"></i><span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show">
+            <i class="bi bi-exclamation-triangle me-2"></i><span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="card border-0 shadow-sm admin-card">
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-header-navy text-white">
+                    <tr>
+                        <th class="ps-4 py-3">Tên Dịch vụ</th>
+                        <th class="text-end">Đơn giá</th>
+                        <th class="text-center">Đơn vị tính</th>
+                        <th class="text-center" style="width: 150px;">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <th:block th:if="${services != null && !#lists.isEmpty(services)}">
+                        <tr th:each="item : ${services}">
+                            <td class="ps-4 fw-bold text-navy" th:text="${item.tenDV}">Tên dịch vụ</td>
+                            <td class="text-end fw-bold text-warning"
+                                th:text="${#numbers.formatDecimal(item.giaTien, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                            <td class="text-center">
+                                <span class="badge bg-light text-dark border" th:text="${item.donVi}">Lần</span>
+                            </td>
+                            <td class="text-center">
+                                <a th:href="@{/admin/services/edit/{id}(id=${item.maDV})}" class="btn btn-sm btn-outline-primary border-0" title="Sửa">
+                                    <i class="bi bi-pencil-square fs-5"></i>
+                                </a>
+                                <a th:href="@{/admin/services/delete/{id}(id=${item.maDV})}" class="btn btn-sm btn-outline-danger border-0" title="Xóa">
+                                    <i class="bi bi-trash fs-5"></i>
+                                </a>
+                            </td>
+                        </tr>
+                    </th:block>
+                    <tr th:if="${services == null || #lists.isEmpty(services)}">
+                        <td colspan="4" class="text-center py-4 text-muted">
+                            <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                            Chưa có dịch vụ nào trong hệ thống.
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="extra_js"></div>
+</html>

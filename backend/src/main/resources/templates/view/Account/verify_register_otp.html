@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<head>
+    <title>Xác thực OTP - MAY HOTEL</title>
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+    <style>
+        .card-verify { border-radius: 15px; overflow: hidden; }
+        .bg-navy { background-color: #001f3f; color: white; }
+        .btn-verify { background-color: #d4af37; color: white; border-radius: 8px; }
+        .btn-verify:hover { background-color: #b5952f; color: white; }
+        .otp-input { letter-spacing: 5px; font-size: 1.5rem; text-align: center; }
+    </style>
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="login-wrapper py-5 bg-light">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                    <div class="card card-verify shadow-lg border-0">
+
+                        <div class="card-header text-center py-4 bg-navy">
+                            <h2 class="fw-bold mb-0">Xác Thực Mã OTP</h2>
+                            <p class="mb-0 small opacity-75">Bảo mật tài khoản của bạn</p>
+                        </div>
+
+                        <div class="card-body p-4 p-md-5 text-center">
+
+                            <div th:if="${error != null}" class="alert alert-danger text-center mb-4 shadow-sm">
+                                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                                <span th:text="${error}"></span>
+                            </div>
+                            <div th:if="${success != null}" class="alert alert-success text-center mb-4 shadow-sm">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                <span th:text="${success}"></span>
+                            </div>
+
+                            <p class="text-muted mb-4">
+                                Một mã số gồm 6 chữ số đã được gửi đến email <br>
+                                <strong class="text-dark" th:text="${email}">email@example.com</strong>
+                            </p>
+
+                            <form th:action="@{/account/verify-otp}" method="post">
+                                <input type="hidden" name="email" th:value="${email}" />
+                                
+                                <div class="mb-4">
+                                    <input type="text" name="otp" class="form-control form-control-lg otp-input fw-bold" placeholder="• • • • • •" required maxlength="6" pattern="\d{6}" title="Vui lòng nhập đúng 6 chữ số" autofocus />
+                                </div>
+
+                                <button type="submit" class="btn btn-verify w-100 py-3 fw-bold shadow-sm">
+                                    <i class="bi bi-shield-check me-2"></i> XÁC NHẬN
+                                </button>
+                            </form>
+
+                            <div class="mt-4">
+                                <p class="small text-muted mb-1">Chưa nhận được mã?</p>
+                                <a href="#" class="small fw-bold text-decoration-none" style="color: #d4af37;">Gửi lại mã OTP</a>
+                                <div class="mt-3">
+                                    <a th:href="@{/account/register}" class="small text-muted text-decoration-none">
+                                        <i class="bi bi-arrow-left me-1"></i> Trở về đăng ký
+                                    </a>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+</th:block>
+
+</body>
+</html>

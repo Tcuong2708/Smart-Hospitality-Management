@@ -1,0 +1,43 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --light-bg: #f8f9fa;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.room-grid { 
+    display: grid; 
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
+    gap: 20px; 
+    padding: 20px 0; 
+}
+
+.room-card { 
+    border: 2px solid #1A1A1A; 
+    border-radius: 12px; 
+    background: #FFFFFF; 
+    transition: all 0.2s ease; 
+}
+
+.room-card:hover { 
+    transform: translateY(-3px); 
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1); 
+}
+
+/* Status colors (Left border) */
+.status-empty { border-left: 8px solid #198754; }    /* Green - Empty */
+.status-occupied { border-left: 8px solid #DC3545; } /* Red - Occupied */
+.status-dirty { border-left: 8px solid #FFC107; }    /* Yellow - Needs cleaning */
+
+.btn-action { 
+    font-size: 0.85rem; 
+    font-weight: bold; 
+    border-radius: 6px; 
+    width: 100%; 
+    text-align: center; 
+}

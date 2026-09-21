@@ -1,0 +1,29 @@
+.booking-card {
+    max-width: 480px;
+    margin: 0 auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    overflow: hidden;
+    border: 1px solid #f0f0f0;
+}
+.booking-header {
+    background-color: #fafafa;
+    padding: 15px;
+    text-align: center;
+    border-bottom: 1px solid #f0f0f0;
+}
+.booking-header h5 {
+    margin: 0;
+    font-weight: 900;
+    color: #f1f1f1; /* Màu xám rất nhạt giống trong ảnh */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 1px 1px 0px #e0e0e0;
+}
+.room-title { font-weight: 800; font-size: 1.5rem; color: #222; margin-top: 15px; }
+.room-price { color: #dc3545; font-weight: 800; font-size: 1.25rem; }
+.badge-status { background-color: #198754; color: white; padding: 6px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; }
+.btn-submit-booking { background-color: #ffc107; border: none; color: white; font-weight: bold; padding: 12px; border-radius: 5px; }
+.btn-submit-booking:hover { background-color: #e0a800; color: white; }        .form-label { color: #333; }
+.form-control:focus { border-color: #ffc107; box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25); }

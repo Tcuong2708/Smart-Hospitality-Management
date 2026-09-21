@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Admin/Invoice/delete.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <div class="delete-card shadow-lg bg-white mx-auto">
+            <div class="delete-header text-white text-center py-3">
+                <h3 class="mb-0 fw-bold text-uppercase">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>Xóa Đơn Đặt
+                </h3>
+            </div>
+
+            <div class="card-body p-4 text-center">
+                <h5 class="text-muted mb-4">Bạn có chắc chắn muốn xóa đơn đặt này không?</h5>
+
+                <div class="mb-3 text-danger" style="font-size: 50px;">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </div>
+
+                <h3 class="fw-bold text-dark mb-3" th:text="'Đơn hàng #' + ${invoice.id}">Đơn hàng #0</h3>
+
+                <div class="order-summary text-start border p-3 bg-light rounded mb-3">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted"><i class="bi bi-person-fill me-1"></i>Khách hàng:</span>
+                        <span class="fw-bold text-dark" th:text="${invoice.hoTen}">Tên</span>
+                    </div>
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>Ngày đặt:</span>
+                        <span class="fw-bold text-dark" th:text="${#temporals.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm')}">01/01/2026</span>
+                    </div>
+                    <div class="d-flex justify-content-between border-top pt-2 mt-2">
+                        <span class="text-muted">Tổng tiền:</span>
+                        <span class="fw-bold text-danger fs-5"
+                              th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                    </div>
+                </div>
+
+                <div class="warning-box text-start p-3 rounded mb-4">
+                    <strong><i class="bi bi-info-circle-fill"></i> Lưu ý quan trọng:</strong><br />
+                    Hành động này sẽ xóa vĩnh viễn đơn đặt và giải phóng trạng thái phòng về trống. Không thể khôi phục dữ liệu sau khi xóa.
+                </div>
+
+                <form th:action="@{/admin/invoices/delete/{id}(id=${invoice.id})}" method="post">
+                    <div class="d-flex justify-content-center gap-3">
+                        <a th:href="@{/admin/invoices}" class="btn btn-secondary px-4">
+                            <i class="bi bi-x-lg me-1"></i> Hủy bỏ
+                        </a>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold shadow-sm">
+                            <i class="bi bi-trash-fill me-1"></i> Xác nhận xóa
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="extra_js"></div>
+</html>

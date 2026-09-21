@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<head>
+    <title th:text="${pageTitle}">Lịch Sử Đặt Phòng - MAY HOTEL</title>
+</head>
+<body class="bg-light">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/frontend/home/booking/history.css}">
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <a th:href="@{/rooms}" class="text-decoration-none text-muted mb-4 d-inline-block">
+            <i class="bi bi-arrow-left me-1"></i> Trở về Danh sách phòng
+        </a>
+
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-uppercase" style="color: var(--navy-color); letter-spacing: 1px;">
+                <i class="bi bi-clock-history me-2" style="color: var(--gold-color);"></i>Lịch sử giao dịch
+            </h2>
+            <div style="width: 60px; height: 3px; background-color: var(--gold-color); margin: 10px auto;"></div>
+        </div>
+
+        <!-- Form tìm kiếm bằng Số điện thoại (tạm thời thay thế tài khoản) -->
+        <div class="row justify-content-center mb-4">
+            <div class="col-md-6">
+                <form th:action="@{/booking/history}" method="get" class="d-flex">
+                    <input type="text" name="phone" class="form-control me-2" placeholder="Nhập số điện thoại đã đặt phòng..." required>
+                    <button type="submit" class="btn btn-gold fw-bold text-nowrap">Tra cứu</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0" style="border-radius: 12px;">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-navy text-white">
+                            <tr>
+                                <th class="py-3 px-4">Mã Đơn</th>
+                                <th class="py-3 px-4">Ngày Đặt</th>
+                                <th class="py-3 px-4">Ngày Nhận / Trả</th>
+                                <th class="py-3 px-4 text-end">Tổng Tiền</th>
+                                <th class="py-3 px-4 text-center">Trạng Thái</th>
+                                <th class="py-3 px-4 text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-list">
+                            <tr th:if="${historyList == null || historyList.isEmpty()}">
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-journal-x fs-1 d-block mb-3 opacity-50"></i>
+                                    Chưa có dữ liệu lịch sử đặt phòng cho số điện thoại này.
+                                </td>
+                            </tr>
+                            <tr th:each="hd : ${historyList}">
+                                <td class="px-4 fw-bold text-navy">#[[${hd.id}]]</td>
+                                <td class="px-4 text-muted" th:text="${#dates.format(hd.bookedAt, 'dd/MM/yyyy HH:mm')}"></td>
+                                <td class="px-4">
+                                    <span th:text="${#dates.format(hd.checkInDate, 'dd/MM/yyyy')}"></span><br>
+                                    <small class="text-muted"><i class="bi bi-arrow-down"></i></small><br>
+                                    <span th:text="${#dates.format(hd.checkOutDate, 'dd/MM/yyyy')}"></span>
+                                </td>
+                                <td class="px-4 text-end fw-bold text-danger" th:text="${#numbers.formatDecimal(hd.totalAmount, 0, 'COMMA', 0, 'POINT')} + ' đ'"></td>
+                                <td class="px-4 text-center">
+                                    <span th:if="${hd.invoiceStatus == 'Reserved' && hd.isPaid == false}" class="badge bg-warning text-dark px-3 py-2 rounded-pill"><i class="bi bi-hourglass-split me-1"></i>Chờ nhận phòng</span>
+                                    <span th:if="${hd.invoiceStatus == 'Reserved' && hd.isPaid == true}" class="badge bg-info text-dark px-3 py-2 rounded-pill"><i class="bi bi-check2-circle me-1"></i>Đã thanh toán Online</span>
+                                    <span th:if="${hd.invoiceStatus == 'Completed'}" class="badge bg-success px-3 py-2 rounded-pill"><i class="bi bi-check-circle me-1"></i>Hoàn thành</span>
+                                    <span th:if="${hd.invoiceStatus == 'Cancelled'}" class="badge bg-secondary px-3 py-2 rounded-pill"><i class="bi bi-x-circle me-1"></i>Đã hủy</span>
+                                </td>
+                                <td class="px-4 text-center">
+                                    <a th:href="@{/booking/history/detail(id=${hd.id})}" class="btn btn-sm btn-outline-navy rounded-pill px-3">Chi tiết</a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+</th:block>
+
+</body>
+</html>

@@ -1,0 +1,32 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+}
+
+.bg-navy { background-color: var(--navy-color) !important; }
+.text-gold { color: var(--gold-color) !important; }
+
+.btn-gold {
+    background-color: var(--gold-color);
+    color: white;
+    border: none;
+    transition: 0.3s;
+    border-radius: 8px;
+}
+
+.btn-gold:hover {
+    background-color: var(--gold-hover);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(197, 160, 23, 0.4);
+}
+
+.qr-box {
+    max-width: 250px;
+    border: 3px solid var(--gold-color);
+    padding: 10px;
+    border-radius: 15px;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}

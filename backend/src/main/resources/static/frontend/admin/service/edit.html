@@ -1,0 +1,98 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập Nhật Dịch Vụ - MAY HOTEL</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/edit.css" />
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-5">
+        <div id="alert-container"></div>
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-2">Đang tải thông tin dịch vụ...</p>
+        </div>
+
+        <div class="row justify-content-center" id="edit-content" style="display: none;">
+            <div class="col-md-8">
+                <div class="card border-0 shadow-lg form-card">
+                    <div class="card-header bg-navy text-white py-3 d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0 fw-bold text-uppercase fs-5">
+                            <i class="bi bi-pencil-square me-2"></i>Cập nhật Dịch Vụ
+                        </h4>
+                        <span class="badge badge-id px-3 py-2 rounded-pill" id="display-id">
+                            ID: #...
+                        </span>
+                    </div>
+                    <div class="card-body p-5">
+                        <form id="edit-form">
+                            <input type="hidden" id="maDV" name="maDV" />
+
+                            <div class="mb-4">
+                                <label class="form-label fw-bold text-navy">Tên dịch vụ <span class="text-danger">*</span></label>
+                                <input type="text" id="tenDV" name="tenDV" class="form-control form-control-lg" required />
+                            </div>
+
+                            <div class="row mb-4">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <label class="form-label fw-bold text-navy">Giá tiền (VNĐ) <span class="text-danger">*</span></label>
+                                    <div class="input-group">
+                                        <input type="number" id="giaTien" name="giaTien" class="form-control" min="0" required />
+                                        <span class="input-group-text bg-light text-secondary">VNĐ</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold text-navy">Đơn vị tính <span class="text-danger">*</span></label>
+                                    <input type="text" id="donVi" name="donVi" class="form-control" required />
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-end gap-2 border-top pt-4 mt-3">
+                                <a href="index.html" class="btn btn-outline-secondary px-4 fw-bold">
+                                    <i class="bi bi-x-lg me-2"></i>Hủy bỏ
+                                </a>
+                                <button type="submit" class="btn btn-gold px-4 fw-bold">
+                                    <i class="bi bi-check-lg me-2"></i>Lưu thay đổi
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="js/edit.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

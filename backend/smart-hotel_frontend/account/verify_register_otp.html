@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xác nhận mã OTP kích hoạt - MAY HOTEL</title>
+    <link rel="stylesheet" href="css/verify_register_otp.css" />
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+
+    <div class="login-wrapper py-5 fade-in-box">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                    <div class="card card-login border-0">
+                        <div class="card-header-login text-center py-4 text-white bg-navy">
+                            <h3 class="fw-bold text-white mb-1">Xác nhận bảo mật</h3>
+                            <p class="mb-0 small opacity-75 px-2">Vui lòng kiểm tra Email để lấy mã OTP 6 số kích hoạt tài khoản</p>
+                        </div>
+                        <div class="card-body p-4 p-md-5">
+
+                            <div id="error-message" class="alert alert-danger text-center mb-4 border-0 shadow-sm" style="display: none;">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i><span>Thông báo lỗi</span>
+                            </div>
+
+                            <form id="verify-otp-form">
+                                <div class="mb-4 text-start">
+                                    <label class="form-label fw-bold text-navy">Nhập mã OTP kích hoạt <span class="text-danger">*</span></label>
+                                    <input type="text" id="otp" name="otp" class="form-control form-control-lg text-center fw-bold letter-spacing-lg text-navy"
+                                           placeholder="• • • • • •" maxlength="6" autocomplete="off" required />
+                                </div>
+
+                                <button type="submit" id="btn-submit" class="btn btn-gold w-100 py-3 fw-bold text-white text-uppercase">
+                                    KÍCH HOẠT TÀI KHOẢN <i class="bi bi-shield-check ms-1"></i>
+                                </button>
+                            </form>
+
+                            <div class="mt-3 text-end">
+                                <form id="resend-otp-form">
+                                    <button type="submit" id="btn-resend" class="btn btn-link p-0 small fw-bold text-decoration-none text-gold-hover">
+                                        <i class="bi bi-arrow-clockwise"></i> Gửi lại mã mới
+                                    </button>
+                                </form>
+                            </div>
+
+                            <div class="text-center mt-4 border-top pt-3">
+                                <a href="register.html" class="text-decoration-none text-muted small">
+                                    <i class="bi bi-arrow-left"></i> Quay lại trang đăng ký
+                                </a>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+<script src="../layout.js"></script>
+<script src="../app.js"></script>
+<script src="js/verify_register_otp.js"></script>
+</body>
+</html>

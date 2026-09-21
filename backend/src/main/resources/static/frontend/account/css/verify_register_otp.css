@@ -1,0 +1,72 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --bg-light: #f4f6f9;
+}
+
+.login-wrapper {
+    background-color: var(--bg-light);
+    width: 100%;
+    min-height: 68vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-login {
+    background: #ffffff !important;
+    border-radius: 8px !important;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(15, 41, 66, 0.1) !important;
+}
+
+.bg-navy {
+    background-color: var(--navy-color) !important;
+}
+
+.text-navy {
+    color: var(--navy-color) !important;
+}
+
+/* 🌟 ÉP NỀN VÀNG CHỮ TRẮNG RỰC RỠ TRỰC TIẾP TẠI ĐÂY */
+.btn-gold {
+    background-color: #C5A017 !important;
+    border-color: #C5A017 !important;
+    color: #ffffff !important; /* Ép chữ nổi lên màu trắng */
+    display: block !important;
+    width: 100% !important;
+    transition: all 0.2s ease-in-out !important;
+    box-shadow: 0 4px 12px rgba(197, 160, 23, 0.3) !important;
+}
+
+.btn-gold:hover {
+    background-color: #a68512 !important;
+    border-color: #a68512 !important;
+    color: #ffffff !important;
+    transform: translateY(-1px) !important;
+}
+
+.text-gold-hover {
+    color: #C5A017 !important;
+    font-size: 0.85rem !important;
+    font-weight: 700;
+}
+
+.text-gold-hover:hover {
+    color: #a68512 !important;
+}
+
+.letter-spacing-lg {
+    letter-spacing: 8px !important;
+    font-size: 1.6rem !important;
+    background-color: #f8f9fa !important;
+    border: 2px solid #e2e8f0 !important;
+    border-radius: 6px !important;
+}
+
+.letter-spacing-lg:focus {
+    border-color: #C5A017 !important;
+    background-color: #ffffff !important;
+    box-shadow: 0 0 0 3px rgba(197, 160, 23, 0.15) !important;
+}

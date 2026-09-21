@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Thống Kê Kinh Doanh - MAY HOTEL</title>
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Admin/Statistical/index.css}" />
+    <style>
+        .text-navy { color: #0F2942 !important; }
+        .bg-navy { background-color: #0F2942 !important; }
+        .text-gold { color: #C5A017 !important; }
+    </style>
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-4">
+
+        <input type="hidden" id="revArrayData" th:value="${#strings.arrayJoin(doanhThuArr, ',')}" />
+        <input type="hidden" id="ordArrayData" th:value="${#strings.arrayJoin(soDonArr, ',')}" />
+
+        <h2 class="text-uppercase fw-bold text-center mb-4 text-navy">
+            Thống kê kinh doanh năm <th:block th:text="${nam}"></th:block>
+        </h2>
+
+        <div class="row mb-4">
+            <div class="col-md-4">
+                <div class="card bg-primary text-white mb-3 h-100 shadow-sm border-0">
+                    <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                        <h5 class="card-title opacity-75 small text-uppercase fw-bold">Tổng Doanh Thu Năm</h5>
+                        <h2 class="fw-bold mt-2" th:text="${#numbers.formatDecimal(tongDoanhThu, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card bg-success text-white mb-3 h-100 shadow-sm border-0">
+                    <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                        <h5 class="card-title opacity-75 small text-uppercase fw-bold">Tổng Đơn Đặt Phòng</h5>
+                        <h2 class="fw-bold mt-2" th:text="${tongSoDon} + ' đơn'">0 đơn</h2>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card bg-warning text-dark mb-3 h-100 shadow-sm border-0">
+                    <div class="card-body text-center d-flex flex-column justify-content-center py-4">
+                        <h5 class="card-title opacity-75 small text-uppercase fw-bold">Trung bình / Tháng</h5>
+                        <h2 class="fw-bold mt-2" th:text="${#numbers.formatDecimal(trungBinhThang, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h2>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
+            <div class="card-header bg-white fw-bold py-3 text-navy border-bottom">
+                <i class="bi bi-bar-chart-line-fill me-2 text-warning"></i>Biểu đồ doanh thu từng tháng
+            </div>
+            <div class="card-body p-4">
+                <div style="position: relative; height:380px; width:100%">
+                    <canvas id="myChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        console.log("-> [MAY HOTEL]: Khởi tạo đồ thị phân tích liên hợp Doanh thu - Lượt đơn");
+
+        // Bóc tách mảng dữ liệu từ các thẻ ẩn an toàn
+        const rawRevStr = document.getElementById("revArrayData").value;
+        const rawOrdStr = document.getElementById("ordArrayData").value;
+
+        const cleanDoanhThu = rawRevStr ? rawRevStr.split(',').map(Number) : Array(12).fill(0);
+        const cleanSoDon = rawOrdStr ? rawOrdStr.split(',').map(Number) : Array(12).fill(0);
+
+        const ctxElement = document.getElementById('myChart');
+        if (ctxElement) {
+            new Chart(ctxElement, {
+                data: {
+                    labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
+                    datasets: [
+                        {
+                            type: 'bar', // Cột đứng doanh thu
+                            label: 'Doanh thu (VNĐ)',
+                            data: cleanDoanhThu,
+                            backgroundColor: 'rgba(15, 41, 66, 0.85)',
+                            borderColor: '#0F2942',
+                            borderWidth: 1,
+                            borderRadius: 4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            type: 'line', // Đường chỉ số lượt đặt
+                            label: 'Số đơn đặt',
+                            data: cleanSoDon,
+                            borderColor: '#C5A017',
+                            backgroundColor: '#C5A017',
+                            borderWidth: 3,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            tension: 0.15, // Tạo độ cong nhẹ cho đường line sinh động
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
+                    plugins: {
+                        tooltip: {
+                            callbacks: {
+                                // Định dạng hiển thị tiền VND cực chuẩn khi rê chuột vào cột doanh thu
+                                label: function(context) {
+                                    let labelText = context.dataset.label || '';
+                                    if (labelText) { labelText += ': '; }
+                                    if (context.datasetIndex === 0) {
+                                        labelText += new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.parsed.y);
+                                    } else {
+                                        labelText += context.parsed.y + ' đơn';
+                                    }
+                                    return labelText;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            beginAtZero: true,
+                            title: { display: true, text: 'Doanh thu (VNĐ)', font: { weight: 'bold' } },
+                            ticks: {
+                                callback: function(value) {
+                                    return new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value) + ' đ';
+                                }
+                            }
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            beginAtZero: true,
+                            grid: { drawOnChartArea: false }, // Ẩn grid để không bị đè rối mắt
+                            title: { display: true, text: 'Số lượng đơn đặt', font: { weight: 'bold' } },
+                            ticks: {
+                                stepSize: 1, // Ép nhảy số nguyên tròn đơn
+                                callback: function(value) { return value + ' đơn'; }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    </script>
+</div>
+
+<th:block th:fragment="extra_js"></th:block>
+
+</body>
+</html>

@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MAY HOTEL - Đẳng Cấp Sang Trọng</title>
+  <link rel="stylesheet" href="css/home.css" />
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+
+<body>
+
+  <!-- ==================== MAIN CONTENT ==================== -->
+  <div class="main-content fade-in-box" id="app-content">
+
+    <style>
+      /* Khắc phục lỗi không bo góc được phần hình ảnh (carousel) bên trong do hiệu ứng 3D */
+      .force-rounded-clip {
+        transform: translateZ(0);
+        -webkit-mask-image: -webkit-radial-gradient(white, black);
+      }
+    </style>
+    <!-- Hero Slider & Promo Box -->
+    <section class="container mt-4 mb-5">
+      <!-- Gộp 2 phần dính liền nhau thành một khối -->
+      <div class="row g-0 align-items-stretch shadow-sm rounded-4 overflow-hidden force-rounded-clip">
+        
+        <!-- CỘT TRÁI: BANNER -->
+        <div class="col-lg-8">
+          <div id="promoCarousel" class="carousel slide h-100" data-bs-ride="carousel">
+            <div class="carousel-indicators">
+              <button type="button" data-bs-target="#promoCarousel" data-bs-slide-to="0" class="active"></button>
+              <button type="button" data-bs-target="#promoCarousel" data-bs-slide-to="1"></button>
+              <button type="button" data-bs-target="#promoCarousel" data-bs-slide-to="2"></button>
+            </div>
+            <!-- Ép chiều cao 100% -->
+            <div class="carousel-inner h-100">
+              <div class="carousel-item active h-100">
+                <!-- Thêm object-fit: cover để ảnh không bị méo khi kéo giãn -->
+                <img loading="lazy" src="images/a1.jpg" class="d-block w-100 h-100" style="object-fit: cover; min-height: 400px;" alt="Sảnh khách sạn">
+              </div>
+              <div class="carousel-item h-100">
+                <img loading="lazy" src="images/a2.jpg" class="d-block w-100 h-100" style="object-fit: cover; min-height: 400px;" alt="Hồ bơi">
+              </div>
+              <div class="carousel-item h-100">
+                <img loading="lazy" src="images/a3.jpg" class="d-block w-100 h-100" style="object-fit: cover; min-height: 400px;" alt="Phòng nghỉ">
+              </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#promoCarousel" data-bs-slide="prev">
+              <span class="carousel-control-prev-icon"></span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#promoCarousel" data-bs-slide="next">
+              <span class="carousel-control-next-icon"></span>
+            </button>
+          </div>
+        </div>
+
+        <!-- CỘT PHẢI: ƯU ĐÃI -->
+        <div class="col-lg-4 d-flex">
+          <div class="promo-box p-4 p-xl-5 w-100 d-flex flex-column justify-content-center border-0" style="background-color: #001f3f;">
+            <h4 class="fw-bold mb-3 text-warning text-uppercase" style="letter-spacing: 1px;">
+              <i class="bi bi-gift-fill me-2"></i>Ưu đãi đặc biệt
+            </h4>
+            <h2 class="fw-bold text-white mb-3">Mùa lễ hội đã đến!</h2>
+            <p class="mb-4" style="color: rgba(255,255,255,0.8);">
+              Đặt phòng ngay hôm nay để trải nghiệm dịch vụ đẳng cấp 5 sao với ưu đãi <strong class="text-white">Voucher lên tới 1.000.000đ</strong>.<br>
+              <em class="small mt-2 d-block text-warning">* Áp dụng cho thành viên Gold & Platinum.</em>
+            </p>
+            <div class="alert mb-4 d-flex align-items-center rounded-3" style="background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
+              <i class="bi bi-alarm fs-2 me-3 text-warning"></i>
+              <div>
+                <small class="text-uppercase text-warning fw-bold">Thời gian còn lại:</small><br>
+                <span class="fs-4 fw-bold font-monospace">12 : 05 : 45</span>
+              </div>
+            </div>
+            <button class="btn btn-light w-100 mt-auto fw-bold py-3 rounded-pill" style="color: #001f3f;">
+              NHẬN ƯU ĐÃI NGAY <i class="bi bi-arrow-right-circle-fill ms-2 fs-5"></i>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Room Categories Section -->
+    <section class="container py-5" id="products">
+      <div class="text-center mb-5">
+        <h2 class="section-title">
+          <i class="bi bi-stars text-gold"></i> Phòng nghỉ nổi bật
+        </h2>
+        <p class="text-muted" style="max-width: 700px; margin: 0 auto;">
+          Đắm chìm trong không gian kiến trúc tinh tế, tiện nghi hiện đại và tận hưởng những trải nghiệm nghỉ dưỡng
+          tuyệt vời nhất tại MAY HOTEL.
+        </p>
+      </div>
+
+      <!-- Container để Javascript chèn danh sách phòng -->
+      <div class="row" id="room-categories-container">
+        <!-- Đang tải -->
+        <div class="col-12 text-center py-5" id="loading-rooms">
+          <div class="spinner-border text-primary" role="status"></div>
+          <p class="text-muted mt-2">Đang tải danh sách phòng...</p>
+        </div>
+      </div>
+
+      <div class="text-center mt-5">
+        <a href="home/rooms/list.html" class="btn btn-outline-navy">
+          XEM TẤT CẢ PHÒNG <i class="bi bi-arrow-right ms-2"></i>
+        </a>
+      </div>
+    </section>
+
+    <!-- Services Banner -->
+    <section class="container-fluid py-5 mt-5" style="background-color: #f8f9fa; border-top: 1px solid #eee;">
+      <div class="container">
+        <div class="row text-center">
+          <div class="col-md-4 mb-4 mb-md-0">
+            <div class="p-3">
+              <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle"
+                style="width: 70px; height: 70px; background-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+                <i class="bi bi-stars fs-2 text-gold"></i>
+              </div>
+              <h5 class="fw-bold text-navy">Không Gian Đẳng Cấp</h5>
+              <p class="text-muted small px-lg-4">
+                Hệ thống phòng nghỉ 5 sao, nội thất sang trọng, view thành phố tuyệt đẹp mang lại trải nghiệm thượng
+                lưu.
+              </p>
+            </div>
+          </div>
+          <div class="col-md-4 mb-4 mb-md-0">
+            <div class="p-3">
+              <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle"
+                style="width: 70px; height: 70px; background-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+                <i class="bi bi-person-hearts fs-2 text-navy"></i>
+              </div>
+              <h5 class="fw-bold text-navy">Phục Vụ Tận Tâm</h5>
+              <p class="text-muted small px-lg-4">
+                Đội ngũ nhân viên chuyên nghiệp, lễ tân 24/7, luôn sẵn sàng hỗ trợ mọi nhu cầu của Quý khách.
+              </p>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="p-3">
+              <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle"
+                style="width: 70px; height: 70px; background-color: white; box-shadow: 0 5px 15px rgba(0,0,0,0.05);">
+                <i class="bi bi-geo-alt-fill fs-2 text-gold"></i>
+              </div>
+              <h5 class="fw-bold text-navy">Vị Trí Đắc Địa</h5>
+              <p class="text-muted small px-lg-4">
+                Tọa lạc tại trung tâm thành phố, dễ dàng di chuyển đến các điểm tham quan và trung tâm thương mại.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- Javascript -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="layout.js"></script>
+  <script src="app.js"></script>
+  <script src="js/home.js"></script>
+</body>
+
+</html>

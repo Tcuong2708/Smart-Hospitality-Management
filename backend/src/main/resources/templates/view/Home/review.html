@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <title>Đánh giá từ khách hàng</title>
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Home/review.css}" />
+    <style>
+        .text-navy { color: #0F2942 !important; }
+        .text-gold { color: #C5A017 !important; }
+        .btn-gold { background-color: #C5A017 !important; color: white !important; border: none !important; transition: 0.3s; }
+        .btn-gold:hover { background-color: #a68512 !important; transform: translateY(-1px); }
+    </style>
+</th:block>
+
+<div th:fragment="body_content">
+    <section class="testimonial-section py-5">
+        <div class="container">
+            <h2 class="section-title text-center mb-5 fw-bold text-navy text-uppercase">
+                <i class="bi bi-chat-quote-fill me-3 text-gold"></i>Khách Hàng Nói Gì Về Chúng Tôi
+            </h2>
+
+            <div th:if="${success}" class="alert alert-success border-0 shadow-sm text-center mb-4" th:text="${success}"></div>
+            <div th:if="${error}" class="alert alert-danger border-0 shadow-sm text-center mb-4" th:text="${error}"></div>
+
+            <div class="testimonial-box shadow-lg position-relative bg-white rounded-3 p-5 text-center" id="testimonialBox">
+                <div class="nav-arrow left" onclick="prevTestimonial()">&#10094;</div>
+                <div class="nav-arrow right" onclick="nextTestimonial()">&#10095;</div>
+
+                <div class="testimonial-content">
+                    <img id="avatar" class="testimonial-img mb-3 rounded-circle shadow-sm" style="width: 90px; height: 90px;"
+                         src="https://ui-avatars.com/api/?name=User&background=C5A017&color=fff" alt="avatar" />
+                    <div class="stars mb-2 text-warning" id="stars"></div>
+                    <h5 class="testimonial-name fw-bold text-navy" id="name"></h5>
+                    <p class="testimonial-text fst-italic text-secondary px-md-5" id="text"></p>
+                </div>
+            </div>
+
+            <div class="form-section mt-5 p-4 bg-white rounded-3 shadow-sm">
+                <h3 class="mb-4 text-navy fw-bold text-center">
+                    <i class="bi bi-pencil-square me-2 text-gold"></i>Gửi đánh giá của bạn
+                </h3>
+
+                <div th:if="${session.user == null}" class="text-center py-4 bg-light rounded-3">
+                    <p class="text-muted small">Vui lòng đăng nhập tài khoản thành viên để gửi bình luận đánh giá hệ thống.</p>
+                    <a th:href="@{/account/login}" class="btn btn-gold fw-bold px-4 rounded-pill">ĐĂNG NHẬP NGAY</a>
+                </div>
+
+                <form th:if="${session.user != null}" th:action="@{/review/submit}" method="post" class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-navy">Họ và tên thành viên</label>
+                        <input type="text" class="form-control" th:value="${session.user.hoTen}" disabled style="background-color: #e9ecef;" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-navy">Mức độ hài lòng <span class="text-danger">*</span></label>
+                        <select name="soSao" class="form-select" required>
+                            <option value="">-- Chọn mức đánh giá --</option>
+                            <option value="5">⭐⭐⭐⭐⭐ - Tuyệt vời (5 sao)</option>
+                            <option value="4">⭐⭐⭐⭐ - Rất tốt (4 sao)</option>
+                            <option value="3">⭐⭐⭐ - Tạm được (3 sao)</option>
+                            <option value="2">⭐⭐ - Cần cải thiện (2 sao)</option>
+                            <option value="1">⭐ - Tệ (1 sao)</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label fw-bold text-navy">Nhận xét chi tiết <span class="text-danger">*</span></label>
+                        <textarea name="noiDung" class="form-control" rows="4" required placeholder="Chia sẻ cảm nghĩ thực tế của bạn về chất lượng dịch vụ tại MAY HOTEL..."></textarea>
+                    </div>
+                    <div class="col-12 text-center">
+                        <button type="submit" class="btn btn-gold px-5 py-2 text-uppercase fw-bold shadow-sm text-white">
+                            <i class="bi bi-send-fill me-2"></i> Gửi Đánh Giá
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+</div>
+
+<th:block th:fragment="extra_js">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // Nhận mảng dữ liệu đánh giá thật đã được Admin phê duyệt từ CSDL
+        const reviewList = /*[[${reviews}]]*/ [];
+        let currentIndex = 0;
+
+        function initSlider() {
+            const box = document.getElementById('testimonialBox');
+            if (!reviewList || reviewList.length === 0) {
+                box.innerHTML = `<p class="text-muted py-4 m-0"><i class="bi bi-chat-dots me-2"></i>Chưa có phản hồi công khai nào từ khách hàng.</p>`;
+                return;
+            }
+            showTestimonial(currentIndex);
+        }
+
+        function showTestimonial(index) {
+            const item = reviewList[index];
+            const clientName = item.user ? item.user.hoTen : 'Khách hàng MAY HOTEL';
+
+            // Tự động sinh ảnh đại diện tròn sang trọng theo chữ cái đầu của tên khách
+            document.getElementById('avatar').src = `https://ui-avatars.com/api/?name=${encodeURIComponent(clientName)}&background=0F2942&color=fff`;
+            document.getElementById('name').innerText = clientName;
+            document.getElementById('text').innerText = `"${item.noiDung}"`;
+
+            const starsContainer = document.getElementById('stars');
+            starsContainer.innerHTML = '';
+            for (let i = 0; i < item.soSao; i++) {
+                starsContainer.innerHTML += '<i class="bi bi-star-fill me-1"></i>';
+            }
+        }
+
+        function nextTestimonial() {
+            if (reviewList.length <= 1) return;
+            currentIndex = (currentIndex + 1) % reviewList.length;
+            showTestimonial(currentIndex);
+        }
+
+        function prevTestimonial() {
+            if (reviewList.length <= 1) return;
+            currentIndex = (currentIndex - 1 + reviewList.length) % reviewList.length;
+            showTestimonial(currentIndex);
+        }
+
+        document.addEventListener('DOMContentLoaded', initSlider);
+        /*]]>*/
+    </script>
+</th:block>
+
+</body>
+</html>

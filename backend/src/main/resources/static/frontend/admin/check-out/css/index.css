@@ -1,0 +1,77 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --light-bg: #f8f9fa;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    --transition-speed: 0.3s;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.text-gold { color: var(--gold-color) !important; }
+.text-navy { color: var(--navy-color) !important; }
+
+/* Card Styling */
+.admin-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow) !important;
+    border: 1px solid rgba(0,0,0,0.05) !important;
+}
+
+/* Table Styling */
+.table-header-navy {
+    background-color: var(--navy-color) !important;
+}
+
+.table-header-navy th {
+    background-color: var(--navy-color) !important;
+    color: white !important;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    border-bottom: none;
+}
+
+.table > :not(caption) > * > * {
+    padding: 1rem 0.5rem;
+}
+
+.table tbody tr {
+    transition: all var(--transition-speed);
+}
+
+.table tbody tr:hover {
+    background-color: rgba(15, 41, 66, 0.03);
+}
+
+/* Buttons */
+.btn-navy-action {
+    background-color: var(--navy-color) !important;
+    color: white !important;
+    border: none;
+    font-weight: 600;
+    transition: all var(--transition-speed);
+    border-radius: 8px;
+}
+
+.btn-navy-action:hover {
+    background-color: #112240 !important;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(15, 41, 66, 0.3) !important;
+}
+
+/* Form Controls */
+.form-control {
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+}
+
+.form-control:focus {
+    border-color: var(--navy-color);
+    box-shadow: 0 0 0 0.25rem rgba(15, 41, 66, 0.25);
+}

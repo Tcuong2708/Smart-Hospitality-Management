@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<head>
+    <title>Đăng nhập hệ thống - MAY HOTEL</title>
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/frontend/account/css/login.css?v=2}" />
+    <style>
+        .btn-google { background-color: white; color: #757575; border: 1px solid #ddd; border-radius: 8px; font-weight: bold; }
+        .btn-google:hover { background-color: #f8f9fa; }
+    </style>
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="login-wrapper fade-in-box">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                    <div class="card card-login shadow-lg border-0">
+
+                        <div class="card-header-login text-center py-4 bg-navy text-white">
+                            <h2 class="fw-bold mb-0">Đăng nhập</h2>
+                            <p class="mb-0 small opacity-75">Chào mừng bạn trở lại với MAY HOTEL</p>
+                        </div>
+
+                        <div class="card-body p-4 p-md-5">
+
+                            <div th:if="${error != null}" class="alert alert-danger text-center mb-4 shadow-sm">
+                                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                                <span th:text="${error}">Thông báo lỗi</span>
+                            </div>
+                            
+                            <div th:if="${success != null}" class="alert alert-success text-center mb-4 shadow-sm">
+                                <i class="bi bi-check-circle-fill me-2"></i>
+                                <span th:text="${success}">Thông báo thành công</span>
+                            </div>
+
+                            <form th:action="@{/account/login}" method="post">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-navy">Email hoặc Số điện thoại <span class="text-danger">*</span></label>
+                                    <input type="text" name="username" class="form-control form-control-lg"
+                                           placeholder="Nhập email hoặc số điện thoại" required 
+                                           pattern="^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|0[0-9]{9})$" 
+                                           title="Vui lòng nhập đúng định dạng Email (vd: letan@email.com) hoặc Số điện thoại 10 số (vd: 0987654321)" />
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-navy">Mật khẩu</label>
+                                    <input type="password" name="password" class="form-control form-control-lg"
+                                           placeholder="Nhập mật khẩu" required minlength="6" 
+                                           title="Mật khẩu phải chứa ít nhất 6 ký tự" />
+                                </div>
+
+                                <div class="form-check m-0">
+                                    <input type="checkbox" class="form-check-input" id="rememberMe" name="rememberMe">
+                                    <label class="form-check-label small text-navy fw-bold" for="rememberMe" style="cursor: pointer;">
+                                        Ghi nhớ đăng nhập
+                                    </label>
+                                </div>
+
+                                <div class="d-flex justify-content-end mb-3">
+                                    <a href="#" class="small fw-bold text-decoration-none"
+                                       style="color: #d4af37;">
+                                        Quên mật khẩu?
+                                    </a>
+                                </div>
+
+                                <button type="submit" class="btn btn-login w-100 py-3 fw-bold shadow-sm" id="btn-submit">
+                                    <i class="bi bi-box-arrow-in-right me-2"></i> ĐĂNG NHẬP
+                                </button>
+
+                                <!-- Nút đăng nhập Google -->
+                                <div class="d-flex align-items-center my-4">
+                                    <hr class="flex-grow-1 border-secondary opacity-25">
+                                    <span class="mx-3 text-secondary small fw-bold">HOẶC</span>
+                                    <hr class="flex-grow-1 border-secondary opacity-25">
+                                </div>
+
+                                <button type="button" class="btn btn-outline-dark w-100 py-2 fw-bold d-flex justify-content-center align-items-center" id="btn-google-login" style="border-radius: 12px; transition: all 0.3s ease;">
+                                    <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg" alt="Google Logo" style="width: 22px; height: 22px;" class="me-2">
+                                    Đăng nhập bằng Google
+                                </button>
+                            </form>
+
+                            <div class="login-footer text-center mt-4">
+                                <p class="mb-1 text-muted">Chưa có tài khoản? <a th:href="@{/account/register}" class="fw-bold">Đăng ký ngay</a></p>
+                                <p class="mt-2">
+                                    <a th:href="@{/}" class="small text-muted text-decoration-none">
+                                        <i class="bi bi-arrow-left me-1"></i> Quay về trang chủ
+                                    </a>
+                                </p>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+    <!-- Firebase SDK (Chỉ cần nhập key ở đây) -->
+    <script type="module">
+      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js";
+      import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/10.4.0/firebase-auth.js";
+
+      // [NOTE]: Điền Firebase Config của bạn vào đây
+      const firebaseConfig = {
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+      };
+
+      try {
+          const app = initializeApp(firebaseConfig);
+          const auth = getAuth(app);
+          const provider = new GoogleAuthProvider();
+
+          document.getElementById('btn-google-login').addEventListener('click', () => {
+              // Bỏ qua nếu chưa cấu hình
+              if(firebaseConfig.apiKey === "YOUR_API_KEY") {
+                  alert("Tính năng Đăng nhập Google cần được điền cấu hình Firebase API Key trong mã nguồn HTML (login.html).");
+                  return;
+              }
+
+              signInWithPopup(auth, provider).then((result) => {
+                  result.user.getIdToken().then((idToken) => {
+                      // Gửi Token xuống Backend
+                      fetch('/account/google-login', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                          body: 'idToken=' + encodeURIComponent(idToken)
+                      })
+                      .then(res => res.json())
+                      .then(data => {
+                          if(data.success) {
+                              window.location.href = data.redirect ? data.redirect : '/';
+                          } else {
+                              alert("Lỗi xác thực: " + data.message);
+                          }
+                      });
+                  });
+              }).catch((error) => {
+                  console.error("Lỗi Google Login", error);
+                  alert("Lỗi kết nối Firebase Google.");
+              });
+          });
+      } catch (e) {
+          console.log("Firebase setup pending...", e);
+      }
+    </script>
+</th:block>
+
+</body>
+</html>

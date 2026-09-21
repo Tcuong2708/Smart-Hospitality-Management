@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAY HOTEL - Đánh giá từ khách hàng</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="review.css">
+    <style>
+        .text-navy { color: #0F2942 !important; }
+        .text-gold { color: #C5A017 !important; }
+        .btn-gold { background-color: #C5A017 !important; color: white !important; border: none !important; transition: 0.3s; }
+        .btn-gold:hover { background-color: #a68512 !important; transform: translateY(-1px); }
+    </style>
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+
+    <section class="testimonial-section py-4">
+        <div class="container">
+            <div class="admin-card mb-4">
+                <div class="admin-header d-flex justify-content-center align-items-center">
+                    <h3 class="fw-bold text-uppercase mb-0 text-white">
+                        <i class="bi bi-chat-quote-fill me-2" style="color: #C5A017;"></i>Khách Hàng Nói Gì Về Chúng Tôi
+                    </h3>
+                </div>
+                
+                <div class="card-body p-4 p-md-5 bg-white">
+                    <!-- Hiển thị thông báo (ẩn mặc định) -->
+                    <div id="alert-message" class="alert d-none border-0 shadow-sm text-center mb-4"></div>
+
+                    <!-- Box hiển thị đánh giá -->
+                    <div class="testimonial-box shadow-sm border position-relative bg-light rounded-4 p-5 text-center mx-auto" id="testimonialBox" style="max-width: 800px;">
+                        <!-- Nút xóa (có thể chỉ cho Admin/User của review đó) -->
+                        <!-- <button class="delete-btn" onclick="deleteTestimonial()"><i class="bi bi-trash"></i> Xóa</button> -->
+                        
+                        <div class="nav-arrow left position-absolute top-50 start-0 translate-middle-y ms-3 fs-3 text-muted" id="btn-prev" style="cursor: pointer;">&#10094;</div>
+                        <div class="nav-arrow right position-absolute top-50 end-0 translate-middle-y me-3 fs-3 text-muted" id="btn-next" style="cursor: pointer;">&#10095;</div>
+
+                        <div class="testimonial-content">
+                            <img loading="lazy" id="avatar" class="testimonial-img mb-3 rounded-circle shadow-sm" style="width: 90px; height: 90px; object-fit: cover;"
+                                 src="https://ui-avatars.com/api/?name=Khach+Hang&background=001f3f&color=fff" alt="avatar" />
+                            <div class="stars mb-2 text-warning fs-5" id="stars">⭐⭐⭐⭐⭐</div>
+                            <h5 class="testimonial-name fw-bold text-navy" id="name">Đang tải dữ liệu...</h5>
+                            <p class="testimonial-text fst-italic text-secondary px-md-5 mt-3" id="text"></p>
+                        </div>
+                    </div>
+
+                    <!-- Form gửi đánh giá -->
+                    <div class="form-section mt-5 p-4 p-md-5 bg-white rounded-4 shadow-sm border mx-auto" style="max-width: 800px;">
+                        <h3 class="mb-4 text-navy fw-bold text-center">
+                            <i class="bi bi-pencil-square me-2 text-gold"></i>Gửi đánh giá của bạn
+                        </h3>
+
+                        <!-- Tùy vào state đăng nhập (sẽ code ở JS), form này hiện hoặc ẩn -->
+                        <div id="login-prompt" class="text-center py-4 bg-light rounded-3 d-none">
+                            <p class="text-muted small mb-3">Vui lòng đăng nhập tài khoản thành viên để gửi bình luận đánh giá hệ thống.</p>
+                            <!-- Sửa lại đường dẫn trỏ về file login.html trong thư mục account -->
+                            <a href="../../account/login.html" class="btn btn-gold fw-bold px-4 py-2 rounded-pill">ĐĂNG NHẬP NGAY</a>
+                        </div>
+
+                        <form id="review-form" class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-navy">Họ và tên thành viên</label>
+                                <input type="text" id="reviewer-name" class="form-control py-2" placeholder="Nhập họ tên của bạn..." required />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold text-navy">Mức độ hài lòng <span class="text-danger">*</span></label>
+                                <select id="review-stars" class="form-select py-2" required>
+                                    <option value="">-- Chọn mức đánh giá --</option>
+                                    <option value="5">⭐⭐⭐⭐⭐ - Tuyệt vời (5 sao)</option>
+                                    <option value="4">⭐⭐⭐⭐ - Rất tốt (4 sao)</option>
+                                    <option value="3">⭐⭐⭐ - Tạm được (3 sao)</option>
+                                    <option value="2">⭐⭐ - Cần cải thiện (2 sao)</option>
+                                    <option value="1">⭐ - Tệ (1 sao)</option>
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold text-navy">Nhận xét chi tiết <span class="text-danger">*</span></label>
+                                <textarea id="review-content" class="form-control" rows="5" required placeholder="Chia sẻ cảm nghĩ thực tế của bạn về chất lượng dịch vụ tại MAY HOTEL..."></textarea>
+                            </div>
+                            <div class="col-12 text-center mt-4">
+                                <button type="submit" class="btn btn-submit px-5 py-3 rounded-pill text-uppercase fw-bold shadow-sm text-white w-100 w-md-auto">
+                                    <i class="bi bi-send-fill me-2"></i> Gửi Đánh Giá
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Custom JS -->
+    <script src="review.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

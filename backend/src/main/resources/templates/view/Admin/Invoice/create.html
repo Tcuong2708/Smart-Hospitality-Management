@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
+</th:block>
+
+<div th:fragment="body_content">
+  <link rel="stylesheet" th:href="@{/css/Admin/Invoice/create.css}" />
+
+  <div class="container py-4">
+    <div class="card shadow border-0 mb-4 rounded-3 overflow-hidden">
+      <div class="card-header py-3 bg-navy text-white">
+        <h6 class="m-0 font-weight-bold text-uppercase">
+          <i class="bi bi-plus-circle-fill me-2 text-gold"></i>Tạo đơn đặt phòng (Khách lẻ / Điện thoại)
+        </h6>
+      </div>
+      <div class="card-body p-4">
+        <form th:action="@{/admin/invoices/create}" th:object="${invoice}" method="post">
+          <div class="row">
+
+            <div class="col-md-6 border-end">
+              <h5 class="text-navy mb-3 border-bottom pb-2 fw-bold">
+                <i class="bi bi-person-lines-fill me-2"></i>1. Thông tin khách hàng
+              </h5>
+              <div class="mb-3">
+                <label class="form-label">Họ và tên khách (*)</label>
+                <input type="text" name="hoTen" class="form-control border-2" placeholder="Nhập tên khách..." required />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Số điện thoại (*)</label>
+                <input type="text" name="sdt" class="form-control border-2" placeholder="Số điện thoại..." required />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Địa chỉ khách trú ngụ</label>
+                <textarea name="diaChi" class="form-control border-2" rows="3" placeholder="Nhập địa chỉ..."></textarea>
+              </div>
+            </div>
+
+            <div class="col-md-6 ps-md-4">
+              <h5 class="text-navy mb-3 border-bottom pb-2 fw-bold">
+                <i class="bi bi-calendar-check-fill me-2"></i>2. Chọn phòng & Thời gian
+              </h5>
+              <div class="mb-3">
+                <label class="form-label text-danger">Chọn Phòng Trống (*)</label>
+                <select name="maPhong" class="form-select border-2 fw-bold text-navy" required>
+                  <option value="">-- Vui lòng chọn phòng trống --</option>
+                  <option th:each="p : ${phongTrong}" th:value="${p.id}"
+                          th:text="${'Phòng ' + p.id + ' (Giá: ' + #numbers.formatDecimal(p.price, 0, 'COMMA', 0, 'POINT') + ' đ/đêm)'}"></option>
+                </select>
+                <small class="text-muted fst-italic">Hệ thống chỉ hiện các phòng đang ở trạng thái Trống (Sẵn sàng).</small>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Ngày nhận phòng</label>
+                  <input type="date" name="ngayCheckIn" class="form-control border-2" required />
+                </div>
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Ngày trả phòng</label>
+                  <input type="date" name="ngayCheckOut" class="form-control border-2" required />
+                </div>
+              </div>
+
+              <div class="alert alert-info border-0 mt-3 bg-light text-navy border-start border-4 border-navy shadow-sm">
+                <i class="bi bi-info-circle-fill me-1 text-gold"></i> Giá tiền sẽ được tự động hệ thống tính toán dựa trên <b>Giá phòng vật lý</b> x <b>Số ngày lưu trú thực tế</b>.
+              </div>
+
+              <div class="d-grid gap-2 mt-4">
+                <button type="submit" class="btn btn-gold-action py-2 fw-bold rounded-pill">
+                  <i class="bi bi-check-circle me-2"></i>XÁC NHẬN ĐẶT PHÒNG KHÁCH SẠN
+                </button>
+                <a th:href="@{/admin/invoices}" class="btn btn-secondary-custom py-2 fw-bold rounded-pill text-center">
+                  <i class="bi bi-x-circle me-1"></i>Hủy bỏ thao tác
+                </a>
+              </div>
+            </div>
+
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div th:fragment="extra_js"></div>
+</html>

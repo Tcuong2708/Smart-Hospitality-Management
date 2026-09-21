@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Tìm tài khoản</title>
+</head>
+<body>
+<div th:fragment="body_content">
+    <div class="login-wrapper py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-5">
+                    <div class="card card-login shadow-lg border-0">
+                        <div class="card-header-login text-center py-4 text-white" style="background-color: #001f3f;">
+                            <h3 class="fw-bold text-white">Tìm tài khoản của bạn</h3>
+                            <p class="mb-0 small opacity-75">Vui lòng nhập Email hoặc Số điện thoại để tìm kiếm</p>
+                        </div>
+                        <div class="card-body p-4 p-md-5">
+                            <div th:if="${error != null}" class="alert alert-danger text-center mb-4">
+                                <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+                            </div>
+
+                            <form th:action="@{/account/find_account}" method="post">
+                                <div class="mb-4">
+                                    <input type="text" name="keyword" class="form-control form-control-lg" placeholder="Email hoặc Số điện thoại" required />
+                                </div>
+                                <button type="submit" class="btn w-100 py-3 fw-bold text-white shadow-sm" style="background-color: #d4af37;">
+                                    <i class="bi bi-search me-2"></i> TÌM KIẾM
+                                </button>
+                            </form>
+
+                            <div class="text-center mt-4">
+                                <a th:href="@{/account/login}" class="text-decoration-none" style="color: #001f3f;">Hủy</a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

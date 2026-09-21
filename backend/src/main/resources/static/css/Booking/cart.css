@@ -1,0 +1,5 @@
+.text-navy { color: #1b2a47 !important; }
+.text-gold { color: #cda232 !important; }
+.bg-navy { background-color: #1b2a47 !important; color: white; }
+.cart-item { border: 1px solid #eee; border-radius: 10px; transition: 0.3s; }
+.cart-item:hover { border-color: #cda232; box-shadow: 0 5px 15px rgba(0,0,0,0.05); }

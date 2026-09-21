@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div th:fragment="body_content">
+    <link rel="stylesheet" th:href="@{/css/Admin/Room/admin-room.css}">
+    <div class="container py-5">
+        <div class="admin-form-card shadow-sm">
+            <div class="admin-header">
+                <h3 class="mb-0 fw-bold text-uppercase"><i class="bi bi-pencil-square me-2"></i>Chỉnh Sửa Phòng</h3>
+            </div>
+            <div class="card-body p-4">
+                <form th:action="@{/admin/rooms/edit}" th:object="${phong}" method="post" enctype="multipart/form-data">
+                    <input type="hidden" th:field="*{id}" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tên Phòng</label>
+                            <input type="text" th:field="*{name}" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Giá (VNĐ/đêm)</label>
+                            <input type="number" th:field="*{price}" class="form-control" required />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Loại phòng</label>
+                            <select th:field="*{maLoai}" class="form-select" required>
+                                <option th:each="l : ${listLoai}" th:value="${l.maLoai}" th:text="${l.name}"></option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Ảnh hiện tại: <span th:text="*{imageUrl}"></span></label>
+                            <input type="file" name="imageFile" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4">
+                        <a th:href="@{/admin/rooms}" class="btn btn-outline-secondary px-4">Quay lại</a>
+                        <button type="submit" class="btn btn-gold px-5">CẬP NHẬT</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

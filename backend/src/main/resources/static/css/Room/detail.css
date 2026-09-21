@@ -1,0 +1,29 @@
+/* detail.css */
+.text-navy { color: #1b2a47 !important; }
+.text-gold { color: #cda232 !important; }
+.bg-gold { background-color: #cda232 !important; color: white; }
+.btn-gold { background-color: #cda232; color: white; border: none; }
+.btn-gold:hover { background-color: #b58d2a; color: white; }
+
+.breadcrumb-item a { color: #555; }
+.status-badge {
+    border: 1px solid #198754;
+    color: #198754;
+    padding: 2px 10px;
+    border-radius: 15px;
+    font-size: 0.8rem;
+    font-weight: bold;
+}
+.info-box { border-left: 3px solid #cda232; padding-left: 15px; margin: 20px 0; }
+.amenity-icon { color: #999; font-size: 1.5rem; }
+
+.nav-tabs .nav-link {
+    color: #555;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 0.9rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+}
+.nav-tabs .nav-link.active { color: #1b2a47; border-bottom: 2px solid #cda232; background: transparent; }
+.tab-content-box { border: 1px solid #eee; padding: 20px; border-radius: 0 5px 5px 5px; }

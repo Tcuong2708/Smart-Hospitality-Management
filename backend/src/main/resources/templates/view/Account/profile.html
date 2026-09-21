@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Account/profile.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="profile-wrapper">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-10">
+                    <div class="card card-profile">
+                        <div class="row g-0">
+
+                            <div class="col-md-4 profile-sidebar">
+                                <div class="avatar-circle">
+                                    <i class="bi bi-person-fill"></i>
+                                </div>
+                                <div class="profile-name" th:text="${user.hoTen}">Họ và tên</div>
+
+                                <div th:if="${user.roleID == 1}" class="profile-role">QUẢN TRỊ VIÊN</div>
+                                <div th:if="${user.roleID == 2}" class="profile-role">NHÂN VIÊN</div>
+                                <div th:if="${user.roleID != 1 && user.roleID != 2}" class="profile-role">VIP MEMBER</div>
+
+                                <p class="mt-4 small fst-italic">"Trải nghiệm đẳng cấp thượng lưu"</p>
+                            </div>
+
+                            <div class="col-md-8 profile-content">
+                                <h3 class="form-header">
+                                    <i class="bi bi-gear-fill me-2 text-warning"></i>Cập nhật hồ sơ
+                                </h3>
+
+                                <div th:if="${success}" class="alert alert-success alert-dismissible fade show shadow-sm" role="alert">
+                                    <i class="bi bi-check-circle-fill me-2"></i> <span th:text="${success}">Cập nhật thành công!</span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                                <div th:if="${error}" class="alert alert-danger alert-dismissible fade show shadow-sm" role="alert">
+                                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <span th:text="${error}">Lỗi xử lý!</span>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+
+                                <form th:action="@{/account/update-profile}" method="post">
+
+                                    <input type="hidden" name="idTaiKhoan" th:value="${user.idTaiKhoan}" />
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Tên đăng nhập</label>
+                                            <input type="text" name="tenDangNhap" th:value="${user.tenDangNhap}" class="form-control form-control-profile" readonly />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Họ và tên</label>
+                                            <input type="text" name="hoTen" th:value="${user.hoTen}" class="form-control form-control-profile" required />
+                                        </div>
+                                    </div>
+
+                                    <div class="row mb-3">
+                                        <div class="col-md-6">
+                                            <label class="form-label">Số điện thoại</label>
+                                            <input type="number" name="soDienThoai" th:value="${user.soDienThoai}" class="form-control form-control-profile" />
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label class="form-label">Quốc tịch</label>
+                                            <input type="text" name="quocTich" th:value="${user.quocTich}" class="form-control form-control-profile" placeholder="Việt Nam" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-4">
+                                        <label class="form-label">Địa chỉ</label>
+                                        <textarea name="diaChi" th:text="${user.diaChi}" class="form-control form-control-profile" rows="3"></textarea>
+                                    </div>
+
+                                    <div class="d-flex justify-content-end pt-2 border-top">
+                                        <button type="submit" class="btn btn-update">
+                                            <i class="bi bi-save2-fill me-2"></i>Lưu thông tin
+                                        </button>
+                                    </div>
+                                </form>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="extra_js"></div>
+</html>

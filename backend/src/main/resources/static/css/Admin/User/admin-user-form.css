@@ -1,0 +1,44 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --danger-red: #A93226;
+}
+
+/* Card Chung cho Form và Detail */
+.admin-card-custom {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    overflow: hidden;
+    border: 1px solid #eee;
+}
+
+.admin-header-navy {
+    background-color: var(--navy-color);
+    color: white;
+    padding: 25px;
+    text-align: center;
+    border-bottom: 3px solid var(--gold-color);
+}
+
+/* Chi tiết thông tin */
+.info-label { font-weight: 600; color: var(--navy-color); width: 160px; }
+.info-row { display: flex; border-bottom: 1px dashed #e9ecef; padding: 15px 0; align-items: center; }
+.avatar-circle {
+    width: 90px; height: 90px; background: white; border-radius: 50%;
+    margin: 0 auto; display: flex; align-items: center; justify-content: center;
+    font-size: 45px; color: var(--gold-color); border: 3px solid var(--gold-color);
+}
+
+/* Form */
+.form-label { font-weight: 600; color: var(--navy-color); }
+.form-control:focus { border-color: var(--gold-color); box-shadow: 0 0 0 0.2rem rgba(197, 160, 23, 0.25); }
+
+/* Badge & Button */
+.badge-custom { padding: 8px 15px; border-radius: 50px; font-weight: 600; }
+.btn-gold { background-color: var(--gold-color) !important; color: white !important; border: none !important; font-weight: 600; }
+.btn-gold:hover { background-color: var(--gold-hover) !important; transform: translateY(-2px); }
+
+/* Trang Xóa */
+.warning-box { background-color: #fffdf0; color: #856404; padding: 15px; border-radius: 6px; border: 1px solid #ffeeba; }

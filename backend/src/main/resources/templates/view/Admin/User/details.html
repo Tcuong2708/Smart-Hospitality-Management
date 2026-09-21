@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Details</title>
+</head>
+<body>
+
+<div th:fragment="body_content">
+  <div class="container py-5">
+    <div class="row justify-content-center">
+      <div class="col-md-8">
+        <div class="admin-card-custom">
+          <div class="admin-header-navy">
+            <h3 class="mb-1 fw-bold text-uppercase">Thông Tin Chi Tiết</h3>
+            <p class="mb-0 small text-white-50">ID Tài khoản: #[[${user.idTaiKhoan}]]</p>
+          </div>
+          <div class="card-body p-4">
+            <div class="text-center mb-5">
+              <div class="avatar-circle mb-3"><i class="bi bi-person-fill"></i></div>
+              <h4 class="text-dark fw-bold mb-2" th:text="${user.hoTen}"></h4>
+              <span th:if="${user.roleID == 1}" class="badge bg-danger">Quản Trị Viên</span>
+              <span th:if="${user.roleID == 2}" class="badge bg-primary">Nhân Viên</span>
+              <span th:if="${user.roleID != 1 and user.roleID != 2}" class="badge bg-secondary">Khách Hàng</span>
+            </div>
+
+            <div class="px-md-4">
+              <div class="info-row"><span class="info-label">Tên đăng nhập:</span> <span class="fw-bold" th:text="${user.tenDangNhap}"></span></div>
+              <div class="info-row"><span class="info-label">Số điện thoại:</span> <span th:text="${user.soDienThoai ?: 'Chưa cập nhật'}"></span></div>
+              <div class="info-row"><span class="info-label">Quốc tịch:</span> <span th:text="${user.quocTich ?: 'Việt Nam'}"></span></div>
+              <div class="info-row"><span class="info-label">Địa chỉ:</span> <span th:text="${user.diaChi ?: 'Chưa cập nhật'}"></span></div>
+            </div>
+
+            <div class="d-flex justify-content-center gap-3 mt-5 pt-3 border-top">
+              <a th:href="@{/admin/users}" class="btn btn-outline-secondary px-4">Quay lại</a>
+              <a th:href="@{/admin/users/edit/{id}(id=${user.idTaiKhoan})}" class="btn btn-gold px-4 shadow-sm">Chỉnh sửa</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<th:block th:fragment="extra_css">
+  <style>
+    .admin-header-navy { background: #001f3f; color: white; padding: 20px; border-radius: 10px 10px 0 0; }
+    .admin-card-custom { background: white; border-radius: 10px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
+    .avatar-circle { width: 80px; height: 80px; background: #eee; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto; font-size: 40px; color: #001f3f; }
+    .info-row { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px dashed #eee; }
+    .info-label { color: #666; }
+    .btn-gold { background: #C5A059; color: white; border: none; }
+    .btn-gold:hover { background: #A68546; color: white; }
+  </style>
+</th:block>
+
+<th:block th:fragment="extra_js">
+  <script>
+    console.log("Details page loaded");
+  </script>
+</th:block>
+
+</body>
+</html>

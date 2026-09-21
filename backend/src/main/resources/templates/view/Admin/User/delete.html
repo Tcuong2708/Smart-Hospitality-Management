@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <div class="admin-card-custom mx-auto shadow-lg" style="max-width: 600px;">
+            <div class="admin-header-navy" style="border-bottom-color: var(--danger-red);">
+                <h3 class="fw-bold text-uppercase">Xác Nhận Xóa</h3>
+            </div>
+            <div class="card-body p-4 text-center">
+                <div class="avatar-circle mb-3" style="color: var(--danger-red);"><i class="bi bi-person-x"></i></div>
+                <h3 class="fw-bold" th:text="${user.hoTen}"></h3>
+                <p>Username: <strong th:text="${user.tenDangNhap}"></strong></p>
+                <div class="warning-box my-4">
+                    <strong><i class="bi bi-exclamation-triangle-fill"></i> Lưu ý:</strong><br />
+                    Hành động này không thể hoàn tác. Mọi dữ liệu liên quan sẽ bị xóa vĩnh viễn.[cite: 4]
+                </div>
+                <form th:action="@{/admin/users/delete-confirm}" method="post">
+                    <input type="hidden" name="id" th:value="${user.idTaiKhoan}" />
+                    <div class="d-flex justify-content-center gap-3">
+                        <a th:href="@{/admin/users}" class="btn btn-light border px-4">Hủy bỏ</a>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold">XÁC NHẬN XÓA</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

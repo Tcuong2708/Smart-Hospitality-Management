@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Admin/Category/index.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-uppercase" style="color: var(--navy-color);">
+                <i class="bi bi-bookmark-star-fill me-2" style="color: var(--gold-color);"></i>Quản Lý Loại Phòng
+            </h3>
+            <a th:href="@{/admin/categories/create}" class="btn btn-gold px-4 shadow-sm">
+                <i class="bi bi-plus-lg me-1"></i> Thêm Mới
+            </a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+
+        <div class="card shadow-sm border-0 admin-card">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header-navy text-white">
+                        <tr>
+                            <th class="ps-4 py-3 text-uppercase small">Mã số</th>
+                            <th class="text-uppercase small">Tên loại phòng</th>
+                            <th class="text-center text-uppercase small">Số lượng phòng</th>
+                            <th class="text-center text-uppercase small" style="width: 150px;">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:if="${categories != null && !#lists.isEmpty(categories)}">
+                            <tr th:each="item : ${categories}">
+                                <td class="ps-4 fw-bold text-muted" th:text="'#' + ${item.maLoai}">#1</td>
+                                <td class="fw-bold" style="color: var(--navy-color);">
+                                    <i class="bi bi-tag-fill me-2" style="color: var(--gold-color); opacity: 0.7;"></i>
+                                    <th:block th:text="${item.name}"></th:block>
+                                </td>
+                                <td class="text-center">
+                                        <span class="badge badge-count rounded-pill px-3 py-2"
+                                              th:text="${item.phongs != null ? #lists.size(item.phongs) : 0} + ' phòng'">
+                                            0 phòng
+                                        </span>
+                                </td>
+                                <td class="text-center">
+                                    <a th:href="@{/admin/categories/edit/{id}(id=${item.maLoai})}"
+                                       class="btn btn-warning btn-sm text-white btn-action mx-1 shadow-sm"
+                                       title="Chỉnh sửa" style="background-color: var(--gold-color); border:none;">
+                                        <i class="bi bi-pencil-square"></i>
+                                    </a>
+                                    <a th:href="@{/admin/categories/delete/{id}(id=${item.maLoai})}"
+                                       class="btn btn-danger btn-sm text-white btn-action shadow-sm" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                        </th:block>
+
+                        <tr th:if="${categories == null || #lists.isEmpty(categories)}">
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
+                                <p>Chưa có loại phòng nào trong hệ thống.</p>
+                                <a th:href="@{/admin/categories/create}" class="btn btn-sm btn-outline-secondary mt-2">Thêm ngay</a>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="extra_js"></div>
+</html>

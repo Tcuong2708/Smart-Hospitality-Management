@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Admin/Invoice/index.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-uppercase fw-bold m-0 page-title text-navy">
+                Danh sách Đơn đặt phòng
+            </h2>
+            <a th:href="@{/admin/invoices/create}" class="btn btn-create-booking shadow-sm px-4 py-2 rounded-pill">
+                <i class="bi bi-plus-lg me-2"></i>Tạo đơn khách lẻ
+            </a>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+
+        <div class="card shadow-sm border-0 overflow-hidden">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="bg-navy text-white">
+                        <tr>
+                            <th class="ps-4 py-3">Mã HĐ</th>
+                            <th>Khách hàng</th>
+                            <th>Ngày đặt</th>
+                            <th>Thời gian lưu trú</th>
+                            <th class="text-end">Tổng tiền</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-center">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <th:block th:if="${invoices != null && !#lists.isEmpty(invoices)}">
+                            <tr th:each="item : ${invoices}">
+                                <td class="ps-4 fw-bold" th:text="'#' + ${item.id}">#1</td>
+                                <td>
+                                    <div class="d-flex flex-column">
+                                        <span class="fw-bold text-navy" th:text="${item.hoTen}">Tên Khách</span>
+                                        <small class="text-muted">
+                                            <i class="bi bi-telephone-fill me-1" style="font-size: 0.7rem"></i>
+                                            <th:block th:text="${item.sdt}"></th:block>
+                                        </small>
+                                    </div>
+                                </td>
+                                <td class="text-muted small" th:text="${#temporals.format(item.ngayDat, 'dd/MM/yyyy HH:mm')}">01/01/2026 12:00</td>
+                                <td>
+                                    <div class="d-flex flex-column small">
+                                        <span><i class="bi bi-box-arrow-in-right text-success me-1"></i> <th:block th:text="${#temporals.format(item.ngayCheckIn, 'dd/MM')}"></th:block></span>
+                                        <span><i class="bi bi-box-arrow-left text-danger me-1"></i> <th:block th:text="${#temporals.format(item.ngayCheckOut, 'dd/MM')}"></th:block></span>
+                                    </div>
+                                </td>
+                                <td class="text-end fw-bold fs-6 text-gold"
+                                    th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                                <td class="text-center">
+                                    <span th:if="${item.ngayCheckOut.isBefore(#temporals.createToday())}" class="status-badge status-completed">Đã trả phòng</span>
+                                    <span th:unless="${item.ngayCheckOut.isBefore(#temporals.createToday())}" class="status-badge status-active">Đang lưu trú</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a th:href="@{/admin/invoices/details/{id}(id=${item.id})}" class="btn btn-sm btn-outline-primary border-0" title="Xem chi tiết">
+                                            <i class="bi bi-eye-fill fs-5"></i>
+                                        </a>
+                                        <a th:href="@{/admin/invoices/print/{id}(id=${item.id})}" target="_blank" class="btn btn-sm btn-outline-success border-0" title="In hóa đơn">
+                                            <i class="bi bi-printer-fill fs-5"></i>
+                                        </a>
+                                        <a th:if="${isAdmin}" th:href="@{/admin/invoices/delete/{id}(id=${item.id})}" class="btn btn-sm btn-outline-danger border-0" title="Xóa vĩnh viễn">
+                                            <i class="bi bi-trash-fill fs-5"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </th:block>
+                        <tr th:if="${invoices == null || #lists.isEmpty(invoices)}">
+                            <td colspan="7" class="text-center py-5">
+                                <i class="bi bi-clipboard-x text-muted" style="font-size: 2rem;"></i>
+                                <p class="text-muted mt-2 mb-0">Chưa có dữ liệu đơn đặt phòng nào.</p>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div th:fragment="extra_js"></div>
+</html>

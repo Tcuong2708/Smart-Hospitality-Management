@@ -1,0 +1,131 @@
+:root {
+    --primary-navy: #0F2942; /* Xanh Navy đậm */
+    --primary-gold: #C5A017; /* Vàng kim */
+    --light-bg: #f4f6f8; /* Nền xám nhạt */
+    --text-navy: #1a3c5e; /* Màu chữ xanh tối */
+}
+
+.profile-wrapper {
+    background-color: var(--light-bg);
+    padding: 50px 0;
+    min-height: 100vh;
+}
+
+.card-profile {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 15px 35px rgba(15, 41, 66, 0.15); /* Bóng đổ màu xanh nhẹ */
+    overflow: hidden;
+}
+
+/* --- CỘT TRÁI --- */
+.profile-sidebar {
+    /* Gradient Xanh Navy sang trọng */
+    background: linear-gradient(135deg, var(--primary-navy) 0%, #244b6e 100%);
+    color: white;
+    text-align: center;
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border-right: 5px solid var(--primary-gold); /* Viền vàng điểm nhấn */
+}
+
+.avatar-circle {
+    width: 120px;
+    height: 120px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+    border: 4px solid var(--primary-gold); /* Viền avatar màu vàng */
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.avatar-circle i {
+    font-size: 60px;
+    color: var(--primary-navy); /* Icon màu Navy */
+}
+
+.profile-name {
+    font-size: 24px;
+    font-weight: 700;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.profile-role {
+    font-size: 14px;
+    opacity: 0.9;
+    background: rgba(197, 160, 23, 0.2); /* Nền vàng trong suốt */
+    border: 1px solid var(--primary-gold);
+    color: var(--primary-gold);
+    padding: 5px 15px;
+    border-radius: 20px;
+    font-weight: bold;
+}
+
+/* --- CỘT PHẢI: FORM --- */
+.profile-content {
+    background: white;
+    padding: 40px;
+}
+
+.form-header {
+    border-bottom: 2px solid #eee;
+    padding-bottom: 15px;
+    margin-bottom: 25px;
+    color: var(--text-navy);
+    font-weight: 800;
+    text-transform: uppercase;
+}
+
+.form-label {
+    color: var(--text-navy);
+    font-weight: 600;
+}
+
+.form-control-profile {
+    border-radius: 6px;
+    padding: 10px 15px;
+    border: 1px solid #dae1e7;
+    background-color: #fcfcfc;
+    transition: all 0.3s;
+}
+
+/* Focus: Đổi từ viền hồng sang viền vàng/navy */
+.form-control-profile:focus {
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 0 0.2rem rgba(197, 160, 23, 0.15);
+    background-color: #fff;
+}
+
+.form-control-profile[readonly] {
+    background-color: #e9ecef;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* Nút bấm: Màu Navy, Hover ra màu Vàng */
+.btn-update {
+    background-color: var(--primary-navy);
+    color: white;
+    padding: 12px 35px;
+    border-radius: 6px;
+    border: none;
+    font-weight: bold;
+    transition: 0.3s;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.btn-update:hover {
+    background-color: var(--primary-gold);
+    color: var(--primary-navy); /* Chữ chuyển sang màu Navy cho dễ đọc */
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(197, 160, 23, 0.4);
+}

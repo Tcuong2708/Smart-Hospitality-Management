@@ -1,0 +1,91 @@
+/* detail.css */
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+}
+
+.text-navy { color: var(--navy-color) !important; }
+.text-gold { color: var(--gold-color) !important; }
+.bg-gold { background-color: var(--gold-color) !important; color: white; }
+
+.btn-gold { 
+    background-color: var(--gold-color); 
+    color: white; 
+    border: none; 
+    transition: 0.3s;
+}
+
+.btn-gold:hover { 
+    background-color: var(--gold-hover); 
+    color: white; 
+    transform: translateY(-2px);
+    box-shadow: 0 4px 10px rgba(197, 160, 23, 0.3);
+}
+
+.btn-gold:disabled {
+    background-color: #ccc;
+    box-shadow: none;
+    transform: none;
+    cursor: not-allowed;
+}
+
+.breadcrumb-item a { color: #555; transition: 0.2s;}
+.breadcrumb-item a:hover { color: var(--gold-color); }
+
+.status-badge {
+    border: 1px solid #198754;
+    color: #198754;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: bold;
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.info-box { 
+    border-left: 4px solid var(--gold-color); 
+    padding-left: 15px; 
+    margin: 20px 0; 
+}
+
+.amenity-icon { 
+    font-size: 1.8rem; 
+}
+
+.nav-tabs .nav-link {
+    color: #6c757d;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    border: none;
+    border-bottom: 3px solid transparent;
+    padding: 10px 20px;
+    transition: 0.3s;
+}
+
+.nav-tabs .nav-link:hover {
+    color: var(--navy-color);
+}
+
+.nav-tabs .nav-link.active { 
+    color: var(--navy-color); 
+    border-bottom: 3px solid var(--gold-color); 
+    background: transparent; 
+}
+
+.tab-content-box { 
+    border: 1px solid #e9ecef; 
+    padding: 30px; 
+    border-radius: 0 8px 8px 8px; 
+    border-top: none; /* Vì viền tab nằm trên */
+}
+
+/* Ẩn mũi tên mặc định của thẻ input type=number */
+input[type=number]::-webkit-inner-spin-button, 
+input[type=number]::-webkit-outer-spin-button { 
+  -webkit-appearance: none; 
+  margin: 0; 
+}
+input[type=number] {
+  -moz-appearance: textfield;
+}

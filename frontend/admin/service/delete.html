@@ -1,0 +1,101 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xóa Dịch Vụ - MAY HOTEL</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/delete.css" />
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-5">
+        <div id="alert-container"></div>
+        <div id="loading-spinner" class="text-center py-5">
+            <div class="spinner-border text-danger" role="status"></div>
+            <p class="mt-2 text-muted">Đang tải thông tin dịch vụ...</p>
+        </div>
+
+        <div class="row justify-content-center" id="delete-content" style="display: none;">
+            <div class="col-md-6">
+                <div class="card border-0 shadow-lg form-card">
+                    <div class="card-header bg-danger text-white py-3 text-center">
+                        <h4 class="mb-0 fw-bold text-uppercase">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i>Xác nhận xóa
+                        </h4>
+                    </div>
+                    <div class="card-body p-5 text-center">
+                        <div class="mb-4 text-danger opacity-75">
+                            <i class="bi bi-trash3" style="font-size: 5rem;"></i>
+                        </div>
+
+                        <h5 class="text-navy fw-bold mb-3">Bạn có chắc chắn muốn xóa dịch vụ này?</h5>
+                        <p class="text-muted mb-4">
+                            Hành động này sẽ xóa vĩnh viễn dữ liệu khỏi hệ thống và <br />
+                            <strong>không thể hoàn tác</strong>.
+                        </p>
+
+                        <div class="info-box text-start px-4 py-3 mb-4 shadow-sm">
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">ID Dịch vụ:</div>
+                                <div class="col-8 fw-bold text-dark" id="display-id">#0</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">Tên dịch vụ:</div>
+                                <div class="col-8 fw-bold text-navy text-uppercase" id="display-name">TÊN DỊCH VỤ</div>
+                            </div>
+                            <div class="row mb-2">
+                                <div class="col-4 text-muted">Đơn giá:</div>
+                                <div class="col-8 fw-bold text-warning fs-5" id="display-price">0 VNĐ</div>
+                            </div>
+                            <div class="row">
+                                <div class="col-4 text-muted">Đơn vị tính:</div>
+                                <div class="col-8" id="display-unit">Lần</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-center gap-3 mt-4 border-top pt-4">
+                            <a href="index.html" class="btn btn-outline-secondary px-4 fw-bold">
+                                <i class="bi bi-x-lg me-2"></i>Hủy bỏ
+                            </a>
+                            <button type="button" id="btn-delete" class="btn btn-danger px-4 fw-bold">
+                                <i class="bi bi-trash-fill me-2"></i>Xóa vĩnh viễn
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="js/delete.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

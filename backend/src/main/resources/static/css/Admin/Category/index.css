@@ -1,0 +1,56 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --bg-light: #f8f9fa;
+}
+
+.admin-card {
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eee;
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* Tiêu đề bảng màu Navy */
+.table-header-navy {
+    background-color: var(--navy-color);
+    color: white;
+}
+
+/* Nút Thêm Mới màu Vàng Kim */
+.btn-gold {
+    background-color: var(--gold-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-gold:hover {
+    background-color: var(--gold-hover);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* Badge số lượng */
+.badge-count {
+    background-color: #e9ecef;
+    color: var(--navy-color);
+    font-weight: 600;
+    border: 1px solid #dee2e6;
+}
+
+/* Nút thao tác nhỏ */
+.btn-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    line-height: 32px;
+    border-radius: 50%;
+    transition: 0.2s;
+}
+
+.btn-action:hover {
+    transform: scale(1.1);
+}

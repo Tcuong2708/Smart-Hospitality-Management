@@ -1,0 +1,24 @@
+<nav th:fragment="navbar_fragment" class="navbar navbar-expand-lg">
+    <div class="container">
+        <a class="navbar-brand" th:href="@{/}">MAY HOTEL</a>
+
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" th:href="@{/}">Trang chủ</a></li>
+
+                <th:block th:if="${session.user == null}">
+                    <li class="nav-item"><a class="nav-link" th:href="@{/account/login}">Đăng nhập</a></li>
+                </th:block>
+
+                <th:block th:if="${session.user != null and (session.user.roleID == 1 or session.user.roleID == 2)}">
+                    <li class="nav-item"><a class="nav-link" th:href="@{/admin/rooms}">Quản lý phòng</a></li>
+                    <li class="nav-item"><a class="nav-link" th:href="@{/admin/statistical}">Thống kê</a></li>
+                </th:block>
+
+                <th:block th:if="${session.user != null and session.user.roleID == 3}">
+                    <li class="nav-item"><a class="nav-link" th:href="@{/account/history}">Lịch sử đặt</a></li>
+                </th:block>
+            </ul>
+        </div>
+    </div>
+</nav>

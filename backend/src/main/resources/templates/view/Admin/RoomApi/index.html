@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <title>Kiểm Thử API Phòng - MAY HOTEL</title>
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+  <style>
+    .text-navy { color: #0F2942 !important; }
+    .bg-navy { background-color: #0F2942 !important; }
+    .text-gold { color: #C5A017 !important; }
+    .btn-gold { background-color: #C5A017 !important; color: white !important; border: none !important; transition: 0.3s; }
+    .btn-gold:hover { background-color: #a68512 !important; transform: translateY(-1px); }
+    .font-monospace { font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; }
+  </style>
+</th:block>
+
+<div th:fragment="body_content">
+  <div class="container py-5">
+
+    <input type="hidden" id="springCsrfToken" th:value="${_csrf?.token}" />
+    <input type="hidden" id="springCsrfHeader" th:value="${_csrf?.headerName}" />
+
+    <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4">
+      <h3 class="fw-bold text-navy border-start border-4 border-warning ps-3 m-0">
+        <i class="bi bi-code-slash text-gold me-2"></i>GIAO DIỆN KIỂM THỬ API PHÒNG
+      </h3>
+      <div class="d-flex gap-2">
+        <a th:href="@{/admin/api/rooms/json}" target="_blank" class="btn btn-outline-primary fw-bold px-3">
+          <i class="bi bi-filetype-json me-1"></i> Bấm Xem JSON Bản Thô
+        </a>
+        <button type="button" class="btn btn-gold fw-bold px-3 rounded-pill" onclick="handleAddNewRoomPOST()">
+          <i class="bi bi-plus-circle-fill me-1"></i> Thêm Phòng (POST)
+        </button>
+      </div>
+    </div>
+
+    <div class="card shadow-sm border-0 rounded-3 overflow-hidden mb-5">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="bg-navy text-white text-uppercase small">
+            <tr>
+              <th class="py-3 ps-4" style="width: 120px;">Mã số (ID)</th>
+              <th>Tên phòng</th>
+              <th>Giá niêm yết / Đêm</th>
+              <th>Tên file ảnh</th>
+              <th class="text-center" style="width: 150px;">Trạng thái</th>
+              <th class="text-center" style="width: 200px;">Hành động (API)</th>
+            </tr>
+            </thead>
+            <tbody id="apiRoomTableBody">
+            <tr>
+              <td colspan="6" class="text-center py-5 text-muted">
+                <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
+                Hệ thống đang kết nối luồng API dữ liệu phòng...
+              </td>
+            </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    console.log("-> [MAY HOTEL]: Kích hoạt hệ thống tương tác Client REST API");
+
+    // Đọc mã token gác cổng bảo mật
+    const csrfTokenEl = document.getElementById("springCsrfToken");
+    const csrfHeaderEl = document.getElementById("springCsrfHeader");
+    const token = csrfTokenEl ? csrfTokenEl.value : '';
+    const header = csrfHeaderEl ? csrfHeaderEl.value : '';
+
+    // Tự động quét nạp bảng
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", loadRoomsFromAPI);
+    } else {
+      loadRoomsFromAPI();
+    }
+
+    // =========================================================================
+    // 1. HÀM GET: Kéo dữ liệu JSON đổ động vào bảng vật lý
+    // =========================================================================
+    function loadRoomsFromAPI() {
+      const tbody = document.getElementById("apiRoomTableBody");
+      if (!tbody) return;
+
+      fetch('/admin/api/rooms/json')
+              .then(response => {
+                if (!response.ok) throw new Error("Không thể kết nối máy chủ REST API.");
+                return response.json();
+              })
+              .then(data => {
+                tbody.innerHTML = "";
+
+                if (!data || data.length === 0) {
+                  tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-muted">Kho CSDL API phòng hiện đang trống.</td></tr>`;
+                  return;
+                }
+
+                data.forEach(room => {
+                  const tr = document.createElement("tr");
+                  const formattedPrice = new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(room.price);
+                  const statusBadge = room.maTrangThai === 1
+                          ? '<span class="badge bg-success px-3 py-1 rounded-pill fw-bold">Trống</span>'
+                          : '<span class="badge bg-danger px-3 py-1 rounded-pill fw-bold">Đang bận</span>';
+
+                  // NÚT BẤM SỬA VÀ XÓA TRUYỀN ĐỘNG THAM SỐ ID VÀO TRONG SCRIPT
+                  tr.innerHTML = `
+                            <td class="ps-4 fw-bold text-navy font-monospace">#${room.id}</td>
+                            <td class="fw-bold text-secondary">${room.name}</td>
+                            <td class="text-danger fw-bold">${formattedPrice}</td>
+                            <td><small class="text-muted font-monospace">${room.imageUrl || 'default.png'}</small></td>
+                            <td class="text-center">${statusBadge}</td>
+                            <td class="text-center">
+                                <button class="btn btn-sm btn-outline-primary me-1 fw-bold"
+                                        onclick="handleUpdateRoomPUT(${room.id}, '${room.name}', ${room.price})">
+                                    <i class="bi bi-pencil-square"></i> Sửa
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger fw-bold"
+                                        onclick="handleDeleteRoomDELETE(${room.id})">
+                                    <i class="bi bi-trash3-fill"></i> Xóa
+                                </button>
+                            </td>
+                        `;
+                  tbody.appendChild(tr);
+                });
+              })
+              .catch(error => {
+                console.error("-> Lỗi Fetch API:", error);
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-5 text-danger fw-bold">Không thể tải dữ liệu phòng: ${error.message}</td></tr>`;
+              });
+    }
+
+    // =========================================================================
+    // 2. HÀM POST: Thêm phòng mới
+    // =========================================================================
+    function handleAddNewRoomPOST() {
+      const roomName = prompt("Nhập tên phòng muốn thêm:");
+      if (!roomName || roomName.trim() === "") return;
+
+      const roomPrice = prompt("Nhập giá tiền niêm yết/đêm:");
+      if (!roomPrice || isNaN(roomPrice)) {
+        alert("Đơn giá không hợp lệ!");
+        return;
+      }
+
+      const rawBodyData = {
+        name: roomName.trim(),
+        price: parseFloat(roomPrice),
+        maLoai: 1,
+        maTrangThai: 1,
+        imageUrl: "default.png",
+        detail: "Tạo tự động qua API POST.",
+        ghiChu: "API POST Test"
+      };
+
+      const requestHeaders = { "Content-Type": "application/json" };
+      if (header && token) { requestHeaders[header] = token; }
+
+      fetch('/admin/api/rooms/add', {
+        method: 'POST',
+        headers: requestHeaders,
+        body: JSON.stringify(rawBodyData)
+      })
+              .then(response => {
+                if (response.status === 201 || response.ok) {
+                  alert("Thêm phòng qua API POST thành công!");
+                  loadRoomsFromAPI();
+                } else {
+                  throw new Error("Không thể xử lý yêu cầu thêm.");
+                }
+              })
+              .catch(error => {
+                alert("Lỗi thực thi POST: " + error.message);
+              });
+    }
+
+    // =========================================================================
+    // 3. PUT: Chỉnh sửa thông tin phòng vật lý
+    // =========================================================================
+    function handleUpdateRoomPUT(id, currentName, currentPrice) {
+      const newName = prompt(`[API PUT] Sửa tên phòng #${id}:`, currentName);
+      if (newName === null || newName.trim() === "") return;
+
+      const newPrice = prompt(`[API PUT] Sửa đơn giá phòng #${id}:`, currentPrice);
+      if (newPrice === null || isNaN(newPrice)) {
+        alert("Đơn giá nhập vào không hợp lệ!");
+        return;
+      }
+
+      // Đóng gói dữ liệu chỉnh sửa
+      const rawBodyData = {
+        name: newName.trim(),
+        price: parseFloat(newPrice),
+        imageUrl: "default.png",
+        maTrangThai: 1,
+        detail: "Dữ liệu được cập nhật tự động từ trang kiểm thử API Playground."
+      };
+
+      const requestHeaders = { "Content-Type": "application/json" };
+      if (header && token) { requestHeaders[header] = token; }
+
+      fetch(`/admin/api/rooms/${id}`, {
+        method: 'PUT',
+        headers: requestHeaders,
+        body: JSON.stringify(rawBodyData)
+      })
+              .then(response => {
+                if (response.ok) {
+                  alert(`Cập nhật thông tin phòng #${id} qua API PUT thành công!`);
+                  loadRoomsFromAPI(); // Tải lại bảng ngay lập tức
+                } else {
+                  throw new Error("Cập nhật thất bại, vui lòng kiểm tra ID.");
+                }
+              })
+              .catch(error => {
+                alert("Lỗi thực thi PUT Method: " + error.message);
+              });
+    }
+
+    // =========================================================================
+    // 4. DELETE
+    // =========================================================================
+    function handleDeleteRoomDELETE(id) {
+      if (!confirm(`CẢNH BÁO: Bạn có chắc chắn muốn xóa phòng #${id} vĩnh viễn ra khỏi hệ thống bằng phương thức API DELETE không?`)) return;
+
+      const requestHeaders = {};
+      if (header && token) { requestHeaders[header] = token; }
+
+      fetch(`/admin/api/rooms/${id}`, {
+        method: 'DELETE',
+        headers: requestHeaders
+      })
+              .then(response => {
+                if (response.ok) {
+                  alert(`Xóa phòng #${id} qua API DELETE thành công vĩnh viễn!`);
+                  loadRoomsFromAPI(); // Làm sạch bảng lập tức
+                } else {
+                  // Trả về lỗi 409 Conflict nếu dính khóa ngoại lịch sử đặt
+                  throw new Error("Không thể xóa phòng này do mã phòng đã phát sinh lịch sử hóa đơn khách ở!");
+                }
+              })
+              .catch(error => {
+                alert("Lỗi thực thi DELETE Method: " + error.message);
+              });
+    }
+  </script>
+</div>
+
+<th:block th:fragment="extra_js"></th:block>
+
+</body>
+</html>

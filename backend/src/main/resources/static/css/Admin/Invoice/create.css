@@ -1,0 +1,35 @@
+.bg-navy { background-color: #0a192f !important; }
+.text-navy { color: #0a192f !important; }
+.text-gold { color: #f59e0b !important; }
+.form-label { font-weight: 700; color: #0a192f; }
+.btn-gold-action { background-color: #f59e0b !important; color: #fff !important; border: none; transition: all 0.2s ease-in-out; }
+.btn-gold-action:hover { background-color: #d97706 !important; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
+.btn-secondary-custom { background-color: #e2e8f0 !important; color: #475569 !important; border: none; }
+.btn-secondary-custom:hover { background-color: #cbd5e1 !important; color: #1e293b !important; }
+
+.bg-navy { background-color: #0a192f !important; }
+.text-navy { color: #0a192f !important; }
+.text-gold { color: #f59e0b !important; }
+
+.form-label { font-weight: 700; color: #0a192f; }
+
+.btn-gold-action {
+    background-color: #f59e0b !important;
+    color: #fff !important;
+    border: none;
+    transition: all 0.2s ease-in-out;
+}
+.btn-gold-action:hover {
+    background-color: #d97706 !important;
+    box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+.btn-secondary-custom {
+    background-color: #e2e8f0 !important;
+    color: #475569 !important;
+    border: none;
+}
+.btn-secondary-custom:hover {
+    background-color: #cbd5e1 !important;
+    color: #1e293b !important;
+}

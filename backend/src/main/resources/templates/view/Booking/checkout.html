@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<head>
+    <title th:text="${pageTitle}">Thanh Toán Đặt Phòng - MAY HOTEL</title>
+</head>
+<body class="bg-light">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/frontend/home/booking/checkout.css}">
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <!-- Nút Back -->
+        <a href="javascript:history.back()" class="text-decoration-none text-muted mb-4 d-inline-block">
+            <i class="bi bi-arrow-left me-1"></i> Quay lại
+        </a>
+
+        <div class="text-center mb-5">
+            <h2 class="fw-bold text-uppercase" style="color: var(--navy-color); letter-spacing: 1px;">
+                <i class="bi bi-shield-check me-2" style="color: var(--gold-color);"></i>Xác nhận đơn đặt
+            </h2>
+            <div style="width: 60px; height: 3px; background-color: var(--gold-color); margin: 10px auto;"></div>
+        </div>
+
+        <form th:action="@{/booking/process-checkout}" method="post" id="checkout-form">
+            <div class="row g-4">
+                
+                <!-- Cột trái: Form Thông tin đặt phòng & Thanh toán -->
+                <div class="col-lg-7 order-2 order-lg-1">
+                    
+                    <!-- Bảng chọn ngày và số lượng -->
+                    <div class="card shadow-sm border-0 mb-4 form-card">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold text-navy border-bottom pb-2 mb-4">
+                                <i class="bi bi-calendar-check text-gold me-2"></i>Thông tin lưu trú
+                            </h5>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Ngày nhận phòng <span class="text-danger">*</span></label>
+                                    <input type="date" name="ngayNhan" id="checkin-date" class="form-control" th:value="${currentBooking.ngayNhan}" required onchange="calculateSummary()">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-bold text-muted">Ngày trả phòng <span class="text-danger">*</span></label>
+                                    <input type="date" name="ngayTra" id="checkout-date" class="form-control" th:value="${currentBooking.ngayTra}" required onchange="calculateSummary()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bảng ghi chú và phương thức thanh toán -->
+                    <div class="card shadow-sm border-0 mb-4 form-card">
+                        <div class="card-body p-4">
+                            <h5 class="fw-bold text-navy border-bottom pb-2 mb-4">
+                                <i class="bi bi-credit-card-2-front text-gold me-2"></i>Thanh toán
+                            </h5>
+                            
+                            <div class="mb-4">
+                                <label class="form-label small fw-bold text-muted">Yêu cầu đặc biệt (Ghi chú)</label>
+                                <textarea name="ghiChu" id="booking-note" class="form-control" rows="3" placeholder="Nhập yêu cầu đặc biệt của bạn..."></textarea>
+                            </div>
+
+                            <label class="form-label small fw-bold text-muted mb-3">Phương thức thanh toán <span class="text-danger">*</span></label>
+                            <div class="row g-3 mb-4">
+                                <div class="col-md-6">
+                                    <input type="radio" name="phuongThucThanhToan" value="COD" id="payCOD" class="payment-radio d-none" checked>
+                                    <label for="payCOD" class="payment-method-card d-block p-3 h-100 position-relative">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-cash-coin text-gold fs-3 me-2"></i>
+                                            <h6 class="fw-bold text-navy m-0">Thanh toán tại quầy</h6>
+                                        </div>
+                                        <p class="text-muted small m-0 card-text" style="font-size: 0.8rem;">Thanh toán bằng tiền mặt/thẻ khi nhận phòng.</p>
+                                        <i class="bi bi-check-circle-fill text-navy position-absolute top-0 end-0 m-2 fs-5 check-icon"></i>
+                                    </label>
+                                </div>
+                                <div class="col-md-6">
+                                    <input type="radio" name="phuongThucThanhToan" value="ONLINE" id="payOnline" class="payment-radio d-none">
+                                    <label for="payOnline" class="payment-method-card d-block p-3 h-100 position-relative">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bi bi-qr-code-scan text-gold fs-3 me-2"></i>
+                                            <h6 class="fw-bold text-navy m-0">Thanh toán Online</h6>
+                                        </div>
+                                        <p class="text-muted small m-0 card-text" style="font-size: 0.8rem;">Quét mã QR qua ví điện tử/ngân hàng.</p>
+                                        <i class="bi bi-check-circle-fill text-navy position-absolute top-0 end-0 m-2 fs-5 check-icon"></i>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btn-submit-booking" class="btn btn-gold w-100 py-3 fw-bold text-uppercase shadow-sm">
+                                Xác nhận đặt phòng <i class="bi bi-arrow-right-short fs-5 ms-1"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Cột phải: Tóm tắt đơn đặt (Sticky) -->
+                <div class="col-lg-5 order-1 order-lg-2">
+                    <div class="card shadow-sm border-0 p-4 sticky-top form-card" style="top: 100px;">
+                        <h5 class="fw-bold text-navy border-bottom pb-3 mb-4">
+                            <i class="bi bi-receipt text-gold me-2"></i>Tóm tắt hóa đơn
+                        </h5>
+
+                        <div id="summary-content">
+                            <!-- Thông tin phòng -->
+                            <div class="d-flex mb-3">
+                                <img loading="lazy" th:src="@{${(!#lists.isEmpty(currentBooking.loaiPhong.phongs) && currentBooking.loaiPhong.phongs[0].imageUrl != null && currentBooking.loaiPhong.phongs[0].imageUrl != '') ? '/images/' + currentBooking.loaiPhong.phongs[0].imageUrl : '/images/default.png'}}" class="rounded shadow-sm" style="width: 80px; height: 80px; object-fit: cover;">
+                                <div class="ms-3 w-100">
+                                    <h6 class="fw-bold text-navy mb-1" th:text="${currentBooking.loaiPhong.name}">Tên phòng</h6>
+                                    <div class="small text-muted mb-1">MAY HOTEL KINGS</div>
+                                    <div class="d-flex justify-content-between">
+                                        <span class="small fw-bold text-gold" th:text="${#numbers.formatDecimal(currentBooking.loaiPhong.price, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                                        <span class="small text-muted">/ đêm</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr class="text-muted opacity-25">
+
+                            <!-- Chi tiết tính toán -->
+                            <div class="d-flex justify-content-between mb-2 small">
+                                <span class="text-muted">Số lượng phòng:</span>
+                                <span class="fw-bold"><span th:text="${currentBooking.soLuong}">1</span> phòng</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 small">
+                                <span class="text-muted">Tổng số đêm:</span>
+                                <span class="fw-bold" id="sum-nights"><span th:text="${currentBooking.soDem}">0</span> đêm</span>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2 small">
+                                <span class="text-muted">Tiền phòng gốc:</span>
+                                <span class="fw-bold" id="sum-base-total" th:text="${#numbers.formatDecimal(currentBooking.thanhTien, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                            </div>
+
+                            <div class="p-3 bg-light rounded d-flex justify-content-between align-items-center mt-4 border border-warning-subtle">
+                                <span class="fw-bold text-navy">TỔNG CỘNG</span>
+                                <span class="fs-4 fw-bold text-danger" id="sum-final-total" th:text="${#numbers.formatDecimal(currentBooking.thanhTien, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </form>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var basePrice = /*[[${currentBooking.loaiPhong.price}]]*/ 0;
+        var qty = /*[[${currentBooking.soLuong}]]*/ 1;
+        /*]]>*/
+
+        function formatCurrency(amount) {
+            return amount.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " đ";
+        }
+
+        function calculateSummary() {
+            var d1 = document.getElementById("checkin-date").value;
+            var d2 = document.getElementById("checkout-date").value;
+
+            if (d1 && d2) {
+                var start = new Date(d1);
+                var end = new Date(d2);
+                
+                var timeDiff = end.getTime() - start.getTime();
+                var diffDays = Math.ceil(timeDiff / (1000 * 3600 * 24)); 
+                
+                if (diffDays > 0) {
+                    document.getElementById("sum-nights").innerText = diffDays + " đêm";
+                    
+                    var total = basePrice * qty * diffDays;
+                    document.getElementById("sum-base-total").innerText = formatCurrency(total);
+                    document.getElementById("sum-final-total").innerText = formatCurrency(total);
+                } else {
+                    document.getElementById("sum-nights").innerText = "0 đêm";
+                    document.getElementById("sum-base-total").innerText = "0 đ";
+                    document.getElementById("sum-final-total").innerText = "0 đ";
+                }
+            }
+        }
+        
+        // Calculate on load in case dates are already set
+        document.addEventListener("DOMContentLoaded", function() {
+            calculateSummary();
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

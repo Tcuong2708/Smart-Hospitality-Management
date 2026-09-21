@@ -1,0 +1,206 @@
+/* --- BẢNG MÀU ROYAL NAVY & GOLD --- */
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --bg-light: #f8f9fa;
+    --text-color: #495057;
+}
+
+body {
+    background-color: var(--bg-light);
+}
+
+/* --- HEADER IMAGE --- */
+.main-image-header {
+    width: 100%;
+    height: 60vh;
+    min-height: 500px;
+    object-fit: cover;
+    filter: brightness(0.5); /* Tối ưu nền để chữ hiển thị tốt hơn */
+    animation: kenBurns 25s ease-out infinite alternate;
+}
+
+@keyframes kenBurns {
+    0% { transform: scale(1); }
+    100% { transform: scale(1.15); }
+}
+
+.header-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    text-align: center;
+    width: 90%;
+    max-width: 800px;
+    z-index: 2;
+    animation: fadeInDown 1s ease-out; /* Animation làm mượt phần hiển thị */
+}
+
+@keyframes fadeInDown {
+    from { opacity: 0; transform: translate(-50%, -60%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+.header-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(3rem, 5vw, 5rem);
+    font-weight: 700;
+    letter-spacing: 3px;
+    text-shadow: 2px 2px 15px rgba(0,0,0,0.6);
+    margin-bottom: 15px;
+}
+
+.header-subtitle {
+    font-family: 'Montserrat', sans-serif;
+    font-size: clamp(1rem, 2vw, 1.5rem);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--gold-color);
+    font-weight: 600;
+    text-shadow: 1px 1px 8px rgba(0,0,0,0.8);
+}
+
+/* --- CONTENT SECTIONS --- */
+.section-card {
+    background: white;
+    border-radius: 16px; /* Bo góc hiện đại hơn */
+    box-shadow: 0 20px 60px rgba(15, 41, 66, 0.08); /* Đổ bóng sâu tạo cảm giác nổi cao cấp */
+    padding: 70px 50px;
+    margin-bottom: 60px;
+    border-top: 4px solid var(--gold-color);
+    transition: transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+.section-card:hover {
+    transform: translateY(-8px); /* Hiệu ứng nhấc thẻ lên khi di chuột mượt hơn */
+    box-shadow: 0 30px 70px rgba(15, 41, 66, 0.12);
+}
+
+.section-title {
+    font-family: 'Playfair Display', serif;
+    color: var(--navy-color);
+    font-size: 2.5rem;
+    font-weight: 700;
+    text-align: center;
+    margin-bottom: 60px;
+    position: relative;
+    text-transform: uppercase;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 4px;
+    background-color: var(--gold-color);
+    border-radius: 2px;
+}
+
+.story-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    color: var(--text-color);
+    text-align: justify;
+    font-family: 'Montserrat', sans-serif;
+}
+
+.drop-cap {
+    font-family: 'Playfair Display', serif;
+    font-size: 4.5rem;
+    line-height: 0.8;
+    color: var(--gold-color);
+    float: left;
+    margin-right: 15px;
+    font-weight: 700;
+}
+
+/* --- TIMELINE STYLE --- */
+.timeline-item {
+    border-left: 2px solid rgba(15, 41, 66, 0.15);
+    padding-left: 35px;
+    padding-bottom: 40px;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+.timeline-item:last-child {
+    border-left: none;
+    padding-bottom: 0;
+}
+
+.timeline-item:hover {
+    border-left-color: var(--gold-color);
+}
+
+.timeline-item::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    background: var(--gold-color);
+    border: 4px solid white;
+    border-radius: 50%;
+    position: absolute;
+    left: -11px;
+    top: 0;
+    box-shadow: 0 0 0 3px rgba(197, 160, 23, 0.3);
+    transition: transform 0.3s ease;
+    animation: pulseGold 2s infinite;
+}
+
+@keyframes pulseGold {
+    0% { box-shadow: 0 0 0 0 rgba(197, 160, 23, 0.7); }
+    70% { box-shadow: 0 0 0 10px rgba(197, 160, 23, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(197, 160, 23, 0); }
+}
+
+.timeline-item:hover::before {
+    transform: scale(1.3);
+}
+
+.timeline-title {
+    color: var(--navy-color);
+    font-weight: 700;
+    margin-bottom: 12px;
+    font-size: 1.4rem;
+    font-family: 'Playfair Display', serif;
+}
+
+/* --- IMAGE GALLERY --- */
+.gallery-img {
+    border-radius: 8px;
+    transition: all 0.5s ease;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    cursor: pointer;
+}
+
+.gallery-img:hover {
+    transform: scale(1.05); /* Phóng to ảnh nhẹ khi hover */
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    filter: brightness(1.1);
+}
+
+.quote-footer {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    color: var(--navy-color);
+    margin-top: 50px;
+    font-size: 1.8rem;
+    position: relative;
+    text-align: center;
+}
+
+.quote-footer::before {
+    content: '“';
+    font-size: 5rem;
+    color: var(--gold-color);
+    opacity: 0.15;
+    position: absolute;
+    top: -30px;
+    left: 50%;
+    transform: translateX(-50%);
+}

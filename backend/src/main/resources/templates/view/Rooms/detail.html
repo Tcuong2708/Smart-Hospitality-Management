@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/frontend/home/rooms/detail.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <div class="row g-5">
+            <!-- Cột hình ảnh -->
+            <div class="col-md-6">
+                <img th:src="@{${(phong.imageUrl != null && phong.imageUrl != '') ? '/frontend/images/' + phong.imageUrl : '/frontend/images/default.jpg'}}"
+                     class="w-100 rounded shadow-sm" style="object-fit: cover; max-height: 450px;" th:alt="${phong.roomType != null ? phong.roomType.name : 'Phòng Tiêu Chuẩn'}">
+            </div>
+
+            <!-- Cột thông tin -->
+            <div class="col-md-6">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb small mb-2">
+                        <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none text-muted">Trang chủ</a></li>
+                        <li class="breadcrumb-item"><a th:href="@{/rooms}" class="text-decoration-none text-muted">Phòng nghỉ</a></li>
+                        <li class="breadcrumb-item active fw-bold" aria-current="page" th:text="${phong.roomType != null ? phong.roomType.name : 'Phòng Tiêu Chuẩn'}">...</li>
+                    </ol>
+                </nav>
+
+                <h1 class="fw-bold text-navy mb-2" th:text="${phong.roomType != null ? phong.roomType.name : 'Phòng Tiêu Chuẩn'}">...</h1>
+
+                <div class="d-flex align-items-center mb-3">
+                    <span class="fs-4 fw-bold text-gold me-2" th:text="${#numbers.formatDecimal(phong.price, 0, 'COMMA', 0, 'POINT')}">0</span>
+                    <span class="text-muted me-3">VNĐ / đêm</span>
+                    <span th:if="${phong.status == 'Vacant' || phong.status == 'Còn phòng'}" class="status-badge text-success border-success bg-success bg-opacity-10"><i class="bi bi-check-circle-fill me-1"></i>Còn phòng trống</span>
+                    <span th:unless="${phong.status == 'Vacant' || phong.status == 'Còn phòng'}" class="status-badge text-danger border-danger bg-danger bg-opacity-10"><i class="bi bi-x-circle-fill me-1"></i>Hết phòng</span>
+                </div>
+
+                <div class="info-box bg-light py-2 px-3 rounded-2 shadow-sm mb-4">
+                    <div class="mb-2 border-bottom pb-2">
+                        <i class="bi bi-bookmark-fill text-gold me-2"></i>
+                        <strong>Loại phòng:</strong>
+                        <span th:text="${phong.roomType != null ? phong.roomType.name : 'Phòng Tiêu Chuẩn'}">...</span>
+                    </div>
+                    <div><i class="bi bi-geo-alt-fill text-danger me-2"></i><strong>Vị trí:</strong> Tầng cao, View thoáng</div>
+                </div>
+
+                <p class="text-muted small mb-4" style="text-align: justify;" th:text="${phong.detail}">...</p>
+
+                <hr class="text-muted">
+
+                <!-- Form Đặt Phòng -->
+                <form id="booking-form" th:action="@{/booking/checkout}" method="GET" class="row align-items-end mb-4 bg-light p-3 rounded-3 shadow-sm border border-light-subtle">
+                    <input type="hidden" id="room_id" name="room_id" th:value="${phong.id}" />
+                    <div class="col-4">
+                        <label class="form-label small text-muted fw-bold mb-1">SỐ ĐÊM NGHỈ</label>
+                        <div class="input-group">
+                            <button class="btn btn-outline-secondary" type="button" id="btn-minus">-</button>
+                            <input type="number" id="soLuong" name="quantity" class="form-control text-center fw-bold text-navy" value="1" min="1">
+                            <button class="btn btn-outline-secondary" type="button" id="btn-plus">+</button>
+                        </div>
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label small text-muted fw-bold mb-1">TẠM TÍNH</label>
+                        <div class="fs-5 fw-bold text-gold mt-1"><span id="tamTinh" th:text="${#numbers.formatDecimal(phong.price, 0, 'COMMA', 0, 'POINT')}">0</span> đ</div>
+                    </div>
+                    <div class="col-4">
+                        <button type="submit" id="btn-submit-booking" class="btn btn-gold w-100 py-2 fw-bold rounded-pill shadow-sm" th:disabled="${phong.status != 'Vacant' && phong.status != 'Còn phòng'}">
+                            <i class="bi bi-bag-check-fill me-1"></i>ĐẶT NGAY
+                        </button>
+                    </div>
+                </form>
+
+                <div class="d-flex text-center justify-content-between px-4 mt-4 border-top pt-4">
+                    <div><i class="bi bi-wifi amenity-icon d-block mb-1 text-primary"></i><small class="text-muted fw-bold">Wifi Free</small></div>
+                    <div><i class="bi bi-tv amenity-icon d-block mb-1 text-dark"></i><small class="text-muted fw-bold">Smart TV</small></div>
+                    <div><i class="bi bi-cup-hot amenity-icon d-block mb-1 text-warning"></i><small class="text-muted fw-bold">Ăn sáng</small></div>
+                    <div><i class="bi bi-snow amenity-icon d-block mb-1 text-info"></i><small class="text-muted fw-bold">Máy lạnh</small></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-5 pt-3">
+            <div class="col-12">
+                <ul class="nav nav-tabs border-bottom-0" id="myTab" role="tablist">
+                    <li class="nav-item">
+                        <button class="nav-link active fw-bold" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc" type="button" role="tab">Mô tả chi tiết</button>
+                    </li>
+                    <li class="nav-item">
+                        <button class="nav-link fw-bold" id="policy-tab" data-bs-toggle="tab" data-bs-target="#policy" type="button" role="tab">Chính sách & Quy định</button>
+                    </li>
+                </ul>
+                <div class="tab-content tab-content-box bg-white shadow-sm" id="myTabContent">
+                    <div class="tab-pane fade show active text-muted p-3" id="desc" role="tabpanel">
+                        <p style="line-height: 1.8; text-align: justify;" th:text="${phong.detail}"></p>
+                        <p class="fst-italic border-start border-3 border-warning ps-3" th:text="${phong.note != null && phong.note != '' ? phong.note : 'Phòng được trang bị đầy đủ tiện nghi hiện đại chuẩn 5 sao quốc tế.'}"></p>
+                    </div>
+                    <div class="tab-pane fade text-muted p-3" id="policy" role="tabpanel">
+                        <ul class="lh-lg">
+                            <li><strong>Giờ nhận phòng:</strong> 14:00 | <strong>Giờ trả phòng:</strong> 12:00 trưa hôm sau.</li>
+                            <li>Trẻ em dưới 6 tuổi được miễn phí (Ngủ chung giường với người lớn).</li>
+                            <li th:if="${phong.maxExtraBeds != null && phong.maxExtraBeds > 0}">Số giường phụ tối đa: <strong th:text="${phong.maxExtraBeds}">0</strong></li>
+                            <li>Hủy phòng trước 3 ngày: Hoàn tiền 100%.</li>
+                            <li>Không mang vật nuôi vào khu vực lưu trú.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+            const inputSoLuong = document.getElementById('soLuong');
+            const txtTamTinh = document.getElementById('tamTinh');
+            const btnPlus = document.getElementById('btn-plus');
+            const btnMinus = document.getElementById('btn-minus');
+            
+            const donGia = /*[[${phong.price}]]*/ 0;
+
+            const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
+
+            const updateTamTinh = () => {
+                let sl = parseInt(inputSoLuong.value) || 1;
+                if (sl < 1) sl = 1;
+                inputSoLuong.value = sl;
+                let tong = donGia * sl;
+                txtTamTinh.textContent = formatCurrency(tong);
+            };
+
+            if (btnPlus && btnMinus && inputSoLuong) {
+                btnPlus.addEventListener('click', () => {
+                    inputSoLuong.value = parseInt(inputSoLuong.value) + 1;
+                    updateTamTinh();
+                });
+
+                btnMinus.addEventListener('click', () => {
+                    let current = parseInt(inputSoLuong.value);
+                    if (current > 1) {
+                        inputSoLuong.value = current - 1;
+                        updateTamTinh();
+                    }
+                });
+
+                inputSoLuong.addEventListener('input', updateTamTinh);
+            }
+        });
+    </script>
+</th:block>
+</html>

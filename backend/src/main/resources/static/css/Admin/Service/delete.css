@@ -1,0 +1,26 @@
+:root {
+    --color-navy: #0f172a;
+    --color-gold: #d4af37;
+}
+
+/* Text colors */
+.text-navy {
+    color: var(--color-navy) !important;
+}
+
+/* Ghi đè màu warning thành màu Gold cho giá tiền */
+.text-warning {
+    color: #b8860b !important;
+}
+
+/* Hiệu ứng bóng đổ mềm cho Card */
+.shadow-lg {
+    box-shadow: 0 1rem 3rem rgba(0,0,0,.175) !important;
+}
+
+/* Box thông tin chi tiết */
+.info-box {
+    background-color: #f8f9fa;
+    border-left: 5px solid #dc3545; /* Viền đỏ bên trái */
+    border-radius: 4px;
+}

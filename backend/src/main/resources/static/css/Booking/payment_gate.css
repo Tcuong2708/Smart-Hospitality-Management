@@ -1,0 +1,53 @@
+.text-navy { color: #0F2942 !important; }
+.bg-navy { background-color: #0F2942 !important; }
+.text-gold { color: #C5A017 !important; }
+.btn-gold { background-color: #C5A017 !important; color: white !important; border: none !important; transition: 0.3s; }
+.btn-gold:hover { background-color: #a68512 !important; transform: translateY(-1px); }
+
+/* Cấu trúc các hộp lựa chọn phương thức ứng dụng */
+.method-item {
+    border: 2px solid #eee;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    background-color: #fff;
+}
+.method-item:hover {
+    border-color: #C5A017;
+    background-color: rgba(197, 160, 23, 0.02);
+}
+.method-radio:checked + .method-item {
+    border-color: #0F2942;
+    background-color: rgba(15, 41, 66, 0.05);
+    font-weight: bold;
+    box-shadow: 0 4px 12px rgba(15, 41, 66, 0.08);
+}
+
+/* Khung chứa mã QR và bộ gác cổng đếm ngược */
+.qr-container {
+    position: relative;
+    background: #fff;
+    border: 2px dashed #C5A017;
+    border-radius: 16px;
+    padding: 24px;
+    display: inline-block;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.05);
+}
+.qr-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    backdrop-filter: blur(2px);
+}
+.payment-logo {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    border-radius: 6px;
+}

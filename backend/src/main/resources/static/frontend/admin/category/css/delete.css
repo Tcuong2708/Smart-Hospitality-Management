@@ -1,0 +1,67 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --danger-color: #dc3545;
+    --light-bg: #f8f9fa;
+    --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+    --transition-speed: 0.3s;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.text-gold {
+    color: var(--gold-color) !important;
+}
+
+.text-navy {
+    color: var(--navy-color) !important;
+}
+
+.delete-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow) !important;
+}
+
+.delete-header {
+    background-color: var(--navy-color);
+    color: white;
+    padding: 1.5rem;
+    border-bottom: 3px solid var(--danger-color);
+    text-align: center;
+}
+
+.warning-box {
+    background-color: #fff3cd;
+    border-left: 4px solid var(--gold-color);
+    border-radius: 6px;
+    padding: 1rem;
+    color: #664d03;
+    max-width: 400px;
+}
+
+.modern-btn {
+    border-radius: 8px;
+    font-weight: 500;
+    transition: all var(--transition-speed);
+}
+
+.modern-btn:hover {
+    transform: translateY(-2px);
+}
+
+.modern-btn-danger {
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all var(--transition-speed);
+}
+
+.modern-btn-danger:hover {
+    background-color: #bb2d3b;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 15px rgba(220, 53, 69, 0.3) !important;
+}

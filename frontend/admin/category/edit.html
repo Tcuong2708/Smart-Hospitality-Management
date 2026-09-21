@@ -1,0 +1,78 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập Nhật Loại Phòng</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/edit.css">
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-6">
+                <div class="card admin-form-card shadow-lg border-0">
+                    <div class="admin-header rounded-top">
+                        <h3 class="mb-1 fw-bold text-uppercase" style="letter-spacing: 1px;">
+                            <i class="bi bi-pencil-square me-2 text-gold"></i>Cập Nhật Loại Phòng
+                        </h3>
+                        <p class="mb-0 small text-white-50">Mã số: <span id="display-id">Đang tải...</span></p>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <div id="alert-container"></div>
+                        <form id="edit-form">
+                            <input type="hidden" id="maLoai" name="maLoai" />
+
+                            <div class="mb-4">
+                                <label class="form-label fw-semibold">Tên loại phòng <span class="text-danger">*</span></label>
+                                <input type="text" id="name" name="name" class="form-control form-control-lg modern-input" placeholder="Nhập tên loại phòng..." required />
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-4">
+                                <a href="index.html" class="btn btn-outline-secondary px-4 modern-btn">
+                                    <i class="bi bi-arrow-left me-1"></i> Hủy bỏ
+                                </a>
+                                <button type="submit" class="btn btn-gold px-4 shadow-sm modern-btn-gold">
+                                    <i class="bi bi-check-lg me-1"></i> LƯU THAY ĐỔI
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Custom JS -->
+    <script src="js/edit.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

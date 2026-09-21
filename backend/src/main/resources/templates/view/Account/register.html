@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<head>
+    <title>Đăng ký tài khoản - MAY HOTEL</title>
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/frontend/account/css/login.css?v=2}" />
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="login-wrapper py-5 fade-in-box">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-md-8 col-lg-6">
+                    <div class="card card-login shadow-lg border-0">
+
+                        <div class="card-header-login text-center py-4 bg-navy text-white" style="background-color: var(--navy-color);">
+                            <h2 class="fw-bold text-white mb-0">Tạo tài khoản mới</h2>
+                            <p class="mb-0 small opacity-75">Tham gia cùng MAY HOTEL ngay hôm nay</p>
+                        </div>
+
+                        <div class="card-body p-4 p-md-5">
+
+                            <div th:if="${error != null}" class="alert alert-danger text-center mb-4 shadow-sm">
+                                <i class="bi bi-exclamation-circle-fill me-2"></i>
+                                <span th:text="${error}"></span>
+                            </div>
+
+                            <form id="registerForm" th:action="@{/account/register}" method="post">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-navy">Họ và tên <span class="text-danger">*</span></label>
+                                    <input type="text" name="fullName" class="form-control" placeholder="Nhập họ và tên đầy đủ" required />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-navy">Số điện thoại <span class="text-danger">*</span></label>
+                                    <input type="tel" name="phone" class="form-control" placeholder="Nhập số điện thoại" required />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-navy">Email <span class="text-danger">*</span></label>
+                                    <input type="email" name="email" class="form-control" placeholder="Nhập địa chỉ email của bạn" required />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-navy">Mật khẩu <span class="text-danger">*</span></label>
+                                    <input type="password" name="password" class="form-control" placeholder="Nhập mật khẩu" required />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold text-navy">Xác nhận mật khẩu <span class="text-danger">*</span></label>
+                                    <input type="password" name="confirmPassword" class="form-control" placeholder="Nhập lại mật khẩu" required />
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label fw-bold text-navy">Mã Captcha <span class="text-danger">*</span></label>
+                                    <div class="d-flex align-items-center">
+                                        <input type="text" id="captcha-input" name="captcha" class="form-control me-2" placeholder="Nhập mã Captcha" required />
+                                        <div id="captcha-display" class="bg-light px-3 py-2 border rounded fw-bold text-secondary user-select-none text-decoration-line-through me-2" style="font-size: 1.2rem; letter-spacing: 2px;">
+                                            X7K9
+                                        </div>
+                                        <button type="button" id="btn-refresh-captcha" class="btn btn-outline-secondary px-3 py-2" title="Tải lại mã mới">
+                                            <i class="bi bi-arrow-clockwise fs-5"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn w-100 py-3 fw-bold shadow-sm text-white" style="background-color: var(--gold-color); border: none;">
+                                    <i class="bi bi-person-plus-fill me-2"></i> ĐĂNG KÝ NGAY
+                                </button>
+                            </form>
+
+                            <div class="login-footer text-center mt-4">
+                                <p class="mb-1 text-muted">Đã có tài khoản? <a th:href="@{/account/login}" class="fw-bold">Đăng nhập ngay</a></p>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const captchaDisplay = document.getElementById("captcha-display");
+        const captchaInput = document.getElementById("captcha-input");
+        const registerForm = document.getElementById("registerForm");
+        const btnRefreshCaptcha = document.getElementById("btn-refresh-captcha");
+        let currentCaptcha = "";
+        let captchaTimestamp = 0;
+
+        // Hàm tạo captcha ngẫu nhiên 4 ký tự bằng vòng lặp mã ASCII
+        function generateCaptcha() {
+            let captcha = "";
+            for (let i = 0; i < 4; i++) {
+                let type = Math.floor(Math.random() * 3);
+                let charCode;
+                if (type === 0) {
+                    charCode = Math.floor(Math.random() * 10) + 48; // Số 0-9 (ASCII 48-57)
+                } else if (type === 1) {
+                    charCode = Math.floor(Math.random() * 26) + 65; // Chữ Hoa A-Z (ASCII 65-90)
+                } else {
+                    charCode = Math.floor(Math.random() * 26) + 97; // Chữ thường a-z (ASCII 97-122)
+                }
+                captcha += String.fromCharCode(charCode);
+            }
+            return captcha;
+        }
+
+        function refreshCaptcha() {
+            currentCaptcha = generateCaptcha();
+            captchaDisplay.innerText = currentCaptcha;
+            captchaTimestamp = Date.now(); // Lưu thời điểm tạo mã
+        }
+
+        // Đổi mã khi nhấn vào nút Refresh
+        if(btnRefreshCaptcha) {
+            btnRefreshCaptcha.addEventListener("click", function() {
+                captchaInput.value = "";
+                refreshCaptcha();
+                captchaInput.focus();
+            });
+        }
+
+        // Khởi tạo lần đầu
+        refreshCaptcha();
+
+        // Kiểm tra trước khi submit form
+        registerForm.addEventListener("submit", function(e) {
+            let now = Date.now();
+            let timeDiffMinutes = (now - captchaTimestamp) / 1000 / 60;
+            
+            if (timeDiffMinutes > 5) {
+                e.preventDefault();
+                alert("Mã Captcha đã hết hạn (quá 5 phút). Hệ thống đã tạo mã mới, vui lòng nhập lại!");
+                captchaInput.value = "";
+                refreshCaptcha();
+                captchaInput.focus();
+                return;
+            }
+
+            if (captchaInput.value.toLowerCase() !== currentCaptcha.toLowerCase()) {
+                e.preventDefault(); // Ngăn chặn form gửi đi
+                alert("Mã Captcha không chính xác, vui lòng thử lại!");
+                captchaInput.value = "";
+                refreshCaptcha();
+                captchaInput.focus();
+            }
+        });
+    });
+</script>
+</th:block>
+
+</body>
+</html>

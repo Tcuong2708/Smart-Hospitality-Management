@@ -1,0 +1,145 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --bg-light: #f8f9fa;
+}
+
+/* --- SIDEBAR FILTER --- */
+.filter-card {
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    overflow: hidden;
+    margin-bottom: 20px;
+    background: white;
+}
+
+.filter-header {
+    background-color: var(--navy-color);
+    color: white;
+    padding: 15px 20px;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
+    border-bottom: 3px solid var(--gold-color);
+}
+
+.list-group-item {
+    border: none;
+    border-bottom: 1px solid #f1f1f1;
+    padding: 12px 20px;
+    font-size: 0.95rem;
+    color: #555;
+    transition: all 0.2s;
+}
+
+.list-group-item:hover {
+    background-color: #fff9e6; /* Màu nền vàng rất nhạt */
+    color: var(--gold-color);
+    padding-left: 25px; /* Hiệu ứng đẩy sang phải */
+}
+
+.list-group-item.active {
+    background-color: var(--gold-color);
+    border-color: var(--gold-color);
+    color: white;
+    font-weight: 600;
+}
+
+/* --- PRODUCT CARD --- */
+.room-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s;
+    background: white;
+}
+
+.room-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(15, 41, 66, 0.15);
+    border-color: var(--gold-color);
+}
+
+.room-img-wrapper {
+    height: 220px;
+    overflow: hidden;
+    position: relative;
+}
+
+.room-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.room-card:hover .room-img {
+    transform: scale(1.1);
+}
+
+.room-price {
+    color: var(--gold-color);
+    font-weight: 800;
+    font-size: 1.1rem;
+}
+
+/* --- BUTTONS --- */
+.btn-search {
+    background-color: var(--navy-color);
+    color: white;
+    border: none;
+    padding: 8px 20px;
+    border-radius: 4px;
+    transition: 0.3s;
+}
+
+.btn-search:hover {
+    background-color: #1a3c5e;
+    color: white;
+}
+
+.btn-detail {
+    border: 1px solid var(--navy-color);
+    color: var(--navy-color);
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-detail:hover {
+    background-color: var(--navy-color);
+    color: white;
+}
+
+.btn-book {
+    background-color: var(--gold-color);
+    color: white;
+    border: none;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+.btn-book:hover {
+    background-color: var(--gold-hover);
+    color: white;
+    transform: translateY(-2px);
+}
+
+/* --- PAGINATION --- */
+.page-link {
+    color: var(--navy-color);
+    border: 1px solid #dee2e6;
+}
+
+.page-link:hover {
+    background-color: #e9ecef;
+    color: var(--navy-color);
+}
+
+.page-item.active .page-link {
+    background-color: var(--navy-color);
+    border-color: var(--navy-color);
+    color: var(--gold-color);
+}

@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<body>
+
+<div th:fragment="body_content">
+    <link rel="stylesheet" th:href="@{/css/Admin/Room/admin-room.css}">
+
+    <div class="container py-5">
+        <div class="card admin-form-card shadow border-0" style="border-radius: 15px; overflow: hidden;">
+            <div class="row g-0">
+                <div class="col-md-6 position-relative">
+                    <img th:src="@{|/images/${phong.imageUrl != null ? phong.imageUrl : 'no-image.png'}|}"
+                         class="img-fluid"
+                         style="width: 100%; height: 100%; min-height: 450px; object-fit: cover;"
+                         [cite_start]alt="Room Image">
+                    <div class="position-absolute top-0 start-0 m-3">
+                        <span class="badge-category shadow-sm" th:text="${phong.loaiPhong != null ? phong.loaiPhong.name : 'N/A'}"></span>
+                    </div>
+                </div>
+
+                <div class="col-md-6 bg-white">
+                    <div class="admin-header-navy p-4" style="background-color: #0F2942; color: white; border-bottom: 3px solid #C5A017;">
+                        <h3 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">
+                            <i class="bi bi-info-circle-fill me-2 text-warning"></i>Chi tiết phòng
+                        </h3>
+                    </div>
+
+                    <div class="card-body p-4">
+                        <h2 class="fw-bold text-navy mb-3" style="color: #0F2942;" th:text="${phong.name}"></h2>
+
+                        <div class="price-box mb-4 p-3 bg-light rounded-3 border-start border-4 border-gold" style="border-left-color: #C5A017 !important;">
+                            <span class="text-muted small d-block mb-1">Giá niêm yết:</span>
+                            <h3 class="price-text mb-0" style="color: #C5A017; font-weight: 700;"
+                                th:text="${#numbers.formatDecimal(phong.price, 0, 'COMMA', 0, 'POINT') + ' VNĐ/đêm'}"></h3>
+                        </div>
+
+                        <div class="room-info-list">
+                            <div class="info-row d-flex justify-content-between py-2 border-bottom border-light">
+                                <span class="text-muted"><i class="bi bi-tag-fill me-2"></i>Loại phòng:</span>
+                                <span class="fw-bold text-navy" th:text="${phong.loaiPhong != null ? phong.loaiPhong.name : 'Chưa phân loại'}"></span>
+                            </div>
+                            <div class="info-row d-flex justify-content-between py-2 border-bottom border-light">
+                                <span class="text-muted"><i class="bi bi-check-circle-fill me-2"></i>Trạng thái:</span>
+                                <span class="badge rounded-pill px-3"
+                                      th:classappend="${phong.maTrangThai == 1 ? 'bg-success' : 'bg-danger'}"
+                                      th:text="${phong.maTrangThai == 1 ? 'Sẵn sàng' : 'Hết phòng'}"></span>
+                            </div>
+                            <div class="info-row d-flex justify-content-between py-2">
+                                <span class="text-muted"><i class="bi bi-people-fill me-2"></i>Sức chứa:</span>
+                                <span class="fw-bold" th:text="${phong.loaiPhong != null ? phong.loaiPhong.soNguoi + ' người' : '--'}"></span>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="form-label fw-bold text-navy small text-uppercase">Mô tả chi tiết</label>
+                            <div class="p-3 bg-light rounded" style="min-height: 100px; font-size: 0.95rem; line-height: 1.6;"
+                                 th:utext="${phong.detail != null && phong.detail != '' ? phong.detail : 'Không có mô tả cho phòng này.'}"></div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center mt-5 pt-3 border-top">
+                            <a th:href="@{/admin/rooms}" class="btn btn-outline-secondary px-4">
+                                <i class="bi bi-arrow-left"></i> Quay lại
+                            </a>
+                            <div class="d-flex gap-2">
+                                <a th:href="@{/admin/rooms/edit/{id}(id=${phong.id})}" class="btn btn-gold px-4 text-white">
+                                    <i class="bi bi-pencil-square me-2"></i> Chỉnh sửa
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/css/Admin/Room/admin-room.css}">
+    <style>
+        .border-gold { border-color: #C5A017 !important; }
+        .text-navy { color: #0F2942 !important; }
+        .btn-gold { background-color: #C5A017 !important; color: white !important; border: none !important; }
+        .btn-gold:hover { background-color: #a68512 !important; transform: translateY(-2px); }
+    </style>
+</th:block>
+
+<th:block th:fragment="extra_js"></th:block>
+
+</body>
+</html>

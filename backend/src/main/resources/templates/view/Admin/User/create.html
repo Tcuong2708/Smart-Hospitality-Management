@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Thêm Người Dùng</title>
+</head>
+<body>
+
+<div th:fragment="body_content">
+    <div class="container py-5">
+        <div class="row justify-content-center">
+            <div class="col-md-8 admin-card-custom shadow-sm p-0" style="background: white; border-radius: 15px; overflow: hidden;">
+
+                <div class="admin-header-navy" style="background: #003366; color: white; padding: 20px;">
+                    <h3 th:text="${user.idTaiKhoan == null ? 'Thêm Người Dùng Mới' : 'Cập Nhật Thông Tin'}" class="fw-bold text-uppercase mb-0"></h3>
+                </div>
+
+                <form th:action="@{/admin/users/create}" th:object="${user}" method="post" class="card-body p-4">
+                    <input type="hidden" th:field="*{idTaiKhoan}" />
+
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Tên đăng nhập</label>
+                            <input type="text" th:field="*{tenDangNhap}" class="form-control" th:readonly="${user.idTaiKhoan != null}" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3" th:if="${user.idTaiKhoan == null}">
+                            <label class="form-label">Mật khẩu</label>
+                            <input type="password" th:field="*{matKhau}" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Họ và tên</label>
+                            <input type="text" th:field="*{hoTen}" class="form-control" required />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Vai trò</label>
+                            <select th:field="*{roleID}" class="form-select">
+                                <option value="1">Quản Trị Viên</option>
+                                <option value="2">Nhân Viên</option>
+                                <option value="3">Khách Hàng</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Số điện thoại</label>
+                            <input type="text" th:field="*{soDienThoai}" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Quốc tịch</label>
+                            <input type="text" th:field="*{quocTich}" class="form-control" />
+                        </div>
+
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label">Địa chỉ</label>
+                            <textarea th:field="*{diaChi}" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between mt-4 pt-3 border-top">
+                        <a th:href="@{/admin/users}" class="btn btn-outline-secondary px-4">Quay lại</a>
+                        <button type="submit" class="btn btn-gold px-4 shadow-sm text-white"
+                                style="background: #C5A059;"
+                                th:text="${user.idTaiKhoan == null ? 'THÊM MỚI' : 'CẬP NHẬT'}"></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_css">
+    <style>
+        .btn-gold:hover { background: #A68546 !important; }
+        .form-label { font-weight: 500; color: #444; }
+    </style>
+</th:block>
+
+<th:block th:fragment="extra_js">
+    <script>
+        console.log("Trang Create/Edit đã nạp thành công!");
+    </script>
+</th:block>
+
+</body>
+</html>

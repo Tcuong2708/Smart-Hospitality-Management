@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<body>
+
+<th:block th:fragment="extra_css">
+  <link rel="stylesheet" th:href="@{/frontend/home/info/info.css}" />
+</th:block>
+
+<div th:fragment="body_content">
+  <div style="position: relative;">
+    <img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2a/c8/e0/0d/indochine-palace.jpg?w=1400&h=-1&s=1"
+         class="main-image-header"
+         alt="MAY HOTEL" />
+    <div class="header-overlay">
+      <h1 class="header-title">MAY HOTEL</h1>
+      <p class="header-subtitle">Nơi Khởi Nguồn Của Mọi Hành Trình Hoàn Hảo</p>
+    </div>
+  </div>
+
+  <div class="container" style="margin-top: -80px; position: relative; z-index: 10;">
+    <div class="section-card" id="about">
+      <h2 class="section-title">Câu Chuyện Thương Hiệu</h2>
+      <div class="row align-items-center">
+        <div class="col-lg-6 mb-5 mb-lg-0">
+          <div class="story-text pe-lg-4">
+            <p>
+              <span class="drop-cap">L</span>
+              <b>MAY HOTEL</b> được xây dựng với khát vọng mang đến một trải nghiệm nghỉ dưỡng vượt trội...
+            </p>
+            <p>Triết lý của chúng tôi: <i class="text-navy fw-bold">"Đánh thức mọi giác quan, nâng tầm trải nghiệm"</i>.</p>
+          </div>
+        </div>
+        <div class="col-lg-6 text-center">
+          <div style="padding: 10px; border: 1px solid #d4af37; display: inline-block;">
+            <img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/89/41/96/indochine-palace.jpg?w=1400&h=-1&s=1"
+                 class="img-fluid"
+                 alt="Sảnh khách sạn" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card">
+      <h2 class="section-title">Hành Trình Kiến Tạo Giá Trị</h2>
+      <div class="row">
+        <div class="col-lg-5 d-none d-lg-flex align-items-center justify-content-center">
+          <div style="position: relative;">
+            <div style="position: absolute; top: -10px; left: -10px; width: 100%; height: 100%; border: 2px solid #d4af37; border-radius: 50%;"></div>
+            <img src="https://visithue.vn/Medias/Nam2023/Thang5/khach-san-indochine-palace-hue.jpg"
+                 class="img-fluid rounded-circle shadow"
+                 style="width: 350px; height: 350px; object-fit: cover; border: 10px solid white; position: relative; z-index: 1;"
+                 alt="Hành trình" />
+          </div>
+        </div>
+        <div class="col-lg-7">
+          <div class="story-text ps-lg-5 pt-4">
+            <div class="timeline-item">
+              <div class="timeline-title">1. Khởi Dựng Tầm Nhìn Đẳng Cấp</div>
+              <p class="text-muted">Ý tưởng về MAY HOTEL ra đời từ mong muốn tạo ra một không gian lưu trú sang trọng...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-card" id="gallery">
+      <h2 class="section-title">Không Gian Sang Trọng</h2>
+      <div class="row g-4">
+        <div class="col-md-4">
+          <img src="https://visithue.vn/Medias/Nam2023/Thang5/huetourism-khach-san-indochine-palace-hue-1.jpg"
+               class="img-fluid gallery-img w-100 h-100 object-fit-cover" style="min-height: 250px;" alt="Không gian 1" />
+        </div>
+        <div class="col-md-4">
+          <img src="https://visithue.vn/Medias/Nam2023/Thang5/huetourism-khach-san-indochine-palace-hue-4.jpg"
+               class="img-fluid gallery-img w-100 h-100 object-fit-cover" style="min-height: 250px;" alt="Không gian 2" />
+        </div>
+        <div class="col-md-4">
+          <img src="https://visithue.vn/Medias/Nam2023/Thang5/huetourism-khach-san-indochine-palace-hue-5.jpg"
+               class="img-fluid gallery-img w-100 h-100 object-fit-cover" style="min-height: 250px;" alt="Không gian 3" />
+        </div>
+      </div>
+      <h4 class="text-center quote-footer mt-4">
+        "Chạm vào giấc mơ ngọt dịu giữa không gian thanh lịch."
+      </h4>
+    </div>
+  </div>
+</div> <th:block th:fragment="extra_js"><script th:src="@{/frontend/home/info/info.js}"></script></th:block>
+
+</body>
+</html>

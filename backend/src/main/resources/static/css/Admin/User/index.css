@@ -1,0 +1,81 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+}
+
+/* 1. Header Bảng: Căn lề thống nhất với dữ liệu */
+.table-header-navy th {
+    background-color: var(--navy-color) !important;
+    color: white !important;
+    border-bottom: 2px solid var(--gold-color) !important;
+    padding: 15px 10px !important;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}
+
+/* 2. Căn lề các cột đặc thù */
+.text-center-custom { text-align: center !important; }
+.ps-custom { padding-left: 1.5rem !important; }
+
+/* 3. Nút Thêm Mới: Bo góc giống hình mẫu */
+.btn-gold {
+    background-color: var(--gold-color) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    font-weight: 600;
+    padding: 8px 20px !important;
+    border: none !important;
+}
+
+/* 4. Nút Thao Tác: Ép tròn tuyệt đối */
+.btn-action {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    border: none !important;
+    color: white !important;
+    padding: 0 !important;
+}
+
+.btn-view { background-color: var(--navy-color) !important; }
+.btn-edit { background-color: var(--gold-color) !important; }
+.btn-delete { background-color: #dc3545 !important; }
+
+/* 5. Badge Vai trò: Hình viên thuốc */
+.badge-custom {
+    padding: 6px 15px !important;
+    border-radius: 50px !important;
+    font-weight: 600;
+    min-width: 90px;
+    display: inline-block;
+}
+
+/* Badge Vai trò - Ép màu tuyệt đối */
+.badge-role-admin {
+    background-color: #dc3545 !important; /* Đỏ rực */
+    color: white !important;
+}
+
+.badge-role-staff {
+    background-color: #0d6efd !important; /* Xanh dương */
+    color: white !important;
+}
+
+.badge-role-user {
+    background-color: #6c757d !important; /* Xám đậm */
+    color: white !important;
+}
+
+/* Định dạng chung cho Badge để giống hình mẫu */
+.badge-custom {
+    padding: 8px 16px !important;
+    border-radius: 50px !important; /* Hình viên thuốc */
+    font-weight: 600 !important;
+    min-width: 100px;
+    display: inline-block;
+}

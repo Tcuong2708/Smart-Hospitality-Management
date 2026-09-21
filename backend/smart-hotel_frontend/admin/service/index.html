@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Danh Sách Dịch Vụ - MAY HOTEL</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="css/index.css" />
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-4">
+        <div id="alert-container"></div>
+
+        <div class="card border-0 shadow-sm admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0">
+                    <i class="bi bi-briefcase-fill me-2"></i>Danh sách Dịch vụ
+                </h3>
+                <a href="create.html" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;">
+                    <i class="bi bi-plus-circle me-2"></i>Thêm dịch vụ mới
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
+                    <tr>
+                        <th class="py-3 text-center text-uppercase small text-white">Tên Dịch vụ</th>
+                        <th class="text-center text-uppercase small text-white">Đơn giá</th>
+                        <th class="text-center text-uppercase small text-white">Đơn vị tính</th>
+                        <th class="text-center text-uppercase small text-white" style="width: 150px;">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody id="service-table-body">
+                        <tr>
+                            <td colspan="4" class="text-center py-5 text-muted">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <p class="mt-2">Đang tải danh sách dịch vụ...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

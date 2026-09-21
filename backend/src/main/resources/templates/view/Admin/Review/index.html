@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+</head>
+<body>
+
+<th:block th:fragment="extra_css">
+    <style>
+        .bg-navy { background-color: #0F2942 !important; }
+        .text-navy { color: #0F2942 !important; }
+        .text-gold { color: #C5A017 !important; }
+    </style>
+</th:block>
+
+<div th:fragment="body_content">
+    <div class="container-fluid py-4">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="text-uppercase fw-bold m-0 text-navy" style="border-left: 6px solid #C5A017; padding-left: 15px;">
+                <i class="bi bi-chat-square-heart-fill me-2 text-gold"></i>Kiểm duyệt Đánh giá phản hồi
+            </h2>
+        </div>
+
+        <div th:if="${success}" class="alert alert-success border-0 shadow-sm mb-3" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger border-0 shadow-sm mb-3" th:text="${error}"></div>
+
+        <div class="card shadow-sm border-0 overflow-hidden">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="text-white bg-navy">
+                        <tr>
+                            <th class="ps-4 py-3">Mã đơn</th>
+                            <th>Tên phòng / Dịch vụ</th>
+                            <th>Mức xếp hạng</th>
+                            <th style="max-width: 350px;">Nội dung phản hồi</th>
+                            <th class="text-center">Trạng thái</th>
+                            <th class="text-center" style="width: 180px;">Thao tác kiểm duyệt</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:each="r : ${reviews}">
+                            <td class="ps-4 fw-bold text-muted" th:text="'#' + ${r.id}">#1</td>
+                            <td class="fw-bold text-navy" th:text="${r.tenPhong}">Phòng Deluxe VIP P302</td>
+                            <td>
+                                <span th:each="i : ${#numbers.sequence(1, r.soSao)}" class="text-warning"><i class="bi bi-star-fill"></i></span>
+                            </td>
+                            <td style="max-width: 350px;" class="text-truncate" th:text="${r.noiDung}" th:title="${r.noiDung}">Nội dung bình luận...</td>
+                            <td class="text-center">
+                                <span th:if="${r.trangThai == 0}" class="badge bg-warning text-dark px-3 py-2 rounded-pill">Chờ kiểm duyệt</span>
+                                <span th:if="${r.trangThai == 1}" class="badge bg-success px-3 py-2 rounded-pill">Đã duyệt hiển thị</span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-1">
+                                    <a th:if="${r.trangThai == 0}" th:href="@{/admin/reviews/approve/{id}(id=${r.id})}"
+                                       class="btn btn-sm btn-success fw-bold" onclick="return confirm('Duyệt hiển thị bình luận này công khai?')">
+                                        <i class="bi bi-check-circle"></i> Duyệt
+                                    </a>
+                                    <a th:href="@{/admin/reviews/delete/{id}(id=${r.id})}"
+                                       class="btn btn-sm btn-outline-danger" onclick="return confirm('Xóa bỏ vĩnh viễn bình luận này?')">
+                                        <i class="bi bi-trash"></i> Xóa
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(reviews)}">
+                            <td colspan="6" class="text-center py-4 text-muted">Hệ thống hiện tại chưa nhận được phản hồi đánh giá nào từ khách hàng.</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+</th:block>
+
+</body>
+</html>

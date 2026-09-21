@@ -1,0 +1,149 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+}
+
+/* --- CSS CHO CAROUSEL --- */
+.carousel-item img {
+    height: 450px;
+    object-fit: cover;
+    filter: brightness(0.9);
+}
+
+/* Hộp khuyến mãi: Nền Navy sang trọng */
+.promo-box {
+    background-color: var(--navy-color);
+    border-radius: 4px; /* Bo góc ít hơn để nam tính, sang trọng */
+    border: 1px solid var(--gold-color); /* Viền vàng kim mảnh */
+    color: white;
+}
+
+/* --- CSS CHO SẢN PHẨM --- */
+.section-title {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--navy-color); /* Tiêu đề màu Navy */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+}
+
+.card-product {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    overflow: hidden;
+    background: white;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    transition: all 0.3s ease;
+}
+
+.card-product:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 30px rgba(15, 41, 66, 0.15); /* Shadow màu xanh navy nhạt */
+    border-color: var(--gold-color);
+}
+
+.product-img-wrapper {
+    position: relative;
+    overflow: hidden;
+    height: 240px; /* Tăng chiều cao ảnh chút cho đẹp */
+}
+
+.product-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s;
+}
+
+.card-product:hover .product-img {
+    transform: scale(1.1);
+}
+
+.badge-hot {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: var(--gold-color); /* Badge màu Vàng Kim */
+    color: var(--navy-color);
+    padding: 5px 12px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+}
+
+.price-tag {
+    color: var(--gold-color); /* Giá màu Vàng */
+    font-size: 1.1rem;
+    font-weight: 800;
+}
+
+/* Nút Đặt phòng: Màu Vàng Kim */
+.btn-add-cart-home {
+    background-color: var(--gold-color) !important;
+    color: white !important;
+    border: none !important;
+    border-radius: 6px !important;
+    padding: 12px 20px !important;
+    font-weight: 700 !important;
+    width: 100%;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 4px 12px rgba(197, 160, 23, 0.25);
+}
+
+.btn-add-cart-home:hover {
+    background-color: var(--gold-hover) !important;
+    color: white !important;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(166, 133, 18, 0.45);
+}
+
+.btn-outline-navy {
+    color: var(--navy-color);
+    border: 2px solid var(--navy-color);
+    background: transparent;
+    font-weight: 700;
+    padding: 10px 30px;
+    border-radius: 50px;
+    transition: 0.3s;
+}
+
+.btn-outline-navy:hover {
+    background: var(--navy-color);
+    color: var(--gold-color);
+}
+
+/* Tiện ích màu chữ */
+.text-gold {
+    color: var(--gold-color) !important;
+}
+
+.text-navy {
+    color: var(--navy-color) !important;
+}
+/* --- Nút Khuyến mãi (Tương phản cao trên nền tối) --- */
+.btn-promo-light {
+    background-color: #ffffff; /* Nền trắng nổi bật */
+    color: #0F2942; /* Chữ Xanh Navy đậm */
+    border: 2px solid #C5A017; /* Viền Vàng Kim */
+    border-radius: 6px;
+    padding: 14px;
+    font-weight: 800; /* Chữ thật đậm */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    transition: all 0.3s ease-in-out;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.btn-promo-light:hover {
+    background-color: #C5A017; /* Hover chuyển sang nền Vàng */
+    color: #ffffff; /* Chữ chuyển sang Trắng */
+    border-color: #C5A017;
+    transform: translateY(-3px); /* Nổi lên nhẹ */
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.6); /* Hiệu ứng phát sáng rực rỡ */
+}

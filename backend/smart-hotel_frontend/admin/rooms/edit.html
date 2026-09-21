@@ -1,0 +1,107 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sửa Phòng - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="admin-room.css">
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-5">
+        <a href="index.html" class="text-decoration-none text-muted mb-3 d-inline-block">
+            <i class="bi bi-arrow-left me-1"></i> Trở về Quản lý phòng
+        </a>
+
+        <div class="admin-card">
+            <div class="admin-header">
+                <h4 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">
+                    <i class="bi bi-pencil-square me-2 text-warning"></i>Cập Nhật Thông Tin Phòng
+                </h4>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+                <div id="loading" class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+
+                <form id="edit-form" class="d-none">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tên Phòng <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Giá Phòng (VNĐ) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="price" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">URL Hình Ảnh</label>
+                            <input type="text" class="form-control" id="imageUrl">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Trạng Thái</label>
+                            <select class="form-select" id="maTrangThai">
+                                <option value="1">Đang trống</option>
+                                <option value="2">Đã đặt</option>
+                                <option value="3">Bảo trì</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Số Giường Phụ Tối Đa</label>
+                            <input type="number" class="form-control" id="soGiuongPhuToiDa" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Loại Phòng</label>
+                            <select class="form-select" id="maLoai">
+                                <option value="1">Phòng Tiêu Chuẩn</option>
+                                <option value="2">Phòng Cao Cấp</option>
+                                <option value="3">Phòng VIP</option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Chi Tiết (Mô tả)</label>
+                            <textarea class="form-control" id="detail" rows="3"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Ghi Chú</label>
+                            <textarea class="form-control" id="ghiChu" rows="2"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 pt-3 border-top text-end">
+                        <button type="button" onclick="history.back()" class="btn btn-secondary px-4 me-2">Hủy</button>
+                        <button type="submit" class="btn btn-primary px-4 fw-bold" id="btn-save" style="background-color: var(--navy-color);">
+                            <i class="bi bi-floppy me-1"></i> Lưu Lại
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    <script src="edit.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

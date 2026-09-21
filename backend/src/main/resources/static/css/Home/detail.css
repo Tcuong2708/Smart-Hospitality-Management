@@ -1,0 +1,66 @@
+/* --- CSS RIÊNG CHO TRANG CHI TIẾT --- */
+.detail-img-container {
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    border: 1px solid #eee;
+}
+
+.detail-img {
+    transition: transform 0.5s ease;
+}
+
+.detail-img:hover {
+    transform: scale(1.05);
+}
+
+.text-navy {
+    color: #0F2942;
+}
+
+.bg-navy {
+    background-color: #0F2942;
+    color: white;
+}
+
+.text-gold {
+    color: #d4af37;
+}
+
+.feature-box {
+    background: #f8f9fa;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: center;
+    border: 1px solid #e9ecef;
+    transition: 0.3s;
+}
+
+.feature-box:hover {
+    border-color: #d4af37;
+    background: #fff;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+}
+
+.price-tag-large {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #dc3545;
+}
+
+.btn-book-now {
+    background-color: #d4af37;
+    color: #0F2942;
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    padding: 15px 30px;
+    border: none;
+    transition: 0.3s;
+}
+
+.btn-book-now:hover {
+    background-color: #0F2942;
+    color: #d4af37;
+    box-shadow: 0 5px 15px rgba(15, 41, 66, 0.3);
+}

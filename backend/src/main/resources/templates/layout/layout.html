@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle != null ? pageTitle + ' - MAY HOTEL' : 'MAY HOTEL - Đẳng Cấp Sang Trọng'}">MAY HOTEL -
+        Đẳng Cấp Sang Trọng</title>
+
+    <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+        rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+    <!-- Link to the official frontend static style -->
+    <link rel="stylesheet" th:href="@{/frontend/style.css?v=2}" />
+
+    <style>
+        .navbar-nav .nav-link.active-menu {
+            font-weight: 700 !important;
+            color: #d4af37 !important;
+            /* Màu vàng Gold */
+            background-color: rgba(212, 175, 55, 0.1);
+            /* Nền mờ */
+            border-radius: 8px;
+            /* Bo tròn góc */
+            padding: 8px 16px !important;
+            /* Tạo khoảng trống xung quanh chữ */
+            transition: 0.3s all ease-in-out;
+        }
+    </style>
+
+    <th:block th:if="${extra_css != null}">
+        <th:block th:replace="~{__${extra_css}__}"></th:block>
+    </th:block>
+</head>
+
+<body>
+
+    <!-- NAVBAR_HTML from layout.js -->
+    <nav class="navbar navbar-expand-lg sticky-top glass-navbar">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/}">
+                <i class="bi bi-buildings-fill me-2"></i>MAY HOTEL
+            </a>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navMenu">
+                <ul class="navbar-nav ms-auto align-items-center">
+                    <li class="nav-item"><a class="nav-link" th:href="@{/}">Trang chủ</a></li>
+                    <li class="nav-item"><a class="nav-link" th:href="@{/info}">Thông tin</a></li>
+                    <li class="nav-item" th:if="${session.user == null or session.user.role == 'CUSTOMER'}"><a class="nav-link" th:href="@{/rooms}">Phòng nghỉ</a></li>
+                    <li class="nav-item" th:if="${session.user == null or session.user.role == 'CUSTOMER'}"><a class="nav-link" th:href="@{/review}">Đánh giá</a></li>
+
+                    <!-- Dropdown Tài khoản User -->
+                    <li class="nav-item dropdown" id="user-menu-container">
+                        <a class="nav-icon-btn dropdown-toggle p-0" href="#" role="button" data-bs-toggle="dropdown"
+                            aria-expanded="false">
+                            <i class="bi bi-person-circle" id="user-icon"
+                                th:style="${session.user != null ? 'opacity: 1;' : 'opacity: 0.6;'}"></i>
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end dropdown-menu-custom dropdown-menu-scrollable"
+                            id="user-dropdown-menu">
+
+                            <!-- CHƯA ĐĂNG NHẬP -->
+                            <th:block th:if="${session.user == null}">
+                                <li><a class="dropdown-item" th:href="@{/account/login}"><i
+                                            class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</a></li>
+                                <li><a class="dropdown-item" th:href="@{/account/register}"><i
+                                            class="bi bi-pencil-square me-2"></i>Đăng ký</a></li>
+                            </th:block>
+
+                            <!-- ĐÃ ĐĂNG NHẬP -->
+                            <th:block th:if="${session.user != null}">
+                                <li>
+                                    <div class="dropdown-header-user px-3 py-2 fw-bold text-primary border-bottom"
+                                        style="background-color: #f8f9fa;">
+                                        Xin chào, <span
+                                            th:text="${session.user.username != null ? session.user.username : session.user.fullName}"></span>
+                                    </div>
+                                </li>
+
+                                <!-- QUẢN LÝ KHÁCH SẠN (Ban Giám đốc) -->
+                                <th:block th:if="${session.user.role == 'ADMIN' or session.user.role == 'MANAGER'}">
+                                    <li>
+                                        <div class="dropdown-header text-uppercase text-primary fw-bold mt-2"
+                                            style="font-size: 0.75rem; padding-left: 1rem;">Quản lý Khách sạn</div>
+                                    </li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/rooms}"><i
+                                                class="bi bi-houses-fill me-2 text-secondary"></i>Quản lý Phòng</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/categories}"><i
+                                                class="bi bi-tags-fill me-2 text-secondary"></i>Quản lý Loại phòng</a>
+                                    </li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/services}"><i
+                                                class="bi bi-stars me-2 text-secondary"></i>Quản lý Dịch vụ</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/reviews}"><i
+                                                class="bi bi-chat-square-heart-fill me-2 text-secondary"></i>Quản lý
+                                            Đánh giá</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/promotion}"><i
+                                                class="bi bi-gift-fill me-2 text-secondary"></i>Quản lý Khuyến mãi</a>
+                                    </li>
+                                    <li><a class="dropdown-item" href="http://localhost:8080/api/rooms"
+                                            target="_blank"><i class="bi bi-code-slash me-2 text-danger"></i>API Quản lý
+                                            Phòng</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+                                </th:block>
+
+                                <!-- KẾ TOÁN & THỐNG KÊ -->
+                                <th:block
+                                    th:if="${session.user.role == 'ADMIN' or session.user.role == 'MANAGER' or session.user.role == 'ACCOUNTANT'}">
+                                    <li>
+                                        <div class="dropdown-header text-uppercase text-success fw-bold mt-1"
+                                            style="font-size: 0.75rem; padding-left: 1rem;">Kế toán & Thống kê</div>
+                                    </li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/statistical}"><i
+                                                class="bi bi-graph-up-arrow me-2 text-success"></i>Thống kê Doanh
+                                            thu</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+                                </th:block>
+
+                                <!-- NHÂN SỰ -->
+                                <th:block th:if="${session.user.role == 'ADMIN' or session.user.role == 'HR'}">
+                                    <li>
+                                        <div class="dropdown-header text-uppercase text-info fw-bold mt-1"
+                                            style="font-size: 0.75rem; padding-left: 1rem;">Nhân sự</div>
+                                    </li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/staff}"><i
+                                                class="bi bi-person-vcard-fill me-2 text-info"></i>Quản lý Nhân viên</a>
+                                    </li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+                                </th:block>
+
+                                <!-- NGHIỆP VỤ LỄ TÂN -->
+                                <th:block
+                                    th:if="${session.user.role == 'ADMIN' or session.user.role == 'MANAGER' or session.user.role == 'RECEPTIONIST'}">
+                                    <li>
+                                        <div class="dropdown-header text-uppercase text-warning fw-bold mt-1"
+                                            style="font-size: 0.75rem; padding-left: 1rem;">Nghiệp vụ lễ tân</div>
+                                    </li>
+                                    <li><a class="dropdown-item" th:href="@{/receptionist/room-map}"><i
+                                                class="bi bi-grid-3x3-gap-fill me-2 text-warning"></i>Sơ đồ phòng trực
+                                            quan</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/booking}"><i
+                                                class="bi bi-calendar-check-fill me-2 text-warning"></i>Quản lý Đặt
+                                            phòng</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/invoices}"><i
+                                                class="bi bi-journal-bookmark-fill me-2 text-warning"></i>Quản lý Hoá
+                                            Đơn</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/receptionist/check-in}"><i
+                                                class="bi bi-box-arrow-in-right me-2 text-warning"></i>Xử lý Nhận phòng
+                                            (Check-in)</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/receptionist/check-out}"><i
+                                                class="bi bi-box-arrow-left me-2 text-warning"></i>Xử lý Trả phòng
+                                            (Check-out)</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+                                </th:block>
+
+                                <!-- NGHIỆP VỤ BUỒNG PHÒNG -->
+                                <th:block
+                                    th:if="${session.user.role == 'ADMIN' or session.user.role == 'MANAGER' or session.user.role == 'HOUSEKEEPER'}">
+                                    <li>
+                                        <div class="dropdown-header text-uppercase text-success fw-bold mt-1"
+                                            style="font-size: 0.75rem; padding-left: 1rem;">Buồng phòng</div>
+                                    </li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/room-status}"><i
+                                                class="bi bi-stars me-2 text-success"></i>Trạng thái Dọn phòng</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+                                </th:block>
+
+                                <!-- QUẢN TRỊ HỆ THỐNG (Chỉ dành cho Admin) -->
+                                <th:block th:if="${session.user.role == 'ADMIN'}">
+                                    <li>
+                                        <div class="dropdown-header text-uppercase text-danger fw-bold mt-1"
+                                            style="font-size: 0.75rem; padding-left: 1rem;">Quản trị hệ thống</div>
+                                    </li>
+                                    <li><a class="dropdown-item" th:href="@{/admin/users}"><i
+                                                class="bi bi-people-fill me-2 text-danger"></i>Quản lý Tài khoản</a>
+                                    </li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
+                                </th:block>
+
+                                <!-- DÀNH CHO KHÁCH HÀNG -->
+                                <th:block th:if="${session.user.role == 'CUSTOMER'}">
+                                    <li><a class="dropdown-item" th:href="@{/booking/history}"><i
+                                                class="bi bi-clock-history me-2"></i>Lịch sử đặt phòng</a></li>
+                                </th:block>
+                                <li><a class="dropdown-item" th:href="@{/account/profile}"><i
+                                            class="bi bi-person-circle me-2"></i>Hồ sơ của tôi</a></li>
+                                <li><a class="dropdown-item text-danger fw-bold mt-2" th:href="@{/account/logout}"><i
+                                            class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
+                            </th:block>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content injected by Thymeleaf -->
+    <div class="main-content fade-in-box" id="app-content">
+        <div th:if="${view != null}" th:replace="~{${view} :: body_content}"></div>
+    </div>
+
+    <!-- FOOTER_HTML from layout.js -->
+    <footer>
+        <div class="container">
+            <div class="row gy-5">
+                <div class="col-md-4">
+                    <h5 class="brand-footer"><i class="bi bi-buildings-fill me-2"></i>MAY HOTEL</h5>
+                    <p>Trải nghiệm sự sang trọng và tiện nghi bậc nhất. Chúng tôi cam kết mang đến cho bạn những kỳ nghỉ
+                        không thể nào quên.</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Liên hệ</h5>
+                    <p class="mb-2"><i class="bi bi-envelope me-2"></i> Email: MayHotel.hotel@gmail.com</p>
+                    <p class="mb-2"><i class="bi bi-telephone me-2"></i> Hotline: 1800 9327</p>
+                    <p><i class="bi bi-headset me-2"></i> CSKH: 038 8305167</p>
+                </div>
+                <div class="col-md-4">
+                    <h5>Kết nối & Địa chỉ</h5>
+                    <div class="social-icons mb-4">
+                        <a href="#"><i class="bi bi-facebook"></i></a>
+                        <a href="#"><i class="bi bi-instagram"></i></a>
+                        <a href="#"><i class="bi bi-twitter"></i></a>
+                    </div>
+                    <p class="mb-2"><i class="bi bi-geo-alt me-2"></i> CN1: 140 Lê Trọng Tấn, TP. HCM</p>
+                    <p><i class="bi bi-geo-alt me-2"></i> CN2: 86 Tân Hòa Đông, Q.6, TP. HCM</p>
+                </div>
+            </div>
+            <hr class="mt-5 mb-4 footer-divider" />
+            <div class="row">
+                <div class="col-12 text-center text-white-50 small">
+                    &copy; 2025 MAY HOTEL KINGS. All rights reserved.
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- TOAST_HTML from layout.js -->
+    <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
+        <div id="toastNotification" class="toast align-items-center shadow-lg text-white border-0 bg-navy" role="alert"
+            aria-live="assertive" aria-atomic="true">
+            <div class="d-flex">
+                <div class="toast-body fs-6 fw-medium px-4 py-3 d-flex align-items-center">
+                    <i id="toastIcon" class="bi bi-check-circle-fill me-3 fs-4 text-warning"></i>
+                    <div id="toastMessage">Thông báo từ hệ thống!</div>
+                </div>
+                <button type="button" class="btn-close btn-close-white me-3 m-auto" data-bs-dismiss="toast"
+                    aria-label="Close"></button>
+            </div>
+        </div>
+    </div>
+
+    <input type="hidden" id="backendSuccessMsg" th:value="${success}" th:if="${success}" />
+    <input type="hidden" id="backendErrorMsg" th:value="${error}" th:if="${error}" />
+
+    <!-- CHATBOT_HTML from layout.js -->
+    <div id="chat-circle">
+        <i class="bi bi-chat-dots-fill fs-3"></i>
+    </div>
+
+    <div class="chat-box" id="chat-box">
+        <div class="chat-box-header">
+            <div>
+                <i class="bi bi-robot me-2 fs-5"></i>
+                <span class="fw-bold">Hỗ trợ trực tuyến</span>
+            </div>
+            <span id="chat-box-close" class="fs-5" style="cursor:pointer; transition: 0.3s;"><i
+                    class="bi bi-x-lg"></i></span>
+        </div>
+
+        <div class="chat-box-body" id="chat-logs">
+            <div class="msg-bot shadow-sm">
+                Xin chào! Tôi là trợ lý ảo AI của May Hotel. Tôi có thể giúp gì cho bạn? <br />
+                <small class="text-muted mt-1 d-block">(Ví dụ: "Giá phòng bao nhiêu", "Có hồ bơi không")</small>
+            </div>
+        </div>
+
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" class="form-control" placeholder="Nhập tin nhắn..." autocomplete="off" />
+            <button id="chat-submit" class="btn-send"><i class="bi bi-send-fill"></i></button>
+        </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+    <script>
+        // JS Active Menu
+        const currentUrl = window.location.href.split('?')[0].split('#')[0];
+        const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
+        navLinks.forEach(link => {
+            const linkUrl = link.href.split('?')[0].split('#')[0];
+            if (currentUrl === linkUrl) {
+                link.classList.add('active-menu');
+            }
+        });
+
+        // Toast Display Logic
+        function showToast(message, type = 'success') {
+            const toastNode = document.getElementById('toastNotification');
+            const iconNode = document.getElementById('toastIcon');
+            const messageNode = document.getElementById('toastMessage');
+
+            if (!toastNode || !messageNode || !iconNode) return;
+            messageNode.innerText = message;
+            toastNode.classList.remove('bg-success', 'bg-danger', 'bg-navy');
+
+            if (type === 'success') {
+                toastNode.classList.add('bg-navy');
+                iconNode.className = "bi bi-check-circle-fill me-3 fs-4 text-warning";
+            } else if (type === 'error') {
+                toastNode.classList.add('bg-danger');
+                iconNode.className = "bi bi-exclamation-triangle-fill me-3 fs-4 text-white";
+            }
+
+            const bsToastInstance = new bootstrap.Toast(toastNode, { delay: 3500 });
+            bsToastInstance.show();
+        }
+
+        document.addEventListener("DOMContentLoaded", function () {
+            const successObj = document.getElementById("backendSuccessMsg");
+            const errorObj = document.getElementById("backendErrorMsg");
+
+            if (successObj && successObj.value) {
+                showToast(successObj.value, 'success');
+            }
+            if (errorObj && errorObj.value) {
+                showToast(errorObj.value, 'error');
+            }
+        });
+
+        // Chatbot Logic
+        $(document).ready(function () {
+            $("#chat-circle").click(function () {
+                $(this).hide();
+                $("#chat-box").fadeIn(300).css("display", "flex");
+                scrollToBottom();
+            });
+
+            $("#chat-box-close").click(function () {
+                $("#chat-box").fadeOut(300, function () {
+                    $("#chat-circle").fadeIn(200);
+                });
+            });
+
+            function sendMessage() {
+                var msg = $("#chat-input").val();
+                if (msg.trim() == "") return;
+
+                $("#chat-logs").append('<div class="msg-user animate-fadeIn">' + msg + '</div>');
+                $("#chat-input").val('');
+                scrollToBottom();
+
+                var timestamp = new Date().getTime();
+                var loadingId = "bot-loading-" + timestamp;
+
+                var loadingHtml = '<div id="' + loadingId + '" class="msg-bot text-muted fst-italic">' +
+                    '<span class="spinner-border spinner-border-sm text-warning me-2" role="status"></span>' +
+                    'Luna đang xử lý dữ liệu...' +
+                    '</div>';
+                $("#chat-logs").append(loadingHtml);
+                scrollToBottom();
+
+                $.ajax({
+                    url: "http://127.0.0.1:5000/predict",
+                    type: "POST",
+                    contentType: "application/json",
+                    data: JSON.stringify({ message: msg }),
+                    success: function (res) {
+                        $("#" + loadingId).remove();
+                        var botReply = res.answer.replace(/\n/g, "<br>");
+                        $("#chat-logs").append('<div class="msg-bot shadow-sm">' + botReply + '</div>');
+                        scrollToBottom();
+                    },
+                    error: function (xhr, status, error) {
+                        $("#" + loadingId).remove();
+                        $("#chat-logs").append('<div class="msg-bot bg-danger text-white border-0"><i class="bi bi-wifi-off me-2"></i>Lỗi: Máy chủ Model AI (Port 5000) chưa được kích hoạt hoạt động!</div>');
+                        scrollToBottom();
+                    }
+                });
+            }
+
+            $("#chat-submit").click(function () { sendMessage(); });
+            $("#chat-input").keypress(function (e) {
+                if (e.which == 13) {
+                    sendMessage();
+                    e.preventDefault();
+                }
+            });
+
+            function scrollToBottom() {
+                var chatLogs = document.getElementById("chat-logs");
+                if (chatLogs) {
+                    chatLogs.scrollTo({ top: chatLogs.scrollHeight, behavior: 'smooth' });
+                }
+            }
+        });
+    </script>
+
+    <th:block th:if="${extra_js != null}">
+        <div th:replace="~{__${extra_js}__}"></div>
+    </th:block>
+</body>
+
+</html>

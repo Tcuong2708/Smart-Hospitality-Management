@@ -1,0 +1,25 @@
+.text-navy { color: #0F2942 !important; }
+.bg-navy { background-color: #0F2942 !important; }
+.text-gold { color: #C5A017 !important; }
+.btn-gold { background-color: #C5A017 !important; color: white !important; border: none !important; transition: 0.3s; }
+.btn-gold:hover { background-color: #a68512 !important; transform: translateY(-1px); }
+
+/* CSS Custom cho bộ chọn Phương thức thanh toán */
+.payment-method-card {
+    border: 2px solid #eee;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+.payment-method-card:hover {
+    border-color: #C5A017;
+    background-color: rgba(197, 160, 23, 0.03);
+}
+.payment-radio:checked + .payment-method-card {
+    border-color: #0F2942;
+    background-color: rgba(15, 41, 66, 0.04);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
+.payment-radio:checked + .payment-method-card .bi-check-circle-fill {
+    display: inline-block !important;
+}

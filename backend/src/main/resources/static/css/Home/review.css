@@ -1,0 +1,212 @@
+/* File review.html*/
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --bg-light: #f8f9fa;
+    --text-muted: #6c757d;
+}
+
+.testimonial-section {
+    text-align: center;
+    padding: 60px 20px;
+    background-color: var(--bg-light);
+}
+
+.testimonial-section h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.5rem;
+    margin-bottom: 50px;
+    color: var(--navy-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    position: relative;
+    display: inline-block;
+}
+
+.testimonial-section h2::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 3px;
+    background-color: var(--gold-color);
+}
+
+/* --- REVIEW BOX (NAVY STYLE) --- */
+.testimonial-box {
+    background: var(--navy-color);
+    color: #fff;
+    padding: 50px 40px;
+    max-width: 800px;
+    margin: 0 auto 60px;
+    border-radius: 10px;
+    position: relative;
+    box-shadow: 0 15px 40px rgba(15, 41, 66, 0.3);
+    border: 1px solid rgba(197, 160, 23, 0.3); /* Viền vàng mờ */
+}
+
+.testimonial-img {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+    border: 3px solid var(--gold-color); /* Viền ảnh vàng */
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    background-color: #fff;
+}
+
+.testimonial-name {
+    font-weight: 700;
+    margin-top: 15px;
+    font-size: 1.2rem;
+    color: var(--gold-color);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.testimonial-text {
+    font-size: 1.1rem;
+    line-height: 1.8;
+    margin-top: 20px;
+    font-style: italic;
+    opacity: 0.9;
+    font-family: 'Georgia', serif;
+}
+
+/* Dấu ngoặc kép trang trí */
+.testimonial-text::before {
+    content: '\201C';
+    font-size: 3rem;
+    color: var(--gold-color);
+    line-height: 0;
+    margin-right: 10px;
+    vertical-align: -15px;
+}
+
+.stars {
+    color: var(--gold-color);
+    margin: 15px 0;
+    font-size: 1.2rem;
+}
+
+/* Mũi tên điều hướng */
+.nav-arrow {
+    font-size: 40px;
+    cursor: pointer;
+    color: rgba(255,255,255,0.3);
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    transition: 0.3s;
+}
+
+.nav-arrow:hover {
+    color: var(--gold-color);
+}
+
+.nav-arrow.left {
+    left: -60px;
+}
+
+.nav-arrow.right {
+    right: -60px;
+}
+
+
+@media (max-width: 992px) {
+    .nav-arrow.left { left: 10px; }
+    .nav-arrow.right { right: 10px; }
+}
+
+/* --- FORM SECTION --- */
+.form-section {
+    max-width: 700px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.05);
+    border-top: 5px solid var(--navy-color);
+}
+
+.form-section h3 {
+    margin-bottom: 30px;
+    color: var(--navy-color);
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--navy-color);
+    display: block;
+    text-align: left;
+    margin-bottom: 8px;
+}
+
+input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 25px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    font-size: 15px;
+    background-color: #fcfcfc;
+    transition: 0.3s;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--gold-color);
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(197, 160, 23, 0.1);
+}
+
+/* Nút Gửi: Màu Vàng Kim */
+.btn-submit {
+    background-color: var(--gold-color);
+    color: white;
+    padding: 14px 40px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    font-weight: 700;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    width: 100%;
+    letter-spacing: 1px;
+}
+
+.btn-submit:hover {
+    background-color: var(--gold-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(197, 160, 23, 0.3);
+}
+
+/* Nút Xóa: Màu Đỏ nhưng style tối giản */
+.delete-btn {
+    background-color: transparent;
+    color: rgba(255,255,255,0.5);
+    border: 1px solid rgba(255,255,255,0.3);
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    padding: 5px 12px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.delete-btn:hover {
+    background-color: #dc3545;
+    color: white;
+    border-color: #dc3545;
+}

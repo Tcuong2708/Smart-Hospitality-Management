@@ -1,0 +1,91 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+}
+
+body {
+    background-color: #f4f6f9;
+}
+
+.text-navy { color: var(--navy-color) !important; }
+.text-gold { color: var(--gold-color) !important; }
+
+.form-card {
+    border-radius: 12px;
+}
+
+.btn-gold {
+    background-color: var(--gold-color);
+    color: white;
+    border: none;
+    transition: 0.3s;
+    border-radius: 8px;
+}
+
+.btn-gold:hover {
+    background-color: var(--gold-hover);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(197, 160, 23, 0.4);
+}
+
+.btn-gold:disabled {
+    background-color: #ccc;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* Payment Method Cards */
+.payment-method-card {
+    border: 2px solid #eee;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: white;
+}
+
+.payment-method-card:hover {
+    border-color: rgba(197, 160, 23, 0.5);
+    background-color: #fffaf0;
+}
+
+.payment-radio:checked + .payment-method-card {
+    border-color: var(--navy-color);
+    background-color: rgba(15, 41, 66, 0.03);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.check-icon {
+    display: none;
+}
+
+.payment-radio:checked + .payment-method-card .check-icon {
+    display: inline-block !important;
+}
+
+/* Service Checkboxes */
+.service-item {
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px 15px;
+    cursor: pointer;
+    transition: 0.2s;
+    display: flex;
+    align-items: center;
+    background: white;
+}
+
+.service-item:hover {
+    background-color: #f8f9fa;
+    border-color: #adb5bd;
+}
+
+.service-checkbox {
+    width: 1.2em;
+    height: 1.2em;
+    accent-color: var(--gold-color);
+    cursor: pointer;
+    margin-right: 12px;
+}

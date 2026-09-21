@@ -1,0 +1,92 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+}
+
+.login-wrapper {
+    background-color: #f8f9fa;
+    padding: 60px 0;
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+}
+
+.card-login {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    overflow: hidden;
+    background: #fff;
+}
+
+.card-header-login {
+    background-color: var(--navy-color);
+    color: var(--gold-color);
+    padding: 25px;
+    text-align: center;
+}
+
+.card-header-login h2 {
+    margin: 0;
+    font-weight: 700;
+    font-size: 26px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card-header-login p {
+    color: #ffffff;
+    opacity: 0.8;
+    margin-top: 5px;
+}
+
+.form-control-lg {
+    border-radius: 8px;
+    font-size: 15px;
+    padding: 12px 15px;
+    border: 1px solid #e1e1e1;
+}
+
+/* ĐỔI MÀU: Focus border Gold */
+.form-control-lg:focus {
+    border-color: var(--gold-color);
+    box-shadow: 0 0 0 0.2rem rgba(197, 160, 23, 0.25);
+}
+
+.btn-login {
+    background-color: var(--gold-color);
+    border: none;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 8px;
+    width: 100%;
+    color: white;
+    transition: all 0.3s;
+    margin-top: 10px;
+}
+
+.btn-login:hover {
+    background-color: var(--gold-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(197, 160, 23, 0.4);
+    color: white;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 14px;
+    color: #666;
+}
+
+.login-footer a {
+    color: var(--gold-color);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}

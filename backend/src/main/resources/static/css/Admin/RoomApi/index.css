@@ -1,0 +1,42 @@
+:root {
+    --navy: #0F2942;
+    --gold: #C5A017;
+    --gold-hover: #a68512;
+}
+
+.text-navy {
+    color: var(--navy) !important;
+}
+
+.bg-navy {
+    background-color: var(--navy) !important;
+}
+
+.text-gold {
+    color: var(--gold) !important;
+}
+
+.btn-gold {
+    background-color: var(--gold) !important;
+    color: white !important;
+    border: none !important;
+    transition: 0.3s !important;
+}
+
+.btn-gold:hover {
+    background-color: var(--gold-hover) !important;
+    transform: translateY(-1px);
+}
+
+.page-title {
+    border-left: 6px solid var(--gold);
+    padding-left: 15px;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(197, 160, 23, 0.04) !important;
+}
+
+.modal-header {
+    border-bottom: 3px solid var(--gold) !important;
+}

@@ -1,0 +1,7 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+}
+.bg-navy { background-color: var(--navy-color) !important; }
+.text-navy { color: var(--navy-color) !important; }
+.text-gold { color: var(--gold-color) !important; }
