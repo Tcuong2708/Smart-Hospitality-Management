@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cảnh Báo Rủi Ro No-Show - Lễ Tân</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../style.css" />
+    <style>
+      .navbar-nav .nav-link.active-menu { font-weight: 700 !important; color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); border-radius: 8px; padding: 8px 16px !important; transition: 0.3s all ease-in-out; }
+      .admin-card { background: white; border-radius: 8px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
+      .admin-header { background-color: var(--primary-color, #0F2942); color: white; padding: 20px 25px; border-bottom: 3px solid var(--accent-color, #C5A017); }
+      .table-header-navy th { background-color: var(--primary-color, #0F2942) !important; color: white !important; border-bottom: 2px solid var(--accent-color, #C5A017) !important; padding: 15px 10px !important; text-transform: uppercase; font-size: 0.85rem; vertical-align: middle; }
+      .risk-high { background-color: rgba(220, 53, 69, 0.1); }
+      .risk-medium { background-color: rgba(255, 193, 7, 0.1); }
+    </style>
+</head>
+<body>
+
+<div class="main-content">
+    <div class="container py-5">
+        <div class="card shadow-sm border-0 admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-robot me-2 text-gold"></i>Trợ Lý AI - Phân Tích Rủi Ro Không Đến (No-Show)
+                </h3>
+                <button class="btn btn-gold px-4 shadow-sm text-white" id="btn-reanalyze" style="background: #C5A017;">
+                    <i class="bi bi-arrow-repeat me-1"></i> Quét lại dữ liệu
+                </button>
+            </div>
+            
+            <div class="p-3 bg-light border-bottom text-muted fst-italic">
+                <i class="bi bi-info-circle me-1"></i> <strong>Lưu ý:</strong> Dữ liệu được Trợ lý ảo AI phân tích dựa trên lịch sử đặt phòng, tình trạng thanh toán và thời gian của Phiếu Đặt Phòng.
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table align-middle mb-0">
+                        <thead class="table-header-navy">
+                        <tr>
+                            <th class="text-center text-uppercase small text-white">Mã CB</th>
+                            <th class="text-center text-uppercase small text-white">Phiếu Đặt</th>
+                            <th class="text-center text-uppercase small text-white">Khách Hàng</th>
+                            <th class="text-center text-uppercase small text-white">Tỷ Lệ / Mức độ</th>
+                            <th class="text-center text-uppercase small text-white" style="width: 20%;">Lý Do Cảnh Báo</th>
+                            <th class="text-center text-uppercase small text-white">Đếm ngược hủy tự động</th>
+                            <th class="text-center text-uppercase small text-white" style="width: 130px;">Xử lý / Tự động</th>
+                        </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary"></div>
+                                    <div class="mt-2">Đang phân tích dữ liệu...</div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>

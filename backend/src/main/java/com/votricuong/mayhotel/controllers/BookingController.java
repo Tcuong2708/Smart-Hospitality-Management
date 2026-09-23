@@ -26,12 +26,26 @@ public class BookingController extends BaseController {
 
     private final RoomRepository roomRepository;
     private final ServiceRepository serviceRepository;
-    private final InvoiceRepository invoiceRepository;
+    private final com.votricuong.mayhotel.repositories.BookingOrderRepository bookingOrderRepository;
+    private final com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository;
+    private final com.votricuong.mayhotel.repositories.ServiceTicketRepository serviceTicketRepository;
+    private final com.votricuong.mayhotel.repositories.CustomerRepository customerRepository;
+    private final com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService;
 
-    public BookingController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository) {
+    public BookingController(RoomRepository roomRepository, 
+                             ServiceRepository serviceRepository, 
+                             com.votricuong.mayhotel.repositories.BookingOrderRepository bookingOrderRepository,
+                             com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository,
+                             com.votricuong.mayhotel.repositories.ServiceTicketRepository serviceTicketRepository,
+                             com.votricuong.mayhotel.repositories.CustomerRepository customerRepository,
+                             com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
-        this.invoiceRepository = invoiceRepository;
+        this.bookingOrderRepository = bookingOrderRepository;
+        this.bookingDetailRepository = bookingDetailRepository;
+        this.serviceTicketRepository = serviceTicketRepository;
+        this.customerRepository = customerRepository;
+        this.sequenceGeneratorService = sequenceGeneratorService;
     }
 
     // 1. SELECT SERVICES (Redirect to checkout with services)
@@ -175,7 +189,7 @@ public class BookingController extends BaseController {
         return render(model, "view/Booking/checkout");
     }
 
-    // 5. PROCESS CHECKOUT (XỬ LÝ LƯU INVOICE)
+    // 5. PROCESS CHECKOUT (XỬ LÝ LƯU BOOKING ORDER)
     @PostMapping("/process-checkout")
     public String processCheckout(
             @RequestParam(value = "guestName", required = false) String guestName,
@@ -232,62 +246,69 @@ public class BookingController extends BaseController {
                 redirectAttributes.addFlashAttribute("error", "Rất tiếc! Loại phòng này vừa hết phòng trống.");
                 return "redirect:/booking/checkout";
             }
-
-            // Gom tất cả vào 1 Invoice duy nhất
-            Invoice invoice = new Invoice();
-            invoice.setId(System.currentTimeMillis() % 1000000); 
             
-            invoice.setGuestName(guestName != null && !guestName.isEmpty() ? guestName : "Guest");
-            invoice.setPhone(phone);
-            invoice.setBookedAt(new Date());
+            // Xử lý Customer
+            com.votricuong.mayhotel.documents.Customer customer = null;
+            if (phone != null && !phone.isEmpty()) {
+                Optional<com.votricuong.mayhotel.documents.Customer> existingCustomer = customerRepository.findByPhone(phone);
+                if (existingCustomer.isPresent()) {
+                    customer = existingCustomer.get();
+                }
+            }
             
-            invoice.setCheckInDate(Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-            invoice.setCheckOutDate(Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-            
-            invoice.setInvoiceStatus("Reserved");
-            invoice.setPaymentMethod(phuongThucThanhToan);
-            invoice.setIsPaid("ONLINE".equalsIgnoreCase(phuongThucThanhToan));
-            
-            // Tương thích ngược: Lưu ID phòng đầu tiên để view cũ không bị lỗi hiển thị
-            if (!danhSachPhongTrong.isEmpty()) {
-                invoice.setRoomId(danhSachPhongTrong.get(0).getId());
+            if (customer == null) {
+                customer = new com.votricuong.mayhotel.documents.Customer();
+                customer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
+                customer.setFullName(guestName != null && !guestName.isEmpty() ? guestName : "Guest");
+                customer.setPhone(phone);
+                customerRepository.save(customer);
             }
 
-            List<Invoice.RoomItem> roomItems = new ArrayList<>();
+            // Tạo BookingOrder
+            com.votricuong.mayhotel.documents.BookingOrder bookingOrder = new com.votricuong.mayhotel.documents.BookingOrder();
+            bookingOrder.setId(sequenceGeneratorService.generateSequence("booking_orders_sequence")); 
+            bookingOrder.setCustomerId(customer.getId());
+            bookingOrder.setOrderDate(new Date());
+            bookingOrder.setExpectedIn(Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+            bookingOrder.setExpectedOut(Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant()));
+            bookingOrder.setStatus("Pending");
+            
+            String noteStr = (ghiChu != null) ? ghiChu.trim() : "";
+            bookingOrder.setNotes(noteStr);
+
             Double tongGiaCacPhong = 0.0;
+            
+            com.votricuong.mayhotel.documents.BookingOrder savedBookingOrder = bookingOrderRepository.save(bookingOrder);
+            generatedMaHD = savedBookingOrder.getId();
 
             for (int i = 0; i < soLuongDat; i++) {
                 Room phongDuocChon = danhSachPhongTrong.get(i);
                 
-                Invoice.RoomItem rItem = new Invoice.RoomItem(phongDuocChon.getId(), 1, phongDuocChon.getPrice());
-                roomItems.add(rItem);
+                com.votricuong.mayhotel.documents.BookingDetail bd = new com.votricuong.mayhotel.documents.BookingDetail();
+                bd.setId(sequenceGeneratorService.generateSequence("booking_details_sequence"));
+                bd.setBookingId(savedBookingOrder.getId());
+                bd.setRoomId(phongDuocChon.getId());
+                bd.setPrice(phongDuocChon.getPrice());
+                bookingDetailRepository.save(bd);
                 
                 tongGiaCacPhong += phongDuocChon.getPrice() * currentBooking.getSoDem();
 
                 phongDuocChon.setStatus("Reserved");
                 roomRepository.save(phongDuocChon);
             }
-
-            invoice.setTotalAmount(tongGiaCacPhong + totalDichVu);
-
-            String noteStr = (ghiChu != null) ? ghiChu.trim() : "";
-            if (chuoiDichVu.length() > 0) {
-                noteStr += " | [DỊCH VỤ ĐI KÈM]: " + chuoiDichVu.toString();
-            }
-            invoice.setNote(noteStr);
-
-            invoice.setRoomItems(roomItems);
             
             // Xử lý Service Items
-            List<Invoice.ServiceItem> invoiceServiceItems = new ArrayList<>();
             for (Service s : chosenServices) {
-                invoiceServiceItems.add(new Invoice.ServiceItem(s.getId(), 1, s.getPrice(), ""));
+                com.votricuong.mayhotel.documents.ServiceTicket st = new com.votricuong.mayhotel.documents.ServiceTicket();
+                st.setId(sequenceGeneratorService.generateSequence("service_tickets_sequence"));
+                st.setBookingId(savedBookingOrder.getId());
+                st.setServiceId(s.getId());
+                st.setQuantity(1);
+                st.setPrice(s.getPrice());
+                st.setOrderDate(new Date());
+                st.setStatus("Delivered");
+                serviceTicketRepository.save(st);
             }
-            invoice.setServiceItems(invoiceServiceItems);
-            invoice.setSurchargeItems(new ArrayList<>());
-
-            Invoice savedInvoice = invoiceRepository.save(invoice);
-            generatedMaHD = savedInvoice.getId();
 
             // Xóa session
             session.removeAttribute("CurrentBooking");
@@ -352,8 +373,13 @@ public class BookingController extends BaseController {
         if (phone == null || phone.isEmpty()) {
             model.addAttribute("historyList", new ArrayList<>());
         } else {
-            List<Invoice> historyList = invoiceRepository.findByPhone(phone);
-            model.addAttribute("historyList", historyList);
+            Optional<com.votricuong.mayhotel.documents.Customer> customerOpt = customerRepository.findByPhone(phone);
+            if (customerOpt.isPresent()) {
+                List<com.votricuong.mayhotel.documents.BookingOrder> historyList = bookingOrderRepository.findByCustomerId(customerOpt.get().getId());
+                model.addAttribute("historyList", historyList);
+            } else {
+                model.addAttribute("historyList", new ArrayList<>());
+            }
         }
         
         setPageTitle(model, "Lịch sử đặt phòng");
@@ -364,22 +390,27 @@ public class BookingController extends BaseController {
     // 10. HISTORY DETAIL
     @GetMapping("/history/detail")
     public String bookingHistoryDetail(@RequestParam("id") Long id, Model model, RedirectAttributes redirectAttributes) {
-        Optional<Invoice> invoiceOpt = invoiceRepository.findById(id);
-        if (invoiceOpt.isEmpty()) {
-            redirectAttributes.addFlashAttribute("error", "Không tìm thấy hóa đơn mã số này!");
+        Optional<com.votricuong.mayhotel.documents.BookingOrder> orderOpt = bookingOrderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy đơn đặt phòng mã số này!");
             return "redirect:/booking/history";
         }
 
-        Invoice invoice = invoiceOpt.get();
+        com.votricuong.mayhotel.documents.BookingOrder order = orderOpt.get();
         
-        if (invoice.getRoomId() != null) {
-            roomRepository.findById(invoice.getRoomId()).ifPresent(room -> {
+        List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(id);
+        if (!details.isEmpty()) {
+            roomRepository.findById(details.get(0).getRoomId()).ifPresent(room -> {
                 model.addAttribute("phong", room);
             });
         }
+        
+        List<com.votricuong.mayhotel.documents.ServiceTicket> services = serviceTicketRepository.findByBookingId(id);
 
-        setPageTitle(model, "Chi tiết đơn đặt phòng #" + invoice.getId());
-        model.addAttribute("hoaDon", invoice);
+        setPageTitle(model, "Chi tiết đơn đặt phòng #" + order.getId());
+        model.addAttribute("hoaDon", order); // Keep the attribute name "hoaDon" for frontend compatibility if needed
+        model.addAttribute("bookingDetails", details);
+        model.addAttribute("serviceTickets", services);
 
         setExtraCSS(model, "view/Booking/historydetail :: extra_css");
         return render(model, "view/Booking/historydetail");

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Nhân Viên - Nhân Sự</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../style.css" />
+    <style>
+      .navbar-nav .nav-link.active-menu { font-weight: 700 !important; color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); border-radius: 8px; padding: 8px 16px !important; transition: 0.3s all ease-in-out; }
+      .admin-card { background: white; border-radius: 8px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
+      .admin-header { background-color: var(--primary-color, #0F2942); color: white; padding: 20px 25px; border-bottom: 3px solid var(--accent-color, #C5A017); }
+      .table-header-navy th { background-color: var(--primary-color, #0F2942) !important; color: white !important; border-bottom: 2px solid var(--accent-color, #C5A017) !important; padding: 15px 10px !important; text-transform: uppercase; font-size: 0.85rem; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="main-content">
+    <div class="container py-5">
+        <div class="card shadow-sm border-0 admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-person-lines-fill me-2" style="color: var(--accent-color);"></i>Quản Lý Nhân Viên
+                </h3>
+                <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#employeeModal">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Thêm Nhân Viên
+                </a>
+            </div>
+            
+            <div class="p-3 bg-light border-bottom">
+                <div class="input-group w-50 shadow-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="search-input" placeholder="Tìm theo Mã NV, Tên NV, hoặc SĐT...">
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header-navy">
+                        <tr>
+                            <th class="text-center text-uppercase small text-white">Mã NV</th>
+                            <th class="text-center text-uppercase small text-white">Họ và Tên</th>
+                            <th class="text-center text-uppercase small text-white">Ngày sinh</th>
+                            <th class="text-center text-uppercase small text-white">Giới tính</th>
+                            <th class="text-center text-uppercase small text-white">SĐT</th>
+                            <th class="text-center text-uppercase small text-white">Chức vụ</th>
+                            <th class="text-center text-uppercase small text-white">Tài khoản</th>
+                            <th class="text-center text-uppercase small text-white">Trạng thái</th>
+                            <th class="text-center text-uppercase small text-white" style="width: 120px;">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- Modal Thêm/Cập nhật (Form) -->
+<div class="modal fade" id="employeeModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title fw-bold" id="employeeModalTitle">Thông Tin Nhân Viên</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="employeeForm">
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Mã NV</label>
+                            <input type="text" class="form-control bg-light" id="form-id" readonly placeholder="Tạo tự động">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label fw-bold">Họ và Tên</label>
+                            <input type="text" class="form-control" id="form-name" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Ngày sinh</label>
+                            <input type="date" class="form-control" id="form-dob" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Giới tính</label>
+                            <select class="form-select" id="form-gender">
+                                <option value="Nam">Nam</option>
+                                <option value="Nữ">Nữ</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Số điện thoại</label>
+                            <input type="text" class="form-control" id="form-phone" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Chức vụ</label>
+                            <select class="form-select" id="form-role">
+                                <option value="Quản lý">Quản lý</option>
+                                <option value="Lễ tân">Lễ tân</option>
+                                <option value="Buồng phòng">Buồng phòng</option>
+                                <option value="Kế toán">Kế toán</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tài khoản liên kết (TK)</label>
+                            <input type="text" class="form-control" id="form-username" placeholder="VD: nhanvien_a">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-gold text-white fw-bold px-4" id="btn-save-employee" style="background: #C5A017;">Lưu thông tin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>

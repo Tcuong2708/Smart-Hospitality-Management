@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Khách Hàng - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../style.css" />
+    <style>
+      .navbar-nav .nav-link.active-menu { font-weight: 700 !important; color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); border-radius: 8px; padding: 8px 16px !important; transition: 0.3s all ease-in-out; }
+      .admin-card { background: white; border-radius: 8px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
+      .admin-header { background-color: var(--primary-color, #0F2942); color: white; padding: 20px 25px; border-bottom: 3px solid var(--accent-color, #C5A017); }
+      .table-header-navy th { background-color: var(--primary-color, #0F2942) !important; color: white !important; border-bottom: 2px solid var(--accent-color, #C5A017) !important; padding: 15px 10px !important; text-transform: uppercase; font-size: 0.85rem; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="main-content">
+    <div class="container py-5">
+        <div class="card shadow-sm border-0 admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-person-badge-fill me-2" style="color: var(--accent-color);"></i>Quản Lý Khách Hàng
+                </h3>
+                <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#customerModal">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Thêm Khách Hàng
+                </a>
+            </div>
+            
+            <!-- Bộ lọc Tìm kiếm (UC27) -->
+            <div class="p-3 bg-light border-bottom d-flex gap-3 align-items-center">
+                <div class="input-group w-50 shadow-sm">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" class="form-control border-start-0" id="search-input" placeholder="Tìm theo tên, email, SĐT hoặc CCCD...">
+                </div>
+                <div class="w-25">
+                    <select class="form-select shadow-sm" id="tier-filter">
+                        <option value="ALL">-- Tất cả hạng thẻ --</option>
+                        <option value="Đồng">Thẻ Đồng</option>
+                        <option value="Bạc">Thẻ Bạc</option>
+                        <option value="Vàng">Thẻ Vàng</option>
+                        <option value="Kim Cương">Thẻ Kim Cương</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header-navy">
+                        <tr>
+                            <th class="text-center text-uppercase small text-white">Tên Khách Hàng</th>
+                            <th class="text-center text-uppercase small text-white">Ngày Sinh</th>
+                            <th class="text-center text-uppercase small text-white">CCCD</th>
+                            <th class="text-center text-uppercase small text-white">Liên hệ (Email/SĐT)</th>
+                            <th class="text-center text-uppercase small text-white">Điểm / Hạng thẻ</th>
+                            <th class="text-center text-uppercase small text-white">Trạng thái</th>
+                            <th class="text-center text-uppercase small text-white" style="width: 150px;">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</div>
+
+<!-- Modal Chi Tiết Khách Hàng -->
+<div class="modal fade" id="customerDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-person-vcard me-2 text-gold"></i>Hồ sơ Khách hàng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <div class="row">
+                    <!-- Thông tin cá nhân -->
+                    <div class="col-md-4">
+                        <div class="card shadow-sm border-0 mb-3 h-100">
+                            <div class="card-body text-center">
+                                <div class="mb-3">
+                                    <i class="bi bi-person-circle text-muted" style="font-size: 5rem;"></i>
+                                </div>
+                                <h4 class="fw-bold text-navy" id="detail-name">Nguyễn Văn A</h4>
+                                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill mb-3" id="detail-tier">Thẻ Vàng</span>
+                                
+                                <div class="text-start mt-4">
+                                    <p class="mb-2"><i class="bi bi-calendar3 me-2 text-muted"></i><strong class="me-1">Ngày sinh:</strong> <span id="detail-dob"></span></p>
+                                    <p class="mb-2"><i class="bi bi-credit-card-2-front me-2 text-muted"></i><strong class="me-1">CCCD/HC:</strong> <span id="detail-cccd"></span></p>
+                                    <p class="mb-2"><i class="bi bi-telephone me-2 text-muted"></i><strong class="me-1">SĐT:</strong> <span id="detail-phone"></span></p>
+                                    <p class="mb-2"><i class="bi bi-envelope me-2 text-muted"></i><strong class="me-1">Email:</strong> <span id="detail-email"></span></p>
+                                    <hr>
+                                    <p class="mb-2"><i class="bi bi-star-fill text-gold me-2"></i><strong class="me-1">Điểm tích lũy:</strong> <span id="detail-points" class="text-danger fw-bold"></span></p>
+                                    <p class="mb-0"><i class="bi bi-calendar-x me-2 text-muted"></i><strong class="me-1">Ngày hết hạn:</strong> <span id="detail-expiry"></span></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Lịch sử giao dịch -->
+                    <div class="col-md-8">
+                        <div class="card shadow-sm border-0 h-100">
+                            <div class="card-header bg-white border-bottom pt-3">
+                                <ul class="nav nav-tabs card-header-tabs" id="customerTabs" role="tablist">
+                                    <li class="nav-item">
+                                        <a class="nav-link active fw-bold text-navy" id="booking-tab" data-bs-toggle="tab" href="#booking-history" role="tab">Phiếu đặt phòng</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link fw-bold text-navy" id="invoice-tab" data-bs-toggle="tab" href="#invoice-history" role="tab">Hóa đơn dịch vụ</a>
+                                    </li>
+                                    <li class="nav-item">
+                                        <a class="nav-link fw-bold text-navy" id="review-tab" data-bs-toggle="tab" href="#review-history" role="tab">Đánh giá</a>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="card-body overflow-auto" style="max-height: 400px;">
+                                <div class="tab-content" id="customerTabsContent">
+                                    <div class="tab-pane fade show active" id="booking-history" role="tabpanel">
+                                        <table class="table table-sm table-hover align-middle">
+                                            <thead class="table-light">
+                                                <tr><th>Mã Đơn</th><th>Ngày Đặt</th><th>Nhận/Trả</th><th>Trạng Thái</th></tr>
+                                            </thead>
+                                            <tbody id="detail-booking-list"></tbody>
+                                        </table>
+                                    </div>
+                                    <div class="tab-pane fade" id="invoice-history" role="tabpanel">
+                                        <table class="table table-sm table-hover align-middle">
+                                            <thead class="table-light">
+                                                <tr><th>Mã HD</th><th>Ngày Lập</th><th>Tổng Tiền</th><th>Trạng Thái</th></tr>
+                                            </thead>
+                                            <tbody id="detail-invoice-list"></tbody>
+                                        </table>
+                                    </div>
+                                    <div class="tab-pane fade" id="review-history" role="tabpanel">
+                                        <div id="detail-review-list" class="d-flex flex-column gap-3"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm/Cập nhật (Form) -->
+<div class="modal fade" id="customerModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-navy text-white">
+                <h5 class="modal-title fw-bold" id="customerModalTitle">Thêm Khách Hàng</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="customerForm">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Họ và Tên</label>
+                        <input type="text" class="form-control" id="form-name" required>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Ngày sinh</label>
+                            <input type="date" class="form-control" id="form-dob" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">CCCD / Hộ chiếu</label>
+                            <input type="text" class="form-control" id="form-cccd" required>
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Số điện thoại</label>
+                            <input type="text" class="form-control" id="form-phone" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Email</label>
+                            <input type="email" class="form-control" id="form-email">
+                        </div>
+                    </div>
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Hạng thẻ</label>
+                            <select class="form-select" id="form-tier">
+                                <option value="Đồng">Đồng</option>
+                                <option value="Bạc">Bạc</option>
+                                <option value="Vàng">Vàng</option>
+                                <option value="Kim Cương">Kim Cương</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Điểm tích lũy</label>
+                            <input type="number" class="form-control" id="form-points" value="0" min="0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-gold text-white fw-bold px-4" id="btn-save-customer" style="background: #C5A017;">Lưu thông tin</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>

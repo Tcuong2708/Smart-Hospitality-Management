@@ -27,6 +27,7 @@ const NAVBAR_HTML = `
           <li class="nav-item"><a class="nav-link" href="${basePath}index.html">Trang chủ</a></li>
           <li class="nav-item"><a class="nav-link" href="${basePath}home/info/info.html">Thông tin</a></li>
           <li class="nav-item"><a class="nav-link" href="${basePath}home/rooms/list.html">Phòng nghỉ</a></li>
+          <li class="nav-item"><a class="nav-link" href="${basePath}home/services/list.html">Dịch vụ</a></li>
           <li class="nav-item"><a class="nav-link" href="${basePath}home/review/review.html">Đánh giá</a></li>
 
           <!-- Dropdown Tài khoản User -->

@@ -29,17 +29,4 @@ public class Room {
     private String status;
     private String note;
     private Integer maxExtraBeds;
-
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Document(collection = "room_types")
-    public static class RoomType {
-        @Id
-        private Long id;
-        private String name;
-        @Field("max_occupancy")
-        private Integer maxOccupancy;
-        private String imageUrl;
-    }
 }

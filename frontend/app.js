@@ -116,6 +116,14 @@ function renderUserMenu(data) {
     if (!data || !data.isLoggedIn) {
         // --- GIAO DIỆN CHƯA ĐĂNG NHẬP ---
         userIcon.style.opacity = '0.6';
+        
+        // Hiển thị lại Menu chính và Chatbot cho Khách vãng lai
+        document.querySelectorAll('.navbar-nav .nav-item:not(#user-menu-container)').forEach(el => el.style.display = 'block');
+        const chatCircle = document.getElementById('chat-circle');
+        if (chatCircle) chatCircle.style.display = 'flex';
+        const footer = document.querySelector('footer');
+        if (footer) footer.style.display = 'block';
+
         html.push(`
             <li><a class="dropdown-item" href="${basePath}account/login.html"><i class="bi bi-box-arrow-in-right me-2"></i>Đăng nhập</a></li>
             <li><a class="dropdown-item" href="${basePath}account/register.html"><i class="bi bi-pencil-square me-2"></i>Đăng ký</a></li>
@@ -125,6 +133,23 @@ function renderUserMenu(data) {
         userIcon.style.opacity = '1';
         const roleID = data.user.roleID;
         const username = data.user.username;
+
+        // Xử lý hiển thị Menu chính và Chatbot dựa trên role
+        if (roleID !== 3) {
+            // Ẩn Menu chính và Chatbot đối với Quản lý, Admin, Lễ tân...
+            document.querySelectorAll('.navbar-nav .nav-item:not(#user-menu-container)').forEach(el => el.style.display = 'none');
+            const chatCircle = document.getElementById('chat-circle');
+            if (chatCircle) chatCircle.style.display = 'none';
+            const footer = document.querySelector('footer');
+            if (footer) footer.style.display = 'none';
+        } else {
+            // Hiện đầy đủ đối với Khách hàng
+            document.querySelectorAll('.navbar-nav .nav-item:not(#user-menu-container)').forEach(el => el.style.display = 'block');
+            const chatCircle = document.getElementById('chat-circle');
+            if (chatCircle) chatCircle.style.display = 'flex';
+            const footer = document.querySelector('footer');
+            if (footer) footer.style.display = 'block';
+        }
 
         // Header xin chào
         html.push(`
@@ -140,6 +165,8 @@ function renderUserMenu(data) {
             html.push(`
                 <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-2" style="font-size: 0.75rem; padding-left: 1rem;">Quản trị hệ thống</div></li>
                 <li><a class="dropdown-item" href="${basePath}admin/users/index.html"><i class="bi bi-people-fill me-2" style="color: var(--accent-color);"></i>Quản lý Người dùng</a></li>
+                <li><a class="dropdown-item" href="${basePath}admin/backup/index.html"><i class="bi bi-database-check me-2" style="color: var(--accent-color);"></i>Quản lý Sao lưu</a></li>
+                <li><a class="dropdown-item" href="${basePath}admin/predictions/index.html"><i class="bi bi-robot me-2 text-danger"></i>Trợ lý AI - Rủi ro No-show</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>
                 <li><a class="dropdown-item text-danger fw-bold mt-2" href="#" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
@@ -157,6 +184,7 @@ function renderUserMenu(data) {
                 <li><a class="dropdown-item" href="${basePath}admin/loyalty/index.html"><i class="bi bi-star-fill me-2" style="color: var(--accent-color);"></i>Chính sách Tích điểm</a></li>
                 <li><a class="dropdown-item" href="${basePath}admin/statistical/index.html"><i class="bi bi-graph-up-arrow me-2" style="color: var(--accent-color);"></i>Thống kê Doanh thu</a></li>
                 <li><a class="dropdown-item" href="${basePath}admin/reports/index.html"><i class="bi bi-file-earmark-bar-graph-fill me-2" style="color: var(--accent-color);"></i>Xuất Báo cáo thống kê</a></li>
+                <li><a class="dropdown-item" href="${basePath}admin/predictions/index.html"><i class="bi bi-robot me-2 text-danger"></i>Trợ lý AI - Rủi ro No-show</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>
                 <li><a class="dropdown-item text-danger fw-bold mt-2" href="#" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
@@ -190,6 +218,7 @@ function renderUserMenu(data) {
                 <li><a class="dropdown-item" href="${basePath}admin/invoice/index.html"><i class="bi bi-journal-bookmark-fill me-2" style="color: var(--accent-color);"></i>Quản lý Hoá Đơn</a></li>
                 <li><a class="dropdown-item" href="${basePath}admin/check-in/index.html"><i class="bi bi-box-arrow-in-right me-2" style="color: var(--accent-color);"></i>Làm thủ tục Nhận phòng</a></li>
                 <li><a class="dropdown-item" href="${basePath}admin/check-out/index.html"><i class="bi bi-box-arrow-left me-2" style="color: var(--accent-color);"></i>Làm thủ tục Trả phòng</a></li>
+                <li><a class="dropdown-item fw-bold" style="color: #c5a017; background-color: #fdfaf0;" href="${basePath}admin/predictions/index.html"><i class="bi bi-robot me-2 text-danger"></i>Trợ lý AI - Rủi ro No-show</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>
                 <li><a class="dropdown-item text-danger fw-bold mt-2" href="#" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>

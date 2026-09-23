@@ -65,11 +65,11 @@ public class RoomController extends BaseController {
                 .filter(r -> r.getRoomTypeId() != null)
                 .collect(Collectors.groupingBy(Room::getRoomTypeId));
 
-        java.util.Map<Long, Room.RoomType> typeMap = roomTypeRepository.findAll().stream()
-                .collect(Collectors.toMap(Room.RoomType::getId, t -> t));
+        java.util.Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(RoomType::getId, t -> t));
 
         List<com.votricuong.mayhotel.controllers.HomeController.RoomTypeDTO> loaiPhongs = roomsByType.entrySet().stream().map(entry -> {
-            Room.RoomType type = typeMap.get(entry.getKey());
+            RoomType type = typeMap.get(entry.getKey());
             String typeName = (type != null && type.getName() != null) ? type.getName() : "Phòng tiêu chuẩn";
             Integer soNguoi = (type != null && type.getMaxOccupancy() != null) ? type.getMaxOccupancy() : Integer.valueOf(2);
             
@@ -98,7 +98,7 @@ public class RoomController extends BaseController {
         model.addAttribute("listPhong", loaiPhongs);
 
         // Get unique room types for the sidebar
-        List<Room.RoomType> uniqueRoomTypes = roomTypeRepository.findAll();
+        List<RoomType> uniqueRoomTypes = roomTypeRepository.findAll();
         model.addAttribute("listLoai", uniqueRoomTypes); 
 
         // Keep filter state
@@ -128,7 +128,7 @@ public class RoomController extends BaseController {
 
         if (room != null) {
             // Nạp thông tin loại phòng và hình ảnh từ bảng room_types
-            com.votricuong.mayhotel.documents.Room.RoomType type = null;
+            com.votricuong.mayhotel.documents.RoomType type = null;
             if (room.getRoomTypeId() != null) {
                 type = roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
                 if (type != null) {

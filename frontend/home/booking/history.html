@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -63,6 +63,39 @@
         </div>
     </div>
 
+    <!-- Modal Cảnh báo Hủy phòng (UC03) -->
+    <div class="modal fade" id="cancelWarningModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-danger text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Cảnh báo Hủy Đặt Phòng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="mb-3">Bạn đang yêu cầu hủy đơn đặt phòng mã <strong id="cancel-invoice-id" class="text-navy"></strong>.</p>
+                    <div class="alert alert-warning small">
+                        <strong>Chính sách Hủy phòng:</strong>
+                        <ul class="mb-0 mt-1 ps-3">
+                            <li>Hủy trước 24h: <strong>Miễn phí</strong> (Hoàn 100% cọc).</li>
+                            <li>Hủy trong vòng 24h trước Check-in: <strong>Phí phạt 50%</strong> tiền cọc.</li>
+                            <li>Hủy sau giờ Check-in hoặc Không đến: <strong>Phí phạt 100%</strong> (Không hoàn cọc).</li>
+                        </ul>
+                    </div>
+                    <div class="mt-3 p-3 bg-light rounded border text-center">
+                        <span class="d-block text-muted small mb-1">Mức phí phạt dự kiến đối với đơn này:</span>
+                        <h4 class="text-danger fw-bold mb-0" id="cancel-penalty-fee">0 VNĐ</h4>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-danger fw-bold px-4" id="btn-confirm-cancel">Xác nhận Hủy phòng</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="history.js"></script>
 <script src="../../layout.js"></script>
 <script src="../../app.js"></script>

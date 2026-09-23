@@ -3,7 +3,8 @@ import '../../../core/utils/responsive.dart';
 import '../../auth/models/guest_identity.dart';
 import '../../../services/nfc_service.dart';
 import '../../../services/notification_service.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 class IdentityCaptureScreen extends StatefulWidget {
   final int totalGuests;
   const IdentityCaptureScreen({Key? key, required this.totalGuests}) : super(key: key);
@@ -19,6 +20,13 @@ class _IdentityCaptureScreenState extends State<IdentityCaptureScreen> {
   late List<bool> _isScanningList;
   late List<String> _scanResultList;
 
+  // 🟩 CÁC BIẾN QUẢN LÝ ẢNH CHỤP CHO TỪNG KHÁCH HÀNG
+  late List<File?> _frontImages;
+  late List<File?> _backImages;
+  late List<File?> _selfieImages;
+  
+  final ImagePicker _picker = ImagePicker();
+
   @override
   void initState() {
     super.initState();
@@ -28,6 +36,11 @@ class _IdentityCaptureScreenState extends State<IdentityCaptureScreen> {
     // Khởi tạo khay bộ nhớ đệm trạng thái NFC tương ứng với số lượng khách
     _isScanningList = List.generate(widget.totalGuests, (index) => false);
     _scanResultList = List.generate(widget.totalGuests, (index) => "");
+    
+    // Khởi tạo khay bộ nhớ chứa ảnh cho từng khách
+    _frontImages = List.generate(widget.totalGuests, (index) => null);
+    _backImages = List.generate(widget.totalGuests, (index) => null);
+    _selfieImages = List.generate(widget.totalGuests, (index) => null);
   }
 
   // 🔔 HÀM KÍCH NỔ QUÉT THẺ NFC VÀ XỬ LÝ SỰ CỐ RÚT THẺ NHANH
@@ -67,6 +80,33 @@ class _IdentityCaptureScreenState extends State<IdentityCaptureScreen> {
         });
       },
     );
+  }
+
+  // 📸 HÀM CHỤP ẢNH CHUNG (MẶT TRƯỚC, MẶT SAU, SELFIE)
+  Future<void> _takePicture(int guestIndex, String type) async {
+    try {
+      // Ưu tiên camera trước nếu là ảnh Selfie
+      final source = ImageSource.camera;
+      final cameraDevice = type == 'selfie' ? CameraDevice.front : CameraDevice.rear;
+      
+      final XFile? photo = await _picker.pickImage(
+        source: source,
+        preferredCameraDevice: cameraDevice,
+        imageQuality: 85,
+      );
+
+      if (photo != null) {
+        setState(() {
+          if (type == 'front') _frontImages[guestIndex] = File(photo.path);
+          else if (type == 'back') _backImages[guestIndex] = File(photo.path);
+          else if (type == 'selfie') _selfieImages[guestIndex] = File(photo.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi khởi động máy ảnh: $e")),
+      );
+    }
   }
 
   @override
@@ -173,33 +213,77 @@ class _IdentityCaptureScreenState extends State<IdentityCaptureScreen> {
           const SizedBox(height: 15),
           Row(
             children: [
-              Expanded(child: _buildImagePickerBox("Mặt trước CCCD", Icons.camera_front)),
+              Expanded(
+                child: _buildImagePickerBox(
+                  label: "Mặt trước CCCD", 
+                  icon: Icons.camera_front, 
+                  imageFile: _frontImages[index], 
+                  onTap: () => _takePicture(index, 'front'),
+                ),
+              ),
               const SizedBox(width: 15),
-              Expanded(child: _buildImagePickerBox("Mặt sau CCCD", Icons.camera_rear)),
+              Expanded(
+                child: _buildImagePickerBox(
+                  label: "Mặt sau CCCD", 
+                  icon: Icons.camera_rear, 
+                  imageFile: _backImages[index], 
+                  onTap: () => _takePicture(index, 'back'),
+                ),
+              ),
             ],
+          ),
+          const SizedBox(height: 15),
+          // THÊM CHỨC NĂNG CHỤP SELFIE KHUÔN MẶT ĐỐI CHIẾU
+          SizedBox(
+            width: double.infinity,
+            child: _buildImagePickerBox(
+              label: "Chụp ảnh khuôn mặt (Xác thực Liveness/Face Match)", 
+              icon: Icons.face_retouching_natural, 
+              imageFile: _selfieImages[index], 
+              onTap: () => _takePicture(index, 'selfie'),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildImagePickerBox(String label, IconData icon) {
+  Widget _buildImagePickerBox({
+    required String label, 
+    required IconData icon, 
+    required File? imageFile,
+    required VoidCallback onTap,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      children: [
-        Container(
-          height: 100,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: colorScheme.surfaceVariant.withOpacity(0.3),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: colorScheme.outlineVariant, style: BorderStyle.solid),
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            height: 100,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceVariant.withOpacity(0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colorScheme.outlineVariant, style: BorderStyle.solid),
+              image: imageFile != null 
+                  ? DecorationImage(image: FileImage(imageFile), fit: BoxFit.cover) 
+                  : null,
+            ),
+            child: imageFile == null 
+                ? Icon(icon, color: colorScheme.primary.withOpacity(0.5), size: 30)
+                : Container(
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 30),
+                  ),
           ),
-          child: Icon(icon, color: colorScheme.primary.withOpacity(0.5), size: 30),
-        ),
-        const SizedBox(height: 8),
-        Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey)),
-      ],
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 11, color: Colors.grey), textAlign: TextAlign.center),
+        ],
+      ),
     );
   }
 // Sửa lại khối lệnh nút bấm hoàn tất tại identity_capture_screen.dart
@@ -220,6 +304,9 @@ class _IdentityCaptureScreenState extends State<IdentityCaptureScreen> {
             structuredGuests.add({
               'name': guestList[i].guestName,
               'nfcData': _scanResultList[i],
+              'hasSelfie': _selfieImages[i] != null,
+              'hasFrontId': _frontImages[i] != null,
+              'hasBackId': _backImages[i] != null,
             });
           }
 

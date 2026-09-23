@@ -45,11 +45,11 @@ public class HomeController extends BaseController {
                 .filter(r -> r.getRoomTypeId() != null)
                 .collect(Collectors.groupingBy(Room::getRoomTypeId));
 
-        java.util.Map<Long, Room.RoomType> typeMap = roomTypeRepository.findAll().stream()
-                .collect(Collectors.toMap(Room.RoomType::getId, t -> t));
+        java.util.Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(RoomType::getId, t -> t));
 
         List<RoomTypeDTO> loaiPhongs = roomsByType.entrySet().stream().map(entry -> {
-            Room.RoomType type = typeMap.get(entry.getKey());
+            RoomType type = typeMap.get(entry.getKey());
             String typeName = (type != null && type.getName() != null) ? type.getName() : "Phòng tiêu chuẩn";
             Integer soNguoi = (type != null && type.getMaxOccupancy() != null) ? type.getMaxOccupancy() : Integer.valueOf(2);
             

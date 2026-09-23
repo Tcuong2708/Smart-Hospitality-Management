@@ -88,13 +88,18 @@ public class AuthController extends BaseController {
 
         try {
             User newUser = User.builder()
-                    .fullName(fullName)
-                    .phone(phone)
+                    .username(email)
                     .email(email)
                     .password(password)
                     .build();
+                    
+            com.votricuong.mayhotel.documents.Customer newCustomer = com.votricuong.mayhotel.documents.Customer.builder()
+                    .fullName(fullName)
+                    .phone(phone)
+                    .email(email)
+                    .build();
             
-            authService.processRegistration(newUser); // Sinh OTP và gửi Email
+            authService.processRegistration(newUser, newCustomer); // Sinh OTP và gửi Email
             
             // Chuyển hướng sang trang nhập mã OTP, truyền email qua param
             redirectAttributes.addFlashAttribute("success", "Mã xác thực OTP đã được gửi đến email của bạn.");

@@ -29,6 +29,7 @@ public class OtpCode {
     
     // Thông tin đăng ký lưu tạm thời
     private User pendingUser;
+    private Customer pendingCustomer;
 
     // Tự động xóa sau 5 phút (300 giây)
     @Indexed(expireAfterSeconds = 300)

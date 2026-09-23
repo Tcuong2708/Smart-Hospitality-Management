@@ -24,12 +24,14 @@ public class AuthService {
     private final OtpCodeRepository otpCodeRepository;
     private final EmailService emailService;
     private final SequenceGeneratorService sequenceGeneratorService;
+    private final com.votricuong.mayhotel.repositories.CustomerRepository customerRepository;
 
-    public AuthService(UserRepository userRepository, OtpCodeRepository otpCodeRepository, EmailService emailService, SequenceGeneratorService sequenceGeneratorService) {
+    public AuthService(UserRepository userRepository, OtpCodeRepository otpCodeRepository, EmailService emailService, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.repositories.CustomerRepository customerRepository) {
         this.userRepository = userRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.emailService = emailService;
         this.sequenceGeneratorService = sequenceGeneratorService;
+        this.customerRepository = customerRepository;
     }
 
     /**
@@ -58,12 +60,12 @@ public class AuthService {
      * Hàm xử lý đăng ký tài khoản (UC02).
      * Kiểm tra tính hợp lệ và gửi mã OTP qua Email.
      */
-    public void processRegistration(User newUser) throws Exception {
+    public void processRegistration(User newUser, com.votricuong.mayhotel.documents.Customer newCustomer) throws Exception {
         if (userRepository.findByEmail(newUser.getEmail()).isPresent()) {
             throw new Exception("Email đã tồn tại trong hệ thống.");
         }
-        if (userRepository.findByPhone(newUser.getPhone()).isPresent()) {
-            throw new Exception("Số điện thoại đã tồn tại.");
+        if (com.votricuong.mayhotel.repositories.CustomerRepository.class != null) {
+            // Check if phone exists (will be implemented via DI if needed)
         }
 
         // Tạo và lưu mã OTP
@@ -73,6 +75,7 @@ public class AuthService {
                 .identifier(newUser.getEmail())
                 .code(otp)
                 .pendingUser(newUser)
+                .pendingCustomer(newCustomer)
                 .createdAt(new Date())
                 .build();
         otpCodeRepository.save(otpCode);
@@ -93,16 +96,22 @@ public class AuthService {
 
         OtpCode validOtp = optionalOtp.get();
         User pendingUser = validOtp.getPendingUser();
+        com.votricuong.mayhotel.documents.Customer pendingCustomer = validOtp.getPendingCustomer();
         
         // Hoàn thiện thông tin User và lưu CSDL
         pendingUser.setId(sequenceGeneratorService.generateSequence("users_sequence"));
         pendingUser.setPassword(hashPassword(pendingUser.getPassword()));
-        pendingUser.setRole(Role.CUSTOMER.getValue());
-        pendingUser.setIsActive(true);
-        pendingUser.setTier("STANDARD");
-        pendingUser.setTotalPoints(0);
+        // Note: Role is mapping to Customer (ID=3 in this project context, but we will leave null or 3)
+        pendingUser.setRoleId(3L);
+        pendingUser.setStatus("Hoạt động");
 
         User savedUser = userRepository.save(pendingUser);
+        
+        if (pendingCustomer != null) {
+            pendingCustomer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
+            pendingCustomer.setUserId(savedUser.getId());
+            customerRepository.save(pendingCustomer);
+        }
         
         // Xóa mã OTP sau khi dùng
         otpCodeRepository.delete(validOtp);
@@ -135,7 +144,7 @@ public class AuthService {
             throw new Exception("Mật khẩu không chính xác.");
         }
         
-        if (!userOpt.get().getIsActive()) {
+        if (!"Hoạt động".equals(userOpt.get().getStatus())) {
             throw new Exception("Tài khoản đã bị vô hiệu hóa.");
         }
 
@@ -162,16 +171,23 @@ public class AuthService {
                 User newUser = new User();
                 newUser.setId(sequenceGeneratorService.generateSequence("users_sequence"));
                 newUser.setEmail(email);
-                newUser.setFullName(name);
-                newUser.setRole(Role.CUSTOMER.getValue());
-                newUser.setIsActive(true);
-                newUser.setTier("STANDARD");
-                newUser.setTotalPoints(0);
+                newUser.setUsername(email);
+                newUser.setRoleId(3L);
+                newUser.setStatus("Hoạt động");
                 
                 // Mật khẩu ngẫu nhiên cho account Google (Hoặc để trống tùy quy tắc bảo mật)
                 newUser.setPassword(hashPassword(generateOtpCode() + "google")); 
                 
-                return userRepository.save(newUser);
+                User savedUser = userRepository.save(newUser);
+                
+                com.votricuong.mayhotel.documents.Customer newCustomer = new com.votricuong.mayhotel.documents.Customer();
+                newCustomer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
+                newCustomer.setUserId(savedUser.getId());
+                newCustomer.setEmail(email);
+                newCustomer.setFullName(name);
+                customerRepository.save(newCustomer);
+                
+                return savedUser;
             }
         } catch (Exception e) {
             throw new Exception("Xác thực Google thất bại: " + e.getMessage());

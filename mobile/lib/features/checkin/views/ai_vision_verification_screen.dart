@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 class AiVisionVerificationScreen extends StatefulWidget {
   final int totalGuests;
@@ -11,14 +13,58 @@ class AiVisionVerificationScreen extends StatefulWidget {
 class _AiVisionVerificationScreenState extends State<AiVisionVerificationScreen> {
   bool _isProcessing = false;
   String _rawAiResult = "";
+  
+  File? _frontImage;
+  File? _backImage;
+  File? _selfieImage;
+  
+  final ImagePicker _picker = ImagePicker();
 
-  void _simulateAiVision() async {
+  // 📸 HÀM CHỤP ẢNH CHUNG (MẶT TRƯỚC, MẶT SAU, SELFIE)
+  Future<void> _takePicture(String type) async {
+    try {
+      final source = ImageSource.camera;
+      final cameraDevice = type == 'selfie' ? CameraDevice.front : CameraDevice.rear;
+      
+      final XFile? photo = await _picker.pickImage(
+        source: source,
+        preferredCameraDevice: cameraDevice,
+        imageQuality: 85,
+      );
+
+      if (photo != null) {
+        setState(() {
+          if (type == 'front') _frontImage = File(photo.path);
+          else if (type == 'back') _backImage = File(photo.path);
+          else if (type == 'selfie') _selfieImage = File(photo.path);
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Lỗi khởi động máy ảnh: $e")),
+      );
+    }
+  }
+
+  void _callAiVisionApi() async {
+    if (_frontImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chụp ít nhất Mặt trước CCCD!")));
+      return;
+    }
+
     setState(() {
       _isProcessing = true;
-      _rawAiResult = "🔄 Đang quét ảnh và nhận diện bằng AI Vision...";
+      _rawAiResult = "🔄 Đang upload ảnh lên Server AI Colab để bóc tách OCR và so khớp khuôn mặt...";
     });
 
-    await Future.delayed(const Duration(seconds: 3));
+    // TODO: Gắn API Colab tại đây. Ví dụ:
+    // var formData = FormData.fromMap({
+    //   'front_image': await MultipartFile.fromFile(_frontImage!.path),
+    //   'selfie_image': _selfieImage != null ? await MultipartFile.fromFile(_selfieImage!.path) : null,
+    // });
+    // var response = await dio.post('URL_COLAB/predict', data: formData);
+
+    await Future.delayed(const Duration(seconds: 3)); // Giả lập thời gian server phản hồi
 
     setState(() {
       _isProcessing = false;
@@ -63,14 +109,31 @@ class _AiVisionVerificationScreenState extends State<AiVisionVerificationScreen>
             ),
             const SizedBox(height: 30),
             
-            _buildCaptureBox("Mặt trước CCCD", Icons.add_a_photo_outlined),
+            _buildCaptureBox(
+              label: "Mặt trước CCCD", 
+              icon: Icons.camera_front,
+              imageFile: _frontImage,
+              onTap: () => _takePicture('front'),
+            ),
             const SizedBox(height: 15),
-            _buildCaptureBox("Mặt sau CCCD", Icons.add_a_photo_outlined),
+            _buildCaptureBox(
+              label: "Mặt sau CCCD", 
+              icon: Icons.camera_rear,
+              imageFile: _backImage,
+              onTap: () => _takePicture('back'),
+            ),
+            const SizedBox(height: 15),
+            _buildCaptureBox(
+              label: "Chụp ảnh khuôn mặt (Xác thực Liveness/Face Match)", 
+              icon: Icons.face_retouching_natural,
+              imageFile: _selfieImage,
+              onTap: () => _takePicture('selfie'),
+            ),
             
             const SizedBox(height: 30),
             
             ElevatedButton.icon(
-              onPressed: _isProcessing ? null : _simulateAiVision,
+              onPressed: _isProcessing ? null : _callAiVisionApi,
               icon: const Icon(Icons.auto_awesome_rounded),
               label: const Text("Bắt đầu nhận diện AI"),
               style: ElevatedButton.styleFrom(
@@ -123,21 +186,42 @@ class _AiVisionVerificationScreenState extends State<AiVisionVerificationScreen>
     );
   }
 
-  Widget _buildCaptureBox(String label, IconData icon) {
-    return Container(
-      height: 180,
-      decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey[400]!, style: BorderStyle.solid),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, size: 50, color: Colors.grey[600]),
-          const SizedBox(height: 10),
-          Text(label, style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500)),
-        ],
+  Widget _buildCaptureBox({
+    required String label, 
+    required IconData icon, 
+    required File? imageFile,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 180,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.grey[400]!, style: BorderStyle.solid),
+          image: imageFile != null 
+              ? DecorationImage(image: FileImage(imageFile), fit: BoxFit.cover) 
+              : null,
+        ),
+        child: imageFile == null
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 50, color: Colors.grey[600]),
+                  const SizedBox(height: 10),
+                  Text(label, style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500)),
+                ],
+              )
+            : Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: const Center(
+                  child: Icon(Icons.check_circle, color: Colors.greenAccent, size: 50),
+                ),
+              ),
       ),
     );
   }

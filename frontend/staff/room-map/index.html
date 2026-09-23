@@ -63,6 +63,66 @@
         </div>
     </div>
 
+    <!-- Modal Đổi Phòng -->
+    <div class="modal fade" id="transferRoomModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-navy text-white" style="background-color: var(--navy-color);">
+                    <h5 class="modal-title fw-bold text-gold"><i class="bi bi-arrow-left-right me-2"></i>Nghiệp vụ Đổi Phòng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="alert alert-info py-2 small fw-bold">
+                        Phòng hiện tại: <span id="current-room-id" class="text-danger ms-1">---</span> 
+                        <span class="fw-normal text-muted ms-2">(<span id="current-room-type">---</span>)</span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Chọn phòng mới <span class="text-danger">*</span></label>
+                        <select class="form-select" id="new-room-select" required>
+                            <option value="">-- Danh sách phòng trống --</option>
+                            <!-- JS will populate empty rooms here -->
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Lý do đổi phòng <span class="text-danger">*</span></label>
+                        <select class="form-select" id="transfer-reason" required>
+                            <option value="Khách yêu cầu nâng hạng">Khách yêu cầu nâng hạng</option>
+                            <option value="Sự cố kỹ thuật (Điều hòa, Nước...)">Sự cố kỹ thuật (Điều hòa, Nước...)</option>
+                            <option value="Lý do khác">Lý do khác</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3" id="other-reason-container" style="display: none;">
+                        <input type="text" class="form-control" id="other-reason" placeholder="Nhập lý do cụ thể...">
+                    </div>
+
+                    <div class="p-3 bg-light rounded mt-4 border">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Tiền phòng hiện tại:</span>
+                            <span class="fw-bold" id="current-price-disp">0 VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted small">Tiền phòng mới:</span>
+                            <span class="fw-bold text-navy" id="new-price-disp">0 VNĐ</span>
+                        </div>
+                        <hr class="my-2">
+                        <div class="d-flex justify-content-between">
+                            <span class="fw-bold">Chênh lệch:</span>
+                            <span class="fw-bold text-danger fs-5" id="price-diff-disp">0 VNĐ</span>
+                        </div>
+                        <small class="text-muted fst-italic d-block mt-2" style="font-size: 0.75rem;">*Khoản chênh lệch sẽ được tự động cộng/trừ vào Hóa đơn thanh toán khi Check-out.</small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-gold fw-bold px-4" id="btn-confirm-transfer">Xác nhận Đổi</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="js/index.js"></script>

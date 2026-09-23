@@ -141,7 +141,7 @@ public class MobileApiController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRoomTypes() {
         try {
             List<Room> allRooms = roomRepository.findAll();
-            List<Room.RoomType> allRoomTypes = roomTypeRepository.findAll();
+            List<RoomType> allRoomTypes = roomTypeRepository.findAll();
 
             List<Map<String, Object>> roomTypesData = allRoomTypes.stream().map(rt -> {
                 Map<String, Object> map = new HashMap<>();
@@ -181,9 +181,9 @@ public class MobileApiController {
     public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getRooms() {
         try {
             List<Room> allRooms = roomRepository.findAll();
-            List<Room.RoomType> allRoomTypes = roomTypeRepository.findAll();
+            List<RoomType> allRoomTypes = roomTypeRepository.findAll();
             
-            Map<Long, Room.RoomType> typeMap = allRoomTypes.stream().collect(Collectors.toMap(Room.RoomType::getId, t -> t));
+            Map<Long, RoomType> typeMap = allRoomTypes.stream().collect(Collectors.toMap(RoomType::getId, t -> t));
 
             List<Map<String, Object>> roomsData = allRooms.stream().map(r -> {
                 Map<String, Object> map = new HashMap<>();
@@ -194,7 +194,7 @@ public class MobileApiController {
                 
                 String img = r.getImageUrl();
                 if (img == null || img.isEmpty()) {
-                    Room.RoomType rt = typeMap.get(r.getRoomTypeId());
+                    RoomType rt = typeMap.get(r.getRoomTypeId());
                     if (rt != null && rt.getImageUrl() != null) {
                         img = rt.getImageUrl();
                     } else {

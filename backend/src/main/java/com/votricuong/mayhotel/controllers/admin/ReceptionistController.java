@@ -76,7 +76,7 @@ public class ReceptionistController extends BaseController {
         setPageTitle(model, "Sơ đồ phòng trực quan");
 
         Map<Long, String> typeMap = roomTypeRepository.findAll().stream()
-                .collect(Collectors.toMap(Room.RoomType::getId, Room.RoomType::getName));
+                .collect(Collectors.toMap(RoomType::getId, RoomType::getName));
 
         List<RoomMapDTO> roomMap = roomRepository.findAll().stream().map(room -> {
             Integer trangThai = 1; // 1 = Vacant

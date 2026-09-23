@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sao lưu & Phục hồi - MAY HOTEL</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../style.css" />
+    <style>
+      .navbar-nav .nav-link.active-menu { font-weight: 700 !important; color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); border-radius: 8px; padding: 8px 16px !important; transition: 0.3s all ease-in-out; }
+      .admin-card { background: white; border-radius: 8px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
+      .admin-header { background-color: var(--primary-color, #0F2942); color: white; padding: 20px 25px; border-bottom: 3px solid var(--accent-color, #C5A017); }
+      .table-header-navy th { background-color: var(--primary-color, #0F2942) !important; color: white !important; border-bottom: 2px solid var(--accent-color, #C5A017) !important; padding: 15px 10px !important; text-transform: uppercase; font-size: 0.85rem; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="main-content">
+    <div class="container py-5">
+        
+        <div class="row mb-4">
+            <div class="col-md-8 mx-auto text-center">
+                <p class="text-muted">Đảm bảo an toàn dữ liệu khách sạn bằng cách sao lưu thường xuyên. Bạn có thể thiết lập sao lưu tự động hoặc tạo bản sao lưu thủ công bất cứ lúc nào.</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0 admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-database-check me-2" style="color: var(--accent-color);"></i>Quản lý Sao lưu & Phục hồi
+                </h3>
+                <div>
+                    <button class="btn btn-outline-light px-3 me-2" id="btn-auto-backup">
+                        <i class="bi bi-clock-history me-1"></i> Lên lịch tự động
+                    </button>
+                    <button class="btn btn-gold px-4 shadow-sm text-white" id="btn-backup-now" style="background: #C5A017;">
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> Tạo bản sao lưu ngay
+                    </button>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header-navy">
+                        <tr>
+                            <th class="ps-4 text-uppercase small text-white">Tên File</th>
+                            <th class="text-center text-uppercase small text-white">Ngày tạo</th>
+                            <th class="text-center text-uppercase small text-white">Người tạo</th>
+                            <th class="text-center text-uppercase small text-white">Kích thước</th>
+                            <th class="text-center text-uppercase small text-white">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="backup-table-body">
+                            <!-- Dữ liệu JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Restore Confirmation -->
+<div class="modal fade" id="restoreModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Cảnh báo Phục hồi Dữ liệu</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="mb-3">Bạn đang chuẩn bị khôi phục cơ sở dữ liệu từ file: <strong id="restore-file-name" class="text-navy"></strong></p>
+                <div class="alert alert-warning small">
+                    <strong>Lưu ý:</strong> Hành động này sẽ <strong>ghi đè toàn bộ</strong> dữ liệu hiện tại (phiếu đặt phòng, hóa đơn, thông tin khách hàng...) về đúng thời điểm của bản sao lưu.
+                </div>
+                <div class="mb-3 mt-4">
+                    <label class="form-label fw-bold">Nhập mật khẩu Quản trị viên để xác nhận <span class="text-danger">*</span></label>
+                    <input type="password" class="form-control" id="admin-password" placeholder="Nhập mật khẩu..." required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn btn-danger fw-bold px-4" id="btn-confirm-restore">Khôi phục dữ liệu</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>

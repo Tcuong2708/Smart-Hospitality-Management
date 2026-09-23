@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản Lý Phòng - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="admin-room.css">
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-5">
+        <a href="../../home/rooms/list.html" class="text-decoration-none text-muted mb-3 d-inline-block">
+            <i class="bi bi-box-arrow-left me-1"></i> Về trang Khách
+        </a>
+
+        <div class="admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0">
+                    <i class="bi bi-ui-checks-grid me-2"></i>Quản Lý Phòng
+                </h3>
+                <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#roomModal">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Thêm Phòng Mới
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
+                    <tr>
+                        <th class="py-3 text-center text-uppercase small text-white">ID</th>
+                        <th class="text-center text-uppercase small text-white">Hình ảnh</th>
+                        <th class="text-center text-uppercase small text-white">Tên phòng</th>
+                        <th class="text-center text-uppercase small text-white">Loại phòng</th>
+                        <th class="text-center text-uppercase small text-white">Giá phòng</th>
+                        <th class="text-center text-uppercase small text-white">Trạng thái</th>
+                        <th class="text-center text-uppercase small text-white">Thao tác</th>
+                    </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-primary"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm/Cập nhật (Form) -->
+    <div class="modal fade" id="roomModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-navy text-white">
+                    <h5 class="modal-title fw-bold" id="roomModalTitle">Thông Tin Phòng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="roomForm">
+                        <div class="row mb-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Mã Phòng</label>
+                                <input type="text" class="form-control bg-light" id="form-id" readonly placeholder="Tạo tự động">
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Tên phòng</label>
+                                <input type="text" class="form-control" id="form-name" required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Loại phòng</label>
+                                <select class="form-select" id="form-category">
+                                    <option value="Standard">Standard</option>
+                                    <option value="Superior">Superior</option>
+                                    <option value="Deluxe">Deluxe</option>
+                                    <option value="Suite">Suite</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Giá phòng (VNĐ)</label>
+                                <input type="number" class="form-control" id="form-price" required min="0">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Hình ảnh (URL)</label>
+                            <input type="text" class="form-control" id="form-image" placeholder="Ví dụ: /images/rooms/r1.jpg">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Mô tả chi tiết</label>
+                            <textarea class="form-control" id="form-desc" rows="3"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ghi chú nội bộ</label>
+                            <input type="text" class="form-control" id="form-note">
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-gold text-white fw-bold px-4" id="btn-save-room" style="background: #C5A017;">Lưu thông tin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+
