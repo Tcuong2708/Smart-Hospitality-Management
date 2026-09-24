@@ -3,6 +3,7 @@ package com.votricuong.mayhotel.controllers.admin;
 import com.votricuong.mayhotel.controllers.BaseController;
 import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.documents.Room;
+import com.votricuong.mayhotel.documents.RoomType;
 import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
@@ -51,6 +52,7 @@ public class ReceptionistController extends BaseController {
     @Builder
     public static class RoomMapDTO {
         private Long id;
+        private String name;
         private String maLoai;
         private Double price;
         private Integer maTrangThai;
@@ -78,7 +80,7 @@ public class ReceptionistController extends BaseController {
         Map<Long, String> typeMap = roomTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(RoomType::getId, RoomType::getName));
 
-        List<RoomMapDTO> roomMap = roomRepository.findAll().stream().map(room -> {
+        Map<Long, List<RoomMapDTO>> roomMap = roomRepository.findAll().stream().map(room -> {
             Integer trangThai = 1; // 1 = Vacant
             if ("Occupied".equalsIgnoreCase(room.getStatus()) || "In Use".equalsIgnoreCase(room.getStatus())) {
                 trangThai = 2; // 2 = Occupied
@@ -93,11 +95,20 @@ public class ReceptionistController extends BaseController {
 
             return RoomMapDTO.builder()
                     .id(room.getId())
+                    .name(room.getName())
                     .maLoai(loai)
                     .price(room.getPrice())
                     .maTrangThai(trangThai)
                     .build();
-        }).collect(Collectors.toList());
+        }).collect(Collectors.groupingBy(dto -> {
+            try {
+                String numStr = dto.getName().replaceAll("\\D+", "");
+                if (numStr.isEmpty()) return 0L;
+                return Long.parseLong(numStr) / 100;
+            } catch (Exception e) {
+                return 0L;
+            }
+        }, java.util.TreeMap::new, Collectors.toList()));
 
         model.addAttribute("rooms", roomMap);
 

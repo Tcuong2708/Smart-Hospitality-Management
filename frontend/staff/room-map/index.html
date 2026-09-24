@@ -35,13 +35,33 @@
 <body>
     <div class="container-fluid py-4">
         <div class="admin-card mb-4">
-            <div class="admin-header d-flex justify-content-between align-items-center">
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <h3 class="fw-bold text-uppercase mb-0">
-                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Sơ đồ phòng nghỉ trực quan
+                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Sơ đồ phòng nghỉ
                 </h3>
-                <a href="../../admin/check-in/index.html" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;">
-                    <i class="bi bi-journal-bookmark-fill me-2"></i>Xem danh sách Chờ Check-in
-                </a>
+                <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1 justify-content-end">
+                    <div class="dropdown">
+                        <button class="btn bg-white border-0 shadow-sm dropdown-toggle text-muted fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-building me-1"></i> Lọc Tầng
+                        </button>
+                        <ul class="dropdown-menu shadow p-2" id="filterFloorDropdown" style="min-width: 200px;">
+                            <!-- Checkbox load từ JS -->
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn bg-white border-0 shadow-sm dropdown-toggle text-muted fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-funnel me-1"></i> Lọc Trạng Thái
+                        </button>
+                        <ul class="dropdown-menu shadow p-2" id="filterStatusDropdown" style="min-width: 250px;">
+                            <!-- Checkbox load từ JS -->
+                        </ul>
+                    </div>
+
+                    <a href="../../admin/check-in/index.html" class="btn btn-gold px-4 shadow-sm text-white fw-bold" style="background: #C5A017;">
+                        <i class="bi bi-journal-bookmark-fill me-2"></i>DS Chờ Check-in
+                    </a>
+                </div>
             </div>
             
             <div class="card-body p-4">

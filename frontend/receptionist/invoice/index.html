@@ -41,9 +41,9 @@
                 <h3 class="fw-bold text-uppercase mb-0">
                     <i class="bi bi-file-earmark-text-fill me-2"></i>Danh sách Đơn đặt phòng
                 </h3>
-                <a href="create.html" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;">
+                <button type="button" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#createInvoiceModal">
                     <i class="bi bi-plus-lg me-2"></i>Tạo đơn khách lẻ
-                </a>
+                </button>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -69,6 +69,60 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Tạo Đơn Lẻ -->
+    <div class="modal fade" id="createInvoiceModal" tabindex="-1" aria-labelledby="createInvoiceModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-navy text-white" style="background-color: var(--navy-color);">
+                    <h5 class="modal-title fw-bold text-gold"><i class="bi bi-person-plus-fill me-2"></i>Tạo đơn đặt phòng khách lẻ</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="createInvoiceForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Họ và tên khách <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" placeholder="Nhập họ và tên..." required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Số điện thoại <span class="text-danger">*</span></label>
+                                <input type="tel" class="form-control" placeholder="Nhập số điện thoại..." required>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Ngày nhận phòng <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Ngày trả phòng <span class="text-danger">*</span></label>
+                                <input type="date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Loại phòng <span class="text-danger">*</span></label>
+                            <select class="form-select" required>
+                                <option value="">-- Chọn loại phòng --</option>
+                                <option value="standard">Standard (Tiêu chuẩn)</option>
+                                <option value="superior">Superior (Cao cấp)</option>
+                                <option value="deluxe">Deluxe (Sang trọng)</option>
+                                <option value="suite">Suite (Thượng gia)</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ghi chú thêm</label>
+                            <textarea class="form-control" rows="2" placeholder="Ghi chú nếu có..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-gold text-white fw-bold px-4" id="btn-submit-invoice" style="background: #C5A017;">Xác nhận tạo đơn</button>
                 </div>
             </div>
         </div>

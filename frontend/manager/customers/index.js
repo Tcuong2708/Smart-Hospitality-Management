@@ -1,4 +1,18 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Sửa lỗi backdrop che modal
+    ['customerModal', 'customerDetailModal'].forEach(id => {
+        const m = document.getElementById(id);
+        if (m) {
+            document.body.appendChild(m);
+            if (id === 'customerModal') {
+                m.addEventListener('hidden.bs.modal', () => {
+                    document.getElementById('customerForm').reset();
+                    document.getElementById('customerModalTitle').innerText = 'Thêm Khách Hàng';
+                });
+            }
+        }
+    });
+
     const mockData = [
         { 
             id: 1, name: 'Nguyễn Văn A', email: 'nva@gmail.com', phone: '0901234567', 
@@ -72,8 +86,20 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         document.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', () => {
-                new bootstrap.Modal(document.getElementById('customerModal')).show();
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
+                const c = mockData.find(c => c.id === id);
+                if (c) {
+                    document.getElementById('customerModalTitle').innerText = 'Cập Nhật Khách Hàng';
+                    document.getElementById('form-name').value = c.name;
+                    document.getElementById('form-dob').value = c.dob;
+                    document.getElementById('form-cccd').value = c.cccd;
+                    document.getElementById('form-phone').value = c.phone;
+                    document.getElementById('form-email').value = c.email;
+                    document.getElementById('form-tier').value = c.tier;
+                    document.getElementById('form-points').value = c.points;
+                    new bootstrap.Modal(document.getElementById('customerModal')).show();
+                }
             });
         });
         
@@ -123,22 +149,37 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Lọc và Tìm kiếm
     const searchInput = document.getElementById('search-input');
-    const tierFilter = document.getElementById('tier-filter');
+    const thFilterTier = document.getElementById('thFilterTier');
     
+    if (thFilterTier) {
+        const tiers = ['Đồng', 'Bạc', 'Vàng', 'Kim Cương'];
+        thFilterTier.innerHTML = tiers.map((tier, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-tier" type="checkbox" value="${tier}" id="th_tier_${idx}">
+                    <label class="form-check-label" for="th_tier_${idx}">Thẻ ${tier}</label>
+                </div>
+            </li>
+        `).join('');
+
+        document.querySelectorAll('.th-cb-tier').forEach(cb => {
+            cb.addEventListener('change', filterData);
+        });
+    }
+
     function filterData() {
-        if(!searchInput || !tierFilter) return;
-        const q = searchInput.value.toLowerCase();
-        const t = tierFilter.value;
+        const q = (searchInput ? searchInput.value : '').toLowerCase();
+        const selectedTiers = Array.from(document.querySelectorAll('.th-cb-tier:checked')).map(cb => cb.value);
+
         const filtered = mockData.filter(c => {
             const matchQuery = c.name.toLowerCase().includes(q) || c.phone.includes(q) || c.cccd.includes(q);
-            const matchTier = t === 'ALL' || c.tier === t;
+            const matchTier = selectedTiers.length === 0 || selectedTiers.includes(c.tier);
             return matchQuery && matchTier;
         });
         renderData(filtered);
     }
     
     if(searchInput) searchInput.addEventListener('input', filterData);
-    if(tierFilter) tierFilter.addEventListener('change', filterData);
 
     renderData(mockData);
 });

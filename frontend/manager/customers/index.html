@@ -23,29 +23,20 @@
 <div class="main-content">
     <div class="container py-5">
         <div class="card shadow-sm border-0 admin-card">
-            <div class="admin-header d-flex justify-content-between align-items-center">
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <h3 class="fw-bold text-uppercase mb-0 text-white">
                     <i class="bi bi-person-badge-fill me-2" style="color: var(--accent-color);"></i>Quản Lý Khách Hàng
                 </h3>
-                <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#customerModal">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Thêm Khách Hàng
-                </a>
-            </div>
-            
-            <!-- Bộ lọc Tìm kiếm (UC27) -->
-            <div class="p-3 bg-light border-bottom d-flex gap-3 align-items-center">
-                <div class="input-group w-50 shadow-sm">
-                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                    <input type="text" class="form-control border-start-0" id="search-input" placeholder="Tìm theo tên, email, SĐT hoặc CCCD...">
-                </div>
-                <div class="w-25">
-                    <select class="form-select shadow-sm" id="tier-filter">
-                        <option value="ALL">-- Tất cả hạng thẻ --</option>
-                        <option value="Đồng">Thẻ Đồng</option>
-                        <option value="Bạc">Thẻ Bạc</option>
-                        <option value="Vàng">Thẻ Vàng</option>
-                        <option value="Kim Cương">Thẻ Kim Cương</option>
-                    </select>
+                
+                <div class="d-flex flex-wrap align-items-center gap-3 flex-grow-1 justify-content-end">
+                    <div class="input-group shadow-sm" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" id="search-input" placeholder="Tìm tên, SĐT, CCCD...">
+                    </div>
+                    
+                    <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#customerModal">
+                        <i class="bi bi-plus-circle-fill me-1"></i> Thêm Khách Hàng
+                    </a>
                 </div>
             </div>
 
@@ -58,7 +49,15 @@
                             <th class="text-center text-uppercase small text-white">Ngày Sinh</th>
                             <th class="text-center text-uppercase small text-white">CCCD</th>
                             <th class="text-center text-uppercase small text-white">Liên hệ (Email/SĐT)</th>
-                            <th class="text-center text-uppercase small text-white">Điểm / Hạng thẻ</th>
+                            <th class="text-center text-uppercase small text-white">
+                                Điểm / Hạng thẻ
+                                <div class="dropdown d-inline-block ms-1">
+                                    <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Hạng Thẻ"></i>
+                                    <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterTier" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                        <!-- JS load -->
+                                    </ul>
+                                </div>
+                            </th>
                             <th class="text-center text-uppercase small text-white">Trạng thái</th>
                             <th class="text-center text-uppercase small text-white" style="width: 150px;">Thao tác</th>
                         </tr>
@@ -82,8 +81,8 @@
 <div class="modal fade" id="customerDetailModal" tabindex="-1">
     <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-navy text-white">
-                <h5 class="modal-title fw-bold"><i class="bi bi-person-vcard me-2 text-gold"></i>Hồ sơ Khách hàng</h5>
+            <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017; border-top-left-radius: calc(0.3rem - 1px); border-top-right-radius: calc(0.3rem - 1px);">
+                <h5 class="modal-title fw-bold text-uppercase"><i class="bi bi-person-vcard me-2" style="color: #C5A017;"></i>Hồ sơ Khách hàng</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4 bg-light">
@@ -165,8 +164,11 @@
 <div class="modal fade" id="customerModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow-lg">
-            <div class="modal-header bg-navy text-white">
-                <h5 class="modal-title fw-bold" id="customerModalTitle">Thêm Khách Hàng</h5>
+            <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017; border-top-left-radius: calc(0.3rem - 1px); border-top-right-radius: calc(0.3rem - 1px);">
+                <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                    <span class="d-inline-flex justify-content-center align-items-center me-2" style="background-color: #C5A017; color: #0F2942; width: 24px; height: 24px; border-radius: 4px; font-size: 18px; font-weight: 900; line-height: 1;">+</span>
+                    <span id="customerModalTitle">Thêm Khách Hàng</span>
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">

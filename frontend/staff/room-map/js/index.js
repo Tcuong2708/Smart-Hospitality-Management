@@ -1,34 +1,99 @@
 const mockRooms = [
-    { id: 101, maLoai: 'Standard', price: 500000, maTrangThai: 1 },
-    { id: 102, maLoai: 'Standard', price: 500000, maTrangThai: 2 },
-    { id: 103, maLoai: 'Standard', price: 500000, maTrangThai: 3 },
-    { id: 104, maLoai: 'Standard', price: 500000, maTrangThai: 1 },
-    { id: 201, maLoai: 'Deluxe', price: 1000000, maTrangThai: 2 },
-    { id: 202, maLoai: 'Deluxe', price: 1000000, maTrangThai: 1 },
-    { id: 203, maLoai: 'Deluxe', price: 1000000, maTrangThai: 1 },
-    { id: 301, maLoai: 'Suite', price: 2000000, maTrangThai: 3 },
-    { id: 302, maLoai: 'Suite', price: 2000000, maTrangThai: 2 },
-    { id: 303, maLoai: 'Suite', price: 2000000, maTrangThai: 1 },
+    { id: 101, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1 },
+    { id: 102, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 2 },
+    { id: 103, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 3 },
+    { id: 104, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1 },
+    { id: 201, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 2 },
+    { id: 202, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1 },
+    { id: 203, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1 },
+    { id: 301, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 3 },
+    { id: 302, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 2 },
+    { id: 303, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 1 },
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
-    fetchRoomMap();
+    // Sửa lỗi backdrop che modal
+    const modalElement = document.getElementById('transferRoomModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+    }
+
+    initFilters();
+    fetchRoomMap(mockRooms);
 });
 
-function fetchRoomMap() {
+function initFilters() {
+    const filterFloorDropdown = document.getElementById('filterFloorDropdown');
+    const filterStatusDropdown = document.getElementById('filterStatusDropdown');
+    
+    // Khởi tạo các Tầng
+    if (filterFloorDropdown) {
+        const uniqueFloors = [...new Set(mockRooms.map(room => Math.floor(room.id / 100)))].sort((a,b) => a-b);
+        filterFloorDropdown.innerHTML = uniqueFloors.map((floor, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-floor-cb" type="checkbox" value="${floor}" id="cb_floor_${idx}">
+                    <label class="form-check-label" for="cb_floor_${idx}">Tầng ${floor}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Khởi tạo trạng thái
+    if (filterStatusDropdown) {
+        const statuses = [
+            { val: 1, label: 'Trống' },
+            { val: 2, label: 'Đang ở (Check-in)' },
+            { val: 3, label: 'Chờ dọn dẹp (Check-out)' }
+        ];
+        filterStatusDropdown.innerHTML = statuses.map((st, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-status-cb" type="checkbox" value="${st.val}" id="cb_status_${idx}">
+                    <label class="form-check-label" for="cb_status_${idx}">${st.label}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Ngăn chặn dropdown đóng khi click vào checkbox
+    if (filterFloorDropdown) filterFloorDropdown.addEventListener('click', e => e.stopPropagation());
+    if (filterStatusDropdown) filterStatusDropdown.addEventListener('click', e => e.stopPropagation());
+
+    // Gắn event onChange
+    document.querySelectorAll('.filter-floor-cb, .filter-status-cb').forEach(cb => {
+        cb.addEventListener('change', applyFilters);
+    });
+}
+
+function applyFilters() {
+    const selectedFloors = Array.from(document.querySelectorAll('.filter-floor-cb:checked')).map(cb => parseInt(cb.value));
+    const selectedStatuses = Array.from(document.querySelectorAll('.filter-status-cb:checked')).map(cb => parseInt(cb.value));
+
+    const filtered = mockRooms.filter(room => {
+        const floor = Math.floor(room.id / 100);
+        const matchFloor = selectedFloors.length === 0 || selectedFloors.includes(floor);
+        const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(room.maTrangThai);
+        return matchFloor && matchStatus;
+    });
+
+    fetchRoomMap(filtered);
+}
+
+function fetchRoomMap(roomsToRender) {
     const container = document.getElementById('room-map-container');
     const spinner = document.getElementById('loading-spinner');
     
     spinner.style.display = 'none';
 
-    if (!mockRooms || mockRooms.length === 0) {
-        container.innerHTML = `<div class="w-100 text-center py-5 text-muted">Không có dữ liệu phòng.</div>`;
+    if (!roomsToRender || roomsToRender.length === 0) {
+        container.innerHTML = `<div class="w-100 text-center py-5 text-muted">Không tìm thấy phòng nào phù hợp với bộ lọc.</div>`;
         return;
     }
 
     // Nhóm phòng theo tầng
     const floors = {};
-    mockRooms.forEach(room => {
+    roomsToRender.forEach(room => {
         const floorNum = Math.floor(room.id / 100);
         if(!floors[floorNum]) {
             floors[floorNum] = [];
@@ -78,7 +143,7 @@ function fetchRoomMap() {
                 `;
             }
 
-            const priceFormatted = new Intl.NumberFormat('vi-VN').format(room.price || 0) + ' VNĐ';
+            const capacityStr = `${room.capacity || 2} người`;
             
             html += `
             <div class="room-card p-3 d-flex flex-column justify-content-between ${statusClass}">
@@ -87,7 +152,7 @@ function fetchRoomMap() {
                         <h5 class="fw-bold text-dark m-0">Phòng ${room.id}</h5>
                         <span class="badge bg-light text-dark border fw-bold">${room.maLoai || 'Loại 1'}</span>
                     </div>
-                    <p class="text-muted small mt-1 mb-2">${priceFormatted}</p>
+                    <p class="text-muted small mt-1 mb-2"><i class="bi bi-people-fill me-1"></i>Tối đa: ${capacityStr}</p>
                 </div>
                 <div>
                     ${actionHtml}

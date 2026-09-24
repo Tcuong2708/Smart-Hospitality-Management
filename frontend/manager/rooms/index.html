@@ -34,25 +34,49 @@
         </a>
 
         <div class="admin-card">
-            <div class="admin-header d-flex justify-content-between align-items-center">
-                <h3 class="fw-bold text-uppercase mb-0">
-                    <i class="bi bi-ui-checks-grid me-2"></i>Quản Lý Phòng
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-ui-checks-grid me-2" style="color: var(--accent-color);"></i>Quản Lý Phòng
                 </h3>
-                <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#roomModal">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Thêm Phòng Mới
-                </a>
+                
+                <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1 justify-content-end">
+                    <div class="input-group shadow-sm" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" id="searchRoom" placeholder="Tìm kiếm phòng...">
+                    </div>
+
+                    <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#roomModal">
+                        <i class="bi bi-plus-circle-fill me-1"></i> Thêm Mới
+                    </a>
+                </div>
             </div>
 
-            <div class="table-responsive">
+            <div class="table-responsive" style="min-height: 400px; overflow: visible;">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
                     <tr>
                         <th class="py-3 text-center text-uppercase small text-white">ID</th>
                         <th class="text-center text-uppercase small text-white">Hình ảnh</th>
                         <th class="text-center text-uppercase small text-white">Tên phòng</th>
-                        <th class="text-center text-uppercase small text-white">Loại phòng</th>
+                        <th class="text-center text-uppercase small text-white">
+                            Loại phòng
+                            <div class="dropdown d-inline-block ms-1">
+                                <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Loại Phòng"></i>
+                                <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterCategory" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                    <!-- JS load -->
+                                </ul>
+                            </div>
+                        </th>
                         <th class="text-center text-uppercase small text-white">Giá phòng</th>
-                        <th class="text-center text-uppercase small text-white">Trạng thái</th>
+                        <th class="text-center text-uppercase small text-white">
+                            Trạng thái
+                            <div class="dropdown d-inline-block ms-1">
+                                <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Trạng Thái"></i>
+                                <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterStatus" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                    <!-- JS load -->
+                                </ul>
+                            </div>
+                        </th>
                         <th class="text-center text-uppercase small text-white">Thao tác</th>
                     </tr>
                     </thead>
@@ -69,48 +93,56 @@
     <div class="modal fade" id="roomModal" tabindex="-1">
         <div class="modal-dialog modal-lg modal-dialog-centered">
             <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-navy text-white">
-                    <h5 class="modal-title fw-bold" id="roomModalTitle">Thông Tin Phòng</h5>
+                <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017; border-top-left-radius: calc(0.3rem - 1px); border-top-right-radius: calc(0.3rem - 1px);">
+                    <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                        <span class="d-inline-flex justify-content-center align-items-center me-2" style="background-color: #C5A017; color: #0F2942; width: 24px; height: 24px; border-radius: 4px; font-size: 18px; font-weight: 900; line-height: 1;">+</span>
+                        <span id="roomModalTitle">Thêm Phòng Mới</span>
+                    </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body p-4">
                     <form id="roomForm">
                         <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label class="form-label fw-bold">Mã Phòng</label>
-                                <input type="text" class="form-control bg-light" id="form-id" readonly placeholder="Tạo tự động">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Tên Phòng <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="form-name" placeholder="Ví dụ: P101" required>
                             </div>
-                            <div class="col-md-8">
-                                <label class="form-label fw-bold">Tên phòng</label>
-                                <input type="text" class="form-control" id="form-name" required>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Giá Phòng (VNĐ) <span class="text-danger">*</span></label>
+                                <input type="number" class="form-control" id="form-price" placeholder="Ví dụ: 500000" required min="0">
                             </div>
                         </div>
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Loại phòng</label>
-                                <select class="form-select" id="form-category">
-                                    <option value="Standard">Standard</option>
-                                    <option value="Superior">Superior</option>
-                                    <option value="Deluxe">Deluxe</option>
-                                    <option value="Suite">Suite</option>
-                                </select>
+                                <label class="form-label fw-bold">URL Hình ảnh</label>
+                                <input type="text" class="form-control" id="form-image" placeholder="Ví dụ: /images/r1.jpg">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Giá phòng (VNĐ)</label>
-                                <input type="number" class="form-control" id="form-price" required min="0">
+                                <label class="form-label fw-bold">Loại Phòng</label>
+                                <input class="form-control" list="categoryOptions" id="form-category" placeholder="Nhập hoặc chọn loại phòng..." required>
+                                <datalist id="categoryOptions">
+                                    <option value="Phòng Đơn">
+                                    <option value="Phòng Đôi">
+                                    <option value="Phòng Gia Đình">
+                                    <option value="Phòng VIP">
+                                    <option value="Standard">
+                                    <option value="Superior">
+                                    <option value="Deluxe">
+                                    <option value="Suite">
+                                </datalist>
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Hình ảnh (URL)</label>
-                            <input type="text" class="form-control" id="form-image" placeholder="Ví dụ: /images/rooms/r1.jpg">
+                            <label class="form-label fw-bold">Số Giường Phụ Tối Đa</label>
+                            <input type="number" class="form-control" id="form-extra-bed" min="0" value="0">
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Mô tả chi tiết</label>
-                            <textarea class="form-control" id="form-desc" rows="3"></textarea>
+                            <label class="form-label fw-bold">Chi Tiết (Mô tả)</label>
+                            <textarea class="form-control" id="form-desc" rows="3" placeholder="Mô tả về phòng..."></textarea>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label fw-bold">Ghi chú nội bộ</label>
-                            <input type="text" class="form-control" id="form-note">
+                            <label class="form-label fw-bold">Ghi Chú Nội Bộ</label>
+                            <input type="text" class="form-control" id="form-note" placeholder="Ghi chú thêm...">
                         </div>
                     </form>
                 </div>

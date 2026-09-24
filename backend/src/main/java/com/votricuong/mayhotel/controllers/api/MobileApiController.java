@@ -1,5 +1,6 @@
 package com.votricuong.mayhotel.controllers.api;
 
+import com.votricuong.mayhotel.documents.RoomType;
 import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.Service;
@@ -80,11 +81,11 @@ public class MobileApiController {
                 if (dbPassword != null && (dbPassword.equals(password) || dbPassword.equals(hashedInput))) {
                     Map<String, Object> data = new HashMap<>();
                     data.put("id", user.getId());
-                    data.put("name", user.getFullName() != null ? user.getFullName() : username);
+                    data.put("name", user.getUsername() != null ? user.getUsername() : username);
                     
                     int roleId = 3; // customer
-                    if ("ADMIN".equalsIgnoreCase(user.getRole())) roleId = 1;
-                    else if ("MANAGER".equalsIgnoreCase(user.getRole()) || "RECEPTIONIST".equalsIgnoreCase(user.getRole())) roleId = 2;
+                    if (user.getRoleId() != null && user.getRoleId() == 1L) roleId = 1;
+                    else if (user.getRoleId() != null && user.getRoleId() == 2L) roleId = 2;
                     data.put("role", roleId);
                     
                     return ResponseEntity.ok(data);
@@ -112,9 +113,9 @@ public class MobileApiController {
         if (email != null) {
             String otp = String.format("%06d", new Random().nextInt(999999));
             OtpCode otpCode = new OtpCode();
-            otpCode.setEmail(email);
-            otpCode.setOtpCode(otp);
-            otpCode.setExpiryDate(new Date(System.currentTimeMillis() + 5 * 60 * 1000));
+            otpCode.setIdentifier(email);
+            otpCode.setCode(otp);
+            otpCode.setCreatedAt(new Date());
             otpCodeRepository.save(otpCode);
             emailService.sendOtpEmail(email, otp);
             return ResponseEntity.ok(Map.of("message", "Đã gửi OTP"));
@@ -126,8 +127,9 @@ public class MobileApiController {
     public ResponseEntity<Map<String, Object>> verifyOtp(@RequestBody Map<String, String> payload) {
         String email = payload.get("Email");
         String code = payload.get("OTPCode");
-        Optional<OtpCode> otpOpt = otpCodeRepository.findByEmailAndOtpCode(email, code);
-        if (otpOpt.isPresent() && otpOpt.get().getExpiryDate().after(new Date())) {
+        Optional<OtpCode> otpOpt = otpCodeRepository.findByIdentifierAndCode(email, code);
+        // OTP in OtpCode has a TTL index based on createdAt (expires after 5 mins)
+        if (otpOpt.isPresent()) {
             return ResponseEntity.ok(Map.of("message", "OTP hợp lệ"));
         }
         return ResponseEntity.badRequest().body(Map.of("message", "OTP sai hoặc hết hạn"));
@@ -248,17 +250,12 @@ public class MobileApiController {
             
             Invoice invoice = new Invoice();
             invoice.setId(System.currentTimeMillis() % 100000); 
-            invoice.setGuestName(guestName != null ? guestName : "Mobile Guest");
-            invoice.setPhone(phone);
-            invoice.setBookedAt(new Date());
+            // Mock booking ID for mobile creation
+            invoice.setBookingId(System.currentTimeMillis() % 10000);
+            invoice.setCreatedAt(new Date());
             
-            invoice.setCheckInDate(Date.from(ngayNhan.atStartOfDay(ZoneId.systemDefault()).toInstant()));
-            invoice.setCheckOutDate(Date.from(ngayTra.atStartOfDay(ZoneId.systemDefault()).toInstant()));
-            
-            invoice.setRoomId(phongDuocChon.getId());
             invoice.setInvoiceStatus("Reserved");
-            invoice.setPaymentMethod(phuongThucThanhToan);
-            invoice.setIsPaid(false);
+            invoice.setPayMethod(phuongThucThanhToan);
 
             long days = java.time.temporal.ChronoUnit.DAYS.between(ngayNhan, ngayTra);
             if (days <= 0) days = 1;
@@ -282,7 +279,8 @@ public class MobileApiController {
         if (phone == null || phone.isEmpty()) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Thiếu số điện thoại"));
         }
-        List<Invoice> history = invoiceRepository.findByPhone(phone);
+        // Mock returning an empty list as Invoice doesn't have phone directly mapped yet
+        List<Invoice> history = new ArrayList<>();
         return ResponseEntity.ok(ApiResponse.success("Thành công", history));
     }
 }

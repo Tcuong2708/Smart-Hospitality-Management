@@ -1,78 +1,208 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
-
-<th:block th:fragment="extra_css">
-    <link rel="stylesheet" th:href="@{/css/Admin/Category/index.css}" />
-</th:block>
-
+<head>
+    <th:block th:fragment="extra_css">
+        <style>
+            .admin-card {
+                border-radius: 8px;
+                box-shadow: 0 5px 20px rgba(15, 41, 66, 0.1);
+                overflow: hidden;
+                border: 0;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
 <div th:fragment="body_content">
-    <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold text-uppercase" style="color: var(--navy-color);">
-                <i class="bi bi-bookmark-star-fill me-2" style="color: var(--gold-color);"></i>Quản Lý Loại Phòng
-            </h3>
-            <a th:href="@{/admin/categories/create}" class="btn btn-gold px-4 shadow-sm">
-                <i class="bi bi-plus-lg me-1"></i> Thêm Mới
-            </a>
+    <div class="container py-4">
+        <!-- Alert -->
+        <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
-        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
-
         <div class="card shadow-sm border-0 admin-card">
+            <!-- Header mới được cải tiến từ frontend -->
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3 p-3" style="background-color: #0F2942; border-bottom: 3px solid #C5A017;">
+                <h3 class="fw-bold text-uppercase mb-0 text-white" style="letter-spacing: 1px;">
+                    <i class="bi bi-bookmark-star-fill me-2" style="color: #C5A017;"></i>Quản Lý Loại Phòng
+                </h3>
+                
+                <div class="d-flex flex-wrap align-items-center gap-3 flex-grow-1 justify-content-end">
+                    <div class="input-group shadow-sm" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" id="searchCategory" placeholder="Tìm loại phòng..." onkeyup="filterCategoryTable()">
+                    </div>
+
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#categoryModal" class="btn px-4 shadow-sm text-white" style="background: #C5A017; font-weight: 600;">
+                        <i class="bi bi-plus-lg me-1"></i> Thêm Mới
+                    </a>
+                </div>
+            </div>
+            
             <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-header-navy text-white">
+                <div class="table-responsive" style="background-color: #fff;">
+                    <table class="table table-hover align-middle mb-0" id="categoryTable">
+                        <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
                         <tr>
-                            <th class="ps-4 py-3 text-uppercase small">Mã số</th>
-                            <th class="text-uppercase small">Tên loại phòng</th>
-                            <th class="text-center text-uppercase small">Số lượng phòng</th>
-                            <th class="text-center text-uppercase small" style="width: 150px;">Thao tác</th>
+                            <th class="py-3 text-center text-uppercase small text-white fw-bold">Mã số</th>
+                            <th class="text-center text-uppercase small text-white fw-bold">Tên loại phòng <i class="bi bi-funnel-fill text-warning ms-1"></i></th>
+                            <th class="text-center text-uppercase small text-white fw-bold">Số lượng phòng</th>
+                            <th class="text-center text-uppercase small text-white fw-bold" style="width: 150px;">Thao tác</th>
                         </tr>
                         </thead>
-                        <tbody>
-                        <th:block th:if="${categories != null && !#lists.isEmpty(categories)}">
-                            <tr th:each="item : ${categories}">
-                                <td class="ps-4 fw-bold text-muted" th:text="'#' + ${item.maLoai}">#1</td>
-                                <td class="fw-bold" style="color: var(--navy-color);">
-                                    <i class="bi bi-tag-fill me-2" style="color: var(--gold-color); opacity: 0.7;"></i>
-                                    <th:block th:text="${item.name}"></th:block>
+                        <tbody id="category-table-body">
+                            <tr th:if="${categories == null or categories.isEmpty()}">
+                                <td colspan="4" class="text-center py-5 text-muted">Không có dữ liệu.</td>
+                            </tr>
+                            <tr th:each="c : ${categories}" class="category-row">
+                                <td class="text-center fw-bold text-secondary" th:text="${c.id}"></td>
+                                <td class="text-center fw-bold category-name" style="color: #0F2942;" th:text="${c.name}">
+                                    <br>
+                                    <span class="badge bg-secondary" th:text="${c.maxOccupancy + ' người'}"></span>
+                                </td>
+                                <td class="text-center fw-bold align-middle">
+                                    <span class="badge bg-success py-2 px-3 shadow-sm" style="font-size: 0.9rem;" th:text="${c.availableRoomsCount} + ' trống'"></span>
                                 </td>
                                 <td class="text-center">
-                                        <span class="badge badge-count rounded-pill px-3 py-2"
-                                              th:text="${item.phongs != null ? #lists.size(item.phongs) : 0} + ' phòng'">
-                                            0 phòng
-                                        </span>
-                                </td>
-                                <td class="text-center">
-                                    <a th:href="@{/admin/categories/edit/{id}(id=${item.maLoai})}"
-                                       class="btn btn-warning btn-sm text-white btn-action mx-1 shadow-sm"
-                                       title="Chỉnh sửa" style="background-color: var(--gold-color); border:none;">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </a>
-                                    <a th:href="@{/admin/categories/delete/{id}(id=${item.maLoai})}"
-                                       class="btn btn-danger btn-sm text-white btn-action shadow-sm" title="Xóa">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
+                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${c.id}" class="btn btn-sm btn-warning text-white shadow-sm" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#deleteModal' + ${c.id}" class="btn btn-sm btn-danger shadow-sm ms-1" title="Xóa"><i class="bi bi-trash"></i></a>
                                 </td>
                             </tr>
-                        </th:block>
-
-                        <tr th:if="${categories == null || #lists.isEmpty(categories)}">
-                            <td colspan="4" class="text-center py-5 text-muted">
-                                <i class="bi bi-inbox fs-1 d-block mb-2 opacity-25"></i>
-                                <p>Chưa có loại phòng nào trong hệ thống.</p>
-                                <a th:href="@{/admin/categories/create}" class="btn btn-sm btn-outline-secondary mt-2">Thêm ngay</a>
-                            </td>
-                        </tr>
                         </tbody>
                     </table>
                 </div>
             </div>
         </div>
     </div>
-</div>
+    
+    <!-- Modals cho từng hàng (Sửa, Xóa) -->
+    <th:block th:each="c : ${categories}">
+        <!-- Delete Modal -->
+        <div class="modal fade" th:id="'deleteModal' + ${c.id}" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header text-white bg-danger border-0">
+                        <h5 class="modal-title fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Xác Nhận Xóa</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4 text-center">
+                        <p class="fs-5 mb-1">Bạn có chắc chắn muốn xóa loại phòng này?</p>
+                        <p class="text-danger fw-bold fs-4 mb-0" th:text="${c.name}"></p>
+                    </div>
+                    <div class="modal-footer bg-light border-0 justify-content-center">
+                        <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
+                        <a th:href="@{/manager/categories/delete/{id}(id=${c.id})}" class="btn btn-danger px-4 fw-bold">Xóa Ngay</a>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<div th:fragment="extra_js"></div>
+        <!-- Edit Modal -->
+        <div class="modal fade" th:id="'editModal' + ${c.id}" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017;">
+                        <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                            <i class="bi bi-pencil-square me-2" style="color: #C5A017;"></i> Sửa Loại Phòng: <span th:text="${c.name}" class="ms-1"></span>
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <form th:action="@{/manager/categories/edit}" method="post">
+                        <input type="hidden" name="id" th:value="${c.id}" />
+                        <div class="modal-body p-4">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Tên Loại Phòng <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" name="name" th:value="${c.name}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">Số Lượng Người Tối Đa</label>
+                                    <input type="number" class="form-control" name="maxOccupancy" th:value="${c.maxOccupancy}" min="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-bold">URL Hình Ảnh Đại Diện</label>
+                                    <input type="text" class="form-control" name="imageUrl" th:value="${c.imageUrl}">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="modal-footer bg-light border-top-0">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                            <button type="submit" class="btn btn-gold text-white fw-bold px-4" style="background: #C5A017; border:none;">Cập Nhật</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </th:block>
+
+    <!-- Modal Thêm/Cập nhật Category -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017; border-top-left-radius: calc(0.3rem - 1px); border-top-right-radius: calc(0.3rem - 1px);">
+                    <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                        <span class="d-inline-flex justify-content-center align-items-center me-2" style="background-color: #C5A017; color: #0F2942; width: 24px; height: 24px; border-radius: 4px; font-size: 18px; font-weight: 900; line-height: 1;">+</span>
+                        <span id="categoryModalTitle">Thêm Loại Phòng Mới</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form th:action="@{/manager/categories/create}" method="post" th:object="${category}">
+                    <div class="modal-body p-4">
+                        <div class="row g-4">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Tên Loại Phòng <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" th:field="*{name}" required placeholder="Ví dụ: Phòng Standard">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Số Lượng Người Tối Đa</label>
+                                <input type="number" class="form-control" th:field="*{maxOccupancy}" value="2" min="1">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">URL Hình Ảnh Đại Diện</label>
+                                <input type="text" class="form-control" th:field="*{imageUrl}" placeholder="Ví dụ: /images/c1.jpg">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer bg-light border-top-0">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                        <button type="submit" class="btn btn-gold text-white fw-bold px-4" style="background: #C5A017; border:none;">Lưu Thông Tin</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JS script -->
+    <script>
+        function filterCategoryTable() {
+            let input = document.getElementById("searchCategory").value.toLowerCase();
+            let rows = document.querySelectorAll(".category-row");
+            
+            rows.forEach(row => {
+                let name = row.querySelector(".category-name").innerText.toLowerCase();
+                if (name.includes(input)) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+        }
+        
+        // Fix z-index modal for all modals
+        (function() {
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (modal) {
+                    document.body.appendChild(modal);
+                }
+            });
+        })();
+    </script>
+</div>
+</body>
 </html>

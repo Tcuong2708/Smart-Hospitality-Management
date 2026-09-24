@@ -46,7 +46,7 @@ public class AuthService {
     /**
      * Hàm băm mật khẩu bảo mật (SHA-256).
      */
-    private String hashPassword(String password) {
+    public String hashPassword(String password) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(password.getBytes(StandardCharsets.UTF_8));

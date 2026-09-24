@@ -42,4 +42,13 @@ public class Invoice {
     private String invoiceStatus;
     
     private String note;
+
+    private String guestName;
+    private String phone;
+    private Long roomId;
+    private Date checkInDate;
+    private Date checkOutDate;
+    private Long userId;
+    private Boolean isPaid;
+    private Double surcharge;
 }

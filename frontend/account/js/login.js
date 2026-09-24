@@ -41,9 +41,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (username === 'admin') {
                         window.location.href = '../admin/users/index.html'; // Admin vào quản lý người dùng
                     } else if (username === 'director' || username === 'manager') {
-                        window.location.href = '../admin/rooms/index.html'; // Quản lý vào quản lý phòng
+                        window.location.href = '../manager/rooms/index.html'; // Quản lý vào quản lý phòng
                     } else if (username === 'accountant') {
-                        window.location.href = '../admin/statistical/index.html'; // Kế toán vào thống kê
+                        window.location.href = '../manager/statistical/index.html'; // Kế toán vào thống kê
                     } else if (username === 'housekeeping') {
                         window.location.href = '../staff/room-status/index.html'; // Buồng phòng vào cập nhật trạng thái
                     } else if (username === 'staff') {

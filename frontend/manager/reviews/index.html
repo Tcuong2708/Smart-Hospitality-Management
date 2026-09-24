@@ -39,10 +39,17 @@
 <div class="main-content">
     <div class="container py-5">
         <div class="card shadow-sm border-0 admin-card">
-            <div class="admin-header d-flex justify-content-between align-items-center">
-                <h3 class="fw-bold text-uppercase mb-0">
-                    <i class="bi bi-chat-square-heart-fill me-2"></i>Kiểm duyệt Đánh giá phản hồi
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-chat-square-heart-fill me-2" style="color: var(--accent-color);"></i>Kiểm duyệt Đánh giá phản hồi
                 </h3>
+                
+                <div class="d-flex flex-wrap align-items-center gap-3 flex-grow-1 justify-content-end">
+                    <div class="input-group shadow-sm" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" id="searchReview" placeholder="Tìm đánh giá...">
+                    </div>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -53,7 +60,15 @@
                             <th class="text-center text-uppercase small text-white">Tên phòng / Dịch vụ</th>
                             <th class="text-center text-uppercase small text-white">Mức xếp hạng</th>
                             <th class="text-center text-uppercase small text-white" style="max-width: 350px;">Nội dung phản hồi</th>
-                            <th class="text-center text-uppercase small text-white">Trạng thái</th>
+                            <th class="text-center text-uppercase small text-white">
+                                Trạng thái
+                                <div class="dropdown d-inline-block ms-1">
+                                    <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Trạng Thái"></i>
+                                    <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterReviewStatusDropdown" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                        <!-- JS load -->
+                                    </ul>
+                                </div>
+                            </th>
                             <th class="text-center text-uppercase small text-white" style="width: 180px;">Thao tác kiểm duyệt</th>
                         </tr>
                         </thead>
@@ -76,8 +91,11 @@
 <div class="modal fade" id="replyModal" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content border-0 shadow">
-            <div class="modal-header bg-navy text-white">
-                <h5 class="modal-title fw-bold"><i class="bi bi-reply-all-fill me-2 text-gold"></i>Phản hồi từ Khách sạn</h5>
+            <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017; border-top-left-radius: calc(0.3rem - 1px); border-top-right-radius: calc(0.3rem - 1px);">
+                <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                    <span class="d-inline-flex justify-content-center align-items-center me-2" style="background-color: #C5A017; color: #0F2942; width: 24px; height: 24px; border-radius: 4px; font-size: 14px; font-weight: 900; line-height: 1;"><i class="bi bi-reply-all-fill"></i></span>
+                    Phản hồi từ Khách sạn
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body p-4">

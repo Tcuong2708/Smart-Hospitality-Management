@@ -49,8 +49,14 @@ public class AuthController extends BaseController {
             User user = authService.processLogin(username, password);
             session.setAttribute("user", user); // Lưu phiên làm việc
 
-            if ("RECEPTIONIST".equals(user.getRole())) {
-                return "redirect:/receptionist/room-map";
+            if (user.getRoleId() != null) {
+                if (user.getRoleId() == 1L) {
+                    return "redirect:/admin/users";
+                } else if (user.getRoleId() == 2L) {
+                    return "redirect:/manager/rooms";
+                } else if (user.getRoleId() == 3L || user.getRoleId() == 4L) {
+                    return "redirect:/receptionist/room-map";
+                }
             }
             return "redirect:/"; // Trở về trang chủ
         } catch (Exception e) {
@@ -149,8 +155,14 @@ public class AuthController extends BaseController {
             User user = authService.verifyGoogleToken(idToken);
             session.setAttribute("user", user); // Lưu phiên làm việc
             
-            if ("RECEPTIONIST".equals(user.getRole())) {
-                return "{\"success\": true, \"redirect\": \"/receptionist/room-map\"}";
+            if (user.getRoleId() != null) {
+                if (user.getRoleId() == 1L) {
+                    return "{\"success\": true, \"redirect\": \"/admin/users\"}";
+                } else if (user.getRoleId() == 2L) {
+                    return "{\"success\": true, \"redirect\": \"/manager/rooms\"}";
+                } else if (user.getRoleId() == 3L || user.getRoleId() == 4L) {
+                    return "{\"success\": true, \"redirect\": \"/receptionist/room-map\"}";
+                }
             }
             return "{\"success\": true, \"redirect\": \"/\"}";
         } catch (Exception e) {

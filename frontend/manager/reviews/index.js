@@ -1,4 +1,9 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Sửa lỗi backdrop che modal
+    const modalElement = document.getElementById('replyModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+    }
     
     // Giả lập dữ liệu đánh giá
     const mockReviews = [
@@ -84,6 +89,51 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // Event listeners
+        bindEvents();
+    }
+
+    if (tableBody) {
+        renderReviews(mockReviews);
+    }
+
+    const searchReview = document.getElementById('searchReview');
+    const thFilterReviewStatusDropdown = document.getElementById('thFilterReviewStatusDropdown');
+
+    if (thFilterReviewStatusDropdown) {
+        const statuses = [
+            { val: 0, label: 'Chờ duyệt' },
+            { val: 1, label: 'Công khai' },
+            { val: 2, label: 'Nội bộ (Đã ẩn)' }
+        ];
+        thFilterReviewStatusDropdown.innerHTML = statuses.map((st, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-status" type="checkbox" value="${st.val}" id="th_rev_${idx}">
+                    <label class="form-check-label" for="th_rev_${idx}">${st.label}</label>
+                </div>
+            </li>
+        `).join('');
+
+        document.querySelectorAll('.th-cb-status').forEach(cb => {
+            cb.addEventListener('change', applyFilter);
+        });
+    }
+
+    function applyFilter() {
+        const keyword = (searchReview?.value || '').toLowerCase().trim();
+        const selectedStatuses = Array.from(document.querySelectorAll('.th-cb-status:checked')).map(cb => parseInt(cb.value));
+        
+        const filtered = mockReviews.filter(r => {
+            const matchKeyword = r.tenPhong.toLowerCase().includes(keyword) || r.noiDung.toLowerCase().includes(keyword) || r.id.toString().includes(keyword);
+            const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.trangThai);
+            return matchKeyword && matchStatus;
+        });
+        renderReviews(filtered);
+    }
+
+    if (searchReview) searchReview.addEventListener('input', applyFilter);
+
+    function bindEvents() {
         document.querySelectorAll('.approve-btn').forEach(btn => {
             btn.addEventListener('click', () => {
                 if(confirm('Chuyển trạng thái hiển thị công khai cho bình luận này?')) {
@@ -116,19 +166,19 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        document.getElementById('btn-submit-reply')?.addEventListener('click', () => {
-            const reply = document.getElementById('reply-content').value.trim();
-            if(!reply) {
-                alert('Vui lòng nhập nội dung phản hồi.');
-                return;
-            }
-            if(replyModalInstance) replyModalInstance.hide();
-            if(window.showToast) window.showToast('Phản hồi đã được gửi đến khách hàng thành công!', 'success');
-            else alert('Phản hồi đã được gửi đến khách hàng thành công!');
-        });
-    }
-
-    if (tableBody) {
-        renderReviews(mockReviews);
+        const submitReplyBtn = document.getElementById('btn-submit-reply');
+        if (submitReplyBtn && !submitReplyBtn.dataset.bound) {
+            submitReplyBtn.dataset.bound = 'true';
+            submitReplyBtn.addEventListener('click', () => {
+                const reply = document.getElementById('reply-content').value.trim();
+                if(!reply) {
+                    alert('Vui lòng nhập nội dung phản hồi.');
+                    return;
+                }
+                if(replyModalInstance) replyModalInstance.hide();
+                if(window.showToast) window.showToast('Phản hồi đã được gửi đến khách hàng thành công!', 'success');
+                else alert('Phản hồi đã được gửi đến khách hàng thành công!');
+            });
+        }
     }
 });

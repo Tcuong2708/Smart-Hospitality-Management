@@ -175,15 +175,15 @@ function renderUserMenu(data) {
             // BỘ PHẬN QUẢN LÝ
             html.push(`
                 <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-2" style="font-size: 0.75rem; padding-left: 1rem;">Bộ phận Quản lý</div></li>
-                <li><a class="dropdown-item" href="${basePath}admin/rooms/index.html"><i class="bi bi-houses-fill me-2" style="color: var(--accent-color);"></i>Quản lý Phòng</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/category/index.html"><i class="bi bi-tags-fill me-2" style="color: var(--accent-color);"></i>Quản lý Loại phòng</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/service/index.html"><i class="bi bi-stars me-2" style="color: var(--accent-color);"></i>Quản lý Dịch vụ</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/customers/index.html"><i class="bi bi-person-badge-fill me-2" style="color: var(--accent-color);"></i>Quản lý Khách hàng</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/employees/index.html"><i class="bi bi-person-lines-fill me-2" style="color: var(--accent-color);"></i>Quản lý Nhân viên</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/promotions/index.html"><i class="bi bi-gift-fill me-2" style="color: var(--accent-color);"></i>Quản lý Khuyến mãi</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/loyalty/index.html"><i class="bi bi-star-fill me-2" style="color: var(--accent-color);"></i>Chính sách Tích điểm</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/statistical/index.html"><i class="bi bi-graph-up-arrow me-2" style="color: var(--accent-color);"></i>Thống kê Doanh thu</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/reports/index.html"><i class="bi bi-file-earmark-bar-graph-fill me-2" style="color: var(--accent-color);"></i>Xuất Báo cáo thống kê</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/rooms/index.html"><i class="bi bi-houses-fill me-2" style="color: var(--accent-color);"></i>Quản lý Phòng</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/category/index.html"><i class="bi bi-tags-fill me-2" style="color: var(--accent-color);"></i>Quản lý Loại phòng</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/service/index.html"><i class="bi bi-stars me-2" style="color: var(--accent-color);"></i>Quản lý Dịch vụ</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/customers/index.html"><i class="bi bi-person-badge-fill me-2" style="color: var(--accent-color);"></i>Quản lý Khách hàng</a></li>
+
+                <li><a class="dropdown-item" href="${basePath}manager/promotions/index.html"><i class="bi bi-gift-fill me-2" style="color: var(--accent-color);"></i>Quản lý Khuyến mãi</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/loyalty/index.html"><i class="bi bi-star-fill me-2" style="color: var(--accent-color);"></i>Chính sách Tích điểm</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/statistical/index.html"><i class="bi bi-graph-up-arrow me-2" style="color: var(--accent-color);"></i>Thống kê Doanh thu</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/reports/index.html"><i class="bi bi-file-earmark-bar-graph-fill me-2" style="color: var(--accent-color);"></i>Xuất Báo cáo thống kê</a></li>
                 <li><a class="dropdown-item" href="${basePath}admin/predictions/index.html"><i class="bi bi-robot me-2 text-danger"></i>Trợ lý AI - Rủi ro No-show</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>
@@ -193,8 +193,8 @@ function renderUserMenu(data) {
             // KẾ TOÁN
             html.push(`
                 <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-2" style="font-size: 0.75rem; padding-left: 1rem;">Nghiệp vụ Kế toán</div></li>
-                <li><a class="dropdown-item" href="${basePath}admin/statistical/index.html"><i class="bi bi-graph-up-arrow me-2" style="color: var(--accent-color);"></i>Thống kê Doanh thu</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/reports/index.html"><i class="bi bi-file-earmark-bar-graph-fill me-2" style="color: var(--accent-color);"></i>Xuất Báo cáo thống kê</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/statistical/index.html"><i class="bi bi-graph-up-arrow me-2" style="color: var(--accent-color);"></i>Thống kê Doanh thu</a></li>
+                <li><a class="dropdown-item" href="${basePath}manager/reports/index.html"><i class="bi bi-file-earmark-bar-graph-fill me-2" style="color: var(--accent-color);"></i>Xuất Báo cáo thống kê</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>
                 <li><a class="dropdown-item text-danger fw-bold mt-2" href="#" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
@@ -214,10 +214,10 @@ function renderUserMenu(data) {
             html.push(`
                 <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-1" style="font-size: 0.75rem; padding-left: 1rem;">Nghiệp vụ lễ tân</div></li>
                 <li><a class="dropdown-item" href="${basePath}staff/room-map/index.html"><i class="bi bi-grid-3x3-gap-fill me-2" style="color: var(--accent-color);"></i>Sơ đồ phòng trực quan</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/booking/index.html"><i class="bi bi-calendar-check-fill me-2" style="color: var(--accent-color);"></i>Quản lý Đặt phòng</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/invoice/index.html"><i class="bi bi-journal-bookmark-fill me-2" style="color: var(--accent-color);"></i>Quản lý Hoá Đơn</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/check-in/index.html"><i class="bi bi-box-arrow-in-right me-2" style="color: var(--accent-color);"></i>Làm thủ tục Nhận phòng</a></li>
-                <li><a class="dropdown-item" href="${basePath}admin/check-out/index.html"><i class="bi bi-box-arrow-left me-2" style="color: var(--accent-color);"></i>Làm thủ tục Trả phòng</a></li>
+                <li><a class="dropdown-item" href="${basePath}receptionist/booking/index.html"><i class="bi bi-calendar-check-fill me-2" style="color: var(--accent-color);"></i>Quản lý Đặt phòng</a></li>
+                <li><a class="dropdown-item" href="${basePath}receptionist/invoice/index.html"><i class="bi bi-journal-bookmark-fill me-2" style="color: var(--accent-color);"></i>Quản lý Hoá Đơn</a></li>
+                <li><a class="dropdown-item" href="${basePath}receptionist/check-in/index.html"><i class="bi bi-box-arrow-in-right me-2" style="color: var(--accent-color);"></i>Làm thủ tục Nhận phòng</a></li>
+                <li><a class="dropdown-item" href="${basePath}receptionist/check-out/index.html"><i class="bi bi-box-arrow-left me-2" style="color: var(--accent-color);"></i>Làm thủ tục Trả phòng</a></li>
                 <li><a class="dropdown-item fw-bold" style="color: #c5a017; background-color: #fdfaf0;" href="${basePath}admin/predictions/index.html"><i class="bi bi-robot me-2 text-danger"></i>Trợ lý AI - Rủi ro No-show</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>

@@ -37,13 +37,21 @@
         <div id="alert-container"></div>
 
         <div class="card shadow-sm border-0 admin-card">
-            <div class="admin-header d-flex justify-content-between align-items-center">
-                <h3 class="fw-bold text-uppercase mb-0">
-                    <i class="bi bi-bookmark-star-fill me-2"></i>Quản Lý Loại Phòng
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-bookmark-star-fill me-2" style="color: var(--accent-color);"></i>Quản Lý Loại Phòng
                 </h3>
-                <a href="create.html" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;">
-                    <i class="bi bi-plus-lg me-1"></i> Thêm Mới
-                </a>
+                
+                <div class="d-flex flex-wrap align-items-center gap-3 flex-grow-1 justify-content-end">
+                    <div class="input-group shadow-sm" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" id="searchCategory" placeholder="Tìm loại phòng...">
+                    </div>
+
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#categoryModal" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;">
+                        <i class="bi bi-plus-lg me-1"></i> Thêm Mới
+                    </a>
+                </div>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -51,7 +59,15 @@
                     <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
                         <tr>
                             <th class="py-3 text-center text-uppercase small text-white">Mã số</th>
-                            <th class="text-center text-uppercase small text-white">Tên loại phòng</th>
+                            <th class="text-center text-uppercase small text-white">
+                                Tên loại phòng
+                                <div class="dropdown d-inline-block ms-1">
+                                    <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Tên Loại Phòng"></i>
+                                    <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterCategoryName" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                        <!-- JS load -->
+                                    </ul>
+                                </div>
+                            </th>
                             <th class="text-center text-uppercase small text-white">Số lượng phòng</th>
                             <th class="text-center text-uppercase small text-white" style="width: 150px;">Thao tác</th>
                         </tr>
@@ -67,6 +83,49 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm/Cập nhật Category -->
+    <div class="modal fade" id="categoryModal" tabindex="-1">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017; border-top-left-radius: calc(0.3rem - 1px); border-top-right-radius: calc(0.3rem - 1px);">
+                    <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                        <span class="d-inline-flex justify-content-center align-items-center me-2" style="background-color: #C5A017; color: #0F2942; width: 24px; height: 24px; border-radius: 4px; font-size: 18px; font-weight: 900; line-height: 1;">+</span>
+                        <span id="categoryModalTitle">Thêm Loại Phòng Mới</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="categoryForm">
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Tên Loại Phòng <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="form-cat-name" placeholder="Ví dụ: Phòng Standard" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Số Lượng Người Tối Đa</label>
+                                <input type="number" class="form-control" id="form-cat-capacity" min="1" value="2">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">URL Hình Ảnh Đại Diện</label>
+                                <input type="text" class="form-control" id="form-cat-image" placeholder="Ví dụ: /images/c1.jpg">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Số lượng phòng (mặc định)</label>
+                                <input type="number" class="form-control" id="form-cat-count" min="0" value="0">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light border-top-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-gold text-white fw-bold px-4" id="btn-save-category" style="background: #C5A017;">Lưu Thông Tin</button>
                 </div>
             </div>
         </div>

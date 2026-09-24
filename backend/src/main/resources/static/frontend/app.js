@@ -173,7 +173,7 @@ function renderUserMenu(data) {
             // BỘ PHẬN NHÂN SỰ
             html.push(`
                 <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-2" style="font-size: 0.75rem; padding-left: 1rem;">Bộ phận Nhân sự</div></li>
-                <li><a class="dropdown-item" href="${basePath}admin/employees/index.html"><i class="bi bi-person-lines-fill me-2" style="color: var(--accent-color);"></i>Quản lý Nhân viên</a></li>
+
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>
                 <li><a class="dropdown-item text-danger fw-bold mt-2" href="#" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>

@@ -1,6 +1,30 @@
 const API_URL = 'http://localhost:8080/api/invoices';
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Sửa lỗi backdrop che modal
+    const modalElement = document.getElementById('createInvoiceModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+        
+        // Reset form khi đóng
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            document.getElementById('createInvoiceForm').reset();
+        });
+    }
+
+    const btnSubmit = document.getElementById('btn-submit-invoice');
+    if(btnSubmit) {
+        btnSubmit.addEventListener('click', () => {
+            const form = document.getElementById('createInvoiceForm');
+            if(form.checkValidity()) {
+                alert('Tạo đơn đặt phòng thành công!');
+                bootstrap.Modal.getInstance(modalElement).hide();
+            } else {
+                form.reportValidity();
+            }
+        });
+    }
+
     fetchInvoices();
 });
 

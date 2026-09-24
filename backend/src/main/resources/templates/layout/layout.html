@@ -44,8 +44,9 @@
     <!-- NAVBAR_HTML from layout.js -->
     <nav class="navbar navbar-expand-lg sticky-top glass-navbar">
         <div class="container">
-            <a class="navbar-brand" th:href="@{/}">
-                <i class="bi bi-buildings-fill me-2"></i>MAY HOTEL
+            <a class="navbar-brand d-flex align-items-center" th:href="@{/}">
+                <img th:src="@{/images/logo-web.png}" alt="MAY HOTEL" style="height: 40px; margin-right: 10px;" />
+                <span style="font-weight: bold;">MAY HOTEL</span>
             </a>
 
             <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
@@ -54,8 +55,8 @@
 
             <div class="collapse navbar-collapse" id="navMenu">
                 <ul class="navbar-nav ms-auto align-items-center">
-                    <li class="nav-item"><a class="nav-link" th:href="@{/}">Trang chủ</a></li>
-                    <li class="nav-item"><a class="nav-link" th:href="@{/info}">Thông tin</a></li>
+                    <li class="nav-item" th:if="${session.user == null or session.user.role == 'CUSTOMER'}"><a class="nav-link" th:href="@{/}">Trang chủ</a></li>
+                    <li class="nav-item" th:if="${session.user == null or session.user.role == 'CUSTOMER'}"><a class="nav-link" th:href="@{/info}">Thông tin</a></li>
                     <li class="nav-item" th:if="${session.user == null or session.user.role == 'CUSTOMER'}"><a class="nav-link" th:href="@{/rooms}">Phòng nghỉ</a></li>
                     <li class="nav-item" th:if="${session.user == null or session.user.role == 'CUSTOMER'}"><a class="nav-link" th:href="@{/review}">Đánh giá</a></li>
 
@@ -93,21 +94,21 @@
                                         <div class="dropdown-header text-uppercase text-primary fw-bold mt-2"
                                             style="font-size: 0.75rem; padding-left: 1rem;">Quản lý Khách sạn</div>
                                     </li>
-                                    <li><a class="dropdown-item" th:href="@{/admin/rooms}"><i
-                                                class="bi bi-houses-fill me-2 text-secondary"></i>Quản lý Phòng</a></li>
-                                    <li><a class="dropdown-item" th:href="@{/admin/categories}"><i
-                                                class="bi bi-tags-fill me-2 text-secondary"></i>Quản lý Loại phòng</a>
+                                    <li><a class="dropdown-item" th:href="@{/manager/rooms}"><i
+                                                class="bi bi-houses-fill me-2" style="color: #C5A017;"></i>Quản lý Phòng</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/manager/categories}"><i
+                                                class="bi bi-tags-fill me-2" style="color: #C5A017;"></i>Quản lý Loại phòng</a>
                                     </li>
-                                    <li><a class="dropdown-item" th:href="@{/admin/services}"><i
-                                                class="bi bi-stars me-2 text-secondary"></i>Quản lý Dịch vụ</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/manager/services}"><i
+                                                class="bi bi-stars me-2" style="color: #C5A017;"></i>Quản lý Dịch vụ</a></li>
                                     <li><a class="dropdown-item" th:href="@{/admin/reviews}"><i
-                                                class="bi bi-chat-square-heart-fill me-2 text-secondary"></i>Quản lý
+                                                class="bi bi-chat-square-heart-fill me-2" style="color: #C5A017;"></i>Quản lý
                                             Đánh giá</a></li>
                                     <li><a class="dropdown-item" th:href="@{/admin/promotion}"><i
-                                                class="bi bi-gift-fill me-2 text-secondary"></i>Quản lý Khuyến mãi</a>
+                                                class="bi bi-gift-fill me-2" style="color: #C5A017;"></i>Quản lý Khuyến mãi</a>
                                     </li>
                                     <li><a class="dropdown-item" href="http://localhost:8080/api/rooms"
-                                            target="_blank"><i class="bi bi-code-slash me-2 text-danger"></i>API Quản lý
+                                            target="_blank"><i class="bi bi-code-slash me-2" style="color: #C5A017;"></i>API Quản lý
                                             Phòng</a></li>
                                     <li>
                                         <hr class="dropdown-divider" />
@@ -122,7 +123,7 @@
                                             style="font-size: 0.75rem; padding-left: 1rem;">Kế toán & Thống kê</div>
                                     </li>
                                     <li><a class="dropdown-item" th:href="@{/admin/statistical}"><i
-                                                class="bi bi-graph-up-arrow me-2 text-success"></i>Thống kê Doanh
+                                                class="bi bi-graph-up-arrow me-2" style="color: #C5A017;"></i>Thống kê Doanh
                                             thu</a></li>
                                     <li>
                                         <hr class="dropdown-divider" />
@@ -136,7 +137,7 @@
                                             style="font-size: 0.75rem; padding-left: 1rem;">Nhân sự</div>
                                     </li>
                                     <li><a class="dropdown-item" th:href="@{/admin/staff}"><i
-                                                class="bi bi-person-vcard-fill me-2 text-info"></i>Quản lý Nhân viên</a>
+                                                class="bi bi-person-vcard-fill me-2" style="color: #C5A017;"></i>Quản lý Nhân viên</a>
                                     </li>
                                     <li>
                                         <hr class="dropdown-divider" />
@@ -151,19 +152,19 @@
                                             style="font-size: 0.75rem; padding-left: 1rem;">Nghiệp vụ lễ tân</div>
                                     </li>
                                     <li><a class="dropdown-item" th:href="@{/receptionist/room-map}"><i
-                                                class="bi bi-grid-3x3-gap-fill me-2 text-warning"></i>Sơ đồ phòng trực
+                                                class="bi bi-grid-3x3-gap-fill me-2" style="color: #C5A017;"></i>Sơ đồ phòng trực
                                             quan</a></li>
                                     <li><a class="dropdown-item" th:href="@{/admin/booking}"><i
-                                                class="bi bi-calendar-check-fill me-2 text-warning"></i>Quản lý Đặt
+                                                class="bi bi-calendar-check-fill me-2" style="color: #C5A017;"></i>Quản lý Đặt
                                             phòng</a></li>
                                     <li><a class="dropdown-item" th:href="@{/admin/invoices}"><i
-                                                class="bi bi-journal-bookmark-fill me-2 text-warning"></i>Quản lý Hoá
+                                                class="bi bi-journal-bookmark-fill me-2" style="color: #C5A017;"></i>Quản lý Hoá
                                             Đơn</a></li>
                                     <li><a class="dropdown-item" th:href="@{/receptionist/check-in}"><i
-                                                class="bi bi-box-arrow-in-right me-2 text-warning"></i>Xử lý Nhận phòng
+                                                class="bi bi-box-arrow-in-right me-2" style="color: #C5A017;"></i>Xử lý Nhận phòng
                                             (Check-in)</a></li>
                                     <li><a class="dropdown-item" th:href="@{/receptionist/check-out}"><i
-                                                class="bi bi-box-arrow-left me-2 text-warning"></i>Xử lý Trả phòng
+                                                class="bi bi-box-arrow-left me-2" style="color: #C5A017;"></i>Xử lý Trả phòng
                                             (Check-out)</a></li>
                                     <li>
                                         <hr class="dropdown-divider" />
@@ -178,7 +179,7 @@
                                             style="font-size: 0.75rem; padding-left: 1rem;">Buồng phòng</div>
                                     </li>
                                     <li><a class="dropdown-item" th:href="@{/admin/room-status}"><i
-                                                class="bi bi-stars me-2 text-success"></i>Trạng thái Dọn phòng</a></li>
+                                                class="bi bi-stars me-2" style="color: #C5A017;"></i>Trạng thái Dọn phòng</a></li>
                                     <li>
                                         <hr class="dropdown-divider" />
                                     </li>
@@ -191,7 +192,7 @@
                                             style="font-size: 0.75rem; padding-left: 1rem;">Quản trị hệ thống</div>
                                     </li>
                                     <li><a class="dropdown-item" th:href="@{/admin/users}"><i
-                                                class="bi bi-people-fill me-2 text-danger"></i>Quản lý Tài khoản</a>
+                                                class="bi bi-people-fill me-2" style="color: #C5A017;"></i>Quản lý Tài khoản</a>
                                     </li>
                                     <li>
                                         <hr class="dropdown-divider" />
@@ -221,7 +222,7 @@
     </div>
 
     <!-- FOOTER_HTML from layout.js -->
-    <footer>
+    <footer th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
         <div class="container">
             <div class="row gy-5">
                 <div class="col-md-4">
@@ -257,7 +258,7 @@
 
     <!-- TOAST_HTML from layout.js -->
     <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index: 9999;">
-        <div id="toastNotification" class="toast align-items-center shadow-lg text-white border-0 bg-navy" role="alert"
+        <div id="toastNotification" class="toast align-items-center shadow-lg text-white border-0" style="background-color: var(--primary-color, #0F2942);" role="alert"
             aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body fs-6 fw-medium px-4 py-3 d-flex align-items-center">
@@ -274,11 +275,11 @@
     <input type="hidden" id="backendErrorMsg" th:value="${error}" th:if="${error}" />
 
     <!-- CHATBOT_HTML from layout.js -->
-    <div id="chat-circle">
+    <div id="chat-circle" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
         <i class="bi bi-chat-dots-fill fs-3"></i>
     </div>
 
-    <div class="chat-box" id="chat-box">
+    <div class="chat-box" id="chat-box" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
         <div class="chat-box-header">
             <div>
                 <i class="bi bi-robot me-2 fs-5"></i>
@@ -302,7 +303,7 @@
     </div>
 
     <!-- Bootstrap Bundle with Popper -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <script>
@@ -324,10 +325,11 @@
 
             if (!toastNode || !messageNode || !iconNode) return;
             messageNode.innerText = message;
-            toastNode.classList.remove('bg-success', 'bg-danger', 'bg-navy');
+            toastNode.classList.remove('bg-danger');
+            toastNode.style.backgroundColor = '';
 
             if (type === 'success') {
-                toastNode.classList.add('bg-navy');
+                toastNode.style.backgroundColor = 'var(--primary-color, #0F2942)';
                 iconNode.className = "bi bi-check-circle-fill me-3 fs-4 text-warning";
             } else if (type === 'error') {
                 toastNode.classList.add('bg-danger');
@@ -418,9 +420,13 @@
         });
     </script>
 
+    
+
     <th:block th:if="${extra_js != null}">
         <div th:replace="~{__${extra_js}__}"></div>
     </th:block>
-</body>
 
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

@@ -1,7 +1,62 @@
 const API_URL = 'http://localhost:8080/api/services';
+const mockServices = [
+    { maDV: 1, tenDV: 'Giặt ủi', giaTien: 50000, donVi: 'Bộ' },
+    { maDV: 2, tenDV: 'Buffet Sáng', giaTien: 150000, donVi: 'Người' },
+    { maDV: 3, tenDV: 'Massage & Spa', giaTien: 500000, donVi: 'Lần' },
+    { maDV: 4, tenDV: 'Thuê xe máy', giaTien: 150000, donVi: 'Ngày' },
+    { maDV: 5, tenDV: 'Dọn phòng thêm', giaTien: 100000, donVi: 'Lần' }
+];
 
 document.addEventListener('DOMContentLoaded', () => {
-    fetchServices();
+    renderServices(mockServices);
+
+    // Sửa lỗi backdrop che modal
+    const modalElement = document.getElementById('serviceModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+    }
+
+    if (modalElement) {
+        modalElement.addEventListener('hidden.bs.modal', () => {
+            document.getElementById('serviceForm').reset();
+            document.getElementById('serviceModalTitle').innerText = 'Thêm Dịch Vụ Mới';
+        });
+    }
+
+    const searchService = document.getElementById('searchService');
+    const thFilterServiceName = document.getElementById('thFilterServiceName');
+
+    if (thFilterServiceName) {
+        const uniqueNames = [...new Set(mockServices.map(s => s.tenDV))];
+        thFilterServiceName.innerHTML = uniqueNames.map((name, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-name" type="checkbox" value="${name}" id="th_srv_${idx}">
+                    <label class="form-check-label text-truncate" style="max-width: 170px;" title="${name}" for="th_srv_${idx}">${name}</label>
+                </div>
+            </li>
+        `).join('');
+
+        document.querySelectorAll('.th-cb-name').forEach(cb => {
+            cb.addEventListener('change', applyFilters);
+        });
+    }
+
+    function applyFilters() {
+        const keyword = (searchService ? searchService.value : '').toLowerCase().trim();
+        const selectedNames = Array.from(document.querySelectorAll('.th-cb-name:checked')).map(cb => cb.value);
+
+        const filtered = mockServices.filter(s => {
+            const matchKeyword = s.tenDV.toLowerCase().includes(keyword);
+            const matchName = selectedNames.length === 0 || selectedNames.includes(s.tenDV);
+            return matchKeyword && matchName;
+        });
+        renderServices(filtered);
+    }
+
+    if (searchService) {
+        searchService.addEventListener('input', applyFilters);
+    }
 });
 
 function showAlert(message, type = 'success') {
@@ -14,19 +69,10 @@ function showAlert(message, type = 'success') {
     `;
 }
 
-async function fetchServices() {
+function renderServices(services) {
     const tbody = document.getElementById('service-table-body');
-    const mockServices = [
-        { maDV: 1, tenDV: 'Giặt ủi', giaTien: 50000, donVi: 'Bộ' },
-        { maDV: 2, tenDV: 'Buffet Sáng', giaTien: 150000, donVi: 'Người' },
-        { maDV: 3, tenDV: 'Massage & Spa', giaTien: 500000, donVi: 'Lần' },
-        { maDV: 4, tenDV: 'Thuê xe máy', giaTien: 150000, donVi: 'Ngày' },
-        { maDV: 5, tenDV: 'Dọn phòng thêm', giaTien: 100000, donVi: 'Lần' }
-    ];
 
     try {
-        const services = mockServices;
-        
         if (!services || services.length === 0) {
             tbody.innerHTML = `
                 <tr>
@@ -50,12 +96,12 @@ async function fetchServices() {
                     <span class="badge bg-light text-dark border">${item.donVi}</span>
                 </td>
                 <td class="text-center">
-                    <a href="edit.html?id=${item.maDV}" class="btn btn-sm btn-warning text-white shadow-sm mx-1" title="Sửa">
+                    <button class="btn btn-sm btn-warning text-white shadow-sm mx-1 btn-edit-service" data-id="${item.maDV}" title="Sửa">
                         <i class="bi bi-pencil"></i>
-                    </a>
-                    <a href="delete.html?id=${item.maDV}" class="btn btn-sm btn-danger shadow-sm ms-1" title="Xóa">
+                    </button>
+                    <button class="btn btn-sm btn-danger shadow-sm ms-1 btn-delete-service" data-id="${item.maDV}" title="Xóa">
                         <i class="bi bi-trash"></i>
-                    </a>
+                    </button>
                 </td>
             </tr>
             `;
@@ -72,4 +118,22 @@ async function fetchServices() {
             </tr>
         `;
     }
+
+    // Gắn sự kiện cho nút Sửa
+    document.querySelectorAll('.btn-edit-service').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const srv = mockServices.find(s => s.maDV == id);
+            
+            if (srv) {
+                document.getElementById('serviceModalTitle').innerText = 'Cập Nhật Dịch Vụ';
+                document.getElementById('form-srv-name').value = srv.tenDV;
+                document.getElementById('form-srv-price').value = srv.giaTien;
+                document.getElementById('form-srv-unit').value = srv.donVi;
+                
+                const modal = new bootstrap.Modal(document.getElementById('serviceModal'));
+                modal.show();
+            }
+        });
+    });
 }

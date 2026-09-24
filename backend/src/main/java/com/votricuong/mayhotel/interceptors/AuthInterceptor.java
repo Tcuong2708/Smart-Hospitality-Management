@@ -33,8 +33,14 @@ public class AuthInterceptor implements HandlerInterceptor {
             return false;
         }
 
-        String role = user.getRole();
-        
+        String role = "CUSTOMER";
+        if (user.getRoleId() != null) {
+            if (user.getRoleId() == 1L) role = "ADMIN";
+            else if (user.getRoleId() == 2L) role = "MANAGER";
+            else if (user.getRoleId() == 3L) role = "RECEPTIONIST";
+            else if (user.getRoleId() == 4L) role = "HOUSEKEEPER";
+            else if (user.getRoleId() == 5L) role = "CUSTOMER";
+        }
         // Tuyến khách hàng
         if (uri.startsWith("/booking/")) {
             if (!"CUSTOMER".equals(role)) {

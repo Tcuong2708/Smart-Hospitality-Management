@@ -23,6 +23,11 @@ public class RoomType {
     private Integer maxOccupancy;
     
     private String imageUrl;
-    
     private Integer quantity;
+    
+    @org.springframework.data.annotation.Transient
+    private Integer availableRoomsCount = 0;
+    
+    @org.springframework.data.annotation.Transient
+    private Integer totalRoomsCount = 0;
 }

@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface RoomRepository extends MongoRepository<Room, Long> {
     List<Room> findByStatus(String status);
+    List<Room> findByRoomTypeId(Long roomTypeId);
 }

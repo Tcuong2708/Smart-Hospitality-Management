@@ -31,6 +31,7 @@ public class BookingController extends BaseController {
     private final com.votricuong.mayhotel.repositories.ServiceTicketRepository serviceTicketRepository;
     private final com.votricuong.mayhotel.repositories.CustomerRepository customerRepository;
     private final com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService;
+    private final InvoiceRepository invoiceRepository;
 
     public BookingController(RoomRepository roomRepository, 
                              ServiceRepository serviceRepository, 
@@ -38,7 +39,8 @@ public class BookingController extends BaseController {
                              com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository,
                              com.votricuong.mayhotel.repositories.ServiceTicketRepository serviceTicketRepository,
                              com.votricuong.mayhotel.repositories.CustomerRepository customerRepository,
-                             com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService) {
+                             com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService,
+                             InvoiceRepository invoiceRepository) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.bookingOrderRepository = bookingOrderRepository;
@@ -46,6 +48,7 @@ public class BookingController extends BaseController {
         this.serviceTicketRepository = serviceTicketRepository;
         this.customerRepository = customerRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
+        this.invoiceRepository = invoiceRepository;
     }
 
     // 1. SELECT SERVICES (Redirect to checkout with services)
@@ -181,8 +184,8 @@ public class BookingController extends BaseController {
         model.addAttribute("listDichVu", serviceRepository.findAll());
 
         User dummyUser = new User();
-        dummyUser.setFullName("");
-        dummyUser.setPhone("");
+        // dummyUser.setFullName("");
+        // dummyUser.setPhone("");
         model.addAttribute("currentUser", dummyUser);
 
         setExtraCSS(model, "view/Booking/checkout :: extra_css");
@@ -268,13 +271,13 @@ public class BookingController extends BaseController {
             com.votricuong.mayhotel.documents.BookingOrder bookingOrder = new com.votricuong.mayhotel.documents.BookingOrder();
             bookingOrder.setId(sequenceGeneratorService.generateSequence("booking_orders_sequence")); 
             bookingOrder.setCustomerId(customer.getId());
-            bookingOrder.setOrderDate(new Date());
+            bookingOrder.setBookingDate(new Date());
             bookingOrder.setExpectedIn(Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             bookingOrder.setExpectedOut(Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             bookingOrder.setStatus("Pending");
             
             String noteStr = (ghiChu != null) ? ghiChu.trim() : "";
-            bookingOrder.setNotes(noteStr);
+            // bookingOrder.setNotes(noteStr);
 
             Double tongGiaCacPhong = 0.0;
             
@@ -288,7 +291,7 @@ public class BookingController extends BaseController {
                 bd.setId(sequenceGeneratorService.generateSequence("booking_details_sequence"));
                 bd.setBookingId(savedBookingOrder.getId());
                 bd.setRoomId(phongDuocChon.getId());
-                bd.setPrice(phongDuocChon.getPrice());
+                // bd.setPrice(phongDuocChon.getPrice());
                 bookingDetailRepository.save(bd);
                 
                 tongGiaCacPhong += phongDuocChon.getPrice() * currentBooking.getSoDem();
@@ -304,9 +307,9 @@ public class BookingController extends BaseController {
                 st.setBookingId(savedBookingOrder.getId());
                 st.setServiceId(s.getId());
                 st.setQuantity(1);
-                st.setPrice(s.getPrice());
-                st.setOrderDate(new Date());
-                st.setStatus("Delivered");
+                // st.setPrice(s.getPrice());
+                // st.setOrderDate(new Date());
+                // st.setStatus("Delivered");
                 serviceTicketRepository.save(st);
             }
 
@@ -375,7 +378,9 @@ public class BookingController extends BaseController {
         } else {
             Optional<com.votricuong.mayhotel.documents.Customer> customerOpt = customerRepository.findByPhone(phone);
             if (customerOpt.isPresent()) {
-                List<com.votricuong.mayhotel.documents.BookingOrder> historyList = bookingOrderRepository.findByCustomerId(customerOpt.get().getId());
+                List<com.votricuong.mayhotel.documents.BookingOrder> historyList = bookingOrderRepository.findAll().stream()
+                        .filter(bo -> customerOpt.get().getId().equals(bo.getCustomerId()))
+                        .collect(Collectors.toList());
                 model.addAttribute("historyList", historyList);
             } else {
                 model.addAttribute("historyList", new ArrayList<>());

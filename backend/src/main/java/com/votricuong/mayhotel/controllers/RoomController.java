@@ -1,6 +1,7 @@
 package com.votricuong.mayhotel.controllers;
 
 import com.votricuong.mayhotel.documents.Room;
+import com.votricuong.mayhotel.documents.RoomType;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;

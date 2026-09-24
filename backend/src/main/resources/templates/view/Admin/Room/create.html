@@ -1,86 +1,76 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org" lang="vi">
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
 <body>
-
 <div th:fragment="body_content">
     <div class="container py-5">
-        <div class="row justify-content-center">
-            <div class="col-md-8">
-                <div class="admin-form-card shadow-sm">
-                    <div class="admin-header">
-                        <h3 class="mb-0 fw-bold text-uppercase">
-                            <i class="bi bi-door-open-fill me-2 text-warning"></i>Thêm Phòng Nghỉ Mới
-                        </h3>
+        <a th:href="@{/manager/rooms}" class="text-decoration-none text-muted mb-3 d-inline-block">
+            <i class="bi bi-arrow-left me-1"></i> Trở về Quản lý phòng
+        </a>
+
+        <div class="card border-0 shadow-sm admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center" style="background-color: #0F2942; color: white; padding: 1rem 1.5rem; border-bottom: 3px solid #C5A017;">
+                <h4 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">
+                    <i class="bi bi-plus-square-fill me-2" style="color: #C5A017;"></i>Thêm Phòng Mới
+                </h4>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+                <form th:action="@{/manager/rooms/create}" method="post" th:object="${room}">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Tên Phòng <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" th:field="*{name}" required placeholder="Ví dụ: P101">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Giá Phòng (VNĐ) <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" th:field="*{price}" required placeholder="Ví dụ: 500000">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">URL Hình ảnh</label>
+                            <input type="text" class="form-control" th:field="*{imageUrl}" placeholder="Ví dụ: /images/r1.jpg">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Trạng Thái</label>
+                            <select class="form-select" th:field="*{status}">
+                                <option value="Trống">Trống</option>
+                                <option value="Đang ở">Đang ở</option>
+                                <option value="Bảo trì">Bảo trì</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Số Giường Phụ Tối Đa</label>
+                            <input type="number" class="form-control" th:field="*{maxExtraBeds}" value="0" min="0">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Loại Phòng</label>
+                            <select class="form-select" th:field="*{roomTypeId}">
+                                <option th:each="type : ${roomTypes}" th:value="${type.id}" th:text="${type.name}"></option>
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Chi Tiết (Mô tả)</label>
+                            <textarea class="form-control" th:field="*{detail}" rows="3" placeholder="Mô tả về phòng..."></textarea>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label fw-bold">Ghi Chú Nội Bộ</label>
+                            <input type="text" class="form-control" th:field="*{note}" placeholder="Ghi chú thêm...">
+                        </div>
                     </div>
-
-                    <div class="card-body p-4">
-                        <form th:action="@{/admin/rooms/create}" th:object="${phong}" method="post" enctype="multipart/form-data">
-
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Tên Phòng <span class="text-danger">*</span></label>
-                                    <input type="text" th:field="*{name}" class="form-control" placeholder="Ví dụ: P201 Deluxe" required />
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Giá (VNĐ/đêm) <span class="text-danger">*</span></label>
-                                    <div class="input-group">
-                                        <span class="input-group-text"><i class="bi bi-currency-dollar"></i></span>
-                                        <input type="number" th:field="*{price}" class="form-control" required />
-                                    </div>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Loại phòng <span class="text-danger">*</span></label>
-                                    <select th:field="*{maLoai}" class="form-select" required>
-                                        <option value="">-- Chọn loại phòng --</option>
-                                        <option th:each="l : ${listLoai}"
-                                                th:value="${l.maLoai}"
-                                                th:text="${l.name}"></option>
-                                    </select>
-                                </div>
-
-                                <div class="col-md-6 mb-3">
-                                    <label class="form-label">Hình ảnh phòng</label>
-                                    <input type="file" name="imageFile" class="form-control" accept="image/*" />
-                                    <small class="text-muted fst-italic">Ảnh sẽ được lưu vào thư mục static/images</small>
-                                </div>
-
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">Mô tả chi tiết</label>
-                                    <textarea th:field="*{detail}" class="form-control" rows="4"></textarea>
-                                </div>
-                            </div>
-
-                            <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
-                                <a th:href="@{/admin/rooms}" class="btn btn-outline-secondary px-4">
-                                    <i class="bi bi-arrow-left"></i> Quay lại
-                                </a>
-
-                                <button type="submit" class="btn btn-gold px-5 shadow-sm">
-                                    <i class="bi bi-save me-2"></i> LƯU PHÒNG MỚI
-                                </button>
-                            </div>
-                        </form>
+                    
+                    <div class="mt-5 d-flex justify-content-end gap-3 border-top pt-4">
+                        <a th:href="@{/manager/rooms}" class="btn btn-secondary px-4 fw-bold">Hủy</a>
+                        <button type="submit" class="btn btn-warning text-white px-4 fw-bold" style="background-color: #C5A017; border:none;">
+                            Lưu Thông Tin
+                        </button>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 </div>
-
-<div th:fragment="body_content">
-    <link rel="stylesheet" th:href="@{/css/Admin/Room/admin-room.css}">
-
-    <div class="container py-5">
-    </div>
-</div>
-
-<th:block th:fragment="extra_js">
-    <script>
-        console.log("Trang Create Room đã sẵn sàng!");
-    </script>
-</th:block>
-
+<th:block th:fragment="extra_js"></th:block>
 </body>
 </html>
