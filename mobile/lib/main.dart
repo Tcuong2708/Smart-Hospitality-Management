@@ -46,10 +46,12 @@ class MayHotelApp extends StatelessWidget {
         return "Ứng dụng đã phát hiện thiết bị của bạn đã can thiệp sâu hệ thống (Root/Jailbreak). Để đảm bảo ứng dụng an toàn chúng tôi sẽ thoát ứng dụng!";
       }
 
-      // 3. Kiểm tra bật USB Debugging
+      // 3. Kiểm tra bật USB Debugging (Tạm thời tắt để build và test qua cáp trên máy thật)
+      /* 
       if (await SafeDevice.isUsbDebuggingEnabled) {
         return "Ứng dụng đã phát hiện mở USB gỡ lỗi. Để đảm bảo ứng dụng an toàn chúng tôi sẽ thoát ứng dụng!";
       }
+      */
     } catch (e) {
       debugPrint("Security check error: $e");
     }
