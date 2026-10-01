@@ -24,6 +24,31 @@ document.addEventListener('DOMContentLoaded', () => {
     ];
 
     const tableBody = document.getElementById('table-body');
+    let selectedRisks = []; // Cao, Trung bình, Thấp
+
+    function initFilters() {
+        const filterDropdown = document.getElementById('filterRiskDropdown');
+        if (!filterDropdown) return;
+        
+        const levels = ['Cao', 'Trung bình', 'Thấp'];
+        filterDropdown.innerHTML = levels.map((lvl, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-risk-cb" type="checkbox" value="${lvl}" id="cb_risk_${idx}">
+                    <label class="form-check-label" for="cb_risk_${idx}">Mức độ ${lvl}</label>
+                </div>
+            </li>
+        `).join('');
+
+        filterDropdown.addEventListener('click', e => e.stopPropagation());
+
+        document.querySelectorAll('.filter-risk-cb').forEach(cb => {
+            cb.addEventListener('change', () => {
+                selectedRisks = Array.from(document.querySelectorAll('.filter-risk-cb:checked')).map(x => x.value);
+                renderWarnings(mockWarnings);
+            });
+        });
+    }
     
     function formatDate(dateString) {
         const d = new Date(dateString);
@@ -33,16 +58,21 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderWarnings(data) {
         if (!tableBody) return;
         tableBody.innerHTML = '';
+
+        let filteredData = data;
+        if (selectedRisks.length > 0) {
+            filteredData = filteredData.filter(item => selectedRisks.includes(item.level));
+        }
         
-        if(data.length === 0) {
-            tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-success fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Tuyệt vời! Hiện không có cảnh báo rủi ro nào.</td></tr>';
+        if(filteredData.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center py-4 text-success fw-bold"><i class="bi bi-check-circle-fill me-2"></i>Tuyệt vời! Hiện không có cảnh báo rủi ro nào phù hợp với bộ lọc.</td></tr>';
             return;
         }
 
         // Sort descending by risk ratio
-        data.sort((a,b) => b.riskRatio - a.riskRatio);
+        filteredData.sort((a,b) => b.riskRatio - a.riskRatio);
 
-        data.forEach(item => {
+        filteredData.forEach(item => {
             const tr = document.createElement('tr');
             
             let rowClass = '';
@@ -85,18 +115,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="text-center">
                     ${timerHtml}
                 </td>
-                <td class="text-center">
-                    ${item.timerEnabled ? `
-                    <button class="btn btn-sm btn-outline-secondary shadow-sm mb-1 w-100 btn-stop-timer" data-id="${item.id}" title="Khách báo trễ">
-                        <i class="bi bi-slash-circle me-1"></i> Dừng đếm
-                    </button>
-                    ` : ''}
-                    <button class="btn btn-sm btn-primary shadow-sm mb-1 w-100 btn-notify" data-id="${item.id}">
-                        <i class="bi bi-bell-fill me-1"></i> Nhắc nhở
-                    </button>
-                    <button class="btn btn-sm btn-outline-danger shadow-sm w-100 btn-cancel" data-id="${item.id}">
-                        <i class="bi bi-x-circle me-1"></i> Hủy ngay
-                    </button>
+                <td class="text-center align-middle px-3" style="width: 140px;">
+                    <div class="btn-group-vertical w-100 shadow-sm rounded" role="group">
+                        ${item.timerEnabled ? `
+                        <button type="button" class="btn btn-sm btn-light border btn-stop-timer text-start fw-bold py-2 text-secondary" data-id="${item.id}" title="Khách báo trễ">
+                            <i class="bi bi-pause-circle-fill me-1"></i> Dừng đếm
+                        </button>
+                        ` : ''}
+                        <button type="button" class="btn btn-sm btn-light border btn-notify text-start fw-bold py-2 text-primary" data-id="${item.id}">
+                            <i class="bi bi-envelope-paper-fill me-1"></i> Nhắc nhở
+                        </button>
+                        <button type="button" class="btn btn-sm btn-danger btn-cancel text-start fw-bold py-2" data-id="${item.id}" style="background-color: #dc3545;">
+                            <i class="bi bi-x-octagon-fill me-1 text-white"></i> Hủy ngay
+                        </button>
+                    </div>
                 </td>
             `;
             tableBody.appendChild(tr);
@@ -126,6 +158,9 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
     }
+
+    // Khởi tạo bộ lọc trước
+    initFilters();
 
     // Simulate AI loading
     setTimeout(() => {

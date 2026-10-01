@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:fragment="extra_css">
+        <style>
+            .admin-card {
+                border-radius: 12px;
+                box-shadow: 0 5px 20px rgba(15, 41, 66, 0.1);
+                overflow: hidden;
+                border: 0;
+            }
+            .risk-badge {
+                padding: 6px 12px;
+                border-radius: 30px;
+                font-weight: bold;
+                font-size: 0.85rem;
+                display: inline-block;
+                text-align: center;
+                min-width: 100px;
+            }
+            .risk-high {
+                background-color: rgba(220, 53, 69, 0.15);
+                color: #dc3545;
+                border: 1px solid #dc3545;
+            }
+            .risk-medium {
+                background-color: rgba(253, 126, 20, 0.15);
+                color: #fd7e14;
+                border: 1px solid #fd7e14;
+            }
+            .risk-low {
+                background-color: rgba(25, 135, 84, 0.15);
+                color: #198754;
+                border: 1px solid #198754;
+            }
+            .table-header-navy {
+                background-color: #0F2942;
+                color: white;
+            }
+            .percentage-bar {
+                height: 8px;
+                border-radius: 4px;
+                background-color: #e9ecef;
+                margin-top: 4px;
+                overflow: hidden;
+            }
+            .percentage-fill {
+                height: 100%;
+                border-radius: 4px;
+            }
+            .info-panel {
+                background-color: #FCF8E3;
+                border-left: 4px solid #C5A017;
+                padding: 15px;
+                border-radius: 4px;
+                margin-bottom: 20px;
+            }
+        </style>
+    </th:block>
+</head>
+<body>
+<div th:fragment="body_content">
+    <div class="container py-4">
+        
+        <div class="info-panel shadow-sm">
+            <h5 class="fw-bold mb-2"><i class="bi bi-robot text-danger me-2"></i>Trợ lý AI phân tích rủi ro No-show</h5>
+            <p class="mb-0 text-muted">Trí tuệ nhân tạo (AI) quét lịch sử giao dịch và đánh giá xác suất khách hàng không đến nhận phòng. Hệ thống tự động thiết lập thời gian hủy phòng an toàn là <strong>14:00</strong> đối với các rủi ro <strong>Cao</strong> để kịp thời giải phóng phòng bán cho khách khác (thay vì 18:00 như mặc định).</p>
+        </div>
+
+        <div class="admin-card">
+            <div class="d-flex justify-content-between align-items-center p-3" style="background-color: #0F2942; border-bottom: 3px solid #C5A017;">
+                <h4 class="fw-bold text-uppercase mb-0 text-white" style="letter-spacing: 1px;">
+                    <i class="bi bi-shield-exclamation me-2" style="color: #C5A017;"></i>Danh sách giám sát rủi ro
+                </h4>
+            </div>
+
+            <div class="table-responsive" style="background-color: #fff;">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-header-navy">
+                    <tr>
+                        <th class="py-3 px-3 text-center text-uppercase small text-white fw-bold">Mã Phiếu</th>
+                        <th class="text-uppercase small text-white fw-bold">Khách hàng</th>
+                        <th class="text-uppercase small text-white fw-bold">Ngày nhận phòng</th>
+                        <th class="text-center text-uppercase small text-white fw-bold">Mức rủi ro</th>
+                        <th class="text-center text-uppercase small text-white fw-bold">Xác suất No-show</th>
+                        <th class="text-center text-uppercase small text-white fw-bold">Tự động hủy lúc</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${bookings}">
+                            <td class="text-center px-3 fw-bold" th:text="${item.order.id}"></td>
+                            <td>
+                                <div class="fw-bold" th:text="${item.customerName}"></div>
+                                <div class="small text-muted"><i class="bi bi-telephone me-1"></i><span th:text="${item.customerPhone}"></span></div>
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark" th:text="${#dates.format(item.order.expectedIn, 'dd/MM/yyyy')}"></div>
+                                <div class="small text-muted" th:text="${item.order.status}"></div>
+                            </td>
+                            <td class="text-center">
+                                <span class="risk-badge" 
+                                      th:classappend="${item.order.noShowRiskLevel == 'Cao' ? 'risk-high' : (item.order.noShowRiskLevel == 'Trung bình' ? 'risk-medium' : 'risk-low')}"
+                                      th:text="${item.order.noShowRiskLevel}">
+                                </span>
+                            </td>
+                            <td style="min-width: 150px;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="fw-bold" th:text="${item.order.noShowRiskPercentage + '%'}"></span>
+                                    <i th:if="${item.order.noShowRiskPercentage > 70}" class="bi bi-exclamation-triangle-fill text-danger"></i>
+                                </div>
+                                <div class="percentage-bar">
+                                    <div class="percentage-fill" 
+                                         th:style="'width: ' + ${item.order.noShowRiskPercentage} + '%; background-color: ' + ${item.order.noShowRiskPercentage > 70 ? '#dc3545' : (item.order.noShowRiskPercentage > 30 ? '#fd7e14' : '#198754')}"></div>
+                                </div>
+                            </td>
+                            <td class="text-center fw-bold text-danger">
+                                <i class="bi bi-clock-history me-1"></i>
+                                <span th:text="${#dates.format(item.order.autoCancelTime, 'HH:mm - dd/MM/yyyy')}"></span>
+                            </td>
+                        </tr>
+                        <tr th:if="${#lists.isEmpty(bookings)}">
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                <i class="bi bi-check-circle fs-1 d-block mb-3 text-success"></i>
+                                Tuyệt vời! Hiện tại không có phiếu đặt phòng nào đang chờ nhận.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

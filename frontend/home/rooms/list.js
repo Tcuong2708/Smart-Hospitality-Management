@@ -10,6 +10,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('searchInput');
     const btnClearFilter = document.getElementById('btn-clear-filter');
 
+    // Lấy query parameters từ URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const capacityParam = urlParams.get('capacity');
+    let checkinParam = urlParams.get('checkin');
+    let checkoutParam = urlParams.get('checkout');
+    const adultsParam = urlParams.get('adults');
+    const childrenParam = urlParams.get('children');
+    let requiredCapacity = capacityParam ? parseInt(capacityParam) : null;
+
     let currentFilters = { maLoai: '', priceRange: '', searchString: '' };
     let categoryMap = {}; // Lưu map maLoai -> Tên Loại để render
 
@@ -57,6 +66,40 @@ document.addEventListener('DOMContentLoaded', () => {
         categoryFilterEl.querySelector('a[data-id=""]').classList.add('active');
         priceFilterEl.querySelectorAll('a').forEach(el => el.classList.remove('active'));
         priceFilterEl.querySelector('a[data-price=""]').classList.add('active');
+        
+        // Reset query params trên URL
+        if(window.history.replaceState) {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+        requiredCapacity = null;
+        
+        fetchRooms();
+    });
+
+    // Khởi tạo giá trị ban đầu cho form Sidebar
+    if (checkinParam) document.getElementById('sbCheckinDate').value = checkinParam;
+    if (checkoutParam) document.getElementById('sbCheckoutDate').value = checkoutParam;
+    if (adultsParam) document.getElementById('sbAdults').value = adultsParam;
+    if (childrenParam) document.getElementById('sbChildren').value = childrenParam;
+
+    // Lắng nghe sự kiện submit Sidebar
+    document.getElementById('sidebarSearchForm').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const adults = parseInt(document.getElementById('sbAdults').value) || 2;
+        const children = parseInt(document.getElementById('sbChildren').value) || 0;
+        checkinParam = document.getElementById('sbCheckinDate').value;
+        checkoutParam = document.getElementById('sbCheckoutDate').value;
+        requiredCapacity = adults + Math.floor(children / 2);
+        
+        // Cập nhật lại URL mà không cần load lại trang để giữ lịch sử đúng
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('capacity', requiredCapacity);
+        newUrl.searchParams.set('checkin', checkinParam);
+        newUrl.searchParams.set('checkout', checkoutParam);
+        newUrl.searchParams.set('adults', adults);
+        newUrl.searchParams.set('children', children);
+        window.history.replaceState({}, '', newUrl);
+
         fetchRooms();
     });
 
@@ -100,6 +143,23 @@ document.addEventListener('DOMContentLoaded', () => {
         if (currentFilters.searchString) {
             const searchLower = currentFilters.searchString.toLowerCase();
             filteredRooms = filteredRooms.filter(r => r.name.toLowerCase().includes(searchLower));
+        }
+
+        // Filter by required capacity (from Home page search)
+        if (requiredCapacity) {
+            filteredRooms = filteredRooms.filter(r => {
+                const cap = r.maLoai === 'L01' ? 1 : (r.maLoai === 'L02' ? 2 : 4);
+                return cap >= requiredCapacity;
+            });
+        }
+
+        const alertEl = document.getElementById('search-criteria-alert');
+        if (checkinParam && checkoutParam && requiredCapacity) {
+            const formatDate = (d) => d.split('-').reverse().join('/');
+            alertEl.classList.remove('d-none');
+            alertEl.innerHTML = `<i class="bi bi-info-circle-fill me-2 fs-5 align-middle"></i> Kết quả tìm kiếm phòng trống từ ngày <strong>${formatDate(checkinParam)}</strong> đến <strong>${formatDate(checkoutParam)}</strong> (cho ${requiredCapacity} người).`;
+        } else {
+            alertEl.classList.add('d-none');
         }
 
         renderRooms(filteredRooms);

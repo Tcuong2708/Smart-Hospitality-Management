@@ -1,4 +1,5 @@
 import 'package:flutter/cupertino.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RoomModel {
   final int maPhong;
@@ -9,7 +10,7 @@ class RoomModel {
   final String detail;
   final int availableCount;
 
-  static const String serverUrl = "https://monocled-procrastinatingly-cara.ngrok-free.dev/images/";
+
 
   RoomModel({
     required this.maPhong,
@@ -30,7 +31,8 @@ class RoomModel {
     if (rawImg.startsWith('http')) {
       processedImg = rawImg;
     } else if (rawImg.isNotEmpty) {
-      processedImg = serverUrl + rawImg;
+      final String baseUrl = dotenv.env['BASE_URL'] ?? "http://localhost:8080";
+      processedImg = baseUrl + "/images/" + rawImg;
     } else {
       processedImg = "https://via.placeholder.com/150";
     }

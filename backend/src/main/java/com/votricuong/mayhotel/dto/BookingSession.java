@@ -5,7 +5,7 @@ import lombok.Data;
 import java.time.LocalDate;
 
 @Data
-public class BookingSession {
+public class BookingSession implements java.io.Serializable {
     private RoomTypeDTO loaiPhong;
     private int soLuong;
     private LocalDate ngayNhan;

@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "room_types")
-public class RoomType {
+public class RoomType implements java.io.Serializable {
     
     @Id
     private Long id;

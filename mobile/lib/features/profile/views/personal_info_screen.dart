@@ -14,7 +14,7 @@ class PersonalInfoScreen extends StatefulWidget {
 }
 
 class _PersonalInfoScreenState extends State<PersonalInfoScreen> {
-  // Đổi sang dùng trực tiếp HotelApiProvider lõi của Cường đã thông mạch Ngrok
+  // Đổi sang dùng trực tiếp HotelApiProvider lõi của Cường đã thông mạch API
   final _apiProvider = HotelApiProvider();
 
   final TextEditingController _nameController = TextEditingController();

@@ -22,7 +22,6 @@ class HotelApiProvider {
       headers: {
         "Accept": "application/json",
         "Content-Type": "application/json",
-        "ngrok-skip-browser-warning": "true",
       },
     ));
 
@@ -298,10 +297,10 @@ class HotelApiProvider {
     }
   }
 
-  // Gọi trực tiếp lên Python AI Server (FastAPI qua Ngrok)
+  // Gọi trực tiếp lên Python AI Server (FastAPI)
   Future<Map<String, dynamic>?> verifyFaceNFC(File nfcImage, File selfieImage) async {
     try {
-      // Đọc AI_URL từ môi trường, ví dụ: https://abcd.ngrok.io
+      // Đọc AI_URL từ môi trường
       final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://localhost:8000";
       
       Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 30)));

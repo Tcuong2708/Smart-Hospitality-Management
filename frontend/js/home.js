@@ -3,16 +3,32 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchHomeCategories();
 });
 
-async function fetchHomeCategories() {
+async function fetchHomeCategories(filteredCapacity = null) {
     const container = document.getElementById('room-categories-container');
     
     // Dữ liệu giả định (Mock Data) sử dụng cứng luôn không gọi API
-    const mockCategories = [
+    let mockCategories = [
         { maLoai: 'L01', name: 'Phòng Đơn (Single Room)', soNguoi: 1, imageUrl: 'images/d1.jpg', price: 500000, hasRoom: true, isHot: false },
         { maLoai: 'L02', name: 'Phòng Đôi (Double Room)', soNguoi: 2, imageUrl: 'images/d3.jpg', price: 800000, hasRoom: true, isHot: true },
         { maLoai: 'L03', name: 'Phòng Gia Đình (Family Room)', soNguoi: 4, imageUrl: 'images/gd1.jpg', price: 1500000, hasRoom: true, isHot: false },
         { maLoai: 'L04', name: 'Phòng Suite (Thượng Gia)', soNguoi: 4, imageUrl: 'images/su1.jpg', price: 3500000, hasRoom: false, isHot: true }
     ];
+
+    if (filteredCapacity) {
+        mockCategories = mockCategories.filter(c => c.soNguoi >= filteredCapacity && c.hasRoom);
+        if (mockCategories.length === 0) {
+            container.innerHTML = `
+              <div class="col-12 text-center py-5">
+                <div class="text-danger opacity-75">
+                  <i class="bi bi-calendar-x fs-1"></i>
+                  <h4 class="mt-3 fw-bold">Rất tiếc, khách sạn đã hết phòng phù hợp!</h4>
+                  <p>Vui lòng chọn ngày khác hoặc thử giảm số lượng người.</p>
+                </div>
+              </div>
+            `;
+            return;
+        }
+    }
     
     renderRoomCategories(mockCategories, container);
 }
@@ -73,11 +89,17 @@ function renderRoomCategories(categories, container) {
 
                 <div class="card-footer bg-white border-0 p-0 pt-3">
                   ${hasRoom ? `
-                    <a href="home/booking/checkout.html?maLoai=${maLoai}" class="btn btn-add-cart-home text-center d-block">
+                    <button class="btn btn-add-cart-home w-100 fw-bold btn-book-online text-white" 
+                            style="background-color: #0F2942;"
+                            data-id="${maLoai}" 
+                            data-name="${name}" 
+                            data-capacity="${capacity}" 
+                            data-price="${price}" 
+                            data-img="${imageUrl}">
                       <i class="bi bi-calendar-check me-2"></i>Đặt ngay
-                    </a>
+                    </button>
                   ` : `
-                    <button class="btn btn-secondary w-100 shadow-sm" disabled>
+                    <button class="btn btn-secondary w-100 shadow-sm fw-bold" disabled>
                       <i class="bi bi-x-circle me-2"></i>Hết phòng
                     </button>
                   `}
@@ -90,4 +112,69 @@ function renderRoomCategories(categories, container) {
     });
 
     container.innerHTML = html;
+    bindBookingEvents();
+}
+
+// Xử lý Tìm phòng trống (Tra cứu phòng trống)
+document.getElementById('searchRoomForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const adults = parseInt(document.getElementById('adults').value) || 2;
+    const children = parseInt(document.getElementById('children').value) || 0;
+    const checkin = document.getElementById('checkinDate').value;
+    const checkout = document.getElementById('checkoutDate').value;
+    const totalCapacity = adults + Math.floor(children / 2); // giả sử 2 trẻ em = 1 người lớn
+    
+    // Chuyển hướng sang trang Danh sách phòng kèm tham số
+    const url = `home/rooms/list.html?capacity=${totalCapacity}&checkin=${checkin}&checkout=${checkout}`;
+    window.location.href = url;
+});
+
+// Xử lý Đặt phòng trực tuyến (Modal)
+function bindBookingEvents() {
+    let onlineBookingModal;
+    let qrPaymentModal;
+
+    document.querySelectorAll('.btn-book-online').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const target = e.currentTarget;
+            document.getElementById('bookingRoomName').textContent = target.dataset.name;
+            document.getElementById('bookingCapacity').textContent = target.dataset.capacity;
+            document.getElementById('bookingPrice').textContent = new Intl.NumberFormat('vi-VN').format(target.dataset.price) + ' đ';
+            document.getElementById('bookingRoomImg').src = target.dataset.img;
+
+            if (!onlineBookingModal) {
+                onlineBookingModal = new bootstrap.Modal(document.getElementById('onlineBookingModal'));
+                // append modal to body if not already
+                document.body.appendChild(document.getElementById('onlineBookingModal'));
+                document.body.appendChild(document.getElementById('qrPaymentModal'));
+            }
+            onlineBookingModal.show();
+        });
+    });
+
+    document.getElementById('btnConfirmBooking')?.addEventListener('click', () => {
+        const form = document.getElementById('onlineBookingForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+
+        const method = document.getElementById('paymentMethod').value;
+        onlineBookingModal.hide();
+
+        if (method === 'qr') {
+            if (!qrPaymentModal) {
+                qrPaymentModal = new bootstrap.Modal(document.getElementById('qrPaymentModal'));
+            }
+            qrPaymentModal.show();
+            
+            // Giả lập sau 3 giây thanh toán thành công
+            setTimeout(() => {
+                qrPaymentModal.hide();
+                alert('Thanh toán đặt cọc thành công! Email xác nhận đã được gửi đến bạn.');
+            }, 3000);
+        } else {
+            alert('Đặt phòng thành công (Giữ chỗ)! Vui lòng thanh toán khi nhận phòng.');
+        }
+    });
 }

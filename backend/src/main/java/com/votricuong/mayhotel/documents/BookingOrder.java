@@ -33,4 +33,16 @@ public class BookingOrder {
     private Date expectedOut;
     
     private String status;
+    
+    private String notes;
+
+    // Các trường phục vụ UC10 - Trí tuệ nhân tạo dự đoán No-show
+    @Field("no_show_risk_level")
+    private String noShowRiskLevel; // Thấp, Trung bình, Cao
+
+    @Field("no_show_risk_percentage")
+    private Double noShowRiskPercentage; // VD: 85.5%
+
+    @Field("auto_cancel_time")
+    private Date autoCancelTime; // Thời gian sẽ tự động hủy phiếu (vd: 14:00 hoặc 18:00)
 }

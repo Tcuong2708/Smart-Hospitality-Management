@@ -25,6 +25,8 @@ document.addEventListener('DOMContentLoaded', () => {
 function initFilters() {
     const filterFloorDropdown = document.getElementById('filterFloorDropdown');
     const filterStatusDropdown = document.getElementById('filterStatusDropdown');
+    const filterRoomTypeDropdown = document.getElementById('filterRoomTypeDropdown');
+    const filterCapacityDropdown = document.getElementById('filterCapacityDropdown');
     
     // Khởi tạo các Tầng
     if (filterFloorDropdown) {
@@ -56,12 +58,40 @@ function initFilters() {
         `).join('');
     }
 
+    // Khởi tạo Loại phòng
+    if (filterRoomTypeDropdown) {
+        const uniqueTypes = [...new Set(mockRooms.map(room => room.maLoai))].sort();
+        filterRoomTypeDropdown.innerHTML = uniqueTypes.map((type, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-type-cb" type="checkbox" value="${type}" id="cb_type_${idx}">
+                    <label class="form-check-label" for="cb_type_${idx}">${type}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Khởi tạo Sức chứa
+    if (filterCapacityDropdown) {
+        const uniqueCapacities = [...new Set(mockRooms.map(room => room.capacity))].sort((a,b) => a-b);
+        filterCapacityDropdown.innerHTML = uniqueCapacities.map((cap, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-capacity-cb" type="checkbox" value="${cap}" id="cb_cap_${idx}">
+                    <label class="form-check-label" for="cb_cap_${idx}">Tối đa ${cap} người</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
     // Ngăn chặn dropdown đóng khi click vào checkbox
     if (filterFloorDropdown) filterFloorDropdown.addEventListener('click', e => e.stopPropagation());
     if (filterStatusDropdown) filterStatusDropdown.addEventListener('click', e => e.stopPropagation());
+    if (filterRoomTypeDropdown) filterRoomTypeDropdown.addEventListener('click', e => e.stopPropagation());
+    if (filterCapacityDropdown) filterCapacityDropdown.addEventListener('click', e => e.stopPropagation());
 
     // Gắn event onChange
-    document.querySelectorAll('.filter-floor-cb, .filter-status-cb').forEach(cb => {
+    document.querySelectorAll('.filter-floor-cb, .filter-status-cb, .filter-type-cb, .filter-capacity-cb').forEach(cb => {
         cb.addEventListener('change', applyFilters);
     });
 }
@@ -69,12 +99,16 @@ function initFilters() {
 function applyFilters() {
     const selectedFloors = Array.from(document.querySelectorAll('.filter-floor-cb:checked')).map(cb => parseInt(cb.value));
     const selectedStatuses = Array.from(document.querySelectorAll('.filter-status-cb:checked')).map(cb => parseInt(cb.value));
+    const selectedTypes = Array.from(document.querySelectorAll('.filter-type-cb:checked')).map(cb => cb.value);
+    const selectedCapacities = Array.from(document.querySelectorAll('.filter-capacity-cb:checked')).map(cb => parseInt(cb.value));
 
     const filtered = mockRooms.filter(room => {
         const floor = Math.floor(room.id / 100);
         const matchFloor = selectedFloors.length === 0 || selectedFloors.includes(floor);
         const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(room.maTrangThai);
-        return matchFloor && matchStatus;
+        const matchType = selectedTypes.length === 0 || selectedTypes.includes(room.maLoai);
+        const matchCapacity = selectedCapacities.length === 0 || selectedCapacities.includes(room.capacity);
+        return matchFloor && matchStatus && matchType && matchCapacity;
     });
 
     fetchRoomMap(filtered);

@@ -105,7 +105,7 @@
                         <div id="summary-content">
                             <!-- Thông tin phòng -->
                             <div class="d-flex mb-3">
-                                <img loading="lazy" th:src="@{${(!#lists.isEmpty(currentBooking.loaiPhong.phongs) && currentBooking.loaiPhong.phongs[0].imageUrl != null && currentBooking.loaiPhong.phongs[0].imageUrl != '') ? '/images/' + currentBooking.loaiPhong.phongs[0].imageUrl : '/images/default.png'}}" class="rounded shadow-sm" style="width: 80px; height: 80px; object-fit: cover;">
+                                <img loading="lazy" th:src="@{${!#strings.isEmpty(currentBooking.loaiPhong.imageUrl) ? '/images/' + currentBooking.loaiPhong.imageUrl : '/images/default.png'}}" class="rounded shadow-sm" style="width: 80px; height: 80px; object-fit: cover;">
                                 <div class="ms-3 w-100">
                                     <h6 class="fw-bold text-navy mb-1" th:text="${currentBooking.loaiPhong.name}">Tên phòng</h6>
                                     <div class="small text-muted mb-1">MAY HOTEL KINGS</div>

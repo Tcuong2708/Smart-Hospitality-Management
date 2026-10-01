@@ -1,4 +1,10 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // Sửa lỗi backdrop che modal
+    const modalElement = document.getElementById('directBookingModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+    }
+
     const mockData = [
         { id: 'BK1001', customer: 'Trần Văn X', room: 'P101', checkin: '10/09/2026', checkout: '12/09/2026', status: 'Đã nhận phòng', aiRisk: 'Thấp (10%)' },
         { id: 'BK1002', customer: 'Lê Thị Y', room: 'P202', checkin: '12/09/2026', checkout: '15/09/2026', status: 'Chờ nhận phòng', aiRisk: 'Cao (85%)' },
@@ -39,4 +45,95 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
     renderData(mockData);
+
+    // Logic xử lý Đặt phòng trực tiếp
+    const btnSearchRooms = document.getElementById('btn-search-rooms');
+    const searchResults = document.getElementById('db-search-results');
+    const btnCheckCustomer = document.getElementById('btn-check-customer');
+    const btnNfcScan = document.getElementById('btn-nfc-scan');
+    const inputCccd = document.getElementById('db-cccd');
+    const inputFullname = document.getElementById('db-fullname');
+    const inputPhone = document.getElementById('db-phone');
+    const btnConfirmBooking = document.getElementById('btn-confirm-booking');
+
+    if(btnSearchRooms) {
+        btnSearchRooms.addEventListener('click', () => {
+            const checkin = document.getElementById('db-checkin').value;
+            const checkout = document.getElementById('db-checkout').value;
+            if(!checkin || !checkout) {
+                alert('Vui lòng chọn ngày Check-in và Check-out để tìm phòng trống.');
+                return;
+            }
+            // Giả lập tìm thấy phòng
+            searchResults.classList.remove('d-none');
+        });
+    }
+
+    if(btnCheckCustomer) {
+        btnCheckCustomer.addEventListener('click', () => {
+            const cccd = inputCccd.value.trim();
+            if(!cccd) {
+                alert('Vui lòng nhập CCCD để kiểm tra!');
+                return;
+            }
+            
+            // Giả lập KiemTraKhachCu (UC21)
+            if(cccd === '0123456789' || cccd === '079099123456') {
+                inputFullname.value = 'Nguyễn Văn Khách Cũ';
+                inputPhone.value = '0901234567';
+                alert('Đã tìm thấy thông tin khách hàng cũ!');
+            } else {
+                inputFullname.value = '';
+                inputPhone.value = '';
+                alert('Khách hàng mới. Vui lòng nhập thông tin.');
+            }
+        });
+    }
+
+    if(btnNfcScan) {
+        btnNfcScan.addEventListener('click', () => {
+            // Giả lập XacThucCCCD_NFC()
+            alert('Đang chờ thiết bị đọc NFC... Đã nhận dạng thẻ CCCD!');
+            inputCccd.value = '079099123456';
+            inputFullname.value = 'Nguyễn Văn Khách Cũ (NFC)';
+            inputPhone.value = '0901234567';
+        });
+    }
+
+    if(btnConfirmBooking) {
+        btnConfirmBooking.addEventListener('click', () => {
+            if(!inputFullname.value || !inputPhone.value || searchResults.classList.contains('d-none')) {
+                alert('Vui lòng hoàn tất tìm phòng và nhập đủ thông tin khách hàng.');
+                return;
+            }
+
+            const selectedRoom = document.getElementById('db-selected-room').value;
+            
+            // Thêm vào bảng
+            const newBooking = {
+                id: 'BK' + Math.floor(Math.random() * 10000 + 1000),
+                customer: inputFullname.value,
+                room: selectedRoom,
+                checkin: document.getElementById('db-checkin').value,
+                checkout: document.getElementById('db-checkout').value,
+                status: 'Chờ nhận phòng',
+                aiRisk: 'Thấp (5%)'
+            };
+
+            mockData.unshift(newBooking);
+            renderData(mockData);
+
+            bootstrap.Modal.getInstance(modalElement).hide();
+            
+            // Dọn dẹp form
+            document.getElementById('db-checkin').value = '';
+            document.getElementById('db-checkout').value = '';
+            inputCccd.value = '';
+            inputFullname.value = '';
+            inputPhone.value = '';
+            searchResults.classList.add('d-none');
+
+            alert('Đặt phòng trực tiếp thành công!');
+        });
+    }
 });

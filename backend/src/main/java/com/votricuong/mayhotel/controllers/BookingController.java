@@ -32,6 +32,7 @@ public class BookingController extends BaseController {
     private final com.votricuong.mayhotel.repositories.CustomerRepository customerRepository;
     private final com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService;
     private final InvoiceRepository invoiceRepository;
+    private final com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository;
 
     public BookingController(RoomRepository roomRepository, 
                              ServiceRepository serviceRepository, 
@@ -40,7 +41,8 @@ public class BookingController extends BaseController {
                              com.votricuong.mayhotel.repositories.ServiceTicketRepository serviceTicketRepository,
                              com.votricuong.mayhotel.repositories.CustomerRepository customerRepository,
                              com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService,
-                             InvoiceRepository invoiceRepository) {
+                             InvoiceRepository invoiceRepository,
+                             com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.bookingOrderRepository = bookingOrderRepository;
@@ -49,6 +51,7 @@ public class BookingController extends BaseController {
         this.customerRepository = customerRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.invoiceRepository = invoiceRepository;
+        this.roomTypeRepository = roomTypeRepository;
     }
 
     // 1. SELECT SERVICES (Redirect to checkout with services)
@@ -65,18 +68,25 @@ public class BookingController extends BaseController {
 
     // 2. BOOK ROOM VIEW
     @GetMapping("/book")
-    public String book(@RequestParam("maLoai") Long maLoai, Model model, RedirectAttributes redirectAttributes) {
+    public String book(@RequestParam("maLoai") Long maLoai, Model model, RedirectAttributes redirectAttributes, HttpSession session, jakarta.servlet.http.HttpServletRequest request) {
+        if (session.getAttribute("user") == null) {
+            return "redirect:/account/login?error=auth";
+        }
+        
         List<Room> allRooms = roomRepository.findAll();
         
+        com.votricuong.mayhotel.documents.RoomType type = roomTypeRepository.findById(maLoai).orElse(null);
+        
         HomeController.RoomTypeDTO loai = allRooms.stream()
-            .filter(r -> r.getRoomType() != null && r.getRoomType().getId().equals(maLoai))
+            .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
             .findFirst()
             .map(r -> HomeController.RoomTypeDTO.builder()
-                    .maLoai(r.getRoomType().getId())
-                    .name(r.getRoomType().getName())
-                    .soNguoi(r.getRoomType().getMaxOccupancy())
+                    .maLoai(r.getRoomTypeId())
+                    .name(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn")
+                    .soNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2)
                     .price(r.getPrice())
-                    .phongs(allRooms.stream().filter(rr -> rr.getRoomType().getId().equals(maLoai)).collect(Collectors.toList()))
+                    .phongs(allRooms.stream().filter(rr -> r.getRoomTypeId().equals(rr.getRoomTypeId())).collect(Collectors.toList()))
+                    .imageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png")
                     .build())
             .orElse(null);
 
@@ -85,12 +95,17 @@ public class BookingController extends BaseController {
         }
 
         long phongTrong = allRooms.stream()
-                .filter(p -> p.getRoomType() != null && p.getRoomType().getId().equals(maLoai) && "Vacant".equalsIgnoreCase(p.getStatus()))
+                .filter(p -> p.getRoomTypeId() != null && p.getRoomTypeId().equals(maLoai) && 
+                            ("Vacant".equalsIgnoreCase(p.getStatus()) || 
+                             "Còn phòng".equalsIgnoreCase(p.getStatus()) || 
+                             "Trống".equalsIgnoreCase(p.getStatus()) || 
+                             "Phòng trống".equalsIgnoreCase(p.getStatus())))
                 .count();
 
         if (phongTrong == 0) {
             redirectAttributes.addFlashAttribute("error", "Rất tiếc, loại phòng này hiện tại đã hết phòng trống!");
-            return "redirect:/";
+            String referer = request.getHeader("Referer");
+            return "redirect:" + (referer != null ? referer : "/rooms");
         }
 
         setPageTitle(model, "Đặt phòng: " + loai.getName());
@@ -106,14 +121,19 @@ public class BookingController extends BaseController {
     public String startCheckout(@RequestParam("maLoai") Long maLoai,
                             @RequestParam("soLuong") int soLuong,
                             HttpSession session,
-                            RedirectAttributes redirectAttributes) {
+                            RedirectAttributes redirectAttributes,
+                            jakarta.servlet.http.HttpServletRequest request) {
 
         LocalDate ngayNhan = LocalDate.now();
         LocalDate ngayTra = LocalDate.now().plusDays(1);
 
         List<Room> allRooms = roomRepository.findAll();
         long phongTrong = allRooms.stream()
-                .filter(p -> p.getRoomType() != null && p.getRoomType().getId().equals(maLoai) && "Vacant".equalsIgnoreCase(p.getStatus()))
+                .filter(p -> p.getRoomTypeId() != null && p.getRoomTypeId().equals(maLoai) && 
+                            ("Vacant".equalsIgnoreCase(p.getStatus()) || 
+                             "Còn phòng".equalsIgnoreCase(p.getStatus()) || 
+                             "Trống".equalsIgnoreCase(p.getStatus()) || 
+                             "Phòng trống".equalsIgnoreCase(p.getStatus())))
                 .count();
 
         if (soLuong > phongTrong) {
@@ -121,15 +141,18 @@ public class BookingController extends BaseController {
             return "redirect:/booking/book?maLoai=" + maLoai;
         }
 
+        com.votricuong.mayhotel.documents.RoomType type = roomTypeRepository.findById(maLoai).orElse(null);
+
         HomeController.RoomTypeDTO loai = allRooms.stream()
-            .filter(r -> r.getRoomType() != null && r.getRoomType().getId().equals(maLoai))
+            .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
             .findFirst()
             .map(r -> HomeController.RoomTypeDTO.builder()
-                    .maLoai(r.getRoomType().getId())
-                    .name(r.getRoomType().getName())
-                    .soNguoi(r.getRoomType().getMaxOccupancy())
+                    .maLoai(r.getRoomTypeId())
+                    .name(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn")
+                    .soNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2)
                     .price(r.getPrice())
-                    .phongs(allRooms.stream().filter(rr -> rr.getRoomType().getId().equals(maLoai)).collect(Collectors.toList()))
+                    .phongs(allRooms.stream().filter(rr -> r.getRoomTypeId().equals(rr.getRoomTypeId())).collect(Collectors.toList()))
+                    .imageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png")
                     .build())
             .orElse(null);
 
@@ -147,8 +170,75 @@ public class BookingController extends BaseController {
             
             return "redirect:/booking/checkout";
         }
+        String referer = request.getHeader("Referer");
+        return "redirect:" + (referer != null ? referer : "/rooms");
+    }
+
+    // 3.5. XỬ LÝ NHẤN "ĐẶT NGAY" TỪ TRANG CHI TIẾT (detail.html)
+    @GetMapping("/create")
+    public String createBookingFromDetail(@RequestParam("roomId") Long roomId,
+                                          @RequestParam("soDem") int soDem,
+                                          HttpSession session,
+                                          RedirectAttributes redirectAttributes) {
+
+        if (session.getAttribute("user") == null) {
+            return "redirect:/account/login?error=auth";
+        }
+
+        Optional<Room> roomOpt = roomRepository.findById(roomId);
+        if (roomOpt.isEmpty()) {
+            redirectAttributes.addFlashAttribute("error", "Không tìm thấy phòng hợp lệ!");
+            return "redirect:/rooms";
+        }
+
+        Room selectedRoom = roomOpt.get();
+        Long maLoai = selectedRoom.getRoomTypeId();
         
-        return "redirect:/";
+        List<Room> allRooms = roomRepository.findAll();
+        long phongTrong = allRooms.stream()
+                .filter(p -> p.getRoomTypeId() != null && p.getRoomTypeId().equals(maLoai) && 
+                       ("Vacant".equalsIgnoreCase(p.getStatus()) || 
+                        "Còn phòng".equalsIgnoreCase(p.getStatus()) || 
+                        "Trống".equalsIgnoreCase(p.getStatus()) || 
+                        "Phòng trống".equalsIgnoreCase(p.getStatus())))
+                .count();
+
+        if (phongTrong < 1) {
+            redirectAttributes.addFlashAttribute("error", "Rất tiếc, loại phòng này hiện tại đã hết phòng trống!");
+            return "redirect:/rooms/detail/" + maLoai;
+        }
+
+        LocalDate ngayNhan = LocalDate.now();
+        LocalDate ngayTra = LocalDate.now().plusDays(soDem > 0 ? soDem : 1);
+
+        com.votricuong.mayhotel.documents.RoomType type = roomTypeRepository.findById(maLoai).orElse(null);
+
+        HomeController.RoomTypeDTO loai = allRooms.stream()
+            .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
+            .findFirst()
+            .map(r -> HomeController.RoomTypeDTO.builder()
+                    .maLoai(r.getRoomTypeId())
+                    .name(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn")
+                    .soNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2)
+                    .price(r.getPrice())
+                    .phongs(allRooms.stream().filter(rr -> maLoai.equals(rr.getRoomTypeId())).collect(Collectors.toList()))
+                    .imageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png")
+                    .build())
+            .orElse(null);
+
+        if (loai != null) {
+            BookingSession currentBooking = new BookingSession();
+            currentBooking.setLoaiPhong(loai);
+            currentBooking.setSoLuong(1); // Đặt 1 phòng từ trang chi tiết
+            currentBooking.setNgayNhan(ngayNhan);
+            currentBooking.setNgayTra(ngayTra);
+
+            session.setAttribute("CurrentBooking", currentBooking);
+            session.removeAttribute("selectedServiceIds");
+            return "redirect:/booking/checkout";
+        }
+
+        return "redirect:/error/404";
     }
 
     // 4. CHECKOUT VIEW (HIỂN THỊ TRANG THANH TOÁN)
@@ -242,11 +332,15 @@ public class BookingController extends BaseController {
             int soLuongDat = currentBooking.getSoLuong();
 
             List<Room> danhSachPhongTrong = roomRepository.findAll().stream()
-                    .filter(p -> p.getRoomType() != null && p.getRoomType().getId().equals(maLoai) && "Vacant".equalsIgnoreCase(p.getStatus()))
+                    .filter(p -> p.getRoomTypeId() != null && p.getRoomTypeId().equals(maLoai) && 
+                           ("Vacant".equalsIgnoreCase(p.getStatus()) || 
+                            "Còn phòng".equalsIgnoreCase(p.getStatus()) || 
+                            "Trống".equalsIgnoreCase(p.getStatus()) || 
+                            "Phòng trống".equalsIgnoreCase(p.getStatus())))
                     .collect(Collectors.toList());
 
             if (danhSachPhongTrong.size() < soLuongDat) {
-                redirectAttributes.addFlashAttribute("error", "Rất tiếc! Loại phòng này vừa hết phòng trống.");
+                redirectAttributes.addFlashAttribute("error", "Ngày bạn chọn đã hết phòng! Vui lòng đổi ngày khác.");
                 return "redirect:/booking/checkout";
             }
             
@@ -259,12 +353,31 @@ public class BookingController extends BaseController {
                 }
             }
             
+            User sessionUser = (User) session.getAttribute("user");
+
             if (customer == null) {
                 customer = new com.votricuong.mayhotel.documents.Customer();
                 customer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
                 customer.setFullName(guestName != null && !guestName.isEmpty() ? guestName : "Guest");
                 customer.setPhone(phone);
+                if (sessionUser != null) {
+                    customer.setUserId(sessionUser.getId());
+                    customer.setEmail(sessionUser.getEmail());
+                }
                 customerRepository.save(customer);
+            } else {
+                // Update missing info for existing customer
+                boolean needUpdate = false;
+                if (sessionUser != null && customer.getUserId() == null) {
+                    customer.setUserId(sessionUser.getId());
+                    if (customer.getEmail() == null || customer.getEmail().isEmpty()) {
+                        customer.setEmail(sessionUser.getEmail());
+                    }
+                    needUpdate = true;
+                }
+                if (needUpdate) {
+                    customerRepository.save(customer);
+                }
             }
 
             // Tạo BookingOrder
@@ -277,7 +390,7 @@ public class BookingController extends BaseController {
             bookingOrder.setStatus("Pending");
             
             String noteStr = (ghiChu != null) ? ghiChu.trim() : "";
-            // bookingOrder.setNotes(noteStr);
+            bookingOrder.setNotes(noteStr);
 
             Double tongGiaCacPhong = 0.0;
             
@@ -291,7 +404,7 @@ public class BookingController extends BaseController {
                 bd.setId(sequenceGeneratorService.generateSequence("booking_details_sequence"));
                 bd.setBookingId(savedBookingOrder.getId());
                 bd.setRoomId(phongDuocChon.getId());
-                // bd.setPrice(phongDuocChon.getPrice());
+                bd.setUnitPrice(phongDuocChon.getPrice());
                 bookingDetailRepository.save(bd);
                 
                 tongGiaCacPhong += phongDuocChon.getPrice() * currentBooking.getSoDem();
@@ -316,6 +429,26 @@ public class BookingController extends BaseController {
             // Xóa session
             session.removeAttribute("CurrentBooking");
             session.removeAttribute("selectedServiceIds");
+
+            // TẠO INVOICE ĐỂ LỄ TÂN CÓ THỂ THẤY Ở MÀN HÌNH CHECK-IN
+            Invoice invoice = new Invoice();
+            invoice.setId(sequenceGeneratorService.generateSequence("invoices_sequence"));
+            invoice.setBookingId(generatedMaHD);
+            invoice.setCreatedAt(new Date());
+            invoice.setTotalAmount(tongGiaCacPhong + totalDichVu);
+            invoice.setPayMethod(phuongThucThanhToan);
+            invoice.setInvoiceStatus("Reserved");
+            invoice.setNote(noteStr);
+            invoice.setGuestName(customer.getFullName());
+            invoice.setPhone(customer.getPhone());
+            // KHÔNG GÁN roomId Ở ĐÂY, ĐỂ CHO BÊN LỄ TÂN GÁN (trạng thái Chưa xếp phòng)
+            // invoice.setRoomId(danhSachPhongTrong.get(0).getId());
+            invoice.setCheckInDate(bookingOrder.getExpectedIn());
+            invoice.setCheckOutDate(bookingOrder.getExpectedOut());
+            invoice.setUserId(customer.getUserId());
+            invoice.setIsPaid(false);
+            invoice.setSurcharge(0.0);
+            invoiceRepository.save(invoice);
 
             if ("ONLINE".equalsIgnoreCase(phuongThucThanhToan)) {
                 return "redirect:/booking/payment-gate?id=" + generatedMaHD;
@@ -372,20 +505,49 @@ public class BookingController extends BaseController {
 
     // 9. HISTORY
     @GetMapping("/history")
-    public String bookingHistory(@RequestParam(value="phone", required=false) String phone, Model model, RedirectAttributes redirectAttributes) {
-        if (phone == null || phone.isEmpty()) {
-            model.addAttribute("historyList", new ArrayList<>());
-        } else {
-            Optional<com.votricuong.mayhotel.documents.Customer> customerOpt = customerRepository.findByPhone(phone);
-            if (customerOpt.isPresent()) {
-                List<com.votricuong.mayhotel.documents.BookingOrder> historyList = bookingOrderRepository.findAll().stream()
-                        .filter(bo -> customerOpt.get().getId().equals(bo.getCustomerId()))
+    public String bookingHistory(Model model, HttpSession session, RedirectAttributes redirectAttributes) {
+        com.votricuong.mayhotel.documents.User user = (com.votricuong.mayhotel.documents.User) session.getAttribute("user");
+        
+        List<com.votricuong.mayhotel.documents.BookingOrder> historyList = new ArrayList<>();
+
+        if (user != null) {
+            // Lấy tất cả khách hàng khớp với User (theo ID, số điện thoại, hoặc email)
+            List<com.votricuong.mayhotel.documents.Customer> matchedCustomers = new ArrayList<>();
+            
+            // 1. Tìm theo UserId
+            customerRepository.findByUserId(user.getId()).ifPresent(matchedCustomers::add);
+            
+            // 2. Tìm theo Phone
+            if (user.getPhone() != null && !user.getPhone().isEmpty()) {
+                customerRepository.findByPhone(user.getPhone()).ifPresent(c -> {
+                    if (matchedCustomers.stream().noneMatch(mc -> mc.getId().equals(c.getId()))) {
+                        matchedCustomers.add(c);
+                    }
+                });
+            }
+            
+            // 3. Tìm theo Email
+            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+                customerRepository.findByEmail(user.getEmail()).ifPresent(c -> {
+                    if (matchedCustomers.stream().noneMatch(mc -> mc.getId().equals(c.getId()))) {
+                        matchedCustomers.add(c);
+                    }
+                });
+            }
+
+            if (!matchedCustomers.isEmpty()) {
+                List<Long> customerIds = matchedCustomers.stream()
+                        .map(com.votricuong.mayhotel.documents.Customer::getId)
                         .collect(Collectors.toList());
-                model.addAttribute("historyList", historyList);
-            } else {
-                model.addAttribute("historyList", new ArrayList<>());
+                
+                historyList = bookingOrderRepository.findAll().stream()
+                        .filter(bo -> customerIds.contains(bo.getCustomerId()))
+                        .sorted((a, b) -> b.getBookingDate().compareTo(a.getBookingDate()))
+                        .collect(Collectors.toList());
             }
         }
+
+        model.addAttribute("historyList", historyList);
         
         setPageTitle(model, "Lịch sử đặt phòng");
         setExtraCSS(model, "view/Booking/history :: extra_css");
@@ -414,10 +576,47 @@ public class BookingController extends BaseController {
 
         setPageTitle(model, "Chi tiết đơn đặt phòng #" + order.getId());
         model.addAttribute("hoaDon", order); // Keep the attribute name "hoaDon" for frontend compatibility if needed
+        model.addAttribute("order", order); // Required for historydetail.html
+        customerRepository.findById(order.getCustomerId()).ifPresent(c -> model.addAttribute("customer", c));
         model.addAttribute("bookingDetails", details);
         model.addAttribute("serviceTickets", services);
 
         setExtraCSS(model, "view/Booking/historydetail :: extra_css");
         return render(model, "view/Booking/historydetail");
+    }
+
+    // 11. CANCEL BOOKING (UC03)
+    @PostMapping("/cancel/{id}")
+    public String cancelBooking(@PathVariable("id") Long id, RedirectAttributes ra) {
+        Optional<com.votricuong.mayhotel.documents.BookingOrder> orderOpt = bookingOrderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            ra.addFlashAttribute("error", "Không tìm thấy đơn đặt phòng mã số này!");
+            return "redirect:/booking/history";
+        }
+
+        com.votricuong.mayhotel.documents.BookingOrder order = orderOpt.get();
+        
+        // Theo UC03: Hủy được nếu phiếu đang chờ nhận phòng
+        if ("Đã nhận phòng".equalsIgnoreCase(order.getStatus()) || "Đã hủy".equalsIgnoreCase(order.getStatus()) || "Hủy do khách không đến".equalsIgnoreCase(order.getStatus())) {
+            ra.addFlashAttribute("error", "Không thể hủy đơn đặt phòng đang ở trạng thái này.");
+            return "redirect:/booking/history/detail?id=" + id;
+        }
+
+        // Đổi trạng thái
+        order.setStatus("Đã hủy");
+        bookingOrderRepository.save(order);
+
+        // Nhả phòng trống về kho
+        List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(id);
+        for (com.votricuong.mayhotel.documents.BookingDetail bd : details) {
+            roomRepository.findById(bd.getRoomId()).ifPresent(room -> {
+                room.setStatus("Trống");
+                room.setNote("");
+                roomRepository.save(room);
+            });
+        }
+
+        ra.addFlashAttribute("success", "Hủy đặt phòng thành công!");
+        return "redirect:/booking/history/detail?id=" + id;
     }
 }

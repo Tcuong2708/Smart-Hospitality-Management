@@ -27,4 +27,11 @@ public class Review {
     private Integer rating;
     
     private String content;
+
+    @Field("review_date")
+    private java.util.Date reviewDate;
+
+    private String status; // "Hiện" hoặc "Ẩn"
+
+    private String reply; // Phản hồi của quản lý
 }

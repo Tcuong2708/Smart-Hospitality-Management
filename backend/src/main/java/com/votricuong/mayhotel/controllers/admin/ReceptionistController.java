@@ -26,12 +26,14 @@ public class ReceptionistController extends BaseController {
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
+    private final com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
-    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository) {
+    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository) {
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
+        this.bookingDetailRepository = bookingDetailRepository;
     }
 
     @Data
@@ -41,6 +43,8 @@ public class ReceptionistController extends BaseController {
         private String hoTen;
         private String sdt;
         private Long maPhong;
+        private String tenPhong; // Tên phòng thực tế (vd: P101)
+        private Long maLoaiPhong; // Để lọc phòng trống cùng loại
         private String ngayCheckIn;
         private String ngayCheckOut;
         private Double totalPrice;
@@ -56,14 +60,35 @@ public class ReceptionistController extends BaseController {
         private String maLoai;
         private Double price;
         private Integer maTrangThai;
+        private Integer sucChua;
     }
 
     private InvoiceDTO mapToDTO(Invoice inv) {
+        String tenPhongStr = "";
+        Long maLoai = null;
+        if (inv.getRoomId() != null) {
+            Room r = roomRepository.findById(inv.getRoomId()).orElse(null);
+            if (r != null) {
+                tenPhongStr = r.getName();
+                maLoai = r.getRoomTypeId();
+            }
+        } else if (inv.getBookingId() != null) {
+            List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(inv.getBookingId());
+            if (details != null && !details.isEmpty()) {
+                Room r = roomRepository.findById(details.get(0).getRoomId()).orElse(null);
+                if (r != null) {
+                    maLoai = r.getRoomTypeId();
+                }
+            }
+        }
+        
         return InvoiceDTO.builder()
                 .id(inv.getId())
                 .hoTen(inv.getGuestName())
                 .sdt(inv.getPhone())
                 .maPhong(inv.getRoomId())
+                .tenPhong(tenPhongStr.isEmpty() && inv.getRoomId() != null ? ("Phòng " + inv.getRoomId()) : tenPhongStr)
+                .maLoaiPhong(maLoai)
                 .ngayCheckIn(inv.getCheckInDate() != null ? dateFormat.format(inv.getCheckInDate()) : "")
                 .ngayCheckOut(inv.getCheckOutDate() != null ? dateFormat.format(inv.getCheckOutDate()) : "")
                 .totalPrice(inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0)
@@ -77,20 +102,24 @@ public class ReceptionistController extends BaseController {
     public String roomMapView(Model model) {
         setPageTitle(model, "Sơ đồ phòng trực quan");
 
-        Map<Long, String> typeMap = roomTypeRepository.findAll().stream()
-                .collect(Collectors.toMap(RoomType::getId, RoomType::getName));
+        Map<Long, RoomType> typeMapFull = roomTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(RoomType::getId, t -> t));
 
         Map<Long, List<RoomMapDTO>> roomMap = roomRepository.findAll().stream().map(room -> {
             Integer trangThai = 1; // 1 = Vacant
-            if ("Occupied".equalsIgnoreCase(room.getStatus()) || "In Use".equalsIgnoreCase(room.getStatus())) {
+            String st = room.getStatus();
+            if ("Occupied".equalsIgnoreCase(st) || "In Use".equalsIgnoreCase(st) || "Đang có khách".equalsIgnoreCase(st)) {
                 trangThai = 2; // 2 = Occupied
-            } else if ("Cleaning".equalsIgnoreCase(room.getStatus())) {
+            } else if ("Cleaning".equalsIgnoreCase(st) || "Chờ dọn dẹp".equalsIgnoreCase(st)) {
                 trangThai = 3; // 3 = Cleaning
             }
 
             String loai = "Tiêu chuẩn";
-            if (room.getRoomTypeId() != null && typeMap.containsKey(room.getRoomTypeId())) {
-                loai = typeMap.get(room.getRoomTypeId());
+            Integer sucChua = 2;
+            if (room.getRoomTypeId() != null && typeMapFull.containsKey(room.getRoomTypeId())) {
+                RoomType rt = typeMapFull.get(room.getRoomTypeId());
+                loai = rt.getName();
+                sucChua = rt.getMaxOccupancy() != null ? rt.getMaxOccupancy() : 2;
             }
 
             return RoomMapDTO.builder()
@@ -99,6 +128,7 @@ public class ReceptionistController extends BaseController {
                     .maLoai(loai)
                     .price(room.getPrice())
                     .maTrangThai(trangThai)
+                    .sucChua(sucChua)
                     .build();
         }).collect(Collectors.groupingBy(dto -> {
             try {
@@ -111,6 +141,11 @@ public class ReceptionistController extends BaseController {
         }, java.util.TreeMap::new, Collectors.toList()));
 
         model.addAttribute("rooms", roomMap);
+
+        List<Room> emptyRooms = roomRepository.findAll().stream()
+                .filter(r -> "Trống".equalsIgnoreCase(r.getStatus()) || "Vacant".equalsIgnoreCase(r.getStatus()))
+                .collect(Collectors.toList());
+        model.addAttribute("emptyRooms", emptyRooms);
 
         // Nạp CSS riêng cho trang này để hiển thị đúng lưới Grid thay vì dọc
         setExtraCSS(model, "view/Admin/RoomMap/room-map :: extra_css");
@@ -130,7 +165,7 @@ public class ReceptionistController extends BaseController {
                 .collect(Collectors.toList());
 
         List<Room> emptyRooms = roomRepository.findAll().stream()
-                .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()))
+                .filter(r -> "Trống".equalsIgnoreCase(r.getStatus()) || "Vacant".equalsIgnoreCase(r.getStatus()))
                 .collect(Collectors.toList());
 
         model.addAttribute("invoices", invoices);
@@ -152,7 +187,7 @@ public class ReceptionistController extends BaseController {
             Room room = roomRepository.findById(maPhong)
                     .orElseThrow(() -> new Exception("Phòng không tồn tại."));
 
-            if (!"Vacant".equalsIgnoreCase(room.getStatus())) {
+            if (!"Vacant".equalsIgnoreCase(room.getStatus()) && !"Trống".equalsIgnoreCase(room.getStatus())) {
                 throw new Exception("Phòng này hiện không trống, vui lòng chọn phòng khác.");
             }
 
@@ -211,7 +246,7 @@ public class ReceptionistController extends BaseController {
 
             if (invoice.getRoomId() != null) {
                 roomRepository.findById(invoice.getRoomId()).ifPresent(room -> {
-                    room.setStatus("Vacant");
+                    room.setStatus("Trống");
                     roomRepository.save(room);
                 });
             }
@@ -221,5 +256,40 @@ public class ReceptionistController extends BaseController {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
         return "redirect:/receptionist/check-out";
+    }
+
+    // 5. POST /change-room/execute: Xử lý đổi phòng
+    @PostMapping("/change-room/execute")
+    public String executeChangeRoom(@RequestParam("oldRoomId") Long oldRoomId,
+                                    @RequestParam("newRoomId") Long newRoomId,
+                                    RedirectAttributes redirectAttributes) {
+        try {
+            Invoice invoice = invoiceRepository.findAll().stream()
+                    .filter(inv -> "In Use".equalsIgnoreCase(inv.getInvoiceStatus()) && oldRoomId.equals(inv.getRoomId()))
+                    .findFirst()
+                    .orElseThrow(() -> new Exception("Không tìm thấy thông tin khách đang ở phòng cũ."));
+
+            Room oldRoom = roomRepository.findById(oldRoomId).orElseThrow(() -> new Exception("Phòng cũ không tồn tại."));
+            Room newRoom = roomRepository.findById(newRoomId).orElseThrow(() -> new Exception("Phòng mới không tồn tại."));
+
+            if (!"Vacant".equalsIgnoreCase(newRoom.getStatus()) && !"Trống".equalsIgnoreCase(newRoom.getStatus())) {
+                throw new Exception("Phòng mới hiện không trống, vui lòng chọn phòng khác.");
+            }
+
+            // Đổi phòng
+            oldRoom.setStatus("Trống");
+            roomRepository.save(oldRoom);
+
+            newRoom.setStatus("Occupied"); // Đang có khách
+            roomRepository.save(newRoom);
+
+            invoice.setRoomId(newRoomId);
+            invoiceRepository.save(invoice);
+
+            redirectAttributes.addFlashAttribute("success", "Đổi từ phòng " + oldRoom.getName() + " sang phòng " + newRoom.getName() + " thành công!");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", e.getMessage());
+        }
+        return "redirect:/receptionist/room-map";
     }
 }

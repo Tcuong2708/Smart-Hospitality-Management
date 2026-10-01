@@ -13,7 +13,7 @@ import org.springframework.data.mongodb.core.mapping.Field;
 @NoArgsConstructor
 @AllArgsConstructor
 @Document(collection = "rooms")
-public class Room {
+public class Room implements java.io.Serializable {
 
     @Id
     private Long id;

@@ -16,7 +16,6 @@ class AuthApiService {
       receiveTimeout: const Duration(seconds: 10),
       headers: {
         "Accept": "application/json",
-        "ngrok-skip-browser-warning": "true",
       },
     ));
 

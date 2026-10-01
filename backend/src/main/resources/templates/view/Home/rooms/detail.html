@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAY HOTEL - Chi Tiết Phòng</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="detail.css">
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+
+    <div class="container py-5">
+        
+        <!-- Loading Spinner -->
+        <div id="loading" class="text-center py-5">
+            <div class="spinner-border text-warning" role="status"></div>
+            <p class="mt-2 text-muted">Đang tải thông tin phòng...</p>
+        </div>
+
+        <!-- Khối nội dung chính (ẩn cho đến khi call API xong) -->
+        <div id="room-detail-content" class="d-none">
+            <div class="row g-5">
+                <!-- Cột hình ảnh -->
+                <div class="col-md-6">
+                    <img loading="lazy" id="room-image" src="" class="w-100 rounded shadow-sm" style="object-fit: cover; max-height: 450px;" alt="Hình ảnh phòng">
+                </div>
+
+                <!-- Cột thông tin -->
+                <div class="col-md-6">
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb small mb-2">
+                            <li class="breadcrumb-item"><a href="/index.html" class="text-decoration-none text-muted">Trang chủ</a></li>
+                            <li class="breadcrumb-item"><a href="list.html" class="text-decoration-none text-muted">Phòng nghỉ</a></li>
+                            <li class="breadcrumb-item active fw-bold" aria-current="page" id="breadcrumb-name">...</li>
+                        </ol>
+                    </nav>
+
+                    <h1 class="fw-bold text-navy mb-2" id="room-name">...</h1>
+
+                    <div class="d-flex align-items-center mb-3">
+                        <span class="fs-4 fw-bold text-gold me-2" id="room-price">0</span>
+                        <span class="text-muted me-3">VNĐ / đêm</span>
+                        <span id="room-status-badge"></span>
+                    </div>
+
+                    <div class="info-box bg-light py-2 px-3 rounded-2 shadow-sm mb-4">
+                        <div class="mb-2 border-bottom pb-2">
+                            <i class="bi bi-bookmark-fill text-gold me-2"></i>
+                            <strong>Loại phòng:</strong>
+                            <span id="room-category">...</span>
+                        </div>
+                        <div><i class="bi bi-geo-alt-fill text-danger me-2"></i><strong>Vị trí:</strong> Tầng cao, View thoáng</div>
+                    </div>
+
+                    <p class="text-muted small mb-4" id="room-short-desc" style="text-align: justify;">...</p>
+
+                    <hr class="text-muted">
+
+                    <!-- Form Đặt Phòng -->
+                    <form id="booking-form" class="row align-items-end mb-4 bg-light p-3 rounded-3 shadow-sm border border-light-subtle">
+                        <input type="hidden" id="room_id" name="room_id" value="" />
+                        <div class="col-4">
+                            <label class="form-label small text-muted fw-bold mb-1">SỐ ĐÊM NGHỈ</label>
+                            <div class="input-group">
+                                <button class="btn btn-outline-secondary" type="button" id="btn-minus">-</button>
+                                <input type="number" id="soLuong" name="quantity" class="form-control text-center fw-bold text-navy" value="1" min="1">
+                                <button class="btn btn-outline-secondary" type="button" id="btn-plus">+</button>
+                            </div>
+                        </div>
+                        <div class="col-4">
+                            <label class="form-label small text-muted fw-bold mb-1">TẠM TÍNH</label>
+                            <div class="fs-5 fw-bold text-gold mt-1"><span id="tamTinh">0</span> đ</div>
+                        </div>
+                        <div class="col-4">
+                            <button type="submit" id="btn-submit-booking" class="btn btn-gold w-100 py-2 fw-bold rounded-pill shadow-sm">
+                                <i class="bi bi-bag-check-fill me-1"></i>ĐẶT NGAY
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="d-flex text-center justify-content-between px-4 mt-4 border-top pt-4">
+                        <div><i class="bi bi-wifi amenity-icon d-block mb-1 text-primary"></i><small class="text-muted fw-bold">Wifi Free</small></div>
+                        <div><i class="bi bi-tv amenity-icon d-block mb-1 text-dark"></i><small class="text-muted fw-bold">Smart TV</small></div>
+                        <div><i class="bi bi-cup-hot amenity-icon d-block mb-1 text-warning"></i><small class="text-muted fw-bold">Ăn sáng</small></div>
+                        <div><i class="bi bi-snow amenity-icon d-block mb-1 text-info"></i><small class="text-muted fw-bold">Máy lạnh</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mt-5 pt-3">
+                <div class="col-12">
+                    <ul class="nav nav-tabs border-bottom-0" id="myTab" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active fw-bold" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc" type="button" role="tab">Mô tả chi tiết</button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link fw-bold" id="policy-tab" data-bs-toggle="tab" data-bs-target="#policy" type="button" role="tab">Chính sách & Quy định</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content tab-content-box bg-white shadow-sm" id="myTabContent">
+                        <div class="tab-pane fade show active text-muted p-3" id="desc" role="tabpanel">
+                            <p id="room-detail-text" style="line-height: 1.8; text-align: justify;"></p>
+                            <p id="room-note-text" class="fst-italic border-start border-3 border-warning ps-3"></p>
+                        </div>
+                        <div class="tab-pane fade text-muted p-3" id="policy" role="tabpanel">
+                            <ul class="lh-lg">
+                                <li><strong>Giờ nhận phòng:</strong> 14:00 | <strong>Giờ trả phòng:</strong> 12:00 trưa hôm sau.</li>
+                                <li>Trẻ em dưới 6 tuổi được miễn phí (Ngủ chung giường với người lớn).</li>
+                                <li id="max-extra-bed">Số giường phụ tối đa: <strong>0</strong></li>
+                                <li>Hủy phòng trước 3 ngày: Hoàn tiền 100%.</li>
+                                <li>Không mang vật nuôi vào khu vực lưu trú.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle (dùng cho Tab) -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JS -->
+    <script src="detail.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

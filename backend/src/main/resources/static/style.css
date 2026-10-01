@@ -1,0 +1,431 @@
+/* ============================================================
+   BẢNG MÀU MỚI: ROYAL NAVY & GOLD (Xanh Navy & Vàng Kim) 
+   Cảm hứng: Thiết kế sang trọng, hiện đại, kính mờ (Glassmorphism)
+============================================================ */
+:root {
+  /* Màu chủ đạo */
+  --primary-color: #0F2942;
+  /* Màu điểm nhấn Vàng kim loại cao cấp */
+  --accent-color: #D4AF37; 
+  /* Nền trang sáng, sạch sẽ */
+  --bg-light: #F9FAFB;
+  /* Nền Footer cực tối */
+  --footer-bg: #07131F;
+  /* Màu chữ */
+  --text-dark: #1F2937;
+  --text-on-dark: #F3F4F6;
+  
+  /* Typography */
+  --font-heading: 'Playfair Display', serif;
+  --font-body: 'Inter', sans-serif;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: var(--font-body);
+  background-color: var(--bg-light);
+  color: var(--text-dark);
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+}
+
+h1, h2, h3, h4, h5, h6, .navbar-brand {
+  font-family: var(--font-heading);
+}
+
+.text-primary-custom {
+  color: var(--primary-color);
+}
+
+/* ==================== NAVBAR (Hiệu ứng kính mờ - Glassmorphism) ==================== */
+.glass-navbar {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(15px);
+  -webkit-backdrop-filter: blur(15px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.05);
+  padding: 1rem 0;
+  transition: all 0.3s ease;
+}
+
+.navbar-brand {
+  font-weight: 700;
+  color: var(--primary-color) !important;
+  font-size: 1.8rem;
+  letter-spacing: 1px;
+}
+
+.navbar-brand i {
+  color: var(--accent-color);
+}
+
+.navbar-nav .nav-link {
+  font-weight: 600;
+  color: var(--primary-color) !important;
+  padding: 0.5rem 1rem;
+  margin: 0 0.2rem;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  position: relative;
+}
+
+/* Gạch chân mượt mà khi hover */
+.navbar-nav .nav-link::after {
+  content: '';
+  position: absolute;
+  width: 0;
+  height: 2px;
+  bottom: 0;
+  left: 50%;
+  background-color: var(--accent-color);
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+
+.navbar-nav .nav-link:hover::after,
+.navbar-nav .nav-link.active::after {
+  width: 100%;
+}
+
+.navbar-nav .nav-link:hover {
+  color: var(--accent-color) !important;
+}
+
+/* Icon Navbar (User, Cart) */
+.nav-icon-btn {
+  font-size: 1.3rem;
+  color: var(--primary-color);
+  transition: color 0.3s;
+}
+
+.nav-icon-btn:hover {
+  color: var(--accent-color);
+}
+
+.badge-cart-custom {
+  background-color: var(--accent-color);
+  color: #fff;
+  font-size: 0.65rem;
+  border: 2px solid #fff;
+  padding: 0.35em 0.65em;
+  font-family: var(--font-body);
+}
+
+/* ==================== DROPDOWN MENU ==================== */
+.dropdown-menu-custom {
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+  border-radius: 12px;
+  padding: 0.5rem 0;
+  margin-top: 1rem !important;
+  min-width: 260px;
+}
+
+.dropdown-item {
+  font-weight: 500;
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  padding: 0.75rem 1.5rem;
+  transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+  background-color: rgba(212, 175, 55, 0.1);
+  color: var(--accent-color);
+  transform: translateX(5px);
+}
+
+.dropdown-item i {
+  color: var(--accent-color);
+  width: 20px;
+  display: inline-block;
+}
+
+/* Dropdown Scrollbar Custom */
+.dropdown-menu-scrollable {
+  max-height: 400px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.dropdown-menu-scrollable::-webkit-scrollbar {
+  width: 5px;
+}
+.dropdown-menu-scrollable::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dropdown-menu-scrollable::-webkit-scrollbar-thumb {
+  background-color: rgba(15, 41, 66, 0.3);
+  border-radius: 10px;
+}
+
+/* ==================== MAIN CONTENT ==================== */
+.main-content {
+  flex: 1;
+}
+
+/* ==================== FOOTER ==================== */
+footer {
+  background: var(--footer-bg) !important;
+  color: var(--text-on-dark) !important;
+  padding: 5rem 0 2rem;
+  margin-top: auto;
+}
+
+.brand-footer {
+  font-size: 1.5rem;
+  color: var(--accent-color);
+  margin-bottom: 1.5rem;
+}
+
+footer h5 {
+  color: var(--accent-color);
+  font-size: 1.1rem;
+  margin-bottom: 1.5rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+footer p {
+  color: rgba(255,255,255,0.7);
+  font-size: 0.95rem;
+  line-height: 1.7;
+}
+
+.social-icons a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.05);
+  color: var(--text-on-dark);
+  margin-right: 12px;
+  font-size: 1.2rem;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.social-icons a:hover {
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+  color: var(--primary-color);
+  transform: translateY(-5px);
+  box-shadow: 0 10px 20px rgba(212, 175, 55, 0.3);
+}
+
+.footer-divider {
+  border-color: rgba(255,255,255,0.1);
+}
+
+/* ==================== CHATBOT LUNA AI ==================== */
+#chat-circle {
+  position: fixed;
+  bottom: 40px;
+  right: 40px;
+  background: linear-gradient(135deg, var(--primary-color), #1a4570);
+  color: var(--accent-color);
+  width: 65px;
+  height: 65px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 10px 25px rgba(15, 41, 66, 0.4);
+  z-index: 999;
+  border: 2px solid rgba(212, 175, 55, 0.5);
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+#chat-circle:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 15px 30px rgba(212, 175, 55, 0.4);
+  background: var(--accent-color);
+  color: var(--primary-color);
+}
+
+.chat-box {
+  display: none;
+  position: fixed;
+  bottom: 120px;
+  right: 40px;
+  width: 380px;
+  height: 550px;
+  background: rgba(255, 255, 255, 0.98);
+  backdrop-filter: blur(20px);
+  z-index: 1000;
+  border-radius: 20px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid rgba(0,0,0,0.05);
+  animation: slideUpFade 0.4s ease forwards;
+}
+
+.chat-box-header {
+  background: linear-gradient(135deg, var(--primary-color), #1a4570);
+  color: var(--accent-color);
+  padding: 18px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-heading);
+  font-size: 1.1rem;
+}
+
+.chat-box-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+  background: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.msg-user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, var(--primary-color), #1a4570);
+  color: white;
+  padding: 12px 18px;
+  border-radius: 20px 20px 0 20px;
+  max-width: 80%;
+  font-size: 0.95rem;
+  box-shadow: 0 5px 15px rgba(15, 41, 66, 0.2);
+  animation: fadeInRight 0.3s ease;
+}
+
+.msg-bot {
+  align-self: flex-start;
+  background: white;
+  color: #333;
+  padding: 12px 18px;
+  border-radius: 20px 20px 20px 0;
+  max-width: 80%;
+  font-size: 0.95rem;
+  border: 1px solid rgba(0,0,0,0.05);
+  box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+  animation: fadeInLeft 0.3s ease;
+  line-height: 1.5;
+}
+
+.chat-input-area {
+  padding: 15px;
+  background: white;
+  border-top: 1px solid rgba(0,0,0,0.05);
+  display: flex;
+  gap: 10px;
+}
+
+.chat-input-area input {
+  border-radius: 30px;
+  background: #f1f3f5;
+  border: 1px solid transparent;
+  padding: 12px 20px;
+  transition: all 0.3s;
+}
+
+.chat-input-area input:focus {
+  background: white;
+  border-color: var(--accent-color);
+  box-shadow: 0 0 0 4px rgba(212, 175, 55, 0.1);
+  outline: none;
+}
+
+.btn-send {
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.3s;
+}
+
+.btn-send:hover {
+  background: var(--primary-color);
+  transform: scale(1.05);
+}
+
+/* ==================== ANIMATIONS ==================== */
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in-box {
+  animation: fadeIn 0.3s cubic-bezier(0.165, 0.84, 0.44, 1) forwards;
+}
+
+@keyframes fadeInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes fadeInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* ==================== ADMIN LAYOUT ==================== */
+.admin-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(15, 41, 66, 0.1);
+    overflow: hidden;
+}
+
+.admin-header {
+    background-color: var(--primary-color, #0F2942);
+    color: white;
+    padding: 20px 25px;
+    border-bottom: 3px solid var(--accent-color, #C5A017);
+}
+
+.admin-header h3, .admin-header h2, .admin-header h4 {
+    color: white !important;
+}
+
+.admin-header h3 .bi, .admin-header h2 .bi, .admin-header h4 .bi {
+    color: var(--accent-color, #C5A017) !important;
+}
+
+.admin-header .btn .bi {
+    color: white !important;
+}
+
+/* Global Table Header Standard */
+.table-header-navy th {
+    background-color: var(--primary-color, #0F2942) !important;
+    color: white !important;
+    border-bottom: 2px solid var(--accent-color, #C5A017) !important;
+    padding: 15px 10px !important;
+    text-transform: uppercase;
+    font-size: 0.85rem;
+    vertical-align: middle;
+}

@@ -5,8 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.body.appendChild(modalElement);
     }
     
-    // Giả lập dữ liệu đánh giá
-    const mockReviews = [
+    let mockReviews = [
         { id: 101, tenPhong: 'Phòng Deluxe VIP P302', soSao: 5, noiDung: 'Trải nghiệm tuyệt vời. Nhân viên phục vụ rất nhiệt tình!', trangThai: 0 },
         { id: 102, tenPhong: 'Phòng Standard P105', soSao: 4, noiDung: 'Phòng sạch sẽ gọn gàng, cách âm hơi kém một chút nhưng tạm ổn.', trangThai: 1 },
         { id: 103, tenPhong: 'Hồ bơi vô cực', soSao: 5, noiDung: 'Nước cực kỳ sạch, không gian sang trọng.', trangThai: 0 },
@@ -135,49 +134,76 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function bindEvents() {
         document.querySelectorAll('.approve-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
                 if(confirm('Chuyển trạng thái hiển thị công khai cho bình luận này?')) {
-                    if(window.showToast) window.showToast('Đã cấp phép hiển thị thành công (Mock)', 'success');
-                    else alert('Đã cấp phép hiển thị công khai.');
+                    const review = mockReviews.find(r => r.id === id);
+                    if(review) {
+                        review.trangThai = 1;
+                        applyFilter();
+                        alert('Đã cấp phép hiển thị công khai.');
+                    }
                 }
             });
         });
 
         document.querySelectorAll('.hide-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
                 if(confirm('Bạn có chắc chắn muốn ẩn bài viết này? (Chỉ hiển thị lưu trữ nội bộ)')) {
-                    if(window.showToast) window.showToast('Đã ẩn bài viết. Dữ liệu được bảo lưu nội bộ.', 'success');
-                    else alert('Đã ẩn bài viết.');
+                    const review = mockReviews.find(r => r.id === id);
+                    if(review) {
+                        review.trangThai = 2;
+                        applyFilter();
+                        alert('Đã ẩn bài viết. Dữ liệu được bảo lưu nội bộ.');
+                    }
                 }
             });
         });
 
-        let replyModalInstance = null;
+        let replyModalInstance = bootstrap.Modal.getInstance(document.getElementById('replyModal'));
+        if (!replyModalInstance) {
+            replyModalInstance = new bootstrap.Modal(document.getElementById('replyModal'));
+        }
+
+        let currentReplyId = null;
+
         document.querySelectorAll('.reply-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
                 const content = e.currentTarget.dataset.content;
+                currentReplyId = id;
                 document.getElementById('reply-review-content').textContent = '"' + content + '"';
                 document.getElementById('reply-content').value = '';
                 
-                if(!replyModalInstance) {
-                    replyModalInstance = new bootstrap.Modal(document.getElementById('replyModal'));
-                }
                 replyModalInstance.show();
             });
         });
 
         const submitReplyBtn = document.getElementById('btn-submit-reply');
-        if (submitReplyBtn && !submitReplyBtn.dataset.bound) {
-            submitReplyBtn.dataset.bound = 'true';
-            submitReplyBtn.addEventListener('click', () => {
+        if (submitReplyBtn) {
+            const newSubmitBtn = submitReplyBtn.cloneNode(true);
+            submitReplyBtn.parentNode.replaceChild(newSubmitBtn, submitReplyBtn);
+            
+            newSubmitBtn.addEventListener('click', () => {
                 const reply = document.getElementById('reply-content').value.trim();
                 if(!reply) {
                     alert('Vui lòng nhập nội dung phản hồi.');
                     return;
                 }
+                
+                // Ở đây có thể lưu 'reply' vào object mockReviews[currentReplyId]
+                if(currentReplyId) {
+                    const review = mockReviews.find(r => r.id === currentReplyId);
+                    if (review) {
+                        review.reply = reply; // Lưu phản hồi
+                        review.trangThai = 1; // Duyệt luôn nếu đang phản hồi
+                        applyFilter();
+                    }
+                }
+
                 if(replyModalInstance) replyModalInstance.hide();
-                if(window.showToast) window.showToast('Phản hồi đã được gửi đến khách hàng thành công!', 'success');
-                else alert('Phản hồi đã được gửi đến khách hàng thành công!');
+                alert('Phản hồi đã được gửi đến khách hàng thành công!');
             });
         }
     }

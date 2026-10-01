@@ -22,11 +22,17 @@ public class AuthController extends BaseController {
      * Hàm hiển thị trang đăng nhập.
      */
     @GetMapping("/login")
-    public String showLoginForm(Model model, HttpSession session) {
+    public String showLoginForm(Model model, HttpSession session, @RequestParam(value = "error", required = false) String urlError) {
         setPageTitle(model, "Đăng nhập");
         setExtraCSS(model, "view/Account/login :: extra_css");
         setExtraJS(model, "view/Account/login :: extra_js");
         
+        if ("timeout".equals(urlError)) {
+            model.addAttribute("error", "Phiên đăng nhập của bạn đã hết hạn!");
+        } else if ("auth".equals(urlError)) {
+            model.addAttribute("error", "Bạn cần đăng nhập trước khi thực hiện!");
+        }
+
         // Lấy thông báo lỗi từ Interceptor (nếu có)
         String sessionError = (String) session.getAttribute("error");
         if (sessionError != null) {

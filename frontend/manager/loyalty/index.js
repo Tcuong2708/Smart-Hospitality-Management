@@ -9,6 +9,34 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    const configModalElement = document.getElementById('configPointsModal');
+    if (configModalElement) {
+        document.body.appendChild(configModalElement);
+    }
+
+    document.getElementById('btn-save-config')?.addEventListener('click', () => {
+        const form = document.getElementById('configPointsForm');
+        if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+        }
+        
+        const earnRate = parseInt(document.getElementById('earnRate').value);
+        const redeemRate = parseInt(document.getElementById('redeemRate').value);
+        
+        if (earnRate <= 0 || redeemRate <= 0) {
+            alert('Lỗi định dạng phần trăm! Số tiền phải lớn hơn 0.');
+            return;
+        }
+
+        // Cập nhật giao diện
+        document.querySelector('.border-warning .fs-4').textContent = new Intl.NumberFormat('vi-VN').format(earnRate) + ' VNĐ = 1 Điểm';
+        document.querySelector('.border-success .fs-4').textContent = '1 Điểm = ' + new Intl.NumberFormat('vi-VN').format(redeemRate) + ' VNĐ';
+        
+        bootstrap.Modal.getInstance(configModalElement).hide();
+        alert('Cập nhật cấu hình tích điểm thành công!');
+    });
+
     const mockData = [
         { tier: 'Hạng Đồng (Bronze)', points: '0 - 999', perks: 'Tích điểm cơ bản', status: 'Áp dụng', badgeColor: 'bg-secondary' },
         { tier: 'Hạng Bạc (Silver)', points: '1000 - 4999', perks: 'Giảm 5% hóa đơn phòng, Nước uống Welcome', status: 'Áp dụng', badgeColor: 'bg-info' },

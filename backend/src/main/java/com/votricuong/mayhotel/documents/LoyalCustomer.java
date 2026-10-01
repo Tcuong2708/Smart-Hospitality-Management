@@ -21,8 +21,9 @@ public class LoyalCustomer {
     @Field("customer_id")
     private Long customerId;
     
-    private String tier;
-    
     @Field("total_points")
     private Integer totalPoints;
+    
+    @Field("tier")
+    private String tier; // Đồng, Bạc, Vàng, Bạch Kim
 }

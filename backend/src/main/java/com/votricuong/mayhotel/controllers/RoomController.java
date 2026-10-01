@@ -93,6 +93,7 @@ public class RoomController extends BaseController {
                     .price(phongs.isEmpty() ? 0.0 : phongs.get(0).getPrice())
                     .phongs(phongs)
                     .phongsTrong(phongsTrong)
+                    .imageUrl(type != null && type.getImageUrl() != null && !type.getImageUrl().isEmpty() ? type.getImageUrl() : "a1.jpg")
                     .build();
         }).collect(Collectors.toList());
 

@@ -17,7 +17,7 @@
             <div class="row g-5">
                 <!-- Cột hình ảnh -->
                 <div class="col-md-6">
-                    <img loading="lazy" id="room-image" th:src="@{${(!#lists.isEmpty(loaiPhong.phongs) && loaiPhong.phongs[0].imageUrl != null && loaiPhong.phongs[0].imageUrl != '') ? '/images/' + loaiPhong.phongs[0].imageUrl : '/images/default.png'}}" class="w-100 rounded shadow-sm" style="object-fit: cover; max-height: 450px;" alt="Hình ảnh phòng">
+                    <img loading="lazy" id="room-image" th:src="@{${!#strings.isEmpty(loaiPhong.imageUrl) ? '/images/' + loaiPhong.imageUrl : '/images/default.png'}}" class="w-100 rounded shadow-sm" style="object-fit: cover; max-height: 450px;" alt="Hình ảnh phòng">
                 </div>
 
                 <!-- Cột thông tin -->
@@ -49,7 +49,7 @@
                         <div><i class="bi bi-geo-alt-fill text-danger me-2"></i><strong>Vị trí:</strong> Tầng cao, View thoáng</div>
                     </div>
 
-                    <p class="text-muted small mb-4" id="room-short-desc" style="text-align: justify;" th:text="${loaiPhong.phongs != null && !loaiPhong.phongs.isEmpty() ? loaiPhong.phongs[0].description : 'Mang đến cho bạn một kỳ nghỉ không thể nào quên.'}">Mô tả ngắn</p>
+                    <p class="text-muted small mb-4" id="room-short-desc" style="text-align: justify;" th:text="${loaiPhong.phongs != null && !loaiPhong.phongs.isEmpty() ? loaiPhong.phongs[0].detail : 'Mang đến cho bạn một kỳ nghỉ không thể nào quên.'}">Mô tả ngắn</p>
 
                     <hr class="text-muted">
 
@@ -97,7 +97,7 @@
                     </ul>
                     <div class="tab-content tab-content-box bg-white shadow-sm" id="myTabContent">
                         <div class="tab-pane fade show active text-muted p-3" id="desc" role="tabpanel">
-                            <p id="room-detail-text" style="line-height: 1.8; text-align: justify;" th:text="${loaiPhong.phongs != null && !loaiPhong.phongs.isEmpty() ? loaiPhong.phongs[0].description : ''}">Mô tả dài</p>
+                            <p id="room-detail-text" style="line-height: 1.8; text-align: justify;" th:text="${loaiPhong.phongs != null && !loaiPhong.phongs.isEmpty() ? loaiPhong.phongs[0].detail : ''}">Mô tả dài</p>
                             <p id="room-note-text" class="fst-italic border-start border-3 border-warning ps-3 mt-3">Đây là một trong những hạng phòng được yêu thích nhất tại khách sạn chúng tôi.</p>
                         </div>
                         <div class="tab-pane fade text-muted p-3" id="policy" role="tabpanel">

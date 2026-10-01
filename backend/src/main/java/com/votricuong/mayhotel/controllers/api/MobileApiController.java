@@ -239,7 +239,7 @@ public class MobileApiController {
             
             // Tìm phòng trống
             List<Room> danhSachPhongTrong = roomRepository.findAll().stream()
-                    .filter(p -> p.getRoomType() != null && p.getRoomType().getId().equals(maLoai) && "Vacant".equalsIgnoreCase(p.getStatus()))
+                    .filter(p -> p.getRoomTypeId() != null && p.getRoomTypeId().equals(maLoai) && "Vacant".equalsIgnoreCase(p.getStatus()))
                     .collect(Collectors.toList());
 
             if (danhSachPhongTrong.size() < soLuong) {

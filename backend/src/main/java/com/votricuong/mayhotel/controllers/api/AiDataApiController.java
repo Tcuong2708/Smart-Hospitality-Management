@@ -46,14 +46,14 @@ public class AiDataApiController {
                     map.put("soNguoiToiDa", rt.getMaxOccupancy());
                     
                     // Find a sample room of this type to get price and description
-                    Room sample = allRooms.stream().filter(r -> r.getRoomType().getId().equals(rt.getId())).findFirst().orElse(null);
+                    Room sample = allRooms.stream().filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(rt.getId())).findFirst().orElse(null);
                     if (sample != null) {
                         map.put("giaTien", sample.getPrice());
                         map.put("moTa", sample.getDetail());
                         map.put("hinhAnh", sample.getImageUrl() != null ? sample.getImageUrl() : "");
                         
                         long soPhongTrong = allRooms.stream()
-                            .filter(r -> r.getRoomType().getId().equals(rt.getId()) && "Vacant".equalsIgnoreCase(r.getStatus()))
+                            .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(rt.getId()) && "Vacant".equalsIgnoreCase(r.getStatus()))
                             .count();
                         map.put("soPhongDangTrong", soPhongTrong);
                     }

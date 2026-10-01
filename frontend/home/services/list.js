@@ -18,15 +18,15 @@ document.addEventListener('DOMContentLoaded', () => {
         filtered.forEach(s => {
             container.innerHTML += `
                 <div class="col-md-6 col-lg-4">
-                    <div class="card service-card position-relative">
+                    <div class="card service-card position-relative h-100">
                         <span class="price-tag">${formatMoney(s.price)}</span>
                         <img src="${s.img}" class="card-img-top service-img" alt="${s.name}">
-                        <div class="card-body d-flex flex-column">
-                            <h5 class="fw-bold text-navy mb-2" style="color: #0F2942;">${s.name}</h5>
-                            <p class="text-muted small flex-grow-1">${s.desc}</p>
-                            <button class="btn btn-gold w-100 fw-bold mt-2 btn-book-trigger" 
+                        <div class="card-body d-flex flex-column p-4">
+                            <h5 class="fw-bold mb-3 text-uppercase" style="color: #0F2942; font-family: 'Playfair Display', serif; letter-spacing: 0.5px;">${s.name}</h5>
+                            <p class="text-muted small flex-grow-1 mb-4" style="line-height: 1.6;">${s.desc}</p>
+                            <button class="btn btn-gold w-100 fw-bold mt-auto btn-book-trigger rounded-pill shadow-sm py-2" 
                                 data-id="${s.id}" data-name="${s.name}" data-price="${s.price}">
-                                Đặt dịch vụ này
+                                <i class="bi bi-cart-plus me-1"></i> Đặt dịch vụ này
                             </button>
                         </div>
                     </div>

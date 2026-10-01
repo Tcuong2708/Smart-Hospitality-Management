@@ -43,7 +43,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
       debugPrint("❌ Lỗi lấy lịch sử đặt phòng: $e");
       if (mounted) {
         setState(() {
-          _errorMessage = "Không thể kết nối máy chủ hoặc Ngrok bị ngắt quãng.";
+          _errorMessage = "Không thể kết nối máy chủ. Vui lòng kiểm tra lại.";
           _isLoading = false;
         });
       }
