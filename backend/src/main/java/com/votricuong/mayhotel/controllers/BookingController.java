@@ -347,9 +347,9 @@ public class BookingController extends BaseController {
             // Xử lý Customer
             com.votricuong.mayhotel.documents.Customer customer = null;
             if (phone != null && !phone.isEmpty()) {
-                Optional<com.votricuong.mayhotel.documents.Customer> existingCustomer = customerRepository.findByPhone(phone);
-                if (existingCustomer.isPresent()) {
-                    customer = existingCustomer.get();
+                List<com.votricuong.mayhotel.documents.Customer> existingCustomers = customerRepository.findByPhone(phone);
+                if (!existingCustomers.isEmpty()) {
+                    customer = existingCustomers.get(0);
                 }
             }
             
@@ -514,12 +514,12 @@ public class BookingController extends BaseController {
             // Lấy tất cả khách hàng khớp với User (theo ID, số điện thoại, hoặc email)
             List<com.votricuong.mayhotel.documents.Customer> matchedCustomers = new ArrayList<>();
             
-            // 1. Tìm theo UserId
-            customerRepository.findByUserId(user.getId()).ifPresent(matchedCustomers::add);
+            // 1. Tìm theo UserId (Bây giờ trả về List thay vì Optional)
+            matchedCustomers.addAll(customerRepository.findByUserId(user.getId()));
             
             // 2. Tìm theo Phone
             if (user.getPhone() != null && !user.getPhone().isEmpty()) {
-                customerRepository.findByPhone(user.getPhone()).ifPresent(c -> {
+                customerRepository.findByPhone(user.getPhone()).forEach(c -> {
                     if (matchedCustomers.stream().noneMatch(mc -> mc.getId().equals(c.getId()))) {
                         matchedCustomers.add(c);
                     }
@@ -528,7 +528,7 @@ public class BookingController extends BaseController {
             
             // 3. Tìm theo Email
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
-                customerRepository.findByEmail(user.getEmail()).ifPresent(c -> {
+                customerRepository.findByEmail(user.getEmail()).forEach(c -> {
                     if (matchedCustomers.stream().noneMatch(mc -> mc.getId().equals(c.getId()))) {
                         matchedCustomers.add(c);
                     }

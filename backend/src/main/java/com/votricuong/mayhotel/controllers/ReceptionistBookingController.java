@@ -8,6 +8,8 @@ import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.CustomerRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
+import com.votricuong.mayhotel.repositories.InvoiceRepository;
+import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
@@ -39,6 +41,7 @@ public class ReceptionistBookingController extends BaseController {
     private final CustomerRepository customerRepository;
     private final BookingOrderRepository bookingOrderRepository;
     private final BookingDetailRepository bookingDetailRepository;
+    private final InvoiceRepository invoiceRepository;
     private final SequenceGeneratorService sequenceGeneratorService;
 
     public ReceptionistBookingController(RoomRepository roomRepository,
@@ -46,12 +49,14 @@ public class ReceptionistBookingController extends BaseController {
                                          CustomerRepository customerRepository,
                                          BookingOrderRepository bookingOrderRepository,
                                          BookingDetailRepository bookingDetailRepository,
+                                         InvoiceRepository invoiceRepository,
                                          SequenceGeneratorService sequenceGeneratorService) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.customerRepository = customerRepository;
         this.bookingOrderRepository = bookingOrderRepository;
         this.bookingDetailRepository = bookingDetailRepository;
+        this.invoiceRepository = invoiceRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
     }
 
@@ -135,13 +140,18 @@ public class ReceptionistBookingController extends BaseController {
             // Đã bỏ chặn bắt buộc phòng phải trống hiện tại để cho phép đặt trước (Future Booking)
             
             // Customer
-            Customer customer = customerRepository.findByPhone(phone).orElseGet(() -> {
+            Customer customer = null;
+            List<Customer> existingCustomers = customerRepository.findByPhone(phone);
+            if (existingCustomers != null && !existingCustomers.isEmpty()) {
+                customer = existingCustomers.get(0);
+            }
+            if (customer == null) {
                 Customer newCus = new Customer();
                 newCus.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
                 newCus.setFullName(guestName);
                 newCus.setPhone(phone);
-                return customerRepository.save(newCus);
-            });
+                customer = customerRepository.save(newCus);
+            }
 
             // Booking Order
             BookingOrder order = new BookingOrder();
@@ -175,6 +185,25 @@ public class ReceptionistBookingController extends BaseController {
                 bd.setRoomId(room.getId());
             }
             bookingDetailRepository.save(bd);
+
+            // Bổ sung: Tạo Invoice để đơn xuất hiện trong mục Nhận Phòng (Check-in)
+            Invoice invoice = new Invoice();
+            invoice.setId(sequenceGeneratorService.generateSequence("invoices_sequence"));
+            invoice.setBookingId(order.getId());
+            invoice.setGuestName(guestName);
+            invoice.setPhone(phone);
+            invoice.setCheckInDate(order.getExpectedIn());
+            invoice.setCheckOutDate(order.getExpectedOut());
+            invoice.setCreatedAt(new Date());
+            if (room != null) {
+                invoice.setRoomId(room.getId());
+            }
+            if ("Pending".equals(order.getStatus())) {
+                invoice.setInvoiceStatus("Reserved");
+            } else {
+                invoice.setInvoiceStatus("In Use");
+            }
+            invoiceRepository.save(invoice);
 
             ra.addFlashAttribute("success", "Tạo đơn đặt phòng thành công cho khách " + guestName);
 

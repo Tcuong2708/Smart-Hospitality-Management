@@ -6,9 +6,11 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+import java.util.List;
+
 @Repository
 public interface CustomerRepository extends MongoRepository<Customer, Long> {
-    Optional<Customer> findByUserId(Long userId);
-    Optional<Customer> findByPhone(String phone);
-    Optional<Customer> findByEmail(String email);
+    List<Customer> findByUserId(Long userId);
+    List<Customer> findByPhone(String phone);
+    List<Customer> findByEmail(String email);
 }
