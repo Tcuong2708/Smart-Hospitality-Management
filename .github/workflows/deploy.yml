@@ -1,0 +1,33 @@
+name: Auto Deploy to VPS
+
+on:
+  push:
+    branches:
+      - main  # Nếu branch mặc định là master thì đổi thành master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Executing remote ssh commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            # 1. Kéo code mới nhất về repo
+            cd ~/smarthotel/source-backend
+            git pull origin main
+
+            # 2. Build lại file JAR của Spring Boot
+            cd ~/smarthotel/source-backend/backend
+            mvn clean package -DskipTests
+
+            # 3. Khởi động lại container backend với bản build mới
+            cd ~/smarthotel
+            docker compose up -d --build backend
+
+            # 4. Dọn dẹp image cũ thừa
+            docker image prune -f
