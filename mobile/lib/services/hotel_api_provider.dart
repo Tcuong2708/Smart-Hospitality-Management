@@ -13,7 +13,7 @@ class HotelApiProvider {
 
   HotelApiProvider() {
     // Đọc Base URL từ file môi trường cấu hình của hệ thống
-    final String baseUrl = dotenv.env['BASE_URL'] ?? "https://localhost:44321";
+    final String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.0.2.2:8080";
 
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
@@ -301,7 +301,7 @@ class HotelApiProvider {
   Future<Map<String, dynamic>?> verifyFaceNFC(File nfcImage, File selfieImage) async {
     try {
       // Đọc AI_URL từ môi trường
-      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://localhost:8000";
+      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://10.0.2.2:8000";
       
       Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 30)));
 

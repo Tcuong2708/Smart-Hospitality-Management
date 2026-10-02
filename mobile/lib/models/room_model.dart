@@ -31,7 +31,7 @@ class RoomModel {
     if (rawImg.startsWith('http')) {
       processedImg = rawImg;
     } else if (rawImg.isNotEmpty) {
-      final String baseUrl = dotenv.env['BASE_URL'] ?? "http://localhost:8080";
+      final String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.0.2.2:8080";
       processedImg = baseUrl + "/images/" + rawImg;
     } else {
       processedImg = "https://via.placeholder.com/150";

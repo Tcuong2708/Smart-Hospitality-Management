@@ -470,8 +470,16 @@ async def chat_with_bot(request: ChatRequest):
         reply = handle_booking_flow(user_id, user_msg)
         return {"status": "success", "reply": reply, "answer": reply}
 
-    if any(w in user_msg.lower() for w in ['giá', 'nhiêu', 'bao tiền']):
+    if any(w in user_msg.lower() for w in ['giá', 'nhiêu', 'bao tiền', 'giá cả']):
         reply = get_room_prices()
+        return {"status": "success", "reply": reply, "answer": reply}
+
+    if any(w in user_msg.lower() for w in ['dịch vụ', 'service', 'có gì', 'tiện ích']):
+        reply = "May Hotel tự hào cung cấp các dịch vụ đẳng cấp:\n- 🍽️ Buffet sáng chuẩn 5 sao\n- 🛵 Thuê xe máy tiện lợi\n- 💆‍♀️ Dịch vụ Spa & Massage thư giãn\n- 🏊‍♂️ Hồ bơi vô cực ngắm toàn cảnh thành phố\n\nBạn có muốn đặt phòng ngay để trải nghiệm không ạ?"
+        return {"status": "success", "reply": reply, "answer": reply}
+
+    if any(w in user_msg.lower() for w in ['chào', 'hello', 'hi', 'alo']):
+        reply = "Dạ, May Hotel xin chào bạn! Mình có thể hỗ trợ gì cho bạn hôm nay ạ? (Bạn có thể hỏi về giá phòng, dịch vụ hoặc đặt phòng trực tiếp với mình nhé)"
         return {"status": "success", "reply": reply, "answer": reply}
 
     clean_text = normalize_dialect(user_msg.lower())
