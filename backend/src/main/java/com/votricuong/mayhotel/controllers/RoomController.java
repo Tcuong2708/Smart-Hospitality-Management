@@ -28,6 +28,8 @@ public class RoomController extends BaseController {
             @RequestParam(value = "maLoai", required = false) Long maLoai,
             @RequestParam(value = "priceRange", defaultValue = "") String priceRange,
             @RequestParam(value = "searchString", defaultValue = "") String searchString,
+            @RequestParam(value = "adults", required = false) Integer adults,
+            @RequestParam(value = "children", required = false) Integer children,
             Model model) {
 
         setPageTitle(model, "Danh sách phòng nghỉ");
@@ -96,6 +98,16 @@ public class RoomController extends BaseController {
                     .imageUrl(type != null && type.getImageUrl() != null && !type.getImageUrl().isEmpty() ? type.getImageUrl() : "a1.jpg")
                     .build();
         }).collect(Collectors.toList());
+
+        // Lọc theo sức chứa (số người) nếu có truyền tham số adults và children
+        if (adults != null || children != null) {
+            int totalPeople = (adults != null ? adults : 0) + (children != null ? children : 0);
+            if (totalPeople > 0) {
+                loaiPhongs = loaiPhongs.stream()
+                        .filter(lp -> lp.getSoNguoi() != null && lp.getSoNguoi() >= totalPeople)
+                        .collect(Collectors.toList());
+            }
+        }
 
         model.addAttribute("listPhong", loaiPhongs);
 

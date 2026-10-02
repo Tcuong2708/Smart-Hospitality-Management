@@ -65,23 +65,23 @@
                         <div class="filter-card mb-4 shadow-sm" style="background-color: #0F2942; border: none; overflow: hidden; border-radius: 8px;">
                             <div class="filter-header text-gold fw-bold" style="background-color: rgba(0,0,0,0.2); color: #C5A017; border-bottom: 1px solid rgba(255,255,255,0.1);"><i class="bi bi-calendar-check me-2"></i>TÌM PHÒNG TRỐNG</div>
                             <div class="card-body p-3">
-                                <form id="sidebarSearchForm">
+                                <form id="sidebarSearchForm" action="/rooms" method="GET">
                                     <div class="mb-3">
                                         <label class="text-white small fw-bold mb-1">Ngày nhận phòng <span class="text-danger">*</span></label>
-                                        <input type="date" class="form-control form-control-sm py-2" id="sbCheckinDate" required>
+                                        <input type="date" name="checkin" class="form-control form-control-sm py-2" id="sbCheckinDate" required>
                                     </div>
                                     <div class="mb-3">
                                         <label class="text-white small fw-bold mb-1">Ngày trả phòng <span class="text-danger">*</span></label>
-                                        <input type="date" class="form-control form-control-sm py-2" id="sbCheckoutDate" required>
+                                        <input type="date" name="checkout" class="form-control form-control-sm py-2" id="sbCheckoutDate" required>
                                     </div>
                                     <div class="row g-2 mb-4">
                                         <div class="col-6">
                                             <label class="text-white small fw-bold mb-1">Người lớn</label>
-                                            <input type="number" class="form-control form-control-sm py-2" id="sbAdults" min="1" value="2" required>
+                                            <input type="number" name="adults" class="form-control form-control-sm py-2" id="sbAdults" min="1" value="2" required>
                                         </div>
                                         <div class="col-6">
                                             <label class="text-white small fw-bold mb-1">Trẻ em</label>
-                                            <input type="number" class="form-control form-control-sm py-2" id="sbChildren" min="0" value="0">
+                                            <input type="number" name="children" class="form-control form-control-sm py-2" id="sbChildren" min="0" value="0">
                                         </div>
                                     </div>
                                     <button type="submit" class="btn btn-gold w-100 fw-bold text-uppercase py-2 shadow-sm" style="background-color: #C5A017; color: white; border: none; font-size: 0.9rem;">ÁP DỤNG</button>
