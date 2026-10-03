@@ -244,30 +244,48 @@ public class MobileApiController {
                 // DO NOT USE INVOICE TO FILTER IN MOCK, JUST USE ROOM STATUS FOR NOW.
                 .collect(Collectors.toList());
 
-            // Tạm thời để demo logic, chỉ lấy những phòng trạng thái Vacant
-            List<Map<String, Object>> roomsData = allRooms.stream()
-                .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()))
-                .map(r -> {
-                Map<String, Object> map = new HashMap<>();
-                map.put("id", r.getId());
-                map.put("name", r.getName());
-                map.put("price", r.getPrice());
-                map.put("detail", r.getDetail() != null ? r.getDetail() : "");
-                
-                String img = r.getImageUrl();
-                if (img == null || img.isEmpty()) {
-                    RoomType rt = typeMap.get(r.getRoomTypeId());
-                    if (rt != null && rt.getImageUrl() != null) {
-                        img = rt.getImageUrl();
-                    } else {
-                        img = "";
+            // Gom nhóm các phòng trống theo loại phòng (ẩn đi tên phòng cụ thể)
+            Map<Long, List<Room>> availableRoomsByType = allRooms.stream()
+                .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()) || 
+                             "Còn phòng".equalsIgnoreCase(r.getStatus()) || 
+                             "Trống".equalsIgnoreCase(r.getStatus()) || 
+                             "Phòng trống".equalsIgnoreCase(r.getStatus()))
+                .collect(Collectors.groupingBy(Room::getRoomTypeId));
+
+            List<Map<String, Object>> roomsData = availableRoomsByType.entrySet().stream()
+                .map(entry -> {
+                    Long roomTypeId = entry.getKey();
+                    List<Room> roomsOfType = entry.getValue();
+                    RoomType rt = typeMap.get(roomTypeId);
+                    
+                    if (rt == null || roomsOfType.isEmpty()) return null;
+                    
+                    Room firstRoom = roomsOfType.get(0);
+                    
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("id", rt.getId()); // Trả về ID của loại phòng
+                    map.put("name", rt.getName());
+                    map.put("price", firstRoom.getPrice()); // Lấy giá từ phòng đầu tiên
+                    
+                    // Detail: Hiển thị thông tin tổng quan của loại phòng
+                    String detail = firstRoom.getDetail();
+                    if (detail == null || detail.isEmpty()) {
+                        detail = "Phòng tiêu chuẩn dành cho " + (rt.getMaxOccupancy() != null ? rt.getMaxOccupancy() : 2) + " người.";
                     }
-                }
-                map.put("imageUrl", img);
-                map.put("maTrangThai", 1);
-                
-                return map;
-            }).collect(Collectors.toList());
+                    map.put("detail", detail);
+                    
+                    String img = rt.getImageUrl();
+                    if (img == null || img.isEmpty()) {
+                        img = firstRoom.getImageUrl() != null ? firstRoom.getImageUrl() : "";
+                    }
+                    map.put("imageUrl", img);
+                    map.put("maTrangThai", 1);
+                    map.put("availableCount", roomsOfType.size()); // Số lượng phòng trống
+                    
+                    return map;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
 
             return ResponseEntity.ok(ApiResponse.success("Tìm thấy " + roomsData.size() + " phòng trống", roomsData));
         } catch (Exception e) {
