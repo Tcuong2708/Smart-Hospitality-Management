@@ -299,17 +299,24 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                           itemCount: _searchResults.length,
                           itemBuilder: (context, index) {
                             final room = _searchResults[index];
+                            String rawImg = room['imageUrl']?.toString() ?? "";
+                            String processedImg = rawImg;
+                            if (rawImg.isNotEmpty && !rawImg.startsWith('http')) {
+                              final String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.0.2.2:8080";
+                              processedImg = "$baseUrl/images/$rawImg";
+                            }
+                            
                             return RoomCard(
                               title: room['name'],
                               location: "Sẵn sàng phục vụ",
                               price: room['price'].toString(),
                               rating: "5.0",
-                              imageUrl: room['imageUrl'] ?? '',
+                              imageUrl: processedImg,
                               onAddTap: () {
                                 _navigateToBooking(
                                   room['name'],
                                   room['price'].toString(),
-                                  room['imageUrl'] ?? '',
+                                  processedImg,
                                   room['id']
                                 );
                               },

@@ -260,6 +260,10 @@ public class MobileApiController {
                     
                     if (rt == null || roomsOfType.isEmpty()) return null;
                     
+                    // Lọc theo số lượng người lớn
+                    Integer maxOcc = rt.getMaxOccupancy() != null ? rt.getMaxOccupancy() : 2;
+                    if (maxOcc < adults) return null;
+                    
                     Room firstRoom = roomsOfType.get(0);
                     
                     Map<String, Object> map = new HashMap<>();
@@ -270,7 +274,7 @@ public class MobileApiController {
                     // Detail: Hiển thị thông tin tổng quan của loại phòng
                     String detail = firstRoom.getDetail();
                     if (detail == null || detail.isEmpty()) {
-                        detail = "Phòng tiêu chuẩn dành cho " + (rt.getMaxOccupancy() != null ? rt.getMaxOccupancy() : 2) + " người.";
+                        detail = "Phòng tiêu chuẩn dành cho " + maxOcc + " người.";
                     }
                     map.put("detail", detail);
                     
