@@ -5,6 +5,7 @@ import '../../../services/hotel_api_provider.dart';
 import '../../../services/language_service.dart';
 import '../../../services/auth_state_service.dart';
 import '../../auth/views/login_screen.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/room_card.dart';
 import 'booking_screen.dart';
 
@@ -302,7 +303,7 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                             String rawImg = room['imageUrl']?.toString() ?? "";
                             String processedImg = rawImg;
                             if (rawImg.isNotEmpty && !rawImg.startsWith('http')) {
-                              final String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.0.2.2:8080";
+                              final String baseUrl = dotenv.env['BASE_URL'] ?? "http://138.2.72.9:8000";
                               processedImg = "$baseUrl/images/$rawImg";
                             }
                             
