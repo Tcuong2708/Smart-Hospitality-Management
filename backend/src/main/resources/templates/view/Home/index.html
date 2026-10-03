@@ -128,7 +128,7 @@
         <div class="col-md-6 col-lg-4 mb-4" th:each="lp : ${listLoaiPhong}">
           <div class="room-card h-100 shadow-sm rounded-4 overflow-hidden bg-white border border-light">
             <div class="position-relative">
-              <img th:src="@{'/images/' + ${lp.phongs.size() > 0 and !#strings.isEmpty(lp.phongs[0].imageUrl) ? lp.phongs[0].imageUrl : 'a1.jpg'}}" class="w-100" style="height: 250px; object-fit: cover;" alt="Room Image">
+              <img th:src="@{'/images/' + ${lp.phongs.size() > 0 and !#strings.isEmpty(lp.phongs[0].imageUrl) ? lp.phongs[0].imageUrl : 'a1.jpg'}}" onerror="this.onerror=null; this.src='/images/a1.jpg';" class="w-100" style="height: 250px; object-fit: cover;" alt="Room Image">
               <span th:if="${lp.phongsTrong.size() > 0}" class="badge bg-danger position-absolute top-0 start-0 m-3 px-3 py-2 fw-bold shadow-sm" style="font-size: 0.85rem;"><i class="bi bi-fire me-1"></i> HOT DEAL</span>
             </div>
             <div class="p-4 text-center">
@@ -282,7 +282,33 @@
   <th:block th:fragment="extra_js">
 <!-- Javascript -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-  <script th:src="@{/js/home.js}"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", function() {
+      const checkin = document.getElementById('checkinDate');
+      const checkout = document.getElementById('checkoutDate');
+      
+      if (checkin && checkout) {
+        // Lấy ngày hôm nay định dạng yyyy-mm-dd
+        const today = new Date().toISOString().split('T')[0];
+        checkin.setAttribute('min', today);
+        
+        checkin.addEventListener('change', function() {
+          if (this.value) {
+            // Ngày checkout phải sau ngày checkin ít nhất 1 ngày
+            const checkinDate = new Date(this.value);
+            checkinDate.setDate(checkinDate.getDate() + 1);
+            const nextDay = checkinDate.toISOString().split('T')[0];
+            checkout.setAttribute('min', nextDay);
+            
+            // Nếu ngày checkout hiện tại không hợp lệ thì reset nó hoặc gán bằng min
+            if (checkout.value && checkout.value <= this.value) {
+              checkout.value = nextDay;
+            }
+          }
+        });
+      }
+    });
+  </script>
 </div>
 </body>
 </th:block>

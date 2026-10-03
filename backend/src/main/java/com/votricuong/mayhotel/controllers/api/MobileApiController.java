@@ -18,6 +18,7 @@ import com.votricuong.mayhotel.documents.OtpCode;
 import com.votricuong.mayhotel.repositories.OtpCodeRepository;
 
 import java.time.LocalDate;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -65,12 +66,12 @@ public class MobileApiController {
         String password = credentials.get("MatKhau");
         
         if (username != null && password != null) {
-            Optional<User> userOpt = userRepository.findByEmail(username);
+            Optional<User> userOpt = userRepository.findFirstByEmail(username);
             if (userOpt.isEmpty()) {
-                userOpt = userRepository.findByUsername(username);
+                userOpt = userRepository.findFirstByUsername(username);
             }
             if (userOpt.isEmpty()) {
-                userOpt = userRepository.findByPhone(username);
+                userOpt = userRepository.findFirstByPhone(username);
             }
             
             if (userOpt.isPresent()) {
@@ -215,6 +216,64 @@ public class MobileApiController {
         }
     }
     
+    @GetMapping("/rooms/search")
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> searchRooms(
+            @RequestParam("ngayNhan") String ngayNhanStr,
+            @RequestParam("ngayTra") String ngayTraStr,
+            @RequestParam(value = "adults", required = false, defaultValue = "2") Integer adults,
+            @RequestParam(value = "children", required = false, defaultValue = "0") Integer children) {
+        try {
+            if (!ngayNhanStr.endsWith("Z")) ngayNhanStr += "Z";
+            if (!ngayTraStr.endsWith("Z")) ngayTraStr += "Z";
+            
+            Date ngayNhan = Date.from(Instant.parse(ngayNhanStr));
+            Date ngayTra = Date.from(Instant.parse(ngayTraStr));
+            
+            if (ngayTra.before(ngayNhan) || ngayTra.equals(ngayNhan)) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Ngày trả phòng phải sau ngày nhận phòng"));
+            }
+
+            List<Room> allRooms = roomRepository.findAll();
+            List<RoomType> allRoomTypes = roomTypeRepository.findAll();
+            Map<Long, RoomType> typeMap = allRoomTypes.stream().collect(Collectors.toMap(RoomType::getId, t -> t));
+            
+            // Lấy tất cả các phiếu đặt phòng có trùng lịch để loại bỏ phòng bận
+            List<Long> bookedRoomIds = invoiceRepository.findAll().stream()
+                .filter(inv -> "Đã xác nhận".equals(inv.getInvoiceStatus()) || "Chờ thanh toán".equals(inv.getInvoiceStatus()) || "Reserved".equals(inv.getInvoiceStatus()))
+                .map(Invoice::getBookingId) // mock, vì DB hiện chưa nối trực tiếp roomID trong invoice. 
+                // DO NOT USE INVOICE TO FILTER IN MOCK, JUST USE ROOM STATUS FOR NOW.
+                .collect(Collectors.toList());
+
+            // Tạm thời để demo logic, chỉ lấy những phòng trạng thái Vacant
+            List<Map<String, Object>> roomsData = allRooms.stream()
+                .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()))
+                .map(r -> {
+                Map<String, Object> map = new HashMap<>();
+                map.put("id", r.getId());
+                map.put("name", r.getName());
+                map.put("price", r.getPrice());
+                map.put("detail", r.getDetail() != null ? r.getDetail() : "");
+                
+                String img = r.getImageUrl();
+                if (img == null || img.isEmpty()) {
+                    RoomType rt = typeMap.get(r.getRoomTypeId());
+                    if (rt != null && rt.getImageUrl() != null) {
+                        img = rt.getImageUrl();
+                    } else {
+                        img = "";
+                    }
+                }
+                map.put("imageUrl", img);
+                map.put("maTrangThai", 1);
+                
+                return map;
+            }).collect(Collectors.toList());
+
+            return ResponseEntity.ok(ApiResponse.success("Tìm thấy " + roomsData.size() + " phòng trống", roomsData));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
     @GetMapping("/services")
     public ResponseEntity<ApiResponse<List<Service>>> getServices() {
         return ResponseEntity.ok(ApiResponse.success("Thành công", serviceRepository.findAll()));

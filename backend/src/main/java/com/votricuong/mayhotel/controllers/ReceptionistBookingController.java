@@ -161,21 +161,10 @@ public class ReceptionistBookingController extends BaseController {
             order.setExpectedIn(Date.from(ngayNhan.atStartOfDay(ZoneId.systemDefault()).toInstant()));
             order.setExpectedOut(Date.from(ngayTra.atStartOfDay(ZoneId.systemDefault()).toInstant()));
             
-            // Xử lý logic Đặt trước (Future Booking) vs Đặt lấy ngay (Walk-in)
-            LocalDate today = LocalDate.now();
-            // Nếu ngày nhận là tương lai HOẶC chưa gán phòng cụ thể -> Trạng thái là Pending
-            if (ngayNhan.isAfter(today) || room == null) {
-                order.setStatus("Pending");
-                bookingOrderRepository.save(order);
-                // Không đổi trạng thái thực tế của phòng vì phòng chưa gán hoặc đặt cho tương lai
-            } else {
-                // Đặt lấy ngay trong ngày và ĐÃ GÁN phòng -> Đã nhận phòng
-                order.setStatus("Đã nhận phòng");
-                bookingOrderRepository.save(order);
-                
-                room.setStatus("Đang sử dụng");
-                roomRepository.save(room);
-            }
+            // Luôn đặt trạng thái là Pending để chuyển sang quy trình Làm thủ tục nhận phòng (Check-in - UC05)
+            // Lễ tân sẽ cập nhật trạng thái phòng thực tế tại giao diện Check-in
+            order.setStatus("Pending");
+            bookingOrderRepository.save(order);
 
             // Booking Detail
             com.votricuong.mayhotel.documents.BookingDetail bd = new com.votricuong.mayhotel.documents.BookingDetail();
@@ -198,11 +187,8 @@ public class ReceptionistBookingController extends BaseController {
             if (room != null) {
                 invoice.setRoomId(room.getId());
             }
-            if ("Pending".equals(order.getStatus())) {
-                invoice.setInvoiceStatus("Reserved");
-            } else {
-                invoice.setInvoiceStatus("In Use");
-            }
+            // Luôn gán Reserved để hiển thị ở danh sách chờ Check-in
+            invoice.setInvoiceStatus("Reserved");
             invoiceRepository.save(invoice);
 
             ra.addFlashAttribute("success", "Tạo đơn đặt phòng thành công cho khách " + guestName);

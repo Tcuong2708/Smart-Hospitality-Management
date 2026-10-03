@@ -37,7 +37,7 @@ class MayHotelApp extends StatelessWidget {
       if (Platform.isAndroid) {
         final bool isBootloaderUnlocked = await platform.invokeMethod('isBootloaderUnlocked');
         if (isBootloaderUnlocked) {
-           return "Ứng dụng đã phát hiện thiết bị của bạn đã Unlock Bootloader. Điều này làm giảm tính bảo mật của hệ thống, ứng dụng sẽ thoát!";
+           return "Ứng dụng đã phát hiện thiết bị của bạn đã Unlock Bootloader.  Để đảm bảo ứng dụng an toàn chúng tôi sẽ thoát ứng dụng!";
         }
       }
 

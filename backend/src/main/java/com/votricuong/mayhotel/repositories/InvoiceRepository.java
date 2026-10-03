@@ -10,4 +10,5 @@ import java.util.List;
 public interface InvoiceRepository extends MongoRepository<Invoice, Long> {
     List<Invoice> findByUserId(Long userId);
     List<Invoice> findByPhone(String phone);
+    List<Invoice> findByBookingId(Long bookingId);
 }

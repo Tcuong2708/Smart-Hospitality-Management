@@ -15,7 +15,7 @@ import 'booked_rooms_screen.dart';
 import '../../checkin/views/check_in_screen.dart';
 import 'home_screen.dart';
 import 'booking_screen.dart';
-import 'discovery_screen.dart';
+import 'search_room_screen.dart';
 import '../../chat/views/chat_screen.dart';
 import 'profile_screen.dart';
 import '../../admin/views/admin_statistics_screen.dart';
@@ -79,7 +79,7 @@ class _MainScreenState extends State<MainScreen> {
       _navItems = [
         NavItem(icon: Icons.home_max_rounded, label: lang.translate('home'), screen: const HomeScreen()),
         NavItem(icon: Icons.calendar_month_outlined, label: lang.translate('booked'), screen: const BookedRoomsScreen()),
-        NavItem(icon: Icons.search_rounded, label: lang.translate('discovery'), screen: const DiscoveryScreen(), isBig: true),
+        NavItem(icon: Icons.search_rounded, label: "Tìm phòng", screen: const SearchRoomScreen(), isBig: true),
         NavItem(icon: Icons.chat_bubble_outline, label: lang.translate('chatbot'), screen: const ChatScreen()),
         NavItem(icon: Icons.person_outline, label: lang.translate('me'), screen: ProfileScreen(username: widget.username)),
       ];

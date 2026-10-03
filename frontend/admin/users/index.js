@@ -33,11 +33,11 @@ document.addEventListener('DOMContentLoaded', () => {
             // Xử lý huy hiệu vai trò
             let roleBadge = '';
             if (u.roleID === 1) {
-                roleBadge = '<span class="badge rounded-pill bg-danger px-3 py-2 small">ADMIN</span>';
+                roleBadge = '<span class="badge badge-custom badge-role-admin">ADMIN</span>';
             } else if (u.roleID === 2) {
-                roleBadge = '<span class="badge rounded-pill bg-primary px-3 py-2 small">Nhân viên</span>';
+                roleBadge = '<span class="badge badge-custom badge-role-staff">Nhân viên</span>';
             } else {
-                roleBadge = '<span class="badge rounded-pill bg-secondary px-3 py-2 small">Khách hàng</span>';
+                roleBadge = '<span class="badge badge-custom badge-role-user">Khách hàng</span>';
             }
 
             // Xử lý trạng thái
@@ -46,12 +46,12 @@ document.addEventListener('DOMContentLoaded', () => {
             let lockTitle = '';
             let lockBtnClass = '';
             if (u.trangThai === 1) {
-                statusBadge = '<span class="badge bg-success rounded-pill px-3 py-2 text-white small fw-bold">Hoạt động</span>';
+                statusBadge = '<span class="badge bg-success badge-custom text-white">Hoạt động</span>';
                 lockIcon = 'bi-lock-fill';
                 lockTitle = 'Khóa tài khoản';
                 lockBtnClass = 'btn-dark';
             } else {
-                statusBadge = '<span class="badge bg-secondary rounded-pill px-3 py-2 text-white small fw-bold">Bị khóa</span>';
+                statusBadge = '<span class="badge bg-secondary badge-custom text-white">Bị khóa</span>';
                 lockIcon = 'bi-unlock-fill';
                 lockTitle = 'Mở khóa tài khoản';
                 lockBtnClass = 'btn-success';
@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="text-center fw-bold" style="color: var(--navy-color, #0F2942);">
-                    <i class="bi bi-person-badge me-2 text-warning opacity-75"></i>
+                    <i class="bi bi-person-badge me-2 text-gold opacity-75"></i>
                     <span>${u.tenDangNhap}</span>
                 </td>
                 <td class="text-center">${u.hoTen}</td>
@@ -68,16 +68,13 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="text-center">${roleBadge}</td>
                 <td class="text-center">${statusBadge}</td>
                 <td class="text-center">
-                    <a href="details.html" class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết">
-                        <i class="bi bi-eye"></i>
-                    </a>
-                    <a href="edit.html" class="btn btn-sm btn-warning text-white shadow-sm mx-1" title="Sửa thông tin">
+                    <a href="edit.html" class="btn btn-action btn-edit shadow-sm" title="Sửa thông tin">
                         <i class="bi bi-pencil"></i>
                     </a>
-                    <button class="btn btn-sm ${lockBtnClass} shadow-sm toggle-status-btn" title="${lockTitle}">
+                    <button class="btn btn-action ${lockBtnClass} shadow-sm toggle-status-btn mx-1" title="${lockTitle}">
                         <i class="bi ${lockIcon}"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger shadow-sm ms-1 delete-btn" title="Xóa">
+                    <button class="btn btn-action btn-delete shadow-sm delete-btn" title="Xóa">
                         <i class="bi bi-trash"></i>
                     </button>
                 </td>

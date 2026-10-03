@@ -61,7 +61,7 @@ public class AuthService {
      * Kiểm tra tính hợp lệ và gửi mã OTP qua Email.
      */
     public void processRegistration(User newUser, com.votricuong.mayhotel.documents.Customer newCustomer) throws Exception {
-        if (userRepository.findByEmail(newUser.getEmail()).isPresent()) {
+        if (userRepository.findFirstByEmail(newUser.getEmail()).isPresent()) {
             throw new Exception("Email đã tồn tại trong hệ thống.");
         }
         if (com.votricuong.mayhotel.repositories.CustomerRepository.class != null) {
@@ -125,12 +125,12 @@ public class AuthService {
     public User processLogin(String usernameOrEmailOrPhone, String password) throws Exception {
         String hashedPass = hashPassword(password);
         
-        Optional<User> userOpt = userRepository.findByEmail(usernameOrEmailOrPhone);
+        Optional<User> userOpt = userRepository.findFirstByEmail(usernameOrEmailOrPhone);
         if (userOpt.isEmpty()) {
-            userOpt = userRepository.findByUsername(usernameOrEmailOrPhone);
+            userOpt = userRepository.findFirstByUsername(usernameOrEmailOrPhone);
         }
         if (userOpt.isEmpty()) {
-            userOpt = userRepository.findByPhone(usernameOrEmailOrPhone);
+            userOpt = userRepository.findFirstByPhone(usernameOrEmailOrPhone);
         }
 
         if (userOpt.isEmpty()) {
@@ -144,7 +144,8 @@ public class AuthService {
             throw new Exception("Mật khẩu không chính xác.");
         }
         
-        if (!"Hoạt động".equals(userOpt.get().getStatus())) {
+        String status = userOpt.get().getStatus();
+        if (status == null || (!"Hoạt động".equalsIgnoreCase(status) && !"Active".equalsIgnoreCase(status))) {
             throw new Exception("Tài khoản đã bị vô hiệu hóa.");
         }
 
@@ -163,7 +164,7 @@ public class AuthService {
             String name = decodedToken.getName();
 
             // Kiểm tra email đã có trong hệ thống chưa
-            Optional<User> existingUser = userRepository.findByEmail(email);
+            Optional<User> existingUser = userRepository.findFirstByEmail(email);
             if (existingUser.isPresent()) {
                 return existingUser.get(); // Trả về user nếu đã tồn tại
             } else {

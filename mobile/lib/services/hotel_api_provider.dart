@@ -13,8 +13,8 @@ class HotelApiProvider {
 
   HotelApiProvider() {
     // Đọc Base URL từ file môi trường cấu hình của hệ thống
-    final String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.0.2.2:8080";
-
+    final String baseUrl = dotenv.env['BASE_URL'] ?? "https://cuong-smarthotel.me";
+    
     _dio = Dio(BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: const Duration(seconds: 10),
@@ -167,9 +167,7 @@ class HotelApiProvider {
 
   Future<List<dynamic>> getTransactionHistory(int maKH) async {
     try {
-      // API Java Mobile bắt buộc dùng số điện thoại thay vì maKH
-      // Tạm thời truyền số điện thoại mặc định (sau này có thể móc từ AuthStateService)
-      final response = await _dio.get("/api/v1/mobile/bookings/history", queryParameters: {"phone": "0123456789"});
+      final response = await _dio.get("/api/booking/history", queryParameters: {"maKH": maKH});
       if (response.statusCode == 200) {
         return response.data['data'] ?? [];
       }
@@ -254,6 +252,30 @@ class HotelApiProvider {
     } catch (e) {
       _handleError("Lỗi Đăng ký", e);
       return false;
+    }
+  }
+
+  // ==========================================
+  // API: TRA CỨU PHÒNG TRỐNG (PHẦN 2.1)
+  // ==========================================
+  Future<List<dynamic>> searchRooms(DateTime ngayNhan, DateTime ngayTra, int adults, int children) async {
+    try {
+      final response = await _dio.get(
+        "/api/v1/mobile/rooms/search",
+        queryParameters: {
+          "ngayNhan": ngayNhan.toIso8601String(),
+          "ngayTra": ngayTra.toIso8601String(),
+          "adults": adults,
+          "children": children,
+        },
+      );
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      _handleError("Lỗi tra cứu phòng", e);
+      return [];
     }
   }
 

@@ -606,6 +606,15 @@ public class BookingController extends BaseController {
         order.setStatus("Đã hủy");
         bookingOrderRepository.save(order);
 
+        // Hủy Hóa đơn tương ứng (UC03 mở rộng)
+        List<com.votricuong.mayhotel.documents.Invoice> invoices = invoiceRepository.findByBookingId(id);
+        if (invoices != null) {
+            for (com.votricuong.mayhotel.documents.Invoice inv : invoices) {
+                inv.setInvoiceStatus("Cancelled");
+                invoiceRepository.save(inv);
+            }
+        }
+
         // Nhả phòng trống về kho
         List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(id);
         for (com.votricuong.mayhotel.documents.BookingDetail bd : details) {

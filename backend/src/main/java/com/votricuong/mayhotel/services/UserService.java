@@ -28,7 +28,7 @@ public class UserService {
     }
 
     public User createUser(User user) throws Exception {
-        if (userRepository.findByEmail(user.getEmail()).isPresent() || userRepository.findByUsername(user.getUsername()).isPresent()) {
+        if (userRepository.findFirstByEmail(user.getEmail()).isPresent() || userRepository.findFirstByUsername(user.getUsername()).isPresent()) {
             throw new Exception("Tài khoản hoặc email đã tồn tại.");
         }
         user.setId(sequenceGeneratorService.generateSequence("users_sequence"));
@@ -60,7 +60,8 @@ public class UserService {
             throw new Exception("Không tìm thấy người dùng.");
         }
         User user = userOpt.get();
-        if ("Hoạt động".equals(user.getStatus())) {
+        String currentStatus = user.getStatus();
+        if ("Hoạt động".equalsIgnoreCase(currentStatus) || "Active".equalsIgnoreCase(currentStatus)) {
             user.setStatus("Bị khóa");
         } else {
             user.setStatus("Hoạt động");

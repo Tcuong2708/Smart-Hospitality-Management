@@ -351,6 +351,20 @@ class _BookingScreenState extends State<BookingScreen> {
       return;
     }
 
+    final phoneRegExp = RegExp(r'^0[3|5|7|8|9]+[0-9]{8}$');
+    if (!phoneRegExp.hasMatch(dienThoai)) {
+      ScaffoldMessenger.of(context).removeCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('⚠️ Số điện thoại không hợp lệ (Phải là 10 số hợp lệ tại VN)'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+      return;
+    }
+
     showDialog(
       context: context,
       barrierDismissible: false,

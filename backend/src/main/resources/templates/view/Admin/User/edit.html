@@ -15,18 +15,18 @@
                     </div>
 
                     <div class="card-body p-4">
-                        <form th:action="@{/admin/users/edit}" th:object="${user}" method="post">
-                            <input type="hidden" th:field="*{idTaiKhoan}" />
+                        <form th:action="@{/admin/users/edit/{id}(id=${user.id})}" th:object="${user}" method="post">
+                            <input type="hidden" th:field="*{id}" />
 
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Tên đăng nhập</label>
-                                    <input type="text" th:field="*{tenDangNhap}" class="form-control bg-light" readonly />
+                                    <input type="text" th:field="*{username}" class="form-control bg-light" readonly />
                                 </div>
 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label text-danger">Vai trò (Quyền hạn)</label>
-                                    <select th:field="*{roleID}" class="form-select border-danger">
+                                    <select th:field="*{roleId}" class="form-select border-danger">
                                         <option value="1">Quản Trị Viên</option>
                                         <option value="2">Nhân Viên</option>
                                         <option value="3">Khách Hàng</option>
@@ -34,23 +34,18 @@
                                 </div>
 
                                 <div class="col-md-6 mb-3">
-                                    <label class="form-label">Họ và tên <span class="text-danger">*</span></label>
-                                    <input type="text" th:field="*{hoTen}" class="form-control" required />
+                                    <label class="form-label">Email <span class="text-danger">*</span></label>
+                                    <input type="email" th:field="*{email}" class="form-control" required />
                                 </div>
 
                                 <div class="col-md-6 mb-3">
                                     <label class="form-label">Số điện thoại</label>
-                                    <input type="text" th:field="*{soDienThoai}" class="form-control" />
+                                    <input type="text" th:field="*{phone}" class="form-control" />
                                 </div>
-
+                                
                                 <div class="col-md-12 mb-3">
-                                    <label class="form-label">Quốc tịch</label>
-                                    <input type="text" th:field="*{quocTich}" class="form-control" />
-                                </div>
-
-                                <div class="col-md-12 mb-3">
-                                    <label class="form-label">Địa chỉ</label>
-                                    <textarea th:field="*{diaChi}" class="form-control" rows="2"></textarea>
+                                    <label class="form-label text-warning">Đổi mật khẩu mới (Để trống nếu không muốn đổi)</label>
+                                    <input type="password" th:field="*{password}" class="form-control" />
                                 </div>
                             </div>
 

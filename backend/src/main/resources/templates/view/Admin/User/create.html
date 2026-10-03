@@ -16,28 +16,28 @@
                 </div>
 
                 <form th:action="@{/admin/users/create}" th:object="${user}" method="post" class="card-body p-4">
-                    <input type="hidden" th:field="*{idTaiKhoan}" />
+                    <input type="hidden" th:field="*{id}" />
 
                     <div class="row">
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Tên đăng nhập</label>
-                            <input type="text" th:field="*{tenDangNhap}" class="form-control" th:readonly="${user.idTaiKhoan != null}" required />
+                            <input type="text" th:field="*{username}" class="form-control" th:readonly="${user.id != null}" required />
                         </div>
 
-                        <div class="col-md-6 mb-3" th:if="${user.idTaiKhoan == null}">
+                        <div class="col-md-6 mb-3" th:if="${user.id == null}">
                             <label class="form-label">Mật khẩu</label>
-                            <input type="password" th:field="*{matKhau}" class="form-control" required />
+                            <input type="password" th:field="*{password}" class="form-control" required />
                         </div>
 
                         <div class="col-md-6 mb-3">
-                            <label class="form-label">Họ và tên</label>
-                            <input type="text" th:field="*{hoTen}" class="form-control" required />
+                            <label class="form-label">Email</label>
+                            <input type="email" th:field="*{email}" class="form-control" required />
                         </div>
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Vai trò</label>
-                            <select th:field="*{roleID}" class="form-select">
-                                <option value="1">Quản Trị Viên</option>
+                            <select th:field="*{roleId}" class="form-select">
+                                <option value="1">Quản Trị Viên (Admin)</option>
                                 <option value="2">Nhân Viên</option>
                                 <option value="3">Khách Hàng</option>
                             </select>
@@ -45,17 +45,7 @@
 
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Số điện thoại</label>
-                            <input type="text" th:field="*{soDienThoai}" class="form-control" />
-                        </div>
-
-                        <div class="col-md-6 mb-3">
-                            <label class="form-label">Quốc tịch</label>
-                            <input type="text" th:field="*{quocTich}" class="form-control" />
-                        </div>
-
-                        <div class="col-md-12 mb-3">
-                            <label class="form-label">Địa chỉ</label>
-                            <textarea th:field="*{diaChi}" class="form-control" rows="2"></textarea>
+                            <input type="text" th:field="*{phone}" class="form-control" />
                         </div>
                     </div>
 
@@ -63,7 +53,7 @@
                         <a th:href="@{/admin/users}" class="btn btn-outline-secondary px-4">Quay lại</a>
                         <button type="submit" class="btn btn-gold px-4 shadow-sm text-white"
                                 style="background: #C5A059;"
-                                th:text="${user.idTaiKhoan == null ? 'THÊM MỚI' : 'CẬP NHẬT'}"></button>
+                                th:text="${user.id == null ? 'THÊM MỚI' : 'CẬP NHẬT'}"></button>
                     </div>
                 </form>
             </div>
