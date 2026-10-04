@@ -45,4 +45,8 @@ public class BookingOrder {
 
     @Field("auto_cancel_time")
     private Date autoCancelTime; // Thời gian sẽ tự động hủy phiếu (vd: 14:00 hoặc 18:00)
+    
+    // --- THUỘC TÍNH BỔ SUNG CHO NGHIỆP VỤ CHECK-IN AI ---
+    @Field("is_face_verified")
+    private Boolean isFaceVerified; // Cờ xác định khách đã quét khuôn mặt thành công qua Mobile App
 }

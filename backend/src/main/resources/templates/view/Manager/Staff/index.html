@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <th:block th:fragment="extra_css">
+        <style>
+            .admin-card { background: white; border-radius: 8px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
+            .admin-header { background-color: var(--primary-color, #0F2942); color: white; padding: 20px 25px; border-bottom: 3px solid var(--accent-color, #C5A017); }
+            .table-header-navy th { background-color: var(--primary-color, #0F2942) !important; color: white !important; border-bottom: 2px solid var(--accent-color, #C5A017) !important; padding: 15px 10px !important; text-transform: uppercase; font-size: 0.85rem; vertical-align: middle; }
+        </style>
+    </th:block>
+</head>
+<body>
+
+<div th:fragment="body_content">
+    <div class="container py-4">
+        <div class="card shadow-sm border-0 admin-card">
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-person-vcard-fill me-2" style="color: #C5A017;"></i>Quản Lý Nhân Viên
+                </h3>
+                
+                <div class="d-flex flex-wrap align-items-center gap-3 flex-grow-1 justify-content-end">
+                    <div class="input-group shadow-sm" style="max-width: 250px;">
+                        <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" class="form-control border-0" id="search-input" placeholder="Tìm tên, bộ phận...">
+                    </div>
+                    
+                    <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#employeeModal">
+                        <i class="bi bi-person-plus-fill me-1"></i> Thêm Nhân Viên
+                    </a>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header-navy">
+                        <tr>
+                            <th class="text-center text-uppercase small text-white" style="width: 80px;">Mã NV</th>
+                            <th class="text-center text-uppercase small text-white">Họ và Tên</th>
+                            <th class="text-center text-uppercase small text-white">
+                                Bộ phận
+                                <div class="dropdown d-inline-block ms-1">
+                                    <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Bộ phận"></i>
+                                    <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterDept" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                        <!-- JS load -->
+                                    </ul>
+                                </div>
+                            </th>
+                            <th class="text-center text-uppercase small text-white">Liên hệ (SĐT / Email)</th>
+                            <th class="text-center text-uppercase small text-white">Lương cơ bản</th>
+                            <th class="text-center text-uppercase small text-white">Trạng thái</th>
+                            <th class="text-center text-uppercase small text-white" style="width: 140px;">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr th:each="nv : ${staffs}" class="staff-row">
+                                <td class="text-center fw-bold text-secondary staff-id" th:text="${nv.id}"></td>
+                                <td class="fw-bold" style="color: #0F2942;">
+                                    <i class="bi bi-person-circle me-2 text-muted fs-5 align-middle"></i><span class="staff-name" th:text="${nv.name}"></span>
+                                </td>
+                                <td class="text-center"><span class="badge bg-info text-dark border staff-dept" th:text="${nv.dept}"></span></td>
+                                <td class="text-center">
+                                    <div class="small fw-bold staff-phone" th:text="${nv.phone}"></div>
+                                    <div class="small text-muted staff-email" th:text="${nv.email}"></div>
+                                </td>
+                                <td class="text-center text-danger fw-bold" th:text="${#numbers.formatDecimal(nv.salary, 0, 'COMMA', 0, 'POINT') + ' đ'}"></td>
+                                <td class="text-center staff-status">
+                                    <span class="badge rounded-pill px-3" th:classappend="${nv.status == 1 ? 'bg-success' : 'bg-warning text-dark'}" th:text="${nv.status == 1 ? 'Đang làm việc' : 'Nghỉ phép'}"></span>
+                                </td>
+                                <td class="text-center">
+                                    <button class="btn btn-sm btn-warning text-white shadow-sm btn-edit" th:data-id="${nv.id}" title="Sửa"><i class="bi bi-pencil"></i></button>
+                                    <button class="btn btn-sm btn-secondary shadow-sm ms-1 btn-lock" th:data-id="${nv.id}" title="Khóa tài khoản"><i class="bi bi-lock-fill"></i></button>
+                                    <button class="btn btn-sm btn-danger shadow-sm ms-1 btn-delete" th:data-id="${nv.id}" title="Xóa"><i class="bi bi-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Thêm/Cập nhật (Form) -->
+    <div class="modal fade" id="employeeModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017;">
+                    <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                        <span id="employeeModalTitle">Thêm Nhân Viên</span>
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <form id="employeeForm">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Họ và Tên</label>
+                            <input type="text" class="form-control" id="form-name" required placeholder="Nhập họ và tên...">
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Số điện thoại</label>
+                                <input type="text" class="form-control" id="form-phone" required placeholder="09xxxx...">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Email</label>
+                                <input type="email" class="form-control" id="form-email" placeholder="example@mayhotel.com">
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Bộ phận</label>
+                                <select class="form-select" id="form-dept">
+                                    <option value="Lễ tân">Lễ tân</option>
+                                    <option value="Buồng phòng">Buồng phòng</option>
+                                    <option value="Kế toán">Kế toán</option>
+                                    <option value="Bảo vệ">Bảo vệ</option>
+                                    <option value="Quản lý">Quản lý</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Lương cơ bản (VNĐ)</label>
+                                <input type="number" class="form-control" id="form-salary" value="5000000" min="0" required>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn btn-gold text-white fw-bold px-4" id="btn-save-employee" style="background: #C5A017;">Lưu thông tin</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<th:block th:fragment="extra_js">
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const rows = Array.from(document.querySelectorAll(".staff-row"));
+            const searchInput = document.getElementById('search-input');
+            const thFilterDept = document.getElementById('thFilterDept');
+
+            // Render department filter options
+            if (thFilterDept) {
+                const depts = new Set();
+                rows.forEach(row => {
+                    const el = row.querySelector('.staff-dept');
+                    if (el) depts.add(el.innerText.trim());
+                });
+                
+                thFilterDept.innerHTML = Array.from(depts).map((d, idx) => `
+                    <li>
+                        <div class="form-check mb-1 ms-2">
+                            <input class="form-check-input th-cb-dept" type="checkbox" value="${d}" id="th_dept_${idx}">
+                            <label class="form-check-label" for="th_dept_${idx}">${d}</label>
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+            const applyFilters = () => {
+                const keyword = (searchInput ? searchInput.value : '').toLowerCase().trim();
+                const selectedDepts = Array.from(document.querySelectorAll('.th-cb-dept:checked')).map(cb => cb.value);
+
+                rows.forEach(row => {
+                    const name = row.querySelector(".staff-name").innerText.toLowerCase();
+                    const dept = row.querySelector(".staff-dept").innerText.trim();
+                    const phone = row.querySelector(".staff-phone").innerText.toLowerCase();
+                    
+                    const matchKeyword = name.includes(keyword) || dept.toLowerCase().includes(keyword) || phone.includes(keyword);
+                    const matchDept = selectedDepts.length === 0 || selectedDepts.includes(dept);
+                    
+                    if (matchKeyword && matchDept) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            };
+
+            if (searchInput) searchInput.addEventListener('input', applyFilters);
+            document.querySelectorAll('.th-cb-dept').forEach(cb => cb.addEventListener('change', applyFilters));
+            
+            // Fix modal z-index
+            const modals = document.querySelectorAll('.modal');
+            modals.forEach(modal => {
+                if (modal) {
+                    document.body.appendChild(modal);
+                }
+            });
+        });
+    </script>
+</th:block>
+
+</body>
+</html>

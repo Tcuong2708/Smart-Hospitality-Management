@@ -53,14 +53,18 @@
                                 <span th:text="${u.username}">admin</span>
                             </td>
 
-                            <td th:text="${u.email}">Email</td>
+                            <td th:text="${u.fullName != null ? u.fullName : (u.email != null ? u.email : 'Chưa cập nhật')}">Email</td>
 
-                            <td th:text="${u.phone}">SĐT</td>
+                            <td th:text="${u.quocTich != null ? u.quocTich : 'Việt Nam'}">SĐT</td>
 
                             <td class="text-center">
                                 <th:block th:switch="${u.roleId}">
-                                    <span th:case="1" class="badge rounded-pill badge-custom badge-role-admin">ADMIN</span>
-                                    <span th:case="2" class="badge rounded-pill badge-custom badge-role-staff">Nhân viên</span>
+                                    <span th:case="1" class="badge rounded-pill badge-custom badge-role-admin">Quản trị viên</span>
+                                    <span th:case="2" class="badge rounded-pill badge-custom badge-role-staff">Quản lý</span>
+                                    <span th:case="3" class="badge rounded-pill badge-custom badge-role-staff">Lễ tân</span>
+                                    <span th:case="7" class="badge rounded-pill badge-custom badge-role-staff">Kế toán</span>
+                                    <span th:case="4" class="badge rounded-pill badge-custom badge-role-staff">NV Buồng phòng</span>
+                                    <span th:case="6" class="badge rounded-pill badge-custom badge-role-staff">NV Dịch vụ</span>
                                     <span th:case="*" class="badge rounded-pill badge-custom badge-role-user">Khách hàng</span>
                                 </th:block>
                             </td>

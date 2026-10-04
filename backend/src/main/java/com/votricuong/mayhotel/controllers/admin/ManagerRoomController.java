@@ -90,6 +90,7 @@ public class ManagerRoomController extends BaseController {
                 existing.setStatus(room.getStatus());
                 existing.setDetail(room.getDetail());
                 existing.setNote(room.getNote());
+                existing.setViewDirection(room.getViewDirection());
                 
                 roomRepository.save(existing);
                 redirect.addFlashAttribute("success", "Cập nhật phòng thành công!");

@@ -60,9 +60,34 @@
                         <th class="py-3 text-center text-uppercase small text-white fw-bold">ID</th>
                         <th class="text-center text-uppercase small text-white fw-bold">Hình ảnh</th>
                         <th class="text-center text-uppercase small text-white fw-bold">Tên phòng</th>
-                        <th class="text-center text-uppercase small text-white fw-bold">Loại phòng <i class="bi bi-funnel-fill text-warning ms-1"></i></th>
+                        <th class="text-center text-uppercase small text-white fw-bold">
+                            Loại phòng
+                            <div class="dropdown d-inline-block ms-1">
+                                <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Loại Phòng"></i>
+                                <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterCategory" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                    <!-- JS load -->
+                                </ul>
+                            </div>
+                        </th>
+                        <th class="text-center text-uppercase small text-white fw-bold">
+                            Hướng
+                            <div class="dropdown d-inline-block ms-1">
+                                <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Hướng Phòng"></i>
+                                <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterView" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                    <!-- JS load -->
+                                </ul>
+                            </div>
+                        </th>
                         <th class="text-center text-uppercase small text-white fw-bold">Giá phòng</th>
-                        <th class="text-center text-uppercase small text-white fw-bold">Trạng thái <i class="bi bi-funnel-fill text-warning ms-1"></i></th>
+                        <th class="text-center text-uppercase small text-white fw-bold">
+                            Trạng thái
+                            <div class="dropdown d-inline-block ms-1">
+                                <i class="bi bi-funnel-fill text-warning" style="cursor: pointer;" data-bs-toggle="dropdown" data-bs-auto-close="outside" title="Lọc Trạng Thái"></i>
+                                <ul class="dropdown-menu p-2 shadow-sm text-dark" id="thFilterStatus" style="min-width: 200px; max-height: 250px; overflow-y: auto;">
+                                    <!-- JS load -->
+                                </ul>
+                            </div>
+                        </th>
                         <th class="text-center text-uppercase small text-white fw-bold">Thao tác</th>
                     </tr>
                     </thead>
@@ -76,8 +101,11 @@
                                 <img loading="lazy" th:src="${not #strings.isEmpty(r.imageUrl) ? (r.imageUrl.startsWith('http') ? r.imageUrl : '/images/' + r.imageUrl) : (r.roomType != null and not #strings.isEmpty(r.roomType.imageUrl) ? (r.roomType.imageUrl.startsWith('http') ? r.roomType.imageUrl : '/images/' + r.roomType.imageUrl) : 'https://via.placeholder.com/80x60?text=No+Image')}" alt="Room Image" class="rounded shadow-sm" style="width: 80px; height: 60px; object-fit: cover; border: 1px solid #ddd;">
                             </td>
                             <td class="text-center fw-bold room-name" style="color: #0F2942;" th:text="${r.name}"></td>
-                            <td class="text-center">
-                                <span class="badge bg-secondary room-category" th:text="${r.roomType != null ? r.roomType.name : 'Chưa phân loại'}"></span>
+                            <td class="text-center room-category">
+                                <span class="badge bg-secondary" th:text="${r.roomType != null ? r.roomType.name : 'Chưa phân loại'}"></span>
+                            </td>
+                            <td class="text-center fw-bold room-view" style="color: #000;">
+                                <span th:text="${r.viewDirection != null ? r.viewDirection : 'Không xác định'}"></span>
                             </td>
                             <td class="text-center text-danger fw-bold" th:text="${#numbers.formatDecimal(r.price, 0, 'COMMA', 0, 'POINT') + ' VNĐ'}"></td>
                             <td class="text-center room-status">
@@ -177,13 +205,22 @@
                                     <label class="form-label fw-bold">URL Hình ảnh</label>
                                     <input type="text" class="form-control" name="imageUrl" th:value="${r.imageUrl}">
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
                                     <label class="form-label fw-bold">Loại Phòng</label>
                                     <select class="form-select" name="roomTypeId" required>
                                         <option th:each="type : ${roomTypes}" th:value="${type.id}" th:text="${type.name}" th:selected="${r.roomTypeId == type.id}"></option>
                                     </select>
                                 </div>
-                                <div class="col-md-6">
+                                <div class="col-md-4">
+                                    <label class="form-label fw-bold">Hướng Phòng</label>
+                                    <select class="form-select" name="viewDirection">
+                                        <option value="Không xác định" th:selected="${r.viewDirection == null or r.viewDirection == 'Không xác định'}">Không xác định</option>
+                                        <option value="Hướng Thành Phố" th:selected="${r.viewDirection == 'Hướng Thành Phố'}">Hướng Thành Phố</option>
+                                        <option value="Hướng Biển" th:selected="${r.viewDirection == 'Hướng Biển'}">Hướng Biển</option>
+                                        <option value="Hướng Núi" th:selected="${r.viewDirection == 'Hướng Núi'}">Hướng Núi</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
                                     <label class="form-label fw-bold">Số Giường Phụ Tối Đa</label>
                                     <input type="number" class="form-control" name="maxExtraBeds" th:value="${r.maxExtraBeds}" min="0">
                                 </div>
@@ -241,13 +278,22 @@
                                 <label class="form-label fw-bold">URL Hình ảnh</label>
                                 <input type="text" class="form-control" th:field="*{imageUrl}" placeholder="Ví dụ: /images/r1.jpg">
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <label class="form-label fw-bold">Loại Phòng</label>
                                 <select class="form-select" th:field="*{roomTypeId}" required>
                                     <option th:each="type : ${roomTypes}" th:value="${type.id}" th:text="${type.name}"></option>
                                 </select>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Hướng Phòng</label>
+                                <select class="form-select" th:field="*{viewDirection}">
+                                    <option value="Không xác định">Không xác định</option>
+                                    <option value="Hướng Thành Phố">Hướng Thành Phố</option>
+                                    <option value="Hướng Biển">Hướng Biển</option>
+                                    <option value="Hướng Núi">Hướng Núi</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
                                 <label class="form-label fw-bold">Số Giường Phụ Tối Đa</label>
                                 <input type="number" class="form-control" th:field="*{maxExtraBeds}" value="0" min="0">
                             </div>
@@ -280,22 +326,101 @@
 
     <!-- JS script -->
     <script>
-        function filterTable() {
-            let input = document.getElementById("searchRoom").value.toLowerCase();
-            let rows = document.querySelectorAll(".room-row");
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get all rows
+            const rows = Array.from(document.querySelectorAll(".room-row"));
             
-            rows.forEach(row => {
-                let name = row.querySelector(".room-name").innerText.toLowerCase();
-                let category = row.querySelector(".room-category").innerText.toLowerCase();
-                let status = row.querySelector(".room-status").innerText.toLowerCase();
-                
-                if (name.includes(input) || category.includes(input) || status.includes(input)) {
-                    row.style.display = "";
-                } else {
-                    row.style.display = "none";
-                }
+            // Build filter options based on table data
+            const getUniqueValues = (selector) => {
+                const values = new Set();
+                rows.forEach(row => {
+                    const el = row.querySelector(selector);
+                    if (el) values.add(el.innerText.trim());
+                });
+                return Array.from(values);
+            };
+
+            const categories = getUniqueValues('.room-category');
+            const views = getUniqueValues('.room-view');
+            const statuses = getUniqueValues('.room-status');
+
+            // Render categories
+            const thFilterCategory = document.getElementById('thFilterCategory');
+            if (thFilterCategory) {
+                thFilterCategory.innerHTML = categories.map((cat, idx) => `
+                    <li>
+                        <div class="form-check mb-1 ms-1">
+                            <input class="form-check-input th-cb-category" type="checkbox" value="${cat}" id="th_cat_${idx}">
+                            <label class="form-check-label" for="th_cat_${idx}">${cat}</label>
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+            // Render views
+            const thFilterView = document.getElementById('thFilterView');
+            if (thFilterView) {
+                thFilterView.innerHTML = views.map((v, idx) => `
+                    <li>
+                        <div class="form-check mb-1 ms-1">
+                            <input class="form-check-input th-cb-view" type="checkbox" value="${v}" id="th_view_${idx}">
+                            <label class="form-check-label" for="th_view_${idx}">${v}</label>
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+            // Render statuses
+            const thFilterStatus = document.getElementById('thFilterStatus');
+            if (thFilterStatus) {
+                thFilterStatus.innerHTML = statuses.map((st, idx) => `
+                    <li>
+                        <div class="form-check mb-1 ms-1">
+                            <input class="form-check-input th-cb-status" type="checkbox" value="${st}" id="th_st_${idx}">
+                            <label class="form-check-label" for="th_st_${idx}">${st}</label>
+                        </div>
+                    </li>
+                `).join('');
+            }
+
+            // Apply filters function
+            const applyFilters = () => {
+                const searchRoom = document.getElementById('searchRoom');
+                const keyword = (searchRoom ? searchRoom.value : '').toLowerCase().trim();
+                const selectedCategories = Array.from(document.querySelectorAll('.th-cb-category:checked')).map(cb => cb.value);
+                const selectedViews = Array.from(document.querySelectorAll('.th-cb-view:checked')).map(cb => cb.value);
+                const selectedStatuses = Array.from(document.querySelectorAll('.th-cb-status:checked')).map(cb => cb.value);
+
+                rows.forEach(row => {
+                    const name = row.querySelector(".room-name").innerText.toLowerCase();
+                    const category = row.querySelector(".room-category").innerText.trim();
+                    const view = row.querySelector(".room-view").innerText.trim();
+                    const status = row.querySelector(".room-status").innerText.trim();
+                    
+                    const matchKeyword = name.includes(keyword);
+                    const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(category);
+                    const matchView = selectedViews.length === 0 || selectedViews.includes(view);
+                    const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(status);
+                    
+                    if (matchKeyword && matchCategory && matchView && matchStatus) {
+                        row.style.display = "";
+                    } else {
+                        row.style.display = "none";
+                    }
+                });
+            };
+
+            // Bind events
+            const searchRoom = document.getElementById('searchRoom');
+            if (searchRoom) {
+                searchRoom.addEventListener('input', applyFilters);
+                searchRoom.removeAttribute('onkeyup');
+            }
+
+            document.querySelectorAll('.th-cb-category, .th-cb-view, .th-cb-status').forEach(cb => {
+                cb.addEventListener('change', applyFilters);
             });
-        }
+        });
         
         // Fix z-index modal for all modals
         (function() {

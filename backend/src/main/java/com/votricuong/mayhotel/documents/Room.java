@@ -29,4 +29,11 @@ public class Room implements java.io.Serializable {
     private String status;
     private String note;
     private Integer maxExtraBeds;
+    
+    // --- THUỘC TÍNH BỔ SUNG THEO YÊU CẦU ---
+    @Field("view_direction")
+    private String viewDirection; // "CITY", "SEA", "MOUNTAIN"
+    
+    @Field("location_zone")
+    private String locationZone; // "LEFT", "RIGHT"
 }

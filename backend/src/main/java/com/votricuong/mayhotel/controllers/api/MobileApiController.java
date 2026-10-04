@@ -24,6 +24,7 @@ import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.ServiceTicket;
 import com.votricuong.mayhotel.documents.Customer;
+import com.votricuong.mayhotel.services.EmailService;
 
 import java.time.LocalDate;
 import java.time.Instant;

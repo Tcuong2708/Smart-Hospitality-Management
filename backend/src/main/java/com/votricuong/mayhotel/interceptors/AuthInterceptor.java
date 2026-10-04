@@ -53,7 +53,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         }
 
         // Tuyến Admin/Manager (Ban giám đốc, Kế toán, Nhân sự, Admin)
-        if (uri.startsWith("/admin/")) {
+        if (uri.startsWith("/admin/") || uri.startsWith("/manager/")) {
             List<String> adminRoles = Arrays.asList("ADMIN", "MANAGER", "ACCOUNTANT", "HR");
             
             // Các trang cụ thể

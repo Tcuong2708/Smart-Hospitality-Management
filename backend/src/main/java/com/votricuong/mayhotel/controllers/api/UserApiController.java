@@ -6,21 +6,69 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.Optional;
+import java.util.stream.Collectors;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
+import com.votricuong.mayhotel.documents.Customer;
 
 @RestController
 @RequestMapping("/api/users")
 public class UserApiController {
 
     private final UserService userService;
+    private final CustomerRepository customerRepository;
 
-    public UserApiController(UserService userService) {
+    public UserApiController(UserService userService, CustomerRepository customerRepository) {
         this.userService = userService;
+        this.customerRepository = customerRepository;
     }
 
     @GetMapping
-    public ResponseEntity<List<User>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsers());
+    public ResponseEntity<List<Map<String, Object>>> getAllUsers() {
+        List<User> users = userService.getAllUsers();
+        
+        List<Map<String, Object>> mappedUsers = users.stream().map(user -> {
+            Map<String, Object> map = new HashMap<>();
+            
+            // Map the exact fields expected by the original frontend mock data
+            map.put("id", user.getId());
+            
+            map.put("tenDangNhap", user.getUsername() != null ? user.getUsername() : "");
+            
+            String hoTen = "";
+            String quocTich = "";
+            
+            List<Customer> customers = customerRepository.findByUserId(user.getId());
+            if (customers != null && !customers.isEmpty()) {
+                Customer c = customers.get(0);
+                if (c.getFullName() != null) hoTen = c.getFullName();
+                if (c.getQuocTich() != null) quocTich = c.getQuocTich();
+            }
+            
+            if (hoTen.isEmpty() && user.getEmail() != null) {
+                hoTen = user.getEmail();
+            }
+            if (quocTich.isEmpty()) {
+                quocTich = "Việt Nam";
+            }
+            
+            map.put("hoTen", hoTen);
+            map.put("quocTich", quocTich);
+            
+            map.put("roleID", user.getRoleId() != null ? user.getRoleId() : 3L);
+            
+            int trangThai = 0;
+            if (user.getStatus() != null && (user.getStatus().contains("Hoạt động") || user.getStatus().contains("Ho") || user.getStatus().equalsIgnoreCase("Active") || user.getStatus().equals("1"))) {
+                trangThai = 1;
+            }
+            map.put("trangThai", trangThai);
+            
+            return map;
+        }).collect(Collectors.toList());
+        
+        return ResponseEntity.ok(mappedUsers);
     }
 
     @GetMapping("/{id}")

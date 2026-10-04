@@ -16,10 +16,7 @@ function showAlert(message, type = 'success') {
 
 async function fetchCheckinData() {
     const tbody = document.getElementById('checkin-table-body');
-    const mockCheckinInvoices = [
-        { id: 3, hoTen: 'Lê Hoàng C', idTaiKhoan: 10, sdt: '0912345678', ngayCheckIn: '2026-06-18', ngayCheckOut: '2026-06-20', totalPrice: 5400000, maPhong: null },
-        { id: 4, hoTen: 'Khách Vãng Lai', idTaiKhoan: null, sdt: '0999888777', ngayCheckIn: '2026-06-18', ngayCheckOut: '2026-06-19', totalPrice: 1500000, maPhong: 301 }
-    ];
+    const invoices = window.mockCheckinInvoices;
 
     const mockEmptyRooms = [
         { id: 101, view: 'Hướng Thành Phố', type: 'Standard' }, 
@@ -30,7 +27,6 @@ async function fetchCheckinData() {
     ];
 
     try {
-        const invoices = mockCheckinInvoices;
         const emptyRooms = mockEmptyRooms;
         
         if (invoices.length === 0) {
@@ -57,20 +53,36 @@ async function fetchCheckinData() {
             }
 
             let roomSelectionHTML = '';
-            if (item.maPhong) {
+            if (!item.isVerified) {
+                // Chưa xác thực -> Bắt buộc xác thực Mobile trước
                 roomSelectionHTML = `
-                    <button type="button" class="btn btn-outline-navy btn-sm fw-bold w-100 text-start text-truncate" onclick="openAssignRoomModal(${item.id}, '${item.maPhong}')" id="btn-select-room-${item.id}">
-                        <i class="bi bi-door-open-fill me-1"></i> Phòng ${item.maPhong} (Đổi)
-                    </button>
-                    <input type="hidden" name="maPhong" id="room-${item.id}" value="${item.maPhong}" required>
-                `;
-            } else {
-                roomSelectionHTML = `
-                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100 text-start text-truncate" onclick="openAssignRoomModal(${item.id}, null)" id="btn-select-room-${item.id}">
-                        <i class="bi bi-key-fill me-1"></i> Chọn phòng...
+                    <div class="alert alert-warning py-1 px-2 mb-2 text-center small fw-bold" style="font-size: 0.7rem;">
+                        <i class="bi bi-shield-lock-fill me-1"></i>Cần xác thực danh tính
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold w-100 text-truncate mb-2" onclick="openMobileVerifyModal(${item.id}, '${item.hoTen}')">
+                        <i class="bi bi-phone-vibrate me-1"></i> Xác thực (Mobile)
                     </button>
                     <input type="hidden" name="maPhong" id="room-${item.id}" value="" required>
                 `;
+            } else {
+                // Đã xác thực -> Hiện nút Chọn phòng / Đổi phòng
+                if (item.maPhong) {
+                    roomSelectionHTML = `
+                        <div class="text-success text-center small fw-bold mb-1" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Đã xác thực FaceID</div>
+                        <button type="button" class="btn btn-outline-navy btn-sm fw-bold w-100 text-start text-truncate mb-2" onclick="openAssignRoomModal(${item.id}, '${item.maPhong}')" id="btn-select-room-${item.id}">
+                            <i class="bi bi-door-open-fill me-1"></i> Phòng ${item.maPhong} (Đổi)
+                        </button>
+                        <input type="hidden" name="maPhong" id="room-${item.id}" value="${item.maPhong}" required>
+                    `;
+                } else {
+                    roomSelectionHTML = `
+                        <div class="text-success text-center small fw-bold mb-1" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Đã xác thực FaceID</div>
+                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100 text-start text-truncate mb-2" onclick="openAssignRoomModal(${item.id}, null)" id="btn-select-room-${item.id}">
+                            <i class="bi bi-key-fill me-1"></i> Chọn phòng...
+                        </button>
+                        <input type="hidden" name="maPhong" id="room-${item.id}" value="" required>
+                    `;
+                }
             }
 
             return `
@@ -94,7 +106,7 @@ async function fetchCheckinData() {
                             <input class="form-check-input cursor-pointer" type="checkbox" name="isPaidUpfront" value="true" id="checkPaid-${item.id}" ${isGuest ? 'checked' : ''}>
                             <label class="form-check-label small fw-bold text-secondary" for="checkPaid-${item.id}" style="font-size: 0.75rem;">Thu trước 1 đêm (TM)</label>
                         </div>
-                        <button type="submit" class="btn btn-gold btn-sm w-100 rounded-pill fw-bold small py-1">
+                        <button type="submit" class="btn btn-sm text-white w-100 rounded-pill fw-bold small py-1 shadow-sm border-0" style="background: linear-gradient(135deg, #C5A017, #d4af37); transition: all 0.3s;" ${!item.isVerified ? 'disabled' : ''}>
                             <i class="bi bi-check2-circle me-1"></i> Duyệt nhận phòng
                         </button>
                     </form>
@@ -116,9 +128,71 @@ async function fetchCheckinData() {
     }
 }
 
+window.mockCheckinInvoices = [
+    { id: 3, hoTen: 'Lê Hoàng C', idTaiKhoan: 10, sdt: '0912345678', ngayCheckIn: '2026-06-18', ngayCheckOut: '2026-06-20', totalPrice: 5400000, maPhong: null, isVerified: false },
+    { id: 4, hoTen: 'Khách Vãng Lai', idTaiKhoan: null, sdt: '0999888777', ngayCheckIn: '2026-06-18', ngayCheckOut: '2026-06-19', totalPrice: 1500000, maPhong: 301, isVerified: true }
+];
+
 let stream = null;
 let currentCheckinId = null;
 let currentAssigningCheckinId = null;
+let currentVerifyCheckinId = null;
+
+// ==========================================
+// LUỒNG XÁC THỰC MOBILE NFC
+// ==========================================
+window.openMobileVerifyModal = function(id, hoTen) {
+    currentVerifyCheckinId = id;
+    
+    // Reset giao diện Modal
+    document.getElementById('mobile-verify-waiting').classList.remove('d-none');
+    document.getElementById('mobile-verify-success').classList.add('d-none');
+    
+    document.getElementById('mobile-verify-code').textContent = 'REQ-' + id + '-' + Math.floor(Math.random()*1000);
+    document.getElementById('sync-name').textContent = hoTen;
+    
+    document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.remove('d-none');
+    document.querySelector('#mobileVerifyModal .btn-warning').classList.remove('d-none');
+    document.getElementById('btn-continue-room').classList.add('d-none');
+
+    const modalEl = document.getElementById('mobileVerifyModal');
+    if (modalEl.parentNode !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+};
+
+window.simulateMobileSuccess = function() {
+    // Đóng nút giả lập và nút hủy
+    document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.add('d-none');
+    document.querySelector('#mobileVerifyModal .btn-warning').classList.add('d-none');
+    
+    // Hiển thị kết quả thành công và nút Tiếp tục
+    document.getElementById('mobile-verify-waiting').classList.add('d-none');
+    document.getElementById('mobile-verify-success').classList.remove('d-none');
+    document.getElementById('btn-continue-room').classList.remove('d-none');
+};
+
+window.completeMobileVerification = function() {
+    // Tìm invoice và update state
+    const invoice = window.mockCheckinInvoices.find(i => i.id === currentVerifyCheckinId);
+    if (invoice) {
+        invoice.isVerified = true;
+    }
+    
+    // Đóng modal
+    const modal = bootstrap.Modal.getInstance(document.getElementById('mobileVerifyModal'));
+    modal.hide();
+    
+    // Rerender lại bảng để hiện nút chọn phòng
+    fetchCheckinData();
+    
+    // Bật luôn modal Chọn phòng để lễ tân tiện thao tác
+    setTimeout(() => {
+        openAssignRoomModal(currentVerifyCheckinId, null);
+    }, 400);
+};
 
 const mockEmptyRoomsGlobal = [
     { id: 101, view: 'Hướng Thành Phố', type: 'Standard' }, 

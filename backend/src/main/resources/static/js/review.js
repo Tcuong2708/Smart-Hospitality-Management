@@ -127,49 +127,51 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // [POST] Gửi đánh giá mới lên Backend
-    reviewForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        
-        const nameInput = document.getElementById('reviewer-name').value;
-        const starsInput = parseInt(document.getElementById('review-stars').value);
-        const textInput = document.getElementById('review-content').value;
-
-        // Dữ liệu sẽ gửi đi
-        const newReviewData = {
-            name: nameInput,
-            stars: starsInput,
-            text: textInput
-        };
-
-        try {
-            /*
-            // BỎ COMMENT ĐOẠN NÀY ĐỂ GỬI API THẬT
-            const response = await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newReviewData)
-            });
-            if (!response.ok) throw new Error('Save failed');
-            */
+    // [POST] Gửi đánh giá mới lên Backend (Chỉ dùng cho trang có form, ví dụ /review/create)
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
             
-            // --- Giả lập UI: Đẩy dữ liệu mới vào mảng local
-            newReviewData.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(newReviewData.name)}&background=0F2942&color=fff`;
-            reviewList.unshift(newReviewData); // Đưa bài đánh giá mới nhất lên đầu tiên
-            currentIndex = 0; // Chuyển con trỏ về 0 để xem liền
-            
-            renderTestimonial();
-            resetAutoPlay();
-            
-            // Xóa form và hiện thông báo
-            reviewForm.reset();
-            showAlert("Đánh giá của bạn đã được gửi thành công!", "success");
+            const nameInput = document.getElementById('reviewer-name').value;
+            const starsInput = parseInt(document.getElementById('review-stars').value);
+            const textInput = document.getElementById('review-content').value;
 
-        } catch (error) {
-            console.error("Lỗi khi gửi đánh giá:", error);
-            showAlert("Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại sau.", "danger");
-        }
-    });
+            // Dữ liệu sẽ gửi đi
+            const newReviewData = {
+                name: nameInput,
+                stars: starsInput,
+                text: textInput
+            };
+
+            try {
+                /*
+                // BỎ COMMENT ĐOẠN NÀY ĐỂ GỬI API THẬT
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newReviewData)
+                });
+                if (!response.ok) throw new Error('Save failed');
+                */
+                
+                // --- Giả lập UI: Đẩy dữ liệu mới vào mảng local
+                newReviewData.avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(newReviewData.name)}&background=0F2942&color=fff`;
+                reviewList.unshift(newReviewData); // Đưa bài đánh giá mới nhất lên đầu tiên
+                currentIndex = 0; // Chuyển con trỏ về 0 để xem liền
+                
+                renderTestimonial();
+                resetAutoPlay();
+                
+                // Xóa form và hiện thông báo
+                reviewForm.reset();
+                showAlert("Đánh giá của bạn đã được gửi thành công!", "success");
+
+            } catch (error) {
+                console.error("Lỗi khi gửi đánh giá:", error);
+                showAlert("Đã xảy ra lỗi khi gửi đánh giá. Vui lòng thử lại sau.", "danger");
+            }
+        });
+    }
 
     // Khởi chạy khi tải trang
     fetchReviews();

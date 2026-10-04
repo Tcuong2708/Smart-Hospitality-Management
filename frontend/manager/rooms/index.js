@@ -19,12 +19,12 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const mockRooms = [
-        { id: 'PH101', name: 'Standard Room 101', category: 'Standard', price: 800000, imageUrl: 'Deluxe1.jpg', maTrangThai: 1, desc: 'Phòng tiêu chuẩn 1 giường đơn', note: '' },
-        { id: 'PH102', name: 'Standard Room 102', category: 'Standard', price: 800000, imageUrl: 'Deluxe2.jpg', maTrangThai: 1, desc: 'Phòng tiêu chuẩn 1 giường đơn', note: '' },
-        { id: 'PH201', name: 'Superior Room 201', category: 'Superior', price: 1200000, imageUrl: 'Deluxe3.jpg', maTrangThai: 1, desc: 'Phòng cao cấp 1 giường đôi', note: 'View biển' },
-        { id: 'PH202', name: 'Superior Room 202', category: 'Superior', price: 1200000, imageUrl: 'Deluxe4.jpg', maTrangThai: 2, desc: 'Phòng cao cấp 1 giường đôi', note: '' },
-        { id: 'PH301', name: 'Deluxe Room 301', category: 'Deluxe', price: 1800000, imageUrl: 'Deluxe5.jpg', maTrangThai: 3, desc: 'Phòng Deluxe 2 giường đôi', note: 'Đang sửa ống nước' },
-        { id: 'PH401', name: 'Suite Presidential 401', category: 'Suite', price: 3500000, imageUrl: 'Deluxe6.jpg', maTrangThai: 1, desc: 'Phòng Tổng thống', note: 'VIP' }
+        { id: '101', name: 'Phòng 101', category: 'Standard', view: 'Hướng Thành Phố', price: 800000, imageUrl: 'Deluxe1.jpg', maTrangThai: 1, desc: 'Phòng tiêu chuẩn 1 giường đơn', note: '' },
+        { id: '102', name: 'Phòng 102', category: 'Standard', view: 'Hướng Thành Phố', price: 800000, imageUrl: 'Deluxe2.jpg', maTrangThai: 1, desc: 'Phòng tiêu chuẩn 1 giường đơn', note: '' },
+        { id: '103', name: 'Phòng 103', category: 'Superior', view: 'Hướng Biển', price: 1200000, imageUrl: 'Deluxe3.jpg', maTrangThai: 1, desc: 'Phòng cao cấp 1 giường đôi', note: '' },
+        { id: '104', name: 'Phòng 104', category: 'Superior', view: 'Hướng Biển', price: 1200000, imageUrl: 'Deluxe4.jpg', maTrangThai: 2, desc: 'Phòng cao cấp 1 giường đôi', note: 'View biển' },
+        { id: '201', name: 'Phòng 201', category: 'Deluxe', view: 'Hướng Thành Phố', price: 1800000, imageUrl: 'Deluxe5.jpg', maTrangThai: 3, desc: 'Phòng Deluxe 2 giường đôi', note: 'Đang sửa ống nước' },
+        { id: '202', name: 'Phòng 202', category: 'Suite', view: 'Hướng Biển', price: 3500000, imageUrl: 'Deluxe6.jpg', maTrangThai: 1, desc: 'Phòng Tổng thống', note: 'VIP' }
     ];
 
     const data = mockRooms;
@@ -47,6 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     </td>
                     <td class="text-center fw-bold" style="color: #0F2942;">${p.name}</td>
                     <td class="text-center"><span class="badge bg-secondary">${p.category}</span></td>
+                    <td class="text-center fw-bold text-dark">${p.view}</td>
                     <td class="text-center text-danger fw-bold">${formatCurrency(p.price)}</td>
                     <td class="text-center">${renderStatus(p.maTrangThai)}</td>
                     <td class="text-center">
@@ -64,6 +65,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Chức năng tìm kiếm và lọc trên Table Header
     const searchRoom = document.getElementById('searchRoom');
     const thFilterCategory = document.getElementById('thFilterCategory');
+    const thFilterView = document.getElementById('thFilterView');
     const thFilterStatus = document.getElementById('thFilterStatus');
 
     // Hàm lấy label trạng thái
@@ -87,6 +89,19 @@ document.addEventListener('DOMContentLoaded', () => {
         `).join('');
     }
 
+    // Render checkbox list for View
+    if (thFilterView) {
+        const views = [...new Set(mockRooms.map(r => r.view))];
+        thFilterView.innerHTML = views.map((v, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-view" type="checkbox" value="${v}" id="th_view_${idx}">
+                    <label class="form-check-label" for="th_view_${idx}">${v}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
     // Render checkbox list for Status
     if (thFilterStatus) {
         const statuses = [...new Set(mockRooms.map(r => r.maTrangThai))];
@@ -101,20 +116,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Gắn sự kiện thay đổi
-    document.querySelectorAll('.th-cb-category, .th-cb-status').forEach(cb => {
+    document.querySelectorAll('.th-cb-category, .th-cb-view, .th-cb-status').forEach(cb => {
         cb.addEventListener('change', applyFilters);
     });
 
     function applyFilters() {
         const keyword = (searchRoom.value || '').toLowerCase().trim();
         const selectedCategories = Array.from(document.querySelectorAll('.th-cb-category:checked')).map(cb => cb.value);
+        const selectedViews = Array.from(document.querySelectorAll('.th-cb-view:checked')).map(cb => cb.value);
         const selectedStatuses = Array.from(document.querySelectorAll('.th-cb-status:checked')).map(cb => parseInt(cb.value));
 
         const filtered = mockRooms.filter(r => {
             const matchKeyword = r.name.toLowerCase().includes(keyword) || r.id.toLowerCase().includes(keyword);
             const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(r.category);
+            const matchView = selectedViews.length === 0 || selectedViews.includes(r.view);
             const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.maTrangThai);
-            return matchKeyword && matchCategory && matchStatus;
+            return matchKeyword && matchCategory && matchView && matchStatus;
         });
 
         renderTable(filtered);

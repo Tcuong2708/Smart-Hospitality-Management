@@ -41,4 +41,17 @@ public class Customer {
     
     @Field("tier_id")
     private Long tierId;
+    
+    // --- CÁC THUỘC TÍNH BỔ SUNG CHO NGHIỆP VỤ CHECK-IN AI ---
+    @Field("quoc_tich")
+    private String quocTich;
+    
+    @Field("que_quan")
+    private String queQuan;
+    
+    @Field("ngay_het_han_cccd")
+    private String ngayHetHanCCCD;
+    
+    @Field("anh_face_id")
+    private String anhFaceID;
 }

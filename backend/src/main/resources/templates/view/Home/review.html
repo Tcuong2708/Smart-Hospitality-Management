@@ -42,46 +42,7 @@
                         </div>
                     </div>
 
-                    <!-- Form gửi đánh giá -->
-                    <div class="form-section mt-5 p-4 p-md-5 bg-white rounded-4 shadow-sm border mx-auto" style="max-width: 800px;">
-                        <h3 class="mb-4 text-navy fw-bold text-center">
-                            <i class="bi bi-pencil-square me-2 text-gold"></i>Gửi đánh giá của bạn
-                        </h3>
-
-                        <!-- Tùy vào state đăng nhập (sẽ code ở JS), form này hiện hoặc ẩn -->
-                        <div id="login-prompt" class="text-center py-4 bg-light rounded-3 d-none">
-                            <p class="text-muted small mb-3">Vui lòng đăng nhập tài khoản thành viên để gửi bình luận đánh giá hệ thống.</p>
-                            <a th:href="@{/account/login}" class="btn btn-gold fw-bold px-4 py-2 rounded-pill">ĐĂNG NHẬP NGAY</a>
-                        </div>
-
-                        <form id="review-form" class="row g-4">
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-navy">Họ và tên thành viên</label>
-                                <!-- Nếu đã đăng nhập, có thể truyền tên vào thông qua session, nhưng tạm thời để text -->
-                                <input type="text" id="reviewer-name" class="form-control py-2" placeholder="Nhập họ tên của bạn..." required th:value="${session.user != null ? session.user.fullName : ''}" />
-                            </div>
-                            <div class="col-md-6">
-                                <label class="form-label fw-bold text-navy">Mức độ hài lòng <span class="text-danger">*</span></label>
-                                <select id="review-stars" class="form-select py-2" required>
-                                    <option value="">-- Chọn mức đánh giá --</option>
-                                    <option value="5">⭐⭐⭐⭐⭐ - Tuyệt vời (5 sao)</option>
-                                    <option value="4">⭐⭐⭐⭐ - Rất tốt (4 sao)</option>
-                                    <option value="3">⭐⭐⭐ - Tạm được (3 sao)</option>
-                                    <option value="2">⭐⭐ - Cần cải thiện (2 sao)</option>
-                                    <option value="1">⭐ - Tệ (1 sao)</option>
-                                </select>
-                            </div>
-                            <div class="col-12">
-                                <label class="form-label fw-bold text-navy">Nhận xét chi tiết <span class="text-danger">*</span></label>
-                                <textarea id="review-content" class="form-control" rows="5" required placeholder="Chia sẻ cảm nghĩ thực tế của bạn về chất lượng dịch vụ tại MAY HOTEL..."></textarea>
-                            </div>
-                            <div class="col-12 text-center mt-4">
-                                <button type="submit" class="btn btn-gold px-5 py-3 rounded-pill text-uppercase fw-bold shadow-sm w-100 w-md-auto">
-                                    <i class="bi bi-send-fill me-2"></i> Gửi Đánh Giá
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+                    <!-- Form gửi đánh giá đã được chuyển sang luồng /review/create?bookingId=... -->
                 </div>
             </div>
         </div>

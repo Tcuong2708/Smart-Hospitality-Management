@@ -182,8 +182,12 @@ function renderUserMenu(data) {
 
                 <li><a class="dropdown-item" href="${basePath}manager/promotions/index.html"><i class="bi bi-gift-fill me-2" style="color: var(--accent-color);"></i>Quản lý Khuyến mãi</a></li>
                 <li><a class="dropdown-item" href="${basePath}manager/loyalty/index.html"><i class="bi bi-star-fill me-2" style="color: var(--accent-color);"></i>Chính sách Tích điểm</a></li>
+                <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-2" style="font-size: 0.75rem; padding-left: 1rem;">Kế toán & Thống kê</div></li>
                 <li><a class="dropdown-item" href="${basePath}manager/statistical/index.html"><i class="bi bi-graph-up-arrow me-2" style="color: var(--accent-color);"></i>Thống kê Doanh thu</a></li>
                 <li><a class="dropdown-item" href="${basePath}manager/reports/index.html"><i class="bi bi-file-earmark-bar-graph-fill me-2" style="color: var(--accent-color);"></i>Xuất Báo cáo thống kê</a></li>
+                
+                <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-2" style="font-size: 0.75rem; padding-left: 1rem; color: #17a2b8 !important;">Nhân sự</div></li>
+                <li><a class="dropdown-item" href="${basePath}manager/employees/index.html"><i class="bi bi-person-vcard-fill me-2" style="color: var(--accent-color);"></i>Quản lý Nhân viên</a></li>
                 <li><a class="dropdown-item" href="${basePath}admin/predictions/index.html"><i class="bi bi-robot me-2 text-danger"></i>Trợ lý AI - Rủi ro No-show</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>

@@ -28,6 +28,9 @@ public class User implements java.io.Serializable {
     @org.springframework.data.mongodb.core.mapping.Field("status")
     private String status;
     
+    @org.springframework.data.mongodb.core.mapping.Field("quoc_tich")
+    private String quocTich;
+    
     // Reference to Role
     @org.springframework.data.mongodb.core.mapping.Field("role_id")
     private Long roleId;

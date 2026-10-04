@@ -50,7 +50,7 @@
 
                     <!-- NHÂN SỰ -->
                     <li class="nav-item" th:if="${session.user.role == 'HR' or session.user.role == 'MANAGER'}">
-                        <a class="nav-link fw-semibold" th:href="@{/admin/staff}"><i class="bi bi-person-vcard me-1" style="color: #C5A017;"></i> Quản lý Nhân viên</a>
+                        <a class="nav-link fw-semibold" th:href="@{/manager/staff}"><i class="bi bi-person-vcard me-1" style="color: #C5A017;"></i> Quản lý Nhân viên</a>
                     </li>
                     
                     <!-- QUẢN TRỊ HỆ THỐNG -->

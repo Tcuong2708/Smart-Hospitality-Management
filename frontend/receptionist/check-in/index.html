@@ -304,6 +304,56 @@
         </div>
     </div>
 
+    <!-- Modal Xác thực Mobile (NFC & FaceID) -->
+    <div class="modal fade" id="mobileVerifyModal" tabindex="-1" aria-labelledby="mobileVerifyModalLabel" aria-hidden="true" data-bs-backdrop="static">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header bg-navy text-white border-0">
+                    <h5 class="modal-title fw-bold" id="mobileVerifyModalLabel">
+                        <i class="bi bi-phone-vibrate text-gold me-2"></i>Xác thực CCCD & NFC qua Mobile
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div id="mobile-verify-waiting">
+                        <div class="spinner-grow text-gold mb-3" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <h5 class="fw-bold text-navy">Đang chờ kết nối từ Mobile App...</h5>
+                        <p class="text-muted small mb-4">Vui lòng yêu cầu khách hàng sử dụng tính năng "Check-in thông minh" trên ứng dụng MAY HOTEL, quét NFC CCCD và khuôn mặt để xác thực danh tính.</p>
+                        
+                        <div class="p-3 bg-light rounded border border-secondary-subtle">
+                            <i class="bi bi-qr-code-scan display-4 text-dark mb-2"></i>
+                            <p class="small fw-bold text-secondary mb-0">Mã giao dịch: <span id="mobile-verify-code" class="text-primary">--</span></p>
+                        </div>
+                    </div>
+
+                    <div id="mobile-verify-success" class="d-none py-3">
+                        <i class="bi bi-check-circle-fill text-success display-1 mb-3"></i>
+                        <h4 class="fw-bold text-success">Xác thực thành công!</h4>
+                        <p class="text-muted small">Dữ liệu NFC và khuôn mặt hợp lệ. Hệ thống đã đồng bộ hồ sơ khách hàng.</p>
+                        <div class="bg-light p-3 rounded text-start mt-3">
+                            <p class="mb-1 small fw-bold">Họ tên: <span id="sync-name" class="text-navy">Nguyễn Văn A</span></p>
+                            <p class="mb-1 small fw-bold">Số CCCD: <span id="sync-cccd" class="text-navy">0123456789</span></p>
+                            <p class="mb-0 small fw-bold text-success"><i class="bi bi-shield-check me-1"></i>FaceID Trùng khớp 99.8%</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" data-bs-dismiss="modal">Hủy giao dịch</button>
+                    <!-- Nút giả lập (Dành cho bản Demo) -->
+                    <button type="button" class="btn btn-warning btn-sm rounded-pill fw-bold" onclick="simulateMobileSuccess()">
+                        <i class="bi bi-magic me-1"></i> (Giả lập) Mobile đã quét xong
+                    </button>
+                    
+                    <button type="button" class="btn btn-gold btn-sm rounded-pill fw-bold d-none px-4" id="btn-continue-room" onclick="completeMobileVerification()">
+                        Tiếp tục Chọn phòng <i class="bi bi-arrow-right-short ms-1"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Bootstrap Bundle with Popper -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <!-- Custom JS -->

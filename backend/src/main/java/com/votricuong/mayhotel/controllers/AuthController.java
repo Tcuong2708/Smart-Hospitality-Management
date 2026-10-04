@@ -53,6 +53,11 @@ public class AuthController extends BaseController {
                               RedirectAttributes redirectAttributes) {
         try {
             User user = authService.processLogin(username, password);
+            
+            if (user.getRoleId() != null && (user.getRoleId() == 4L || user.getRoleId() == 6L)) {
+                throw new Exception("Tài khoản của bạn (NV Buồng phòng / NV Dịch vụ) chỉ được phép đăng nhập trên thiết bị Mobile!");
+            }
+            
             session.setAttribute("user", user); // Lưu phiên làm việc
 
             if (user.getRoleId() != null) {
@@ -60,8 +65,10 @@ public class AuthController extends BaseController {
                     return "redirect:/admin/users";
                 } else if (user.getRoleId() == 2L) {
                     return "redirect:/manager/rooms";
-                } else if (user.getRoleId() == 3L || user.getRoleId() == 4L) {
+                } else if (user.getRoleId() == 3L) {
                     return "redirect:/receptionist/room-map";
+                } else if (user.getRoleId() == 7L) {
+                    return "redirect:/accountant/dashboard"; // Hoặc route tương ứng của kế toán
                 }
             }
             return "redirect:/"; // Trở về trang chủ
