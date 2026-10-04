@@ -165,9 +165,9 @@ class HotelApiProvider {
     }
   }
 
-  Future<List<dynamic>> getTransactionHistory(int maKH) async {
+  Future<List<dynamic>> getTransactionHistory(int userId) async {
     try {
-      final response = await _dio.get("/api/booking/history", queryParameters: {"maKH": maKH});
+      final response = await _dio.get("/api/v1/mobile/booking/history", queryParameters: {"userId": userId});
       if (response.statusCode == 200) {
         return response.data['data'] ?? [];
       }
@@ -275,6 +275,75 @@ class HotelApiProvider {
       return [];
     } catch (e) {
       _handleError("Lỗi tra cứu phòng", e);
+      return [];
+    }
+  }
+  
+  // ==========================================
+  // API: CÁC LUỒNG MOBILE MỚI (2.2 - 2.6)
+  // ==========================================
+  
+  Future<Map<String, dynamic>?> submitCheckInAI(int bookingId, String cccdData) async {
+    try {
+      final response = await _dio.post(
+        "/api/v1/mobile/booking/checkin",
+        data: {
+          "bookingId": bookingId,
+          "cccdData": cccdData,
+        },
+      );
+      if (response.statusCode == 200) {
+        return response.data['data'];
+      }
+      return null;
+    } catch (e) {
+      _handleError("Lỗi Check-in AI", e);
+      return null;
+    }
+  }
+
+  Future<bool> submitCheckOut(int bookingId) async {
+    try {
+      final response = await _dio.post(
+        "/api/v1/mobile/booking/checkout",
+        data: {"bookingId": bookingId},
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      _handleError("Lỗi Check-out", e);
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> orderMobileService(int bookingId, int serviceId, int quantity) async {
+    try {
+      final response = await _dio.post(
+        "/api/v1/mobile/services/order",
+        data: {
+          "bookingId": bookingId,
+          "serviceId": serviceId,
+          "quantity": quantity,
+        },
+      );
+      if (response.statusCode == 200) {
+        return response.data['data']; // Trả về mock hoá đơn 58mm
+      }
+      return null;
+    } catch (e) {
+      _handleError("Lỗi Đặt dịch vụ", e);
+      return null;
+    }
+  }
+
+  Future<List<dynamic>> getServices() async {
+    try {
+      final response = await _dio.get("/api/v1/mobile/services");
+      if (response.statusCode == 200) {
+        return response.data['data'] ?? [];
+      }
+      return [];
+    } catch (e) {
+      _handleError("Lỗi tải danh sách dịch vụ", e);
       return [];
     }
   }

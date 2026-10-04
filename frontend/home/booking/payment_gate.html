@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
@@ -31,36 +31,36 @@
     <div class="container py-5">
         <div class="row justify-content-center">
             <div class="col-md-8 col-lg-5">
-                <div class="card shadow border-0 overflow-hidden" style="border-radius: 15px;">
-                    <div class="card-header bg-navy text-white text-center py-3">
-                        <h5 class="mb-0 fw-bold"><i class="bi bi-shield-lock-fill text-gold me-2"></i>Thanh toán trực tuyến An Toàn</h5>
+                <div class="card shadow-lg border-0 overflow-hidden" style="border-radius: 20px;">
+                    <div class="card-header text-white text-center py-4" style="background: linear-gradient(135deg, #0F2942, #1e456d);">
+                        <h5 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;"><i class="bi bi-shield-lock-fill text-gold me-2"></i>Cổng Thanh Toán An Toàn</h5>
                     </div>
-                    <div class="card-body p-4 text-center">
+                    <div class="card-body p-4 p-md-5 text-center bg-white">
                         <div class="mb-4">
-                            <span class="badge bg-danger fs-6 mb-2 px-3 py-2" id="countdown">10:00</span>
-                            <p class="text-muted small mt-2">Vui lòng quét mã QR để hoàn tất thanh toán.<br>Giao dịch sẽ tự động hủy nếu quá thời gian.</p>
+                            <span class="badge fs-5 mb-2 px-4 py-2 shadow-sm rounded-pill" id="countdown" style="background-color: #dc3545; font-family: monospace;">10:00</span>
+                            <p class="text-muted small mt-2 fw-medium">Vui lòng quét mã QR bằng ứng dụng ngân hàng.<br>Giao dịch sẽ tự động hủy nếu quá thời gian.</p>
                         </div>
                         
-                        <div class="qr-box mx-auto mb-4">
-                            <img loading="lazy" src="https://api.vietqr.io/image/970415-0999999999-Ewv4X8M.jpg?amount=1000000&addInfo=MAYHOTEL" class="img-fluid rounded" alt="QR Code">
+                        <div class="qr-box mx-auto mb-4 p-3 shadow-sm rounded-4" style="background: #f8f9fa; border: 2px dashed #C5A017; max-width: 250px;">
+                            <img loading="lazy" src="https://api.vietqr.io/image/970415-0999999999-Ewv4X8M.jpg?amount=1000000&addInfo=MAYHOTEL" class="img-fluid rounded-3 shadow-sm" alt="QR Code">
                         </div>
 
-                        <div class="bg-light rounded p-3 text-start mb-4 border border-secondary-subtle">
+                        <div class="bg-light rounded-4 p-4 text-start mb-4 border shadow-sm">
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Mã đơn đặt:</span>
-                                <span class="fw-bold" id="invoice-id">#0000</span>
+                                <span class="text-muted fw-bold">Mã đơn đặt (Giao dịch):</span>
+                                <span class="fw-bold" id="invoice-id" style="color: var(--navy-color);">#0000</span>
                             </div>
                             <div class="d-flex justify-content-between mb-2">
-                                <span class="text-muted">Chủ tài khoản:</span>
+                                <span class="text-muted fw-bold">Chủ tài khoản:</span>
                                 <span class="fw-bold">MAY HOTEL VN</span>
                             </div>
-                            <div class="d-flex justify-content-between mt-3 pt-2 border-top">
-                                <span class="text-muted">Số tiền:</span>
-                                <span class="fw-bold text-danger fs-4" id="invoice-total">0 đ</span>
+                            <div class="d-flex justify-content-between mt-3 pt-3 border-top border-secondary-subtle">
+                                <span class="text-muted fw-bold">Tổng số tiền:</span>
+                                <span class="fw-bold text-danger fs-3" id="invoice-total">0 đ</span>
                             </div>
                         </div>
 
-                        <button id="btn-confirm-payment" class="btn btn-gold w-100 py-3 fw-bold text-uppercase shadow-sm">
+                        <button id="btn-confirm-payment" class="btn w-100 py-3 fw-bold text-uppercase shadow text-white" style="background: linear-gradient(135deg, #C5A017, #e8c642); border-radius: 12px; font-size: 1.1rem; transition: transform 0.2s ease;">
                             <i class="bi bi-check-circle-fill me-2"></i>Đã thanh toán (Mô phỏng)
                         </button>
                     </div>

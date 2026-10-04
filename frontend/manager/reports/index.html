@@ -27,9 +27,9 @@
                 <h3 class="fw-bold text-uppercase mb-0 text-white">
                     <i class="bi bi-file-earmark-bar-graph-fill me-2" style="color: var(--accent-color);"></i>Xuất Báo Cáo Thống Kê
                 </h3>
-                <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;">
-                    <i class="bi bi-plus-circle-fill me-1"></i> Tạo Báo Cáo Mới
-                </a>
+                <button type="button" class="btn btn-gold px-4 shadow-sm text-white fw-bold" style="background: linear-gradient(135deg, #C5A017, #e8c642); border: none; border-radius: 8px;" data-bs-toggle="modal" data-bs-target="#exportReportModal">
+                    <i class="bi bi-file-earmark-arrow-down-fill me-1"></i> Tạo Báo Cáo Mới
+                </button>
             </div>
             <div class="card-body p-0">
                 <div class="table-responsive">
@@ -57,6 +57,64 @@
         </div>
     </div>
 </div>
+
+<!-- Modal Xuất Báo Cáo Thống Kê (UC20) -->
+<div class="modal fade" id="exportReportModal" tabindex="-1" aria-labelledby="exportReportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg" style="border-radius: 15px;">
+            <div class="modal-header text-white px-4 py-3" style="background: linear-gradient(135deg, #0F2942, #1e456d);">
+                <h5 class="modal-title fw-bold text-uppercase" id="exportReportModalLabel" style="letter-spacing: 0.5px;">
+                    <i class="bi bi-cloud-arrow-down-fill text-gold me-2"></i>Xuất Báo Cáo Thống Kê
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <form id="exportReportForm">
+                    <div class="mb-4 bg-white p-3 rounded shadow-sm border border-secondary-subtle">
+                        <label class="form-label fw-bold text-navy"><i class="bi bi-calendar-range me-2 text-gold"></i>Chọn khoảng thời gian xuất báo cáo:</label>
+                        <div class="row g-2 mt-2">
+                            <div class="col-6">
+                                <small class="text-muted fw-bold">Từ ngày</small>
+                                <input type="date" class="form-control mt-1" id="exportStartDate" required>
+                            </div>
+                            <div class="col-6">
+                                <small class="text-muted fw-bold">Đến ngày</small>
+                                <input type="date" class="form-control mt-1" id="exportEndDate" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold text-navy"><i class="bi bi-file-earmark-check me-2 text-gold"></i>Định dạng File xuất ra:</label>
+                        <div class="d-flex gap-3 mt-2">
+                            <div class="form-check flex-fill bg-white p-3 rounded shadow-sm border border-secondary-subtle text-center">
+                                <input class="form-check-input float-none ms-0 mb-2" type="radio" name="exportFormat" id="formatExcel" value="XLSX" checked>
+                                <label class="form-check-label d-block fw-bold" for="formatExcel">
+                                    <i class="bi bi-file-earmark-spreadsheet-fill text-success fs-3 d-block mb-1"></i> Excel (.xlsx)
+                                </label>
+                            </div>
+                            <div class="form-check flex-fill bg-white p-3 rounded shadow-sm border border-secondary-subtle text-center">
+                                <input class="form-check-input float-none ms-0 mb-2" type="radio" name="exportFormat" id="formatPDF" value="PDF">
+                                <label class="form-check-label d-block fw-bold" for="formatPDF">
+                                    <i class="bi bi-file-earmark-pdf-fill text-danger fs-3 d-block mb-1"></i> PDF (.pdf)
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer border-0 px-4 pb-4 bg-light">
+                <button type="button" class="btn btn-secondary fw-bold px-4 rounded" data-bs-dismiss="modal">Hủy bỏ</button>
+                <button type="button" class="btn text-white fw-bold px-4 rounded shadow-sm" style="background: linear-gradient(135deg, #11998e, #38ef7d);" id="btnConfirmExport">
+                    <i class="bi bi-download me-1"></i> Bắt đầu Xuất
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bootstrap Bundle JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="index.js"></script>
 <script src="../../layout.js"></script>

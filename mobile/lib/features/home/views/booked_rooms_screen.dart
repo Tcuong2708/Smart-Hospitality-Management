@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:may_hotel_app/services/hotel_api_provider.dart'; //
+import 'package:flutter/services.dart';
+import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import '../../../core/utils/responsive.dart';
+import '../../checkin/views/mobile_self_checkin_screen.dart';
+import '../../services/views/service_order_screen.dart';
 
 class BookedRoomsScreen extends StatefulWidget {
   const BookedRoomsScreen({super.key});
@@ -215,13 +218,19 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
                     style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withOpacity(0.6), fontWeight: FontWeight.w500),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    "${tongTien.toStringAsFixed(0)} VNĐ", // Định dạng tiền sạch sẽ, né lỗi VND VND
-                    style: TextStyle(
-                        fontSize: Responsive.sp(context, 15),
-                        fontWeight: FontWeight.bold,
-                        color: isDarkMode ? Colors.amber : colorScheme.primary
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        "${tongTien.toStringAsFixed(0)} VNĐ", // Định dạng tiền sạch sẽ, né lỗi VND VND
+                        style: TextStyle(
+                            fontSize: Responsive.sp(context, 15),
+                            fontWeight: FontWeight.bold,
+                            color: isDarkMode ? Colors.amber : colorScheme.primary
+                        ),
+                      ),
+                      _buildActionButtons(item, trangThai, colorScheme),
+                    ],
                   ),
                 ],
               ),
@@ -232,26 +241,137 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
     );
   }
 
+  // 🎛️ KHỐI NÚT CHỨC NĂNG (NHẬN PHÒNG, DỊCH VỤ, TRẢ PHÒNG) THEO TRẠNG THÁI
+  Widget _buildActionButtons(dynamic item, String trangThai, ColorScheme colorScheme) {
+    if (trangThai == "Đã xác nhận" || trangThai == "Reserved") {
+      return ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: colorScheme.primary,
+          foregroundColor: colorScheme.onPrimary,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          minimumSize: const Size(0, 32),
+        ),
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => MobileSelfCheckinScreen(
+                bookingId: int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0,
+                roomName: item['tenPhong']?.toString() ?? 'Phòng của bạn',
+              ),
+            ),
+          );
+          if (result == true) {
+            _fetchBookingHistory(); // Tải lại danh sách sau khi Check-in thành công
+          }
+        },
+        child: const Text("Nhận phòng", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+      );
+    } else if (trangThai == "Đã nhận phòng" || trangThai == "Occupied") {
+      return Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              minimumSize: const Size(0, 32),
+              side: BorderSide(color: colorScheme.primary),
+            ),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ServiceOrderScreen(
+                    bookingId: int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0,
+                  ),
+                ),
+              );
+            },
+            child: Text("Dịch vụ", style: TextStyle(fontSize: 12, color: colorScheme.primary, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+              minimumSize: const Size(0, 32),
+            ),
+            onPressed: () async {
+              showDialog(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text("Xác nhận trả phòng"),
+                  content: Text("Bạn có chắc chắn muốn trả phòng ${item['tenPhong']} không?"),
+                  actions: [
+                    TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+                      onPressed: () async {
+                        Navigator.pop(context); // Close dialog
+                        
+                        showDialog(
+                          context: context,
+                          barrierDismissible: false,
+                          builder: (context) => const Center(child: CircularProgressIndicator()),
+                        );
+                        
+                        final bookingId = int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
+                        final success = await HotelApiProvider().submitCheckOut(bookingId);
+                        
+                        if (context.mounted) {
+                          Navigator.pop(context); // Close loading
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Trả phòng thành công!"), backgroundColor: Colors.green));
+                            _fetchBookingHistory(); // Tải lại danh sách
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lỗi khi trả phòng. Vui lòng thử lại."), backgroundColor: Colors.red));
+                          }
+                        }
+                      },
+                      child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+              );
+            },
+            child: const Text("Trả phòng", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
   // 🏷️ TẠO PILL TAG TRẠNG THÁI TỰ ĐỘNG ĐỔI MÀU THÔNG MINH
   Widget _buildStatusPill(String status, bool isDarkMode) {
     Color cardColor;
     Color textColor;
+    String displayStatus = status;
 
-    if (status.contains('Thành công') || status.contains('Đã xác nhận') || status.contains('True')) {
+    if (status == 'Đã nhận phòng' || status == 'Occupied') {
+      cardColor = Colors.blue.withOpacity(0.15);
+      textColor = isDarkMode ? Colors.lightBlueAccent : Colors.blue.shade700;
+      displayStatus = "Đang ở";
+    } else if (status == 'Đã trả phòng' || status == 'Completed') {
+      cardColor = Colors.grey.withOpacity(0.2);
+      textColor = isDarkMode ? Colors.grey.shade300 : Colors.grey.shade700;
+      displayStatus = "Đã trả phòng";
+    } else if (status.contains('Thành công') || status.contains('Đã xác nhận') || status.contains('Reserved') || status.contains('True')) {
       cardColor = Colors.green.withOpacity(0.15);
       textColor = isDarkMode ? Colors.greenAccent : Colors.green.shade700;
-      status = "Đã duyệt";
+      displayStatus = "Chờ nhận phòng";
     } else {
       cardColor = Colors.orange.withOpacity(0.15);
       textColor = isDarkMode ? Colors.amber : Colors.orange.shade800;
-      status = "Chờ xử lý";
+      displayStatus = "Chờ xử lý";
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(8)),
       child: Text(
-        status,
+        displayStatus,
         style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold),
       ),
     );
