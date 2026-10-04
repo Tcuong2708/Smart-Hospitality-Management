@@ -1,14 +1,14 @@
 const mockRooms = [
-    { id: 101, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1 },
-    { id: 102, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 2 },
-    { id: 103, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 3 },
-    { id: 104, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1 },
-    { id: 201, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 2 },
-    { id: 202, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1 },
-    { id: 203, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1 },
-    { id: 301, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 3 },
-    { id: 302, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 2 },
-    { id: 303, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 1 },
+    { id: 101, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1, view: 'Hướng Thành Phố' },
+    { id: 102, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 2, view: 'Hướng Thành Phố' },
+    { id: 103, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 3, view: 'Hướng Thành Phố' },
+    { id: 104, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1, view: 'Hướng Biển' },
+    { id: 201, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 2, view: 'Hướng Biển' },
+    { id: 202, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1, view: 'Hướng Núi' },
+    { id: 203, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1, view: 'Hướng Biển' },
+    { id: 301, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 3, view: 'Hướng Thành Phố' },
+    { id: 302, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 2, view: 'Hướng Biển' },
+    { id: 303, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 1, view: 'Hướng Núi' },
 ];
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -179,6 +179,11 @@ function fetchRoomMap(roomsToRender) {
 
             const capacityStr = `${room.capacity || 2} người`;
             
+            let viewIcon = 'bi-compass';
+            if (room.view === 'Hướng Biển') viewIcon = 'bi-water text-primary';
+            else if (room.view === 'Hướng Thành Phố') viewIcon = 'bi-buildings text-secondary';
+            else if (room.view === 'Hướng Núi') viewIcon = 'bi-tree text-success';
+
             html += `
             <div class="room-card p-3 d-flex flex-column justify-content-between ${statusClass}">
                 <div>
@@ -186,7 +191,10 @@ function fetchRoomMap(roomsToRender) {
                         <h5 class="fw-bold text-dark m-0">Phòng ${room.id}</h5>
                         <span class="badge bg-light text-dark border fw-bold">${room.maLoai || 'Loại 1'}</span>
                     </div>
-                    <p class="text-muted small mt-1 mb-2"><i class="bi bi-people-fill me-1"></i>Tối đa: ${capacityStr}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-1 mb-2">
+                        <span class="text-muted small"><i class="bi bi-people-fill me-1"></i>Tối đa: ${capacityStr}</span>
+                        <span class="text-muted small fw-bold" style="font-size: 0.75rem;"><i class="bi ${viewIcon} me-1"></i>${room.view}</span>
+                    </div>
                 </div>
                 <div>
                     ${actionHtml}

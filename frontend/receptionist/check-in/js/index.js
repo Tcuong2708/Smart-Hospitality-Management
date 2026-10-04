@@ -22,7 +22,11 @@ async function fetchCheckinData() {
     ];
 
     const mockEmptyRooms = [
-        { id: 101 }, { id: 102 }, { id: 201 }, { id: 202 }
+        { id: 101, view: 'Hướng Thành Phố', type: 'Standard' }, 
+        { id: 104, view: 'Hướng Biển', type: 'Standard' }, 
+        { id: 202, view: 'Hướng Núi', type: 'Deluxe' }, 
+        { id: 203, view: 'Hướng Biển', type: 'Deluxe' },
+        { id: 303, view: 'Hướng Núi', type: 'Suite' }
     ];
 
     try {
@@ -52,15 +56,22 @@ async function fetchCheckinData() {
                 roomBadge = `<span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold"><i class="bi bi-exclamation-triangle-fill me-1"></i> Chưa xếp phòng</span>`;
             }
 
-            let roomOptions = `<option value="">-- Gán số phòng --</option>`;
+            let roomSelectionHTML = '';
             if (item.maPhong) {
-                roomOptions += `<option value="${item.maPhong}" selected>Phòng ${item.maPhong}</option>`;
+                roomSelectionHTML = `
+                    <button type="button" class="btn btn-outline-navy btn-sm fw-bold w-100 text-start text-truncate" onclick="openAssignRoomModal(${item.id}, '${item.maPhong}')" id="btn-select-room-${item.id}">
+                        <i class="bi bi-door-open-fill me-1"></i> Phòng ${item.maPhong} (Đổi)
+                    </button>
+                    <input type="hidden" name="maPhong" id="room-${item.id}" value="${item.maPhong}" required>
+                `;
+            } else {
+                roomSelectionHTML = `
+                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100 text-start text-truncate" onclick="openAssignRoomModal(${item.id}, null)" id="btn-select-room-${item.id}">
+                        <i class="bi bi-key-fill me-1"></i> Chọn phòng...
+                    </button>
+                    <input type="hidden" name="maPhong" id="room-${item.id}" value="" required>
+                `;
             }
-            emptyRooms.forEach(p => {
-                if (!item.maPhong || p.id !== item.maPhong) {
-                    roomOptions += `<option value="${p.id}">Phòng ${p.id}</option>`;
-                }
-            });
 
             return `
             <tr>
@@ -78,12 +89,7 @@ async function fetchCheckinData() {
                 <td class="text-end fw-bold text-danger">${priceFormatted}</td>
                 <td class="text-center">
                     <form onsubmit="openCccdModal(event, ${item.id})" class="d-flex flex-column gap-2 p-2 rounded bg-light border">
-                        <div class="input-group input-group-sm">
-                            <label class="input-group-text bg-navy text-white small" for="room-${item.id}"><i class="bi bi-key-fill"></i></label>
-                            <select name="maPhong" id="room-${item.id}" class="form-select form-select-sm fw-bold text-navy" required>
-                                ${roomOptions}
-                            </select>
-                        </div>
+                        ${roomSelectionHTML}
                         <div class="form-check form-switch m-0 text-start ps-5">
                             <input class="form-check-input cursor-pointer" type="checkbox" name="isPaidUpfront" value="true" id="checkPaid-${item.id}" ${isGuest ? 'checked' : ''}>
                             <label class="form-check-label small fw-bold text-secondary" for="checkPaid-${item.id}" style="font-size: 0.75rem;">Thu trước 1 đêm (TM)</label>
@@ -112,6 +118,90 @@ async function fetchCheckinData() {
 
 let stream = null;
 let currentCheckinId = null;
+let currentAssigningCheckinId = null;
+
+const mockEmptyRoomsGlobal = [
+    { id: 101, view: 'Hướng Thành Phố', type: 'Standard' }, 
+    { id: 104, view: 'Hướng Biển', type: 'Standard' }, 
+    { id: 202, view: 'Hướng Núi', type: 'Deluxe' }, 
+    { id: 203, view: 'Hướng Biển', type: 'Deluxe' },
+    { id: 303, view: 'Hướng Núi', type: 'Suite' }
+];
+
+function openAssignRoomModal(checkinId, currentRoomId) {
+    currentAssigningCheckinId = checkinId;
+    
+    // Reset filters
+    document.getElementById('assignRoomCategory').value = '';
+    document.getElementById('assignRoomView').value = '';
+    
+    renderAvailableRooms();
+
+    const modalEl = document.getElementById('assignRoomModal');
+    if (modalEl.parentNode !== document.body) {
+        document.body.appendChild(modalEl);
+    }
+    const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+    modal.show();
+}
+
+function renderAvailableRooms() {
+    const listContainer = document.getElementById('availableRoomsList');
+    const filterCat = document.getElementById('assignRoomCategory').value;
+    const filterView = document.getElementById('assignRoomView').value;
+    
+    const filteredRooms = mockEmptyRoomsGlobal.filter(r => {
+        const matchCat = filterCat === '' || r.type === filterCat;
+        const matchView = filterView === '' || r.view === filterView;
+        return matchCat && matchView;
+    });
+
+    if (filteredRooms.length === 0) {
+        listContainer.innerHTML = '<div class="text-center py-4 text-muted small"><i class="bi bi-exclamation-circle fs-3 d-block mb-1"></i>Không có phòng trống phù hợp.</div>';
+        return;
+    }
+
+    listContainer.innerHTML = filteredRooms.map(r => {
+        let viewIcon = 'bi-compass';
+        if (r.view === 'Hướng Biển') viewIcon = 'bi-water text-primary';
+        else if (r.view === 'Hướng Thành Phố') viewIcon = 'bi-buildings text-secondary';
+        else if (r.view === 'Hướng Núi') viewIcon = 'bi-tree text-success';
+
+        return `
+        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" onclick="selectRoomForCheckin('${r.id}', '${r.view}', '${r.type}')">
+            <div>
+                <h6 class="fw-bold text-navy mb-1"><i class="bi bi-door-open-fill text-gold me-2"></i>Phòng ${r.id}</h6>
+                <small class="text-muted"><span class="badge bg-light text-dark border me-1">${r.type}</span></small>
+            </div>
+            <div class="text-end">
+                <span class="text-muted small fw-bold"><i class="bi ${viewIcon} me-1"></i>${r.view}</span>
+            </div>
+        </button>
+        `;
+    }).join('');
+}
+
+// Add event listeners to filters
+document.getElementById('assignRoomCategory').addEventListener('change', renderAvailableRooms);
+document.getElementById('assignRoomView').addEventListener('change', renderAvailableRooms);
+
+// Prevent confirm button logic since we select room by clicking on the list
+document.getElementById('btnConfirmAssignRoom').style.display = 'none';
+
+window.selectRoomForCheckin = function(roomId, view, type) {
+    if (!currentAssigningCheckinId) return;
+
+    // Update hidden input
+    document.getElementById('room-' + currentAssigningCheckinId).value = roomId;
+
+    // Update button text
+    const btn = document.getElementById('btn-select-room-' + currentAssigningCheckinId);
+    btn.innerHTML = `<i class="bi bi-door-open-fill me-1"></i> P.${roomId} (${view})`;
+    btn.classList.replace('btn-outline-danger', 'btn-outline-navy');
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('assignRoomModal'));
+    modal.hide();
+};
 
 function openCccdModal(event, id) {
     event.preventDefault();
