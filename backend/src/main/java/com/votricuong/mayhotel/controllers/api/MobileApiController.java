@@ -442,7 +442,7 @@ public class MobileApiController {
                 
                 // Tìm chi tiết để lấy thông tin phòng
                 List<BookingDetail> details = bookingDetailRepository.findByBookingId(o.getId());
-                if (!details.isEmpty()) {
+                if (!details.isEmpty() && details.get(0).getRoomId() != null) {
                     roomRepository.findById(details.get(0).getRoomId()).ifPresent(r -> {
                         map.put("tenPhong", r.getName());
                         map.put("hinhAnh", r.getImageUrl() != null ? r.getImageUrl() : "");
@@ -457,6 +457,45 @@ public class MobileApiController {
         }
     }
     
+    @GetMapping("/booking/active")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveBooking(@RequestParam("userId") Long userId) {
+        try {
+            List<Customer> customers = customerRepository.findByUserId(userId);
+            if (customers.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.success("Không có phòng đang ở", Map.of("hasActiveBooking", false, "canOrderService", false)));
+            }
+            Long customerId = customers.get(0).getId();
+            
+            Optional<BookingOrder> activeOpt = bookingOrderRepository.findAll().stream()
+                .filter(o -> customerId.equals(o.getCustomerId()))
+                .filter(o -> "Đã nhận phòng".equalsIgnoreCase(o.getStatus()) || "Occupied".equalsIgnoreCase(o.getStatus()) || "In Use".equalsIgnoreCase(o.getStatus()))
+                .findFirst();
+                
+            if (activeOpt.isEmpty()) {
+                return ResponseEntity.ok(ApiResponse.success("Hiện không có phòng nào đang ở", Map.of("hasActiveBooking", false, "canOrderService", false)));
+            }
+
+            BookingOrder activeOrder = activeOpt.get();
+            Map<String, Object> data = new HashMap<>();
+            data.put("hasActiveBooking", true);
+            data.put("canOrderService", true);
+            data.put("bookingId", activeOrder.getId());
+            data.put("status", activeOrder.getStatus());
+            
+            List<BookingDetail> details = bookingDetailRepository.findByBookingId(activeOrder.getId());
+            if (!details.isEmpty() && details.get(0).getRoomId() != null) {
+                roomRepository.findById(details.get(0).getRoomId()).ifPresent(r -> {
+                    data.put("roomId", r.getId());
+                    data.put("roomName", r.getName());
+                });
+            }
+
+            return ResponseEntity.ok(ApiResponse.success("Lấy thông tin nhận phòng thành công", data));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
     @PostMapping("/booking/checkin")
     public ResponseEntity<ApiResponse<Map<String, Object>>> checkinAIAndNFC(@RequestBody Map<String, Object> payload) {
         try {
@@ -472,7 +511,7 @@ public class MobileApiController {
             
             List<BookingDetail> details = bookingDetailRepository.findByBookingId(order.getId());
             Long roomId = null;
-            if (!details.isEmpty()) {
+            if (!details.isEmpty() && details.get(0).getRoomId() != null) {
                 roomId = details.get(0).getRoomId();
                 roomRepository.findById(roomId).ifPresent(r -> {
                     r.setStatus("Occupied");
@@ -485,10 +524,11 @@ public class MobileApiController {
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", bookingId);
             resp.put("status", "Đã nhận phòng");
+            resp.put("canOrderService", true);
             resp.put("nfcAccessCode", nfcCode);
             resp.put("cccdParsed", cccdData);
             
-            return ResponseEntity.ok(ApiResponse.success("Nhận phòng thành công. Bắt đầu ghi thẻ NFC.", resp));
+            return ResponseEntity.ok(ApiResponse.success("Nhận phòng thành công. Quý khách đã có thể đặt dịch vụ.", resp));
         } catch(Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -506,7 +546,7 @@ public class MobileApiController {
             bookingOrderRepository.save(order);
             
             List<BookingDetail> details = bookingDetailRepository.findByBookingId(order.getId());
-            if (!details.isEmpty()) {
+            if (!details.isEmpty() && details.get(0).getRoomId() != null) {
                 Long roomId = details.get(0).getRoomId();
                 roomRepository.findById(roomId).ifPresent(r -> {
                     r.setStatus("Cleaning"); // Chờ dọn dẹp
@@ -523,7 +563,7 @@ public class MobileApiController {
                     invoiceRepository.save(inv);
                 });
             
-            return ResponseEntity.ok(ApiResponse.success("Trả phòng thành công", Map.of("bookingId", bookingId)));
+            return ResponseEntity.ok(ApiResponse.success("Trả phòng thành công. Quyền đặt dịch vụ đã được khóa.", Map.of("bookingId", bookingId, "canOrderService", false)));
         } catch(Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -541,8 +581,17 @@ public class MobileApiController {
             Integer quantity = (Integer) payload.getOrDefault("quantity", 1);
             
             Optional<BookingOrder> orderOpt = bookingOrderRepository.findById(bookingId);
-            if (orderOpt.isEmpty() || !"Đã nhận phòng".equals(orderOpt.get().getStatus())) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("Chỉ tài khoản đang nhận phòng mới được đặt dịch vụ."));
+            if (orderOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Không tìm thấy thông tin đơn đặt phòng."));
+            }
+
+            BookingOrder order = orderOpt.get();
+            String st = order.getStatus();
+
+            // Kiểm tra chỉ cho phép gọi dịch vụ khi đã Check-In và chưa Check-Out
+            boolean isCheckedIn = "Đã nhận phòng".equalsIgnoreCase(st) || "Occupied".equalsIgnoreCase(st) || "In Use".equalsIgnoreCase(st);
+            if (!isCheckedIn) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Quý khách chưa Check-in hoặc đã Trả phòng. Dịch vụ tạm thời bị khóa!"));
             }
             
             Optional<Service> srvOpt = serviceRepository.findById(serviceId);
@@ -552,17 +601,27 @@ public class MobileApiController {
             
             Service srv = srvOpt.get();
             
-            ServiceTicket st = new ServiceTicket();
-            st.setId(sequenceGeneratorService.generateSequence("service_tickets_sequence"));
-            st.setBookingId(bookingId);
-            st.setServiceId(serviceId);
-            st.setQuantity(quantity);
-            // st.setPrice(srv.getPrice());
-            serviceTicketRepository.save(st);
+            ServiceTicket stItem = new ServiceTicket();
+            stItem.setId(sequenceGeneratorService.generateSequence("service_tickets_sequence"));
+            stItem.setBookingId(bookingId);
+            stItem.setServiceId(serviceId);
+            stItem.setQuantity(quantity);
+            stItem.setPrice(srv.getPrice());
+            serviceTicketRepository.save(stItem);
+
+            // Cập nhật tổng tiền vào hóa đơn hiện tại (nếu có)
+            invoiceRepository.findAll().stream()
+                .filter(inv -> bookingId.equals(inv.getBookingId()))
+                .findFirst()
+                .ifPresent(inv -> {
+                    double currentTotal = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0;
+                    inv.setTotalAmount(currentTotal + (srv.getPrice() * quantity));
+                    invoiceRepository.save(inv);
+                });
             
-            // Generate Receipt Data (Mô phỏng HoaDon58mm.pdf) cho Mobile render
+            // Generate Receipt Data cho Mobile render
             Map<String, Object> receipt = new HashMap<>();
-            receipt.put("title", "HÓA ĐƠN");
+            receipt.put("title", "HÓA ĐƠN DỊCH VỤ");
             receipt.put("hotelName", "MAY HOTEL");
             receipt.put("address", "Tây Thạnh, TP.HCM");
             receipt.put("hotline", "0123456789");

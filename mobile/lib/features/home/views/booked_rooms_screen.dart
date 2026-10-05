@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter/services.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import '../../../core/utils/responsive.dart';
 import '../../checkin/views/mobile_self_checkin_screen.dart';
@@ -13,11 +12,12 @@ class BookedRoomsScreen extends StatefulWidget {
   State<BookedRoomsScreen> createState() => _BookedRoomsScreenState();
 }
 
-class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
+class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTickerProviderStateMixin {
   final HotelApiProvider _apiProvider = HotelApiProvider();
   List<dynamic> _bookedRooms = [];
   bool _isLoading = true;
   String _errorMessage = '';
+  String _selectedFilter = 'ALL'; // ALL, ACTIVE, RESERVED, HISTORY
 
   @override
   void initState() {
@@ -34,11 +34,10 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
 
     try {
       const int maKHHardcode = 3; // Đồng bộ Mã khách hàng tương tự bên trang Booking
-
       final res = await _apiProvider.getTransactionHistory(maKHHardcode);
       if (mounted) {
         setState(() {
-          _bookedRooms = res ?? [];
+          _bookedRooms = res;
           _isLoading = false;
         });
       }
@@ -53,7 +52,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
     }
   }
 
-  // 🛡️ HÀM BỌC AN TOÀN: Định dạng ngày tháng, chống lỗi RangeError sập App cực tốt
+  // Định dạng ngày tháng an toàn
   String _safeFormatDate(dynamic dateStr) {
     if (dateStr == null) return '--/--/----';
     String s = dateStr.toString();
@@ -61,6 +60,39 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
       return s.substring(0, 10);
     }
     return s;
+  }
+
+  // Lấy danh sách đã lọc
+  List<dynamic> get _filteredRooms {
+    if (_selectedFilter == 'ACTIVE') {
+      return _bookedRooms.where((item) {
+        String st = item['trangThai']?.toString() ?? '';
+        return st == 'Đã nhận phòng' || st == 'Occupied' || st == 'In Use';
+      }).toList();
+    } else if (_selectedFilter == 'RESERVED') {
+      return _bookedRooms.where((item) {
+        String st = item['trangThai']?.toString() ?? '';
+        return st.contains('Đã xác nhận') || st.contains('Reserved') || st == 'Pending';
+      }).toList();
+    } else if (_selectedFilter == 'HISTORY') {
+      return _bookedRooms.where((item) {
+        String st = item['trangThai']?.toString() ?? '';
+        return st == 'Đã trả phòng' || st == 'Completed' || st == 'Đã hủy';
+      }).toList();
+    }
+    return _bookedRooms;
+  }
+
+  // Tìm booking đang lưu trú active
+  dynamic get _activeBooking {
+    try {
+      return _bookedRooms.firstWhere((item) {
+        String st = item['trangThai']?.toString() ?? '';
+        return st == 'Đã nhận phòng' || st == 'Occupied' || st == 'In Use';
+      });
+    } catch (e) {
+      return null;
+    }
   }
 
   @override
@@ -71,11 +103,14 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
 
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
-      // 🎯 ĐỒNG BỘ APP BAR & ICON PIN / ĐỒNG HỒ HỆ THỐNG
       appBar: AppBar(
         title: Text(
-            "Phòng đã đặt",
-            style: TextStyle(fontWeight: FontWeight.bold, fontSize: Responsive.sp(context, 18), color: colorScheme.onSurface)
+          "Phòng đã đặt & Danh mục",
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: Responsive.sp(context, 18),
+            color: colorScheme.onSurface,
+          ),
         ),
         centerTitle: true,
         elevation: 0.5,
@@ -86,23 +121,336 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
           statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
         ),
       ),
-      // Tính năng vuốt màn hình kéo xuống để làm mới dữ liệu Live
       body: RefreshIndicator(
         onRefresh: _fetchBookingHistory,
         color: colorScheme.primary,
-        child: _buildBodyContent(colorScheme, isDarkMode),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.symmetric(horizontal: Responsive.sp(context, 16), vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 🎛️ 1. DANH MỤC TIỆN ÍCH DÀNH CHO KHÁCH HÀNG (QUICK CATEGORIES)
+              _buildCategoryMenuGrid(colorScheme, isDarkMode),
+
+              const SizedBox(height: 20),
+
+              // 🏷️ 2. BỘ LỌC PHÂN LOẠI (TAB FILTERS)
+              _buildFilterChips(colorScheme, isDarkMode),
+
+              const SizedBox(height: 16),
+
+              // 📦 3. NỘI DUNG HIỂN THỊ CHÍNH (LOADING, ERROR, HOẶC DANH SÁCH PHÒNG)
+              _buildMainContent(colorScheme, isDarkMode),
+            ],
+          ),
+        ),
       ),
     );
   }
 
-  // 🎛️ BỘ ĐIỀU PHỐI WIDGET HIỂN THỊ DỰA TRÊN TRẠNG THÁI DỮ LIỆU
-  Widget _buildBodyContent(ColorScheme colorScheme, bool isDarkMode) {
-    // 1. Trạng thái đang xoay vòng chờ API nhả dữ liệu
+  // 🎛️ 1. LƯỚI DANH MỤC LỰA CHỌN TIỆN ÍCH KHÁCH HÀNG
+  Widget _buildCategoryMenuGrid(ColorScheme colorScheme, bool isDarkMode) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDarkMode ? colorScheme.surface : Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.06),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          )
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.dashboard_customize_rounded, color: isDarkMode ? Colors.amber : colorScheme.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                "Danh mục tiện ích Khách hàng",
+                style: TextStyle(
+                  fontSize: Responsive.sp(context, 15),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              // DANH MỤC 1: ĐẶT DỊCH VỤ PHÒNG
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Đặt Dịch Vụ",
+                  subtitle: "Ăn uống, giặt ủi, thuê xe...",
+                  icon: Icons.room_service_rounded,
+                  badgeText: _activeBooking != null ? "Đang ở" : null,
+                  badgeColor: Colors.green,
+                  cardGradient: [const Color(0xFF0F2942), const Color(0xFF1E3E62)],
+                  iconColor: Colors.amber,
+                  onTap: () {
+                    final active = _activeBooking;
+                    if (active != null) {
+                      final bookingId = int.tryParse(active['bookingId']?.toString() ?? '0') ?? 0;
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ServiceOrderScreen(bookingId: bookingId),
+                        ),
+                      );
+                    } else {
+                      _showServicePromptDialog(colorScheme);
+                    }
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // DANH MỤC 2: XEM LỊCH SỬ ĐẶT PHÒNG
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Lịch Sử Đặt",
+                  subtitle: "Tất cả phiếu & hóa đơn",
+                  icon: Icons.history_toggle_off_rounded,
+                  badgeText: "${_bookedRooms.length} đơn",
+                  badgeColor: colorScheme.primary,
+                  cardGradient: isDarkMode
+                      ? [Colors.grey.shade900, Colors.grey.shade800]
+                      : [const Color(0xFFF4F6F9), const Color(0xFFE9ECEF)],
+                  iconColor: isDarkMode ? Colors.lightBlueAccent : const Color(0xFF0F2942),
+                  textColor: isDarkMode ? Colors.white : const Color(0xFF0F2942),
+                  subtitleColor: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                  onTap: () {
+                    setState(() {
+                      _selectedFilter = 'HISTORY';
+                    });
+                  },
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              // DANH MỤC 3: TỰ NHẬN PHÒNG (NFC / AI)
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Nhận Phòng NFC",
+                  subtitle: "Quét CCCD & Mở khóa",
+                  icon: Icons.nfc_rounded,
+                  cardGradient: isDarkMode
+                      ? [Colors.teal.shade900, Colors.teal.shade800]
+                      : [const Color(0xFFE6F4EA), const Color(0xFFCEEAD6)],
+                  iconColor: Colors.teal.shade700,
+                  textColor: Colors.teal.shade900,
+                  subtitleColor: Colors.teal.shade800,
+                  onTap: () {
+                    final reserved = _bookedRooms.firstWhere(
+                      (item) => (item['trangThai']?.toString() ?? '').contains('Reserved') || (item['trangThai']?.toString() ?? '').contains('Đã xác nhận'),
+                      orElse: () => null,
+                    );
+                    final bId = reserved != null ? (int.tryParse(reserved['bookingId']?.toString() ?? '0') ?? 0) : 0;
+                    final rName = reserved != null ? (reserved['tenPhong']?.toString() ?? 'Phòng của bạn') : 'Phòng khách sạn';
+                    
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => MobileSelfCheckinScreen(bookingId: bId, roomName: rName),
+                      ),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+
+              // DANH MỤC 4: ĐẶT PHÒNG NGHỈ MỚI
+              Expanded(
+                child: _buildCategoryCard(
+                  title: "Khám Phá Phòng",
+                  subtitle: "Đặt phòng sang trọng",
+                  icon: Icons.hotel_rounded,
+                  cardGradient: isDarkMode
+                      ? [Colors.amber.shade900, Colors.amber.shade800]
+                      : [const Color(0xFFFFF8E1), const Color(0xFFFFECB3)],
+                  iconColor: Colors.amber.shade900,
+                  textColor: const Color(0xFF4A3B00),
+                  subtitleColor: Colors.amber.shade900,
+                  onTap: () {
+                    if (Navigator.canPop(context)) {
+                      Navigator.pop(context);
+                    } else {
+                      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+                    }
+                  },
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 💳 ITEM CARD NÚT DANH MỤC ĐẸP MẮT
+  Widget _buildCategoryCard({
+    required String title,
+    required String subtitle,
+    required IconData icon,
+    String? badgeText,
+    Color? badgeColor,
+    required List<Color> cardGradient,
+    required Color iconColor,
+    Color textColor = Colors.white,
+    Color subtitleColor = Colors.white70,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(16),
+      child: Container(
+        height: 105,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: cardGradient,
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: cardGradient.first.withOpacity(0.2),
+              blurRadius: 8,
+              offset: const Offset(0, 3),
+            )
+          ],
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(7),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, color: iconColor, size: 22),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: textColor,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: subtitleColor,
+                        fontWeight: FontWeight.w400,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            if (badgeText != null)
+              Positioned(
+                top: 0,
+                right: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: badgeColor ?? Colors.redAccent,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    badgeText,
+                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // 🏷️ 2. KHỐI CHỌN LỌC PHÂN LOẠI (CHIPS)
+  Widget _buildFilterChips(ColorScheme colorScheme, bool isDarkMode) {
+    final filters = [
+      {'key': 'ALL', 'label': 'Tất cả (${_bookedRooms.length})'},
+      {'key': 'ACTIVE', 'label': 'Đang ở'},
+      {'key': 'RESERVED', 'label': 'Chờ nhận'},
+      {'key': 'HISTORY', 'label': 'Lịch sử'},
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: filters.map((f) {
+          final isSelected = _selectedFilter == f['key'];
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: ChoiceChip(
+              label: Text(
+                f['label']!,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected
+                      ? (isDarkMode ? Colors.black : Colors.white)
+                      : colorScheme.onSurface.withOpacity(0.7),
+                ),
+              ),
+              selected: isSelected,
+              selectedColor: isDarkMode ? Colors.amber : colorScheme.primary,
+              backgroundColor: isDarkMode ? colorScheme.surface : Colors.grey.shade200,
+              onSelected: (selected) {
+                if (selected) {
+                  setState(() {
+                    _selectedFilter = f['key']!;
+                  });
+                }
+              },
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  // 📦 3. BỘ ĐIỀU PHỐI NỘI DUNG CHÍNH
+  Widget _buildMainContent(ColorScheme colorScheme, bool isDarkMode) {
     if (_isLoading) {
-      return Center(child: CircularProgressIndicator(color: colorScheme.primary));
+      return Container(
+        height: 200,
+        alignment: Alignment.center,
+        child: CircularProgressIndicator(color: colorScheme.primary),
+      );
     }
 
-    // 2. Trạng thái sập mạng hoặc lỗi Endpoint API
     if (_errorMessage.isNotEmpty) {
       return _buildEmptyOrErrorState(
         icon: Icons.wifi_off_rounded,
@@ -113,20 +461,19 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
       );
     }
 
-    // 3. Trạng thái thông mạch thành công nhưng tài khoản chưa từng đặt phòng nào
-    if (_bookedRooms.isEmpty) {
+    final roomsToDisplay = _filteredRooms;
+
+    if (roomsToDisplay.isEmpty) {
       return _buildEmptyOrErrorState(
         icon: Icons.calendar_month_outlined,
-        title: "Bạn chưa có lịch đặt phòng nào tại May Hotel",
+        title: _selectedFilter == 'ALL'
+            ? "Bạn chưa có lịch đặt phòng nào tại May Hotel"
+            : "Không có đơn đặt phòng nào trong danh mục này",
         buttonText: "Khám phá phòng ngay",
-        // 🎯 ĐA VÁ XỬ LÝ LỖI ĐEN MÀN HÌNH: Navigator Fallback linh hoạt
         onPressed: () {
           if (Navigator.canPop(context)) {
-            // Trường hợp mở dạng trang lẻ độc lập từ Profile -> Lùi về an toàn
             Navigator.pop(context);
           } else {
-            // Trường hợp màn hình là một TAB cố định thuộc BottomBar -> Không thể pop.
-            // Ép hệ thống đẩy vòng ngoài về trang Main chính diện để chọn lại Tab Trang chủ
             Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
           }
         },
@@ -134,43 +481,61 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
       );
     }
 
-    // 4. HIỂN THỊ DANH SÁCH PHÒNG LIVE SIÊU SANG TRỌNG V20
-    return ListView.builder(
-      physics: const AlwaysScrollableScrollPhysics(), // Ép luôn cho cuộn để ăn lệnh RefreshIndicator
-      padding: EdgeInsets.all(Responsive.sp(context, 16)),
-      itemCount: _bookedRooms.length,
-      itemBuilder: (context, index) {
-        final item = _bookedRooms[index];
-        return _buildBookingCard(item, colorScheme, isDarkMode);
-      },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Text(
+            "Danh sách đơn đặt phòng (${roomsToDisplay.length})",
+            style: TextStyle(
+              fontSize: Responsive.sp(context, 14),
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface.withOpacity(0.8),
+            ),
+          ),
+        ),
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: roomsToDisplay.length,
+          itemBuilder: (context, index) {
+            final item = roomsToDisplay[index];
+            return _buildBookingCard(item, colorScheme, isDarkMode);
+          },
+        ),
+      ],
     );
   }
 
-  // 💳 THIẾT KẾ CARD PHÒNG ĐÃ ĐẶT ĐỒNG BỘ STYLE NÂNG CAO
+  // 💳 THIẾT KẾ CARD PHÒNG ĐÃ ĐẶT
   Widget _buildBookingCard(dynamic item, ColorScheme colorScheme, bool isDarkMode) {
-    // Bốc dữ liệu an toàn từ JSON Map của Backend C# ném qua
     String tenPhong = item['tenPhong']?.toString() ?? 'Hạng phòng cao cấp';
     String hinhAnh = item['hinhAnh']?.toString() ?? '';
 
-    // 🛡️ ĐÃ SỬA: Chống gãy Layout/Crash bằng hàm định dạng ngày an toàn
-    String ngayNhan = _safeFormatDate(item['ngayNhanPhong']);
-    String ngayTra = _safeFormatDate(item['ngayTraPhong']);
+    String ngayNhan = _safeFormatDate(item['ngayNhanPhong'] ?? item['ngayNhan']);
+    String ngayTra = _safeFormatDate(item['ngayTraPhong'] ?? item['ngayTra']);
 
     double tongTien = double.tryParse(item['tongTien']?.toString() ?? '0') ?? 0;
     String trangThai = item['trangThai']?.toString() ?? 'Chờ xác nhận';
 
-    // Xử lý bẫy nhân đôi chuỗi assets/images/ lọt từ trang trước sang
     if (hinhAnh.startsWith('assets/images/http')) {
       hinhAnh = hinhAnh.replaceFirst('assets/images/', '');
     }
     final bool isNetworkImage = hinhAnh.startsWith('http');
-    String maskedRoomTitle = tenPhong.replaceAll(RegExp(r'P\d+'), 'P***'); // Mặt nạ bảo mật số phòng
+    String maskedRoomTitle = tenPhong.replaceAll(RegExp(r'P\d+'), 'P***');
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(15),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (trangThai == "Đã nhận phòng" || trangThai == "Occupied")
+              ? Colors.blue.withOpacity(0.5)
+              : Colors.transparent,
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
@@ -184,16 +549,13 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Khối hiển thị hình ảnh bo góc chống vỡ Layout
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: isNetworkImage
                   ? Image.network(hinhAnh, width: 85, height: 85, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildImagePlaceholder(colorScheme))
                   : Image.asset(hinhAnh, width: 85, height: 85, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildImagePlaceholder(colorScheme)),
             ),
-            const SizedBox(width: 15),
-
-            // Khu vực bốc trích thông tin chữ
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -209,7 +571,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      _buildStatusPill(trangThai, isDarkMode), // Gắn tag trạng thái thông minh
+                      _buildStatusPill(trangThai, isDarkMode),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -222,11 +584,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        "${tongTien.toStringAsFixed(0)} VNĐ", // Định dạng tiền sạch sẽ, né lỗi VND VND
+                        "${tongTien.toStringAsFixed(0)} VNĐ",
                         style: TextStyle(
-                            fontSize: Responsive.sp(context, 15),
-                            fontWeight: FontWeight.bold,
-                            color: isDarkMode ? Colors.amber : colorScheme.primary
+                          fontSize: Responsive.sp(context, 14),
+                          fontWeight: FontWeight.bold,
+                          color: isDarkMode ? Colors.amber : colorScheme.primary,
                         ),
                       ),
                       _buildActionButtons(item, trangThai, colorScheme),
@@ -241,13 +603,15 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
     );
   }
 
-  // 🎛️ KHỐI NÚT CHỨC NĂNG (NHẬN PHÒNG, DỊCH VỤ, TRẢ PHÒNG) THEO TRẠNG THÁI
+  // 🎛️ KHỐI NÚT THAO TÁC THEO TRẠNG THÁI
   Widget _buildActionButtons(dynamic item, String trangThai, ColorScheme colorScheme) {
+    final int bookingId = int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
+
     if (trangThai == "Đã xác nhận" || trangThai == "Reserved") {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme.primary,
-          foregroundColor: colorScheme.onPrimary,
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
           minimumSize: const Size(0, 32),
         ),
@@ -256,86 +620,48 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
             context,
             MaterialPageRoute(
               builder: (context) => MobileSelfCheckinScreen(
-                bookingId: int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0,
+                bookingId: bookingId,
                 roomName: item['tenPhong']?.toString() ?? 'Phòng của bạn',
               ),
             ),
           );
           if (result == true) {
-            _fetchBookingHistory(); // Tải lại danh sách sau khi Check-in thành công
+            _fetchBookingHistory();
           }
         },
         child: const Text("Nhận phòng", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
       );
-    } else if (trangThai == "Đã nhận phòng" || trangThai == "Occupied") {
+    } else if (trangThai == "Đã nhận phòng" || trangThai == "Occupied" || trangThai == "In Use") {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber.shade700,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
               minimumSize: const Size(0, 32),
-              side: BorderSide(color: colorScheme.primary),
             ),
             onPressed: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ServiceOrderScreen(
-                    bookingId: int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0,
-                  ),
+                  builder: (context) => ServiceOrderScreen(bookingId: bookingId),
                 ),
               );
             },
-            child: Text("Dịch vụ", style: TextStyle(fontSize: 12, color: colorScheme.primary, fontWeight: FontWeight.bold)),
+            icon: const Icon(Icons.room_service, size: 14),
+            label: const Text("Dịch vụ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
           ),
-          const SizedBox(width: 8),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.redAccent,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+          const SizedBox(width: 6),
+          OutlinedButton(
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
               minimumSize: const Size(0, 32),
+              side: const BorderSide(color: Colors.redAccent),
             ),
-            onPressed: () async {
-              showDialog(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text("Xác nhận trả phòng"),
-                  content: Text("Bạn có chắc chắn muốn trả phòng ${item['tenPhong']} không?"),
-                  actions: [
-                    TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
-                    ElevatedButton(
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-                      onPressed: () async {
-                        Navigator.pop(context); // Close dialog
-                        
-                        showDialog(
-                          context: context,
-                          barrierDismissible: false,
-                          builder: (context) => const Center(child: CircularProgressIndicator()),
-                        );
-                        
-                        final bookingId = int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
-                        final success = await HotelApiProvider().submitCheckOut(bookingId);
-                        
-                        if (context.mounted) {
-                          Navigator.pop(context); // Close loading
-                          if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Trả phòng thành công!"), backgroundColor: Colors.green));
-                            _fetchBookingHistory(); // Tải lại danh sách
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lỗi khi trả phòng. Vui lòng thử lại."), backgroundColor: Colors.red));
-                          }
-                        }
-                      },
-                      child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
-                    ),
-                  ],
-                ),
-              );
-            },
-            child: const Text("Trả phòng", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            onPressed: () => _confirmCheckOut(item),
+            child: const Text("Trả phòng", style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold)),
           ),
         ],
       );
@@ -343,13 +669,92 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
     return const SizedBox.shrink();
   }
 
-  // 🏷️ TẠO PILL TAG TRẠNG THÁI TỰ ĐỘNG ĐỔI MÀU THÔNG MINH
+  // Dialog xác nhận trả phòng
+  void _confirmCheckOut(dynamic item) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text("Xác nhận trả phòng"),
+        content: Text("Bạn có chắc chắn muốn trả phòng ${item['tenPhong']} không?\nSau khi trả phòng, quyền đặt dịch vụ sẽ tự động khóa."),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              final messenger = ScaffoldMessenger.of(context);
+              nav.pop(); // Close confirm dialog
+
+              showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => const Center(child: CircularProgressIndicator()),
+              );
+
+              final bookingId = int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
+              final success = await HotelApiProvider().submitCheckOut(bookingId);
+
+              if (mounted) {
+                nav.pop(); // Close loading dialog
+                if (success) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text("Trả phòng thành công! Quyền đặt dịch vụ đã được khóa."), backgroundColor: Colors.green),
+                  );
+                  _fetchBookingHistory();
+                } else {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text("Lỗi khi trả phòng. Vui lòng thử lại."), backgroundColor: Colors.red),
+                  );
+                }
+              }
+            },
+            child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Dialog thông báo khi không có phòng active để đặt dịch vụ
+  void _showServicePromptDialog(ColorScheme colorScheme) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: colorScheme.primary),
+            const SizedBox(width: 8),
+            const Text("Thông báo dịch vụ"),
+          ],
+        ),
+        content: const Text(
+          "Dịch vụ phòng (Ăn uống, thuê xe, giặt ủi...) chỉ dành cho Khách hàng đang có phòng lưu trú (Đã Check-in).\n\n"
+          "Nếu bạn đã có phòng, vui lòng chọn nút 'Nhận phòng' ở danh sách bên dưới.",
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Đóng")),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              } else {
+                Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+              }
+            },
+            child: const Text("Khám phá phòng ngay"),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatusPill(String status, bool isDarkMode) {
     Color cardColor;
     Color textColor;
     String displayStatus = status;
 
-    if (status == 'Đã nhận phòng' || status == 'Occupied') {
+    if (status == 'Đã nhận phòng' || status == 'Occupied' || status == 'In Use') {
       cardColor = Colors.blue.withOpacity(0.15);
       textColor = isDarkMode ? Colors.lightBlueAccent : Colors.blue.shade700;
       displayStatus = "Đang ở";
@@ -378,10 +783,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
   }
 
   Widget _buildImagePlaceholder(ColorScheme colorScheme) {
-    return Container(color: colorScheme.surfaceVariant, child: Icon(Icons.hotel, color: colorScheme.onSurfaceVariant));
+    return Container(color: Colors.grey.shade200, child: Icon(Icons.hotel, color: colorScheme.primary));
   }
 
-  // 📭 GIAO DIỆN TRẠNG THÁI TRỐNG / LỖI CHUẨN DESIGN SYSTEM V20
   Widget _buildEmptyOrErrorState({
     required IconData icon,
     required String title,
@@ -391,23 +795,23 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> {
   }) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(30),
+        padding: const EdgeInsets.symmetric(vertical: 30, horizontal: 20),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 70, color: colorScheme.onSurface.withOpacity(0.2)),
-            const SizedBox(height: 20),
+            Icon(icon, size: 60, color: colorScheme.onSurface.withOpacity(0.2)),
+            const SizedBox(height: 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5), fontSize: 15, fontWeight: FontWeight.w500, height: 1.4),
+              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5), fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
             ),
-            const SizedBox(height: 25),
+            const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 12),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                 elevation: 2,
               ),
               onPressed: onPressed,

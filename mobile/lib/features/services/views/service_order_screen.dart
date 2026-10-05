@@ -5,7 +5,6 @@ import 'package:blue_thermal_printer/blue_thermal_printer.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:image/image.dart' as img;
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
-import '../../../core/utils/responsive.dart';
 
 class ServiceOrderScreen extends StatefulWidget {
   final int bookingId;

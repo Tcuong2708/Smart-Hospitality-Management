@@ -11,6 +11,7 @@
         .invoice-box { background: #fff; max-width: 800px; margin: 30px auto; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); display: none; }
         .theme-color { color: #0F2942; }
         .gold-color { color: #C5A017; }
+        .navbar, footer, #chat-circle, .chat-box, .toast-container { display: none !important; }
         @page {
             size: A4;
             margin: 15mm;
@@ -59,7 +60,10 @@
 <div class="invoice-box" id="invoice-content">
     <div class="row border-bottom pb-4 mb-4 align-items-center">
         <div class="col-8">
-            <h2 class="fw-bold theme-color m-0 mb-1">MAY HOTEL</h2>
+            <div class="d-flex align-items-center gap-3 mb-2">
+                <img src="../../images/Logo web.png" alt="May Hotel Logo" style="height: 50px; object-fit: contain;">
+                <h2 class="fw-bold theme-color m-0">MAY HOTEL</h2>
+            </div>
             <div class="small text-muted">CN1: 140 Lê Trọng Tấn, TP. HCM</div>
             <div class="small text-muted">CN2: 86 Tân Hòa Đông, Q.6, TP. HCM</div>
             <div class="small text-muted">Hotline: 1800 9327 | Email: MayHotel.hotel@gmail.com</div>

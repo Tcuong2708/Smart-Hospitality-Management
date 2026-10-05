@@ -566,7 +566,7 @@ public class BookingController extends BaseController {
         com.votricuong.mayhotel.documents.BookingOrder order = orderOpt.get();
         
         List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(id);
-        if (!details.isEmpty()) {
+        if (!details.isEmpty() && details.get(0).getRoomId() != null) {
             roomRepository.findById(details.get(0).getRoomId()).ifPresent(room -> {
                 model.addAttribute("phong", room);
             });
@@ -618,11 +618,13 @@ public class BookingController extends BaseController {
         // Nhả phòng trống về kho
         List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(id);
         for (com.votricuong.mayhotel.documents.BookingDetail bd : details) {
-            roomRepository.findById(bd.getRoomId()).ifPresent(room -> {
-                room.setStatus("Trống");
-                room.setNote("");
-                roomRepository.save(room);
-            });
+            if (bd.getRoomId() != null) {
+                roomRepository.findById(bd.getRoomId()).ifPresent(room -> {
+                    room.setStatus("Trống");
+                    room.setNote("");
+                    roomRepository.save(room);
+                });
+            }
         }
 
         ra.addFlashAttribute("success", "Hủy đặt phòng thành công!");

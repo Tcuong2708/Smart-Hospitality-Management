@@ -74,7 +74,7 @@ public class ReceptionistController extends BaseController {
             }
         } else if (inv.getBookingId() != null) {
             List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(inv.getBookingId());
-            if (details != null && !details.isEmpty()) {
+            if (details != null && !details.isEmpty() && details.get(0).getRoomId() != null) {
                 Room r = roomRepository.findById(details.get(0).getRoomId()).orElse(null);
                 if (r != null) {
                     maLoai = r.getRoomTypeId();
@@ -156,7 +156,7 @@ public class ReceptionistController extends BaseController {
 
     // 1. GET /check-in: Hiển thị list phòng chờ nhận
     @GetMapping("/check-in")
-    public String checkInView(Model model) {
+    public String checkInView(@RequestParam(value = "roomId", required = false) Long roomId, Model model) {
         setPageTitle(model, "Nghiệp vụ Nhận phòng");
         
         List<InvoiceDTO> invoices = invoiceRepository.findAll().stream()
@@ -170,6 +170,7 @@ public class ReceptionistController extends BaseController {
 
         model.addAttribute("invoices", invoices);
         model.addAttribute("emptyRooms", emptyRooms);
+        model.addAttribute("selectedRoomId", roomId);
 
         setExtraCSS(model, "view/Admin/CheckIn/index :: extra_css");
         return render(model, "view/Admin/CheckIn/index");
@@ -212,7 +213,7 @@ public class ReceptionistController extends BaseController {
 
     // 3. GET /check-out: Hiển thị list phòng đang ở
     @GetMapping("/check-out")
-    public String checkOutView(Model model) {
+    public String checkOutView(@RequestParam(value = "roomId", required = false) Long roomId, Model model) {
         setPageTitle(model, "Nghiệp vụ Trả phòng");
 
         List<InvoiceDTO> invoices = invoiceRepository.findAll().stream()
@@ -221,6 +222,7 @@ public class ReceptionistController extends BaseController {
                 .collect(Collectors.toList());
 
         model.addAttribute("invoices", invoices);
+        model.addAttribute("selectedRoomId", roomId);
 
         setExtraCSS(model, "view/Admin/Checkout/index :: extra_css");
         return render(model, "view/Admin/Checkout/index");
