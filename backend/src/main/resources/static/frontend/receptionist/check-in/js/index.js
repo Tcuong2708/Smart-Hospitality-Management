@@ -1,5 +1,5 @@
 const API_URL = 'http://localhost:8080/api/checkin';
-const AI_URL = 'https://[DIEN-DOMAIN-AI-CUA-BAN-VAO-DAY].ngrok-free.app';
+const AI_URL = 'http://localhost:5000';
 document.addEventListener('DOMContentLoaded', () => {
     fetchCheckinData();
 });
@@ -163,16 +163,74 @@ window.openMobileVerifyModal = function(id, hoTen) {
     modal.show();
 };
 
-window.simulateMobileSuccess = function() {
-    // Đóng nút giả lập và nút hủy
-    document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.add('d-none');
-    document.querySelector('#mobileVerifyModal .btn-warning').classList.add('d-none');
-    
-    // Hiển thị kết quả thành công và nút Tiếp tục
-    document.getElementById('mobile-verify-waiting').classList.add('d-none');
-    document.getElementById('mobile-verify-success').classList.remove('d-none');
-    document.getElementById('btn-continue-room').classList.remove('d-none');
-};
+document.addEventListener('click', async function(e) {
+    if (e.target && e.target.id === 'btn-sync-nfc' || e.target.closest('#btn-sync-nfc')) {
+        const btn = e.target.closest('#btn-sync-nfc');
+        const nfcInput = document.getElementById('nfc-image');
+        const selfieInput = document.getElementById('nfc-selfie');
+        
+        if (nfcInput.files.length === 0 || selfieInput.files.length === 0) {
+            alert("Vui lòng tải lên cả Ảnh từ Chip NFC và Ảnh Selfie để AI FaceMatch hoạt động!");
+            return;
+        }
+        
+        const originalHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang đồng bộ...';
+        btn.disabled = true;
+        
+        try {
+            const formData = new FormData();
+            formData.append("nfc_image", nfcInput.files[0]);
+            formData.append("selfie_image", selfieInput.files[0]);
+
+            const response = await fetch(`${AI_URL}/api/v1/ai/verify-face-nfc`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error(`Lỗi server AI: ${response.status}`);
+            }
+
+            const data = await response.json();
+            
+            if(data.status === 'success') {
+                document.getElementById('mobile-verify-waiting').classList.add('d-none');
+                const successDiv = document.getElementById('mobile-verify-success');
+                successDiv.classList.remove('d-none');
+                
+                if(data.is_match) {
+                    successDiv.innerHTML = `
+                        <i class="bi bi-check-circle-fill text-success display-2 mb-2"></i>
+                        <h5 class="fw-bold text-success">Xác thực NFC & FaceID Thành công!</h5>
+                        <p class="text-muted small mb-0">Khuôn mặt hợp lệ: Độ chính xác <strong class="text-navy">${data.similarity}%</strong>.</p>
+                    `;
+                } else {
+                    successDiv.innerHTML = `
+                        <i class="bi bi-x-circle-fill text-danger display-2 mb-2"></i>
+                        <h5 class="fw-bold text-danger">Xác thực FaceID Thất bại!</h5>
+                        <p class="text-muted small mb-0">Độ chính xác: <strong class="text-navy">${data.similarity}%</strong>. Dữ liệu không khớp!</p>
+                    `;
+                }
+                
+                document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.add('d-none');
+                btn.classList.add('d-none');
+                
+                if (data.is_match) {
+                    document.getElementById('btn-continue-room').classList.remove('d-none');
+                }
+            } else {
+                alert("Lỗi AI: " + data.message);
+            }
+        } catch (err) {
+            console.error("AI NFC Error:", err);
+            alert("Không thể kết nối đến AI Server cho NFC!");
+        } finally {
+            btn.innerHTML = originalHtml;
+            btn.disabled = false;
+        }
+    }
+});
 
 window.completeMobileVerification = function() {
     // Tìm invoice và update state
@@ -361,6 +419,9 @@ document.getElementById('btn-extract-upload').addEventListener('click', async fu
     try {
         const formData = new FormData();
         formData.append("cccd_image", frontInput.files[0]);
+        if (window.capturedSelfieBlob) {
+            formData.append("selfie_image", window.capturedSelfieBlob, "selfie.jpg");
+        }
 
         const response = await fetch(`${AI_URL}/api/v1/ai/verify-cccd`, {
             method: 'POST',
@@ -374,13 +435,15 @@ document.getElementById('btn-extract-upload').addEventListener('click', async fu
         const data = await response.json();
         
         // Format lại dữ liệu trả về để hiển thị
-        if(data.success && data.data) {
+        if(data.status === 'success' && data.extracted_data) {
+            const ext = data.extracted_data;
             const resultData = {
-                "Số CCCD": data.data.id || "Không rõ",
-                "Họ và tên": data.data.name || "Không rõ",
-                "Ngày sinh": data.data.dob || "Không rõ",
-                "Giới tính": data.data.gender || "Không rõ",
-                "Ngày hết hạn": data.data.date_of_expiry || "Không rõ"
+                "Số CCCD": ext.id || ext.ID || "Không rõ",
+                "Họ và tên": ext.name || ext.Name || "Không rõ",
+                "Ngày sinh": ext.dob || ext.DoB || "Không rõ",
+                "Giới tính": ext.gender || ext.Gender || "Không rõ",
+                "Ngày hết hạn": ext.date_of_expiry || ext.DateOfExpiry || ext.date || "Không rõ",
+                "Khuôn mặt": data.face_verification || "Không yêu cầu xác thực khuôn mặt"
             };
             document.getElementById('raw-data-result').value = JSON.stringify(resultData, null, 2);
         } else {
@@ -444,12 +507,11 @@ btnCaptureScan.addEventListener('click', function() {
     video.style.display = 'none';
     canvas.style.display = 'block';
 
-    // Lưu ảnh dưới dạng Base64
-    const faceBase64 = canvas.toDataURL('image/jpeg');
-    
-    // Gắn vào một thẻ ẩn hoặc biến toàn cục để gửi kèm form Check-in
-    // Ở đây ta mô phỏng bằng Alert thông báo thành công
-    alert("Đã chụp và lưu trữ ảnh khuôn mặt thành công! Sẵn sàng đính kèm vào hồ sơ Check-in.");
+    // Lưu ảnh dưới dạng Blob để gửi API
+    canvas.toBlob(function(blob) {
+        window.capturedSelfieBlob = blob;
+        alert("Đã chụp và lưu trữ ảnh khuôn mặt thành công! Chuyển sang thẻ Tải ảnh CCCD để trích xuất AI.");
+    }, 'image/jpeg');
     
     // Đổi nút Bật Camera thành Chụp Lại
     btnStartCamera.innerHTML = '<i class="bi bi-camera-video me-1"></i> Chụp lại';

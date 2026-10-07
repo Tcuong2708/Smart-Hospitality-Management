@@ -387,11 +387,11 @@ class HotelApiProvider {
     }
   }
 
-  // Gọi trực tiếp lên Python AI Server (FastAPI)
+  // Gọi trực tiếp lên Python AI Server (FastAPI) để verify face (NFC)
   Future<Map<String, dynamic>?> verifyFaceNFC(File nfcImage, File selfieImage) async {
     try {
       // Đọc AI_URL từ môi trường
-      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://10.0.2.2:8000";
+      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://10.0.2.2:5000";
       
       Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 30)));
 
@@ -408,6 +408,29 @@ class HotelApiProvider {
       return null;
     } catch (e) {
       debugPrint("Lỗi gọi AI Server verify-face-nfc: $e");
+      return {"status": "error", "message": e.toString()};
+    }
+  }
+
+  // Gọi API verify-cccd (YOLO + VietOCR + FaceMatch)
+  Future<Map<String, dynamic>?> verifyCccdWithSelfie(File cccdImage, File selfieImage) async {
+    try {
+      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://10.0.2.2:5000";
+      Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 60)));
+
+      FormData formData = FormData.fromMap({
+        "cccd_image": await MultipartFile.fromFile(cccdImage.path, filename: "cccd.jpg"),
+        "selfie_image": await MultipartFile.fromFile(selfieImage.path, filename: "selfie.jpg"),
+      });
+
+      final response = await aiDio.post("/api/v1/ai/verify-cccd", data: formData);
+      
+      if (response.statusCode == 200) {
+        return response.data;
+      }
+      return null;
+    } catch (e) {
+      debugPrint("Lỗi gọi AI Server verify-cccd: $e");
       return {"status": "error", "message": e.toString()};
     }
   }

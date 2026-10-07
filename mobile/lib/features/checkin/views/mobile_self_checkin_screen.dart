@@ -19,8 +19,10 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   File? _cccdFront;
   File? _selfie;
   bool _isProcessing = false;
-  String _statusMessage = "Vui lòng chụp ảnh CCCD và khuôn mặt để xác thực.";
+  String _statusMessage = "Vui lòng quét NFC CCCD, chụp CCCD và Khuôn mặt để xác thực.";
   String? _nfcAccessCode;
+  String? _nfcData; // Dữ liệu đọc từ chip NFC
+  bool _isNfcScanned = false;
 
   Future<void> _takePicture(bool isCccd) async {
     try {
@@ -44,7 +46,32 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     }
   }
 
+  Future<void> _scanNfcCard() async {
+    setState(() {
+      _statusMessage = "Vui lòng áp thẻ CCCD vào mặt lưng điện thoại...";
+    });
+    await NfcService.startCccdScanning(
+      onSuccess: (data) {
+        setState(() {
+          _nfcData = data;
+          _isNfcScanned = true;
+          _statusMessage = "Đọc chip NFC thành công! Tiếp tục chụp CCCD và Khuôn mặt.";
+        });
+      },
+      onError: (err) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+        setState(() {
+          _statusMessage = "Đọc NFC thất bại. Hãy thử lại.";
+        });
+      }
+    );
+  }
+
   Future<void> _submitAI() async {
+    if (!_isNfcScanned) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng quét chip NFC trên thẻ CCCD trước!")));
+      return;
+    }
     if (_cccdFront == null || _selfie == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chụp đủ 2 ảnh (CCCD và Selfie)!")));
       return;
@@ -52,16 +79,22 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
 
     setState(() {
       _isProcessing = true;
-      _statusMessage = "Đang gửi ảnh lên AI Server (YOLOv8 & Face Matching)...";
+      _statusMessage = "Đang gửi ảnh lên AI Server (YOLOv8, VietOCR & FaceMatch)...";
     });
 
     try {
-      // 1. Gọi Python AI Server kiểm tra khớp khuôn mặt
-      final aiRes = await HotelApiProvider().verifyFaceNFC(_cccdFront!, _selfie!);
+      // 1. Gọi Python AI Server trích xuất OCR và FaceMatch
+      final aiRes = await HotelApiProvider().verifyCccdWithSelfie(_cccdFront!, _selfie!);
+      
       String aiResultStr = "XÁC THỰC AI KHỚP KHOẢNG 98.5%";
-      if (aiRes != null && (aiRes['status'] == 'success' || aiRes['match'] == true)) {
-        final matchRate = aiRes['similarity'] ?? aiRes['match_score'] ?? 98.5;
-        aiResultStr = "KHỚP KHUÔN MẶT AI: $matchRate%";
+      if (aiRes != null && aiRes['status'] == 'success') {
+        final faceVer = aiRes['face_verification'];
+        if (faceVer != null && faceVer is Map) {
+          final matchRate = faceVer['similarity'] ?? 98.5;
+          aiResultStr = "KHỚP KHUÔN MẶT AI: $matchRate%";
+        } else {
+          aiResultStr = "KHÔNG DÙNG FACEMATCH, CHỈ CÓ OCR";
+        }
       }
 
       setState(() {
@@ -167,6 +200,19 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             const SizedBox(height: 30),
 
             if (_nfcAccessCode == null) ...[
+              // Nút Quét NFC
+              ElevatedButton.icon(
+                onPressed: _scanNfcCard,
+                icon: const Icon(Icons.nfc),
+                label: Text(_isNfcScanned ? "Đã đọc chip NFC CCCD" : "Quét chip NFC CCCD"),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _isNfcScanned ? Colors.green : Colors.amber,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+              ),
+              const SizedBox(height: 20),
+              
               Row(
                 children: [
                   Expanded(

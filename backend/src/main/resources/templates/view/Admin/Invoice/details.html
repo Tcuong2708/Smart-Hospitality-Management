@@ -3,39 +3,106 @@
 
 <th:block th:fragment="extra_css">
   <link class="stylesheet" th:href="@{/css/Admin/Invoice/details.css}" />
+  <style>
+    .order-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(15, 41, 66, 0.12);
+        overflow: hidden;
+        border: 1px solid #e2e8f0;
+    }
+    .order-header {
+        background: linear-gradient(135deg, #0F2942 0%, #1a4168 100%);
+        color: white;
+        padding: 20px 25px;
+        border-bottom: 4px solid #C5A017;
+    }
+    .text-gold {
+        color: #C5A017 !important;
+    }
+    .btn-gold {
+        background-color: #C5A017;
+        color: white;
+        border: none;
+    }
+    .btn-gold:hover {
+        background-color: #a68512;
+        color: white;
+    }
+    .badge-date {
+        background-color: rgba(255,255,255,0.12);
+        border: 1px solid #C5A017;
+        color: #C5A017;
+    }
+    .info-label {
+        font-weight: 600;
+        color: #0F2942;
+        min-width: 120px;
+    }
+  </style>
 </th:block>
 
 <div th:fragment="body_content">
-  <div class="container py-5">
+  <div class="container py-4">
+    <div id="alert-container"></div>
     <div class="row justify-content-center">
       <div class="col-lg-10">
+
+        <!-- Back & Action Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <a th:href="@{/receptionist/invoices}" class="btn btn-outline-secondary px-3 py-2 fw-semibold">
+            <i class="bi bi-arrow-left me-2"></i> Quay lại danh sách
+          </a>
+          <div class="d-flex gap-2">
+            <a th:href="@{'/receptionist/invoices/print/' + ${invoice.id}}" target="_blank" class="btn btn-warning text-dark fw-bold px-4 py-2 shadow-sm" style="background-color: #C5A017; border: none;">
+              <i class="bi bi-printer-fill me-2"></i> In Hóa Đơn (A4)
+            </a>
+          </div>
+        </div>
+
+        <!-- Customer & Order Header Card -->
         <div class="card order-card mb-4 shadow-sm">
-          <div class="order-header d-flex justify-content-between align-items-center flex-wrap gap-2 text-white">
-            <h4 class="mb-0 fw-bold text-uppercase">
-              <i class="bi bi-receipt me-2 text-gold"></i>Đơn Hàng #<th:block th:text="${invoice.id}"></th:block>
+          <div class="order-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <h4 class="mb-0 fw-bold text-uppercase d-flex align-items-center">
+              <i class="bi bi-receipt me-2 text-gold"></i> Chi tiết Hóa Đơn #<span th:text="${invoice.id}">1</span>
             </h4>
-            <span class="badge badge-date fs-6 px-3 py-2">
-                            <i class="bi bi-calendar3 me-1"></i> <th:block th:text="${invoice.ngayDat != null ? #dates.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm') : ''}"></th:block>
-                        </span>
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-success fs-6 px-3 py-2" th:if="${invoice.isPaid}">
+                <i class="bi bi-check-circle-fill me-1"></i> Đã thanh toán
+              </span>
+              <span class="badge bg-warning text-dark fs-6 px-3 py-2" th:unless="${invoice.isPaid}">
+                <i class="bi bi-hourglass-split me-1"></i> Chờ thanh toán
+              </span>
+              <span class="badge badge-date fs-6 px-3 py-2">
+                <i class="bi bi-calendar3 me-1"></i>
+                <th:block th:text="${invoice.ngayDat != null ? #dates.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm') : ''}"></th:block>
+              </span>
+            </div>
           </div>
           <div class="card-body p-4">
             <div class="row g-3">
               <div class="col-md-6">
-                <div class="info-group">
-                  <label class="fw-bold text-navy"><i class="bi bi-person-fill me-2 text-muted"></i>Khách hàng:</label>
-                  <span class="fw-bold text-dark" th:text="${invoice.hoTen}">Tên</span>
+                <div class="d-flex align-items-center">
+                  <span class="info-label"><i class="bi bi-person-fill me-2 text-muted"></i>Khách hàng:</span>
+                  <span class="fw-bold text-dark fs-6" th:text="${invoice.hoTen}">Tên Khách Hàng</span>
                 </div>
               </div>
               <div class="col-md-6">
-                <div class="info-group">
-                  <label class="fw-bold text-navy"><i class="bi bi-telephone-fill me-2 text-muted"></i>Số điện thoại:</label>
-                  <span th:text="${invoice.sdt}">SĐT</span>
+                <div class="d-flex align-items-center">
+                  <span class="info-label"><i class="bi bi-telephone-fill me-2 text-muted"></i>Số điện thoại:</span>
+                  <span class="fw-semibold text-dark" th:text="${invoice.sdt}">0901234567</span>
                 </div>
               </div>
-              <div class="col-md-12 border-top pt-3 mt-2">
-                <div class="info-group">
-                  <label class="fw-bold text-navy"><i class="bi bi-geo-alt-fill me-2 text-muted"></i>Địa chỉ:</label>
-                  <span th:text="${invoice.diaChi != null ? invoice.diaChi : 'Chưa cập nhật'}">Địa chỉ</span>
+              <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                  <span class="info-label"><i class="bi bi-credit-card-fill me-2 text-muted"></i>Phương thức:</span>
+                  <span class="badge bg-light text-dark border px-3 py-2 fw-bold" th:text="${invoice.payMethod}">Tiền mặt</span>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex align-items-center">
+                  <span class="info-label"><i class="bi bi-geo-alt-fill me-2 text-muted"></i>Địa chỉ:</span>
+                  <span class="text-dark" th:text="${invoice.diaChi != null ? invoice.diaChi : 'Việt Nam'}">Địa chỉ</span>
                 </div>
               </div>
             </div>
@@ -43,16 +110,17 @@
         </div>
 
         <h5 class="mb-3 fw-bold text-uppercase ps-3 border-start border-5 border-warning text-navy">
-          Danh sách phòng đã đặt
+          Danh sách dịch vụ / phòng đã đặt
         </h5>
 
-        <div class="card order-card shadow-sm">
+        <!-- Services & Room Details Table -->
+        <div class="card order-card shadow-sm mb-4">
           <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
               <thead class="table-light">
               <tr>
                 <th class="ps-4 py-3">Tên phòng / Chi tiết</th>
-                <th class="text-center">Số lượng</th>
+                <th class="text-center">Số đêm</th>
                 <th class="text-end">Đơn giá/Đêm</th>
                 <th class="text-end pe-4">Thành tiền</th>
               </tr>
@@ -60,35 +128,178 @@
               <tbody>
               <tr>
                 <td class="ps-4 fw-bold text-navy">
-                  <span th:text="${invoice.phong != null ? invoice.phong.name : 'Mã phòng: #' + invoice.maPhong}">Phòng</span>
-                  <div class="small text-muted fw-normal">
-                    Thời gian: <th:block th:text="${invoice.ngayCheckIn != null ? #dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy') : ''}"></th:block> đến <th:block th:text="${invoice.ngayCheckOut != null ? #dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy') : ''}"></th:block>
+                  <span class="fs-6" th:text="${invoice.phong != null ? invoice.phong.name : invoice.tenPhong}">Phòng Deluxe Ocean View</span>
+                  <div class="small text-muted fw-normal mt-1">
+                    <i class="bi bi-clock me-1"></i>Thời gian ở:
+                    <th:block th:text="${invoice.ngayCheckIn != null ? #dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy') : ''}"></th:block> 
+                    tới 
+                    <th:block th:text="${invoice.ngayCheckOut != null ? #dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy') : ''}"></th:block>
                   </div>
                 </td>
-                <td class="text-center">1</td>
-                <td class="text-end" th:text="${invoice.phong != null ? #numbers.formatDecimal(invoice.phong.price, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}">0 đ</td>
-                <td class="text-end pe-4 fw-bold text-danger"
+                <td class="text-center fw-bold fs-6" th:text="${invoice.soDem != null ? invoice.soDem : 1}">1</td>
+                <td class="text-end fw-semibold" th:text="${invoice.phong != null && invoice.phong.price != null ? #numbers.formatDecimal(invoice.phong.price, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}">0 đ</td>
+                <td class="text-end pe-4 fw-bold text-danger fs-6" id="base-price-display"
+                    th:data-base-price="${invoice.totalPrice}"
                     th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
               </tr>
+
+              <!-- Dòng Điểm thưởng / Giảm giá -->
+              <tr style="background-color: #fafafa;">
+                <td colspan="3" class="text-end fw-bold py-3 text-navy border-0">Giảm giá (Điểm thưởng):</td>
+                <td class="text-end pe-4 fw-bold py-3 text-danger border-0">
+                  <div class="d-flex justify-content-end align-items-center">
+                    <span id="discount-amount" class="fs-6">- 0 đ</span>
+                    <button class="btn btn-sm btn-outline-warning ms-3 fw-bold" data-bs-toggle="modal" data-bs-target="#usePointsModal">
+                      <i class="bi bi-star-fill text-warning me-1"></i> Đổi điểm
+                    </button>
+                  </div>
+                </td>
+              </tr>
+
+              <!-- Dòng Tổng cộng -->
               <tr style="background-color: #f8f9fa;">
-                <td colspan="3" class="text-end fw-bold py-3 fs-5 text-navy">TỔNG CỘNG:</td>
-                <td class="text-end pe-4 fw-bold fs-4 py-3 text-gold"
+                <td colspan="3" class="text-end fw-bold py-3 fs-5 text-navy">TỔNG CỘNG CẦN TRẢ:</td>
+                <td class="text-end pe-4 fw-bold fs-4 py-3 text-gold" id="invoice-total"
                     th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+              </tr>
+
+              <!-- Khu vực Thanh toán tiền mặt tại Quầy -->
+              <tr style="background-color: #ffffff;">
+                <td colspan="3" class="text-end fw-bold py-3 text-muted align-middle">Khách đưa (Tiền mặt):</td>
+                <td class="text-end pe-4 py-2" style="max-width: 250px;">
+                  <div class="input-group">
+                    <input type="number" id="cash-received" class="form-control text-end fw-bold fs-5 text-dark" placeholder="Nhập số tiền..." min="0" style="border: 2px solid #0F2942;">
+                    <span class="input-group-text fw-bold">VNĐ</span>
+                  </div>
+                </td>
+              </tr>
+              <tr style="background-color: #ffffff;">
+                <td colspan="3" class="text-end fw-bold py-2 text-muted">Tiền thừa trả khách:</td>
+                <td class="text-end pe-4 fw-bold fs-5 py-2 text-success" id="change-amount">0 đ</td>
+              </tr>
+
+              <!-- Điểm tích lũy dự kiến -->
+              <tr style="background-color: #e6f9ec;">
+                <td colspan="4" class="text-center fw-bold py-3 fs-6 text-success border-0 rounded-bottom">
+                  <i class="bi bi-star-fill text-warning me-2"></i>Khách hàng tích lũy thêm: 
+                  <span id="earned-points" class="fw-extrabold text-primary" 
+                        th:text="'+ ' + ${#numbers.formatDecimal(invoice.totalPrice / 100000, 0, 'COMMA', 0, 'POINT')} + ' Điểm'">+ 0 Điểm</span> 
+                  sau khi thanh toán đơn hàng này.
+                </td>
               </tr>
               </tbody>
             </table>
           </div>
         </div>
 
-        <div class="mt-4 text-center">
-          <a th:href="@{/receptionist/invoices}" class="btn btn-outline-secondary px-4 py-2 fw-bold">
-            <i class="bi bi-arrow-left me-2"></i> Quay lại danh sách
-          </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Quy đổi điểm thưởng -->
+  <div class="modal fade" id="usePointsModal" tabindex="-1" aria-labelledby="usePointsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header text-white" style="background-color: #0F2942;">
+          <h5 class="modal-title fw-bold" id="usePointsModalLabel"><i class="bi bi-star-fill text-warning me-2"></i>Quy đổi điểm thưởng</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4 text-center">
+          <p class="text-muted mb-2">Số điểm khả dụng của khách hàng:</p>
+          <h3 class="text-warning fw-bold mb-4">5,420 Điểm</h3>
+          <div class="mb-3 text-start">
+            <label class="form-label fw-bold">Nhập số điểm muốn đổi (1 điểm = 1.000 VNĐ):</label>
+            <input type="number" class="form-control form-control-lg text-center fw-bold text-navy" id="points-to-use" max="5420" min="0" value="0">
+          </div>
+          <div class="alert alert-success mb-0 text-start" id="discount-preview">
+            Giảm tương ứng: <strong class="fs-5 text-danger" id="discount-preview-amount">- 0 VNĐ</strong>
+          </div>
+        </div>
+        <div class="modal-footer bg-light">
+          <button type="button" class="btn btn-secondary fw-bold shadow-sm" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-gold text-white fw-bold px-4 shadow-sm" id="btn-apply-points" data-bs-dismiss="modal">Áp dụng</button>
         </div>
       </div>
     </div>
   </div>
 </div>
 
-<div th:fragment="extra_js"></div>
-</html>
+<div th:fragment="extra_js">
+  <script th:inline="javascript">
+    document.addEventListener('DOMContentLoaded', function () {
+        var basePriceElem = document.getElementById('base-price-display');
+        var basePrice = parseFloat(basePriceElem ? basePriceElem.getAttribute('data-base-price') : 0) || 0;
+        var finalPrice = basePrice;
+        var discount = 0;
+
+        function formatMoney(val) {
+            return new Intl.NumberFormat('vi-VN').format(val || 0) + ' đ';
+        }
+
+        // Đổi điểm thưởng modal logic
+        var pointsInput = document.getElementById('points-to-use');
+        var previewDiscount = document.getElementById('discount-preview-amount');
+        var btnApply = document.getElementById('btn-apply-points');
+        var maxPoints = 5420;
+
+        if (pointsInput) {
+            pointsInput.addEventListener('input', function (e) {
+                var val = parseInt(e.target.value) || 0;
+                if (val > maxPoints) val = maxPoints;
+                if (val < 0) val = 0;
+                e.target.value = val;
+                var tempDiscount = val * 1000;
+                if (previewDiscount) previewDiscount.textContent = '- ' + formatMoney(tempDiscount);
+            });
+        }
+
+        if (btnApply) {
+            btnApply.addEventListener('click', function () {
+                var usedPoints = parseInt(pointsInput ? pointsInput.value : 0) || 0;
+                discount = usedPoints * 1000;
+                finalPrice = basePrice - discount;
+                if (finalPrice < 0) finalPrice = 0;
+
+                var elDiscountAmount = document.getElementById('discount-amount');
+                if (elDiscountAmount) elDiscountAmount.textContent = '- ' + formatMoney(discount);
+
+                var elInvTotal = document.getElementById('invoice-total');
+                if (elInvTotal) elInvTotal.textContent = formatMoney(finalPrice);
+
+                var earnedPoints = Math.floor(finalPrice / 100000);
+                var elEarnedPoints = document.getElementById('earned-points');
+                if (elEarnedPoints) elEarnedPoints.textContent = '+ ' + earnedPoints + ' Điểm';
+
+                calculateChange();
+            });
+        }
+
+        // Khách đưa & Tiền thừa trả khách (UC25)
+        var cashInput = document.getElementById('cash-received');
+        var changeAmountDisp = document.getElementById('change-amount');
+
+        function calculateChange() {
+            if (!cashInput || !changeAmountDisp) return;
+            var cash = parseFloat(cashInput.value) || 0;
+            if (cash === 0) {
+                changeAmountDisp.textContent = '0 đ';
+                changeAmountDisp.className = 'text-end pe-4 fw-bold fs-5 py-2 text-muted';
+                return;
+            }
+            var change = cash - finalPrice;
+            if (change < 0) {
+                changeAmountDisp.textContent = 'Thiếu ' + formatMoney(Math.abs(change));
+                changeAmountDisp.className = 'text-end pe-4 fw-bold fs-5 py-2 text-danger';
+            } else {
+                changeAmountDisp.textContent = formatMoney(change);
+                changeAmountDisp.className = 'text-end pe-4 fw-bold fs-5 py-2 text-success';
+            }
+        }
+
+        if (cashInput) {
+            cashInput.addEventListener('input', calculateChange);
+        }
+    });
+  </script>
+</div>
+</html>

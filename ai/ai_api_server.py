@@ -1,20 +1,31 @@
 import os
+
+# ==============================================================================
+# TỐI ƯU HÓA CPU & RAM TRÊN VPS UBUNTU 1GB RAM (PHẢI ĐẶT TRƯỚC KHI IMPORT AI)
+# ==============================================================================
+os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
+os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+
 import io
 import cv2
 import numpy as np
 import pandas as pd
 import joblib
-import nest_asyncio
 import uvicorn
 import platform
 import random
 import json
 import torch
-import torch.nn as nn
 import pymongo
 from pymongo import MongoClient
 import re
 from datetime import datetime
+import pickle
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
@@ -24,14 +35,11 @@ from ultralytics import YOLO
 from vietocr.tool.predictor import Predictor
 from vietocr.tool.config import Cfg
 from deepface import DeepFace
-from transformers import AutoTokenizer, AutoModel
 from pyvi import ViTokenizer
-from gensim.utils import simple_preprocess
 
-# Tối ưu hóa CPU & RAM trên VPS Ubuntu
-os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
-os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
-torch.set_num_threads(2)
+# Giới hạn luồng PyTorch ngay khi vừa import
+torch.set_num_threads(1)
+torch.set_num_interop_threads(1)
 
 # ==============================================================================
 # CẤU HÌNH ĐƯỜNG DẪN MÔ HÌNH AI
@@ -41,7 +49,7 @@ BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 NOSHOW_MODEL_PATH = os.path.join(BASE_DIR, "noshow_rf_model.pkl")
 NOSHOW_COLS_PATH = os.path.join(BASE_DIR, "model_columns.pkl")
 CCCD_YOLO_PATH = os.path.join(BASE_DIR, "best.pt")
-PHOBERT_PATH = os.path.join(BASE_DIR, "phobert_may_hotel.h5")
+SKLEARN_CHATBOT_PATH = os.path.join(BASE_DIR, "chatbot_sklearn.pkl") # Đổi sang model nhẹ
 INTENTS_PATH = os.path.join(BASE_DIR, "intents.json")
 
 # ==============================================================================
@@ -49,7 +57,7 @@ INTENTS_PATH = os.path.join(BASE_DIR, "intents.json")
 # ==============================================================================
 app = FastAPI(title="May Hotel AI Microservices", version="2.0")
 
-print("Đang khởi động và nạp các lõi AI vào bộ nhớ...")
+print("Đang khởi động và nạp các lõi AI vào bộ nhớ (Chế độ tối ưu RAM)...")
 
 # 1. Nạp Model No-show
 try:
@@ -73,35 +81,17 @@ try:
 except Exception as e:
     print(f"[WARN] Lỗi nạp Model CCCD/VietOCR: {e}")
 
-# 3. Nạp Model Chatbot PhoBERT
-device = torch.device('cpu')
+# 3. Nạp Model Chatbot Scikit-Learn
 hardware_name = platform.processor() or "Linux CPU"
-print(f"Chatbot khởi chạy trên: {hardware_name} ({device})")
-
-MODEL_NAME = "vinai/phobert-base"
-class_names = ['Enjoyment', 'Disgust', 'Sadness', 'Anger', 'Surprise', 'Fear', 'Other']
-
-class SentimentClassifier(nn.Module):
-    def __init__(self, n_classes):
-        super(SentimentClassifier, self).__init__()
-        self.bert = AutoModel.from_pretrained(MODEL_NAME, use_safetensors=True)
-        self.drop = nn.Dropout(p=0.3)
-        self.fc = nn.Linear(self.bert.config.hidden_size, n_classes)
-
-    def forward(self, input_ids, attention_mask):
-        _, output = self.bert(input_ids=input_ids, attention_mask=attention_mask, return_dict=False)
-        return self.fc(self.drop(output))
-
-tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, use_fast=False)
-chatbot_model = SentimentClassifier(len(class_names))
+print(f"Chatbot khởi chạy trên: {hardware_name} (Chỉ CPU)")
 
 try:
-    chatbot_model.load_state_dict(torch.load(PHOBERT_PATH, map_location=device, weights_only=True))
-    chatbot_model.to(device)
-    chatbot_model.eval()
-    print("[OK] Đã nạp mô hình PhoBERT thành công.")
+    with open(SKLEARN_CHATBOT_PATH, "rb") as f:
+        chatbot_model = pickle.load(f)
+    print("[OK] Đã nạp mô hình Chatbot Scikit-Learn thành công.")
 except Exception as e:
-    print(f"[WARN] Lỗi nạp trọng số PhoBERT: {e}")
+    print(f"[WARN] Lỗi nạp Chatbot Scikit-Learn (Hãy chạy file train_chatbot.py): {e}")
+    chatbot_model = None
 
 if os.path.exists(INTENTS_PATH):
     with open(INTENTS_PATH, 'r', encoding='utf-8') as f:
@@ -157,7 +147,7 @@ def clean_and_parse_date(text):
         return None, f"Ngày {text} không hợp lệ! Bạn vui lòng kiểm tra lại."
 
 # ==============================================================================
-# KẾT NỐI MONGODB (Hỗ trợ cấu hình qua Env Var)
+# KẾT NỐI MONGODB 
 # ==============================================================================
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
 
@@ -482,24 +472,24 @@ async def chat_with_bot(request: ChatRequest):
         reply = "Dạ, May Hotel xin chào bạn! Mình có thể hỗ trợ gì cho bạn hôm nay ạ? (Bạn có thể hỏi về giá phòng, dịch vụ hoặc đặt phòng trực tiếp với mình nhé)"
         return {"status": "success", "reply": reply, "answer": reply}
 
-    clean_text = normalize_dialect(user_msg.lower())
-    tokenized = ViTokenizer.tokenize(' '.join(simple_preprocess(clean_text)))
-    inputs = tokenizer(tokenized, max_length=120, truncation=True, padding='max_length', return_tensors='pt').to(device)
+    # Nếu tải được model chatbot scikit-learn thì dự đoán
+    if chatbot_model is not None:
+        clean_text = normalize_dialect(user_msg.lower())
+        tokenized = ViTokenizer.tokenize(clean_text)
+        
+        probs = chatbot_model.predict_proba([tokenized])[0]
+        max_prob = max(probs)
+        pred_tag = chatbot_model.classes_[probs.argmax()]
 
-    with torch.no_grad():
-        out = chatbot_model(inputs['input_ids'], inputs['attention_mask'])
-        prob, pred = torch.max(torch.softmax(out, dim=1), dim=1)
-        tag = class_names[pred.item()]
-
-    if prob.item() > 0.65:
-        for i in intents.get('intents', []):
-            if i['tag'].lower() == tag.lower():
-                resp = random.choice(i['responses'])
-                return {"status": "success", "reply": resp, "answer": resp, "tag": tag}
+        if max_prob > 0.50:
+            for i in intents.get('intents', []):
+                if i['tag'].lower() == pred_tag.lower():
+                    resp = random.choice(i['responses'])
+                    return {"status": "success", "reply": resp, "answer": resp, "tag": pred_tag}
     
     default_msg = "May Hotel chưa hiểu ý bạn. Bạn có thể hỏi về giá hoặc đặt phòng nhé!"
     return {"status": "success", "reply": default_msg, "answer": default_msg}
 
 if __name__ == "__main__":
-    nest_asyncio.apply()
-    uvicorn.run(app, host="0.0.0.0", port=8000, workers=1)
+    # Đã gỡ bỏ nest_asyncio và workers=1 để tránh lỗi treo socket
+    uvicorn.run(app, host="0.0.0.0", port=5000)
