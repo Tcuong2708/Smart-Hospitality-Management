@@ -138,6 +138,8 @@ let currentCheckinId = null;
 let currentAssigningCheckinId = null;
 let currentVerifyCheckinId = null;
 
+let pollingInterval = null;
+
 // ==========================================
 // LUỒNG XÁC THỰC MOBILE NFC
 // ==========================================
@@ -161,9 +163,34 @@ window.openMobileVerifyModal = function(id, hoTen) {
     }
     const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
     modal.show();
+
+    // Bắt đầu Polling API 3 giây 1 lần
+    if (pollingInterval) clearInterval(pollingInterval);
+    
+    pollingInterval = setInterval(async () => {
+        try {
+            const res = await fetch(`http://localhost:8080/api/v1/reception/bookings/${id}/verification-status`);
+            if (res.ok) {
+                const data = await res.json();
+                if (data.isFaceVerified === true) {
+                    clearInterval(pollingInterval);
+                    window.simulateMobileSuccess(true);
+                }
+            }
+        } catch (e) {
+            console.log('Polling AI verification failed:', e);
+        }
+    }, 3000);
+    
+    // Xoá polling nếu Modal bị đóng thủ công
+    modalEl.addEventListener('hidden.bs.modal', function onModalHidden() {
+        if (pollingInterval) clearInterval(pollingInterval);
+        modalEl.removeEventListener('hidden.bs.modal', onModalHidden);
+    });
 };
 
-window.simulateMobileSuccess = function() {
+window.simulateMobileSuccess = function(fromApi = false) {
+    if (pollingInterval) clearInterval(pollingInterval);
     // Đóng nút giả lập và nút hủy
     document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.add('d-none');
     document.querySelector('#mobileVerifyModal .btn-warning').classList.add('d-none');

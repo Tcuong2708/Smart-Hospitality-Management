@@ -446,28 +446,34 @@ class HotelApiProvider {
     required DateTime ngayTraPhong,
     required int soNguoi,
     String? ghiChu,
+    String? customerName,
+    String? customerPhone,
   }) async {
     try {
+      // Đọc thông tin từ SharedPreference hoặc truyền từ ngoài vào.
+      // Vì Flutter gọi maKHHardcode = 3, dùng tạm userId = maKH
       final body = {
-        'maPhong': maPhong,
-        'maKH': maKH,
-        'ngayNhanPhong': ngayNhanPhong.toIso8601String(),
-        'ngayTraPhong': ngayTraPhong.toIso8601String(),
+        'userId': maKH,
+        'roomTypeId': maPhong, // Mobile truyền ID loại phòng qua widget.maPhong
+        'ngayNhan': ngayNhanPhong.toUtc().toIso8601String(),
+        'ngayTra': ngayTraPhong.toUtc().toIso8601String(),
         'soNguoi': soNguoi,
         'ghiChu': ghiChu,
+        'customerName': customerName,
+        'customerPhone': customerPhone,
       };
 
       print('📤 createBooking body gửi qua Dio: $body');
-      final res = await _dio.post('/api/booking/add', data: body);
-      print('📥 createBooking response từ C#: ${res.data}');
+      final res = await _dio.post('/api/v1/mobile/booking/add', data: body);
+      print('📥 createBooking response từ Java: ${res.data}');
 
       if (res.statusCode == 200) {
-        final data = res.data;
+        final data = res.data['data']; // Vì backend trả về ApiResponse.success(..., data)
         return {
-          'bookingId': data['maHD'] ?? 0,
-          'totalAmount': (data['tongTien'] ?? 0).toDouble(),
-          'success': data['success'] ?? true,
-          'maPhong': maPhong,
+          'bookingId': data['bookingId'] ?? 0,
+          'totalAmount': (data['total'] ?? 0).toDouble(),
+          'success': true,
+          'maPhong': data['roomId'] ?? maPhong,
           'soNgay': ngayTraPhong.difference(ngayNhanPhong).inDays,
         };
       }
@@ -484,10 +490,14 @@ class HotelApiProvider {
 
   Future<List<Map<String, dynamic>>> getAllServices() async {
     try {
-      final res = await _dio.get('/api/booking/services');
+      final res = await _dio.get('/api/v1/mobile/services');
       if (res.statusCode == 200) {
-        final List<dynamic> data = res.data;
-        return data.cast<Map<String, dynamic>>();
+        final Map<String, dynamic> responseData = res.data;
+        if (responseData['data'] != null) {
+          final List<dynamic> dataList = responseData['data'];
+          return dataList.cast<Map<String, dynamic>>();
+        }
+        return [];
       }
       throw Exception('Get services failed status code: ${res.statusCode}');
     } catch (e) {
@@ -503,19 +513,19 @@ class HotelApiProvider {
     required double donGia,
   }) async {
     try {
-      final body = {'maDichVu': maDichVu, 'soLuong': soLuong, 'donGia': donGia};
+      final body = {'bookingId': bookingId, 'serviceId': maDichVu, 'quantity': soLuong, 'price': donGia};
 
       print('📤 addService body gửi qua Dio: $body');
-      final res = await _dio.post('/api/booking/$bookingId/service', data: body);
-      print('📥 addService response từ C#: ${res.data}');
+      final res = await _dio.post('/api/v1/mobile/services/order', data: body);
+      print('📥 addService response từ Java: ${res.data}');
 
       if (res.statusCode == 200) {
         final data = res.data;
         return {
           'success': data['success'] ?? true,
           'message': data['message'] ?? 'Thêm dịch vụ thành công',
-          'serviceAmount': (data['serviceAmount'] ?? 0).toDouble(),
-          'totalAmount': (data['totalAmount'] ?? 0).toDouble(),
+          'serviceAmount': (donGia * soLuong).toDouble(),
+          'totalAmount': (donGia * soLuong).toDouble(),
         };
       }
       throw Exception('Add service failed status code: ${res.statusCode}');
@@ -532,13 +542,14 @@ class HotelApiProvider {
   Future<bool> confirmPayment(int bookingId, double totalAmount, int paymentMethodId) async {
     try {
       final body = {
+        'bookingId': bookingId,
         'totalAmount': totalAmount,
         'paymentMethodId': paymentMethodId,
       };
 
       print('confirmPayment body gửi qua Dio: $body');
-      final res = await _dio.post('/api/booking/confirm-payment/$bookingId', data: body);
-      print('confirmPayment response từ C#: ${res.data}');
+      final res = await _dio.post('/api/v1/mobile/booking/confirm-payment', data: body);
+      print('confirmPayment response từ Java: ${res.data}');
 
       return res.statusCode == 200;
     } catch (e) {

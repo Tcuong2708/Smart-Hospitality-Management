@@ -235,7 +235,9 @@ class _BookingScreenState extends State<BookingScreen> {
         ngayNhanPhong: _selectedDateRange!.start,
         ngayTraPhong: _selectedDateRange!.end,
         soNguoi: 1,
-        ghiChu: 'Dien thoai: $dienThoai, Quoc tich: $quocTich, Dia chi: $diaChi',
+        ghiChu: 'Quoc tich: $quocTich, Dia chi: $diaChi',
+        customerName: hoTen,
+        customerPhone: dienThoai,
       );
 
       if (!context.mounted) return;
@@ -246,13 +248,13 @@ class _BookingScreenState extends State<BookingScreen> {
         final int generatedBookingId = res['bookingId'] ?? 0;
         final double currentTotal = res['totalAmount'] ?? total;
 
-        // Luân chuyển luồng mượt mà sang khay chọn dịch vụ
+        // Bỏ qua chọn dịch vụ, đi thẳng tới khay thanh toán
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ServiceManagementScreen(
+            builder: (_) => PaymentMethodScreen(
               bookingId: generatedBookingId,
-              initialAmount: currentTotal,
+              totalAmount: currentTotal,
             ),
           ),
         );

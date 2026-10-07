@@ -41,7 +41,16 @@ public class HomeController extends BaseController {
     }
 
     @GetMapping("/")
-    public String index(Model model) {
+    public String index(Model model, jakarta.servlet.http.HttpSession session) {
+        com.votricuong.mayhotel.documents.User user = (com.votricuong.mayhotel.documents.User) session.getAttribute("user");
+        if (user != null && user.getRoleId() != null) {
+            long roleId = user.getRoleId();
+            if (roleId == 1L) return "redirect:/admin/users";
+            if (roleId == 2L) return "redirect:/manager/rooms";
+            if (roleId == 3L) return "redirect:/receptionist/room-map";
+            if (roleId == 7L) return "redirect:/accountant/dashboard";
+        }
+
         List<Room> allRooms = roomRepository.findAll();
 
         // Group rooms by RoomType ID

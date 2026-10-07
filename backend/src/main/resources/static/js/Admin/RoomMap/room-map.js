@@ -1,6 +1,6 @@
 let mockRooms = [];
 if (window.mockRoomMapData && Object.keys(window.mockRoomMapData).length > 0) {
-  Object.values(window.mockRoomMapData).forEach(floorRooms => mockRooms.push(...floorRooms.map(r => ({...r, id: parseInt(r.name.replace(/\D/g, '') || r.id), capacity: r.sucChua || 2, view: r.view || 'Hướng Thành Phố'}))));
+  Object.values(window.mockRoomMapData).forEach(floorRooms => mockRooms.push(...floorRooms.map(r => ({...r, id: parseInt((r.name || "").replace(/\D/g, '') || r.id), capacity: r.sucChua || 2, view: r.view || 'Hướng Thành Phố'}))));
 } else {
   mockRooms = [
     { id: 101, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1, view: 'Hướng Thành Phố' },
@@ -24,6 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     initFilters();
+    initModalListeners();
     fetchRoomMap(mockRooms);
 });
 
@@ -216,17 +217,7 @@ function fetchRoomMap(roomsToRender) {
 
     container.innerHTML = html;
 
-    // --- Transfer Room Logic ---
-    const formatMoney = (val) => new Intl.NumberFormat('vi-VN').format(val) + ' đ';
-    let transferModalInstance = null;
-    let currentTransferRoomPrice = 0;
-    const newRoomSelect = document.getElementById('new-room-select');
-    const transferReason = document.getElementById('transfer-reason');
-    const otherReasonContainer = document.getElementById('other-reason-container');
-    const newPriceDisp = document.getElementById('new-price-disp');
-    const diffDisp = document.getElementById('price-diff-disp');
-
-    // Mở modal
+    // Bắt sự kiện mở modal cho các nút "Đổi" vừa được render
     document.querySelectorAll('.btn-transfer').forEach(btn => {
         btn.addEventListener('click', (e) => {
             const btnTarget = e.currentTarget;
@@ -237,11 +228,12 @@ function fetchRoomMap(roomsToRender) {
             document.getElementById('current-room-id').textContent = rId;
             document.getElementById('current-room-type').textContent = rType;
             document.getElementById('current-price-disp').textContent = formatMoney(currentTransferRoomPrice);
-            newPriceDisp.textContent = '0 đ';
-            diffDisp.textContent = '0 đ';
-            diffDisp.className = 'fw-bold text-dark fs-5';
+            document.getElementById('new-price-disp').textContent = '0 đ';
+            document.getElementById('price-diff-disp').textContent = '0 đ';
+            document.getElementById('price-diff-disp').className = 'fw-bold text-dark fs-5';
 
             // Đổ danh sách phòng trống
+            const newRoomSelect = document.getElementById('new-room-select');
             newRoomSelect.innerHTML = '<option value="">-- Danh sách phòng trống --</option>';
             mockRooms.filter(r => r.maTrangThai === 1).forEach(r => {
                 const opt = document.createElement('option');
@@ -250,8 +242,8 @@ function fetchRoomMap(roomsToRender) {
                 newRoomSelect.appendChild(opt);
             });
 
-            transferReason.value = 'Khách yêu cầu nâng hạng';
-            otherReasonContainer.style.display = 'none';
+            document.getElementById('transfer-reason').value = 'Khách yêu cầu nâng hạng';
+            document.getElementById('other-reason-container').style.display = 'none';
 
             if (!transferModalInstance) {
                 transferModalInstance = new bootstrap.Modal(document.getElementById('transferRoomModal'));
@@ -259,6 +251,18 @@ function fetchRoomMap(roomsToRender) {
             transferModalInstance.show();
         });
     });
+}
+
+let transferModalInstance = null;
+let currentTransferRoomPrice = 0;
+const formatMoney = (val) => new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+
+function initModalListeners() {
+    const newRoomSelect = document.getElementById('new-room-select');
+    const transferReason = document.getElementById('transfer-reason');
+    const otherReasonContainer = document.getElementById('other-reason-container');
+    const newPriceDisp = document.getElementById('new-price-disp');
+    const diffDisp = document.getElementById('price-diff-disp');
 
     // Bắt sự kiện chọn phòng mới để tính tiền chênh lệch
     newRoomSelect.addEventListener('change', (e) => {
@@ -289,7 +293,7 @@ function fetchRoomMap(roomsToRender) {
             alert('Vui lòng chọn phòng mới!');
             return;
         }
-        transferModalInstance.hide();
+        if (transferModalInstance) transferModalInstance.hide();
         alert('Đã thực hiện chuyển phòng thành công. Hệ thống đã lưu lại giao dịch và chênh lệch!');
     });
 }

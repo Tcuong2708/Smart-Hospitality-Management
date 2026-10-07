@@ -339,7 +339,12 @@ public class MobileApiController {
             Date ngayTra = Date.from(Instant.parse(ngayTraStr));
             
             List<Room> availableRooms = roomRepository.findAll().stream()
-                .filter(r -> roomTypeId.equals(r.getRoomTypeId()) && "Vacant".equalsIgnoreCase(r.getStatus()))
+                .filter(r -> roomTypeId.equals(r.getRoomTypeId()) && (
+                             "Vacant".equalsIgnoreCase(r.getStatus()) || 
+                             "Còn phòng".equalsIgnoreCase(r.getStatus()) || 
+                             "Trống".equalsIgnoreCase(r.getStatus()) || 
+                             "Phòng trống".equalsIgnoreCase(r.getStatus())
+                ))
                 .collect(Collectors.toList());
                 
             if (availableRooms.isEmpty()) {
@@ -349,6 +354,10 @@ public class MobileApiController {
             Room selectedRoom = availableRooms.get(0);
             
             // Xử lý Customer
+            String customerName = (String) payload.get("customerName");
+            String customerPhone = (String) payload.get("customerPhone");
+            String ghiChu = (String) payload.get("ghiChu");
+
             List<Customer> customers = customerRepository.findByUserId(userId);
             Customer customer;
             if (customers.isEmpty()) {
@@ -356,14 +365,28 @@ public class MobileApiController {
                 customer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
                 customer.setUserId(userId);
                 
-                userRepository.findById(userId).ifPresent(u -> {
-                    customer.setFullName(u.getUsername() != null ? u.getUsername() : "Khách hàng Mobile");
-                    customer.setPhone(u.getPhone());
-                    customer.setEmail(u.getEmail());
-                });
+                if (customerName != null && !customerName.trim().isEmpty()) {
+                    customer.setFullName(customerName);
+                } else {
+                    userRepository.findById(userId).ifPresent(u -> {
+                        customer.setFullName(u.getUsername() != null ? u.getUsername() : "Khách hàng Mobile");
+                    });
+                }
+
+                if (customerPhone != null && !customerPhone.trim().isEmpty()) {
+                    customer.setPhone(customerPhone);
+                } else {
+                    userRepository.findById(userId).ifPresent(u -> customer.setPhone(u.getPhone()));
+                }
+
+                userRepository.findById(userId).ifPresent(u -> customer.setEmail(u.getEmail()));
                 customerRepository.save(customer);
             } else {
                 customer = customers.get(0);
+                // Cập nhật lại thông tin mới nhất
+                if (customerName != null && !customerName.trim().isEmpty()) customer.setFullName(customerName);
+                if (customerPhone != null && !customerPhone.trim().isEmpty()) customer.setPhone(customerPhone);
+                customerRepository.save(customer);
             }
 
             long diffInMillies = Math.abs(ngayTra.getTime() - ngayNhan.getTime());
@@ -378,6 +401,7 @@ public class MobileApiController {
             order.setExpectedIn(ngayNhan);
             order.setExpectedOut(ngayTra);
             order.setStatus("Đã xác nhận"); // Đã xác nhận luôn cho luồng Mobile nhanh
+            order.setNotes(ghiChu); // Đồng bộ ghi chú (quốc tịch, địa chỉ)
             bookingOrderRepository.save(order);
             
             BookingDetail bd = new BookingDetail();
@@ -506,17 +530,14 @@ public class MobileApiController {
             if (orderOpt.isEmpty()) return ResponseEntity.badRequest().body(ApiResponse.error("Không tìm thấy đơn đặt phòng"));
             
             BookingOrder order = orderOpt.get();
-            order.setStatus("Đã nhận phòng");
+            // Đánh dấu là đã xác thực khuôn mặt từ Mobile
+            order.setIsFaceVerified(true);
             bookingOrderRepository.save(order);
             
             List<BookingDetail> details = bookingDetailRepository.findByBookingId(order.getId());
             Long roomId = null;
             if (!details.isEmpty() && details.get(0).getRoomId() != null) {
                 roomId = details.get(0).getRoomId();
-                roomRepository.findById(roomId).ifPresent(r -> {
-                    r.setStatus("Occupied");
-                    roomRepository.save(r);
-                });
             }
             
             String nfcCode = "MAYHOTEL-ROOM-" + (roomId != null ? roomId : "UNKNOWN") + "-" + UUID.randomUUID().toString().substring(0, 8);
@@ -634,6 +655,20 @@ public class MobileApiController {
             return ResponseEntity.ok(ApiResponse.success("Đặt dịch vụ thành công", receipt));
         } catch(Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @PostMapping("/booking/confirm-payment")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> confirmPayment(@RequestBody Map<String, Object> payload) {
+        try {
+            Long bookingId = Long.valueOf(payload.get("bookingId").toString());
+            // Lấy thêm các tham số nếu cần xử lý thực tế
+            // Integer paymentMethodId = (Integer) payload.get("paymentMethodId");
+            
+            // Giả lập xử lý thanh toán thành công
+            return ResponseEntity.ok(ApiResponse.success("Xác nhận thanh toán dịch vụ thành công", Map.of("bookingId", bookingId, "status", "PAID")));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi xác nhận thanh toán: " + e.getMessage()));
         }
     }
 }

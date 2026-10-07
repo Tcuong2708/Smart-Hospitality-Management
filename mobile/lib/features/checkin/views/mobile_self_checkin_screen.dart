@@ -19,7 +19,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   File? _cccdFront;
   File? _selfie;
   bool _isProcessing = false;
-  String _statusMessage = "Vui lòng quét NFC CCCD, chụp CCCD và Khuôn mặt để xác thực.";
+  String _statusMessage = "1. Vui lòng chụp Khuôn mặt (Selfie) trước.";
   String? _nfcAccessCode;
   String? _nfcData; // Dữ liệu đọc từ chip NFC
   bool _isNfcScanned = false;
@@ -36,8 +36,10 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         setState(() {
           if (isCccd) {
             _cccdFront = File(photo.path);
+            _statusMessage = "Đã đủ dữ liệu! Bấm xác thực AI bên dưới.";
           } else {
             _selfie = File(photo.path);
+            _statusMessage = "2. Tiếp theo, vui lòng quét thẻ NFC CCCD.";
           }
         });
       }
@@ -55,7 +57,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         setState(() {
           _nfcData = data;
           _isNfcScanned = true;
-          _statusMessage = "Đọc chip NFC thành công! Tiếp tục chụp CCCD và Khuôn mặt.";
+          _statusMessage = "3. Đọc NFC thành công! Cuối cùng, chụp Mặt trước CCCD.";
         });
       },
       onError: (err) {
@@ -68,12 +70,16 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   }
 
   Future<void> _submitAI() async {
-    if (!_isNfcScanned) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng quét chip NFC trên thẻ CCCD trước!")));
+    if (_selfie == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chụp ảnh khuôn mặt trước!")));
       return;
     }
-    if (_cccdFront == null || _selfie == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chụp đủ 2 ảnh (CCCD và Selfie)!")));
+    if (!_isNfcScanned) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng quét chip NFC trên thẻ CCCD!")));
+      return;
+    }
+    if (_cccdFront == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chụp ảnh mặt trước CCCD!")));
       return;
     }
 
@@ -200,42 +206,39 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             const SizedBox(height: 30),
 
             if (_nfcAccessCode == null) ...[
-              // Nút Quét NFC
+              // BƯỚC 1: SELFIE
+              _buildPhotoBox(
+                label: "Bước 1: Ảnh Selfie Khuôn Mặt",
+                icon: Icons.face,
+                file: _selfie,
+                onTap: () => _takePicture(false),
+                colorScheme: colorScheme,
+              ),
+              const SizedBox(height: 20),
+
+              // BƯỚC 2: NFC (Chỉ khả dụng nếu đã có Selfie)
               ElevatedButton.icon(
-                onPressed: _scanNfcCard,
+                onPressed: _selfie != null ? _scanNfcCard : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng hoàn thành Bước 1 (Selfie) trước!"))),
                 icon: const Icon(Icons.nfc),
-                label: Text(_isNfcScanned ? "Đã đọc chip NFC CCCD" : "Quét chip NFC CCCD"),
+                label: Text(_isNfcScanned ? "Bước 2: Đã đọc NFC" : "Bước 2: Quét chip NFC CCCD"),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isNfcScanned ? Colors.green : Colors.amber,
+                  backgroundColor: _isNfcScanned ? Colors.green : (_selfie != null ? Colors.amber : Colors.grey),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
               const SizedBox(height: 20),
               
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPhotoBox(
-                      label: "Mặt trước CCCD",
-                      icon: Icons.credit_card,
-                      file: _cccdFront,
-                      onTap: () => _takePicture(true),
-                      colorScheme: colorScheme,
-                    ),
-                  ),
-                  const SizedBox(width: 15),
-                  Expanded(
-                    child: _buildPhotoBox(
-                      label: "Ảnh Selfie",
-                      icon: Icons.face,
-                      file: _selfie,
-                      onTap: () => _takePicture(false),
-                      colorScheme: colorScheme,
-                    ),
-                  ),
-                ],
+              // BƯỚC 3: CCCD (Chỉ khả dụng nếu đã quét NFC)
+              _buildPhotoBox(
+                label: "Bước 3: Ảnh Mặt trước CCCD",
+                icon: Icons.credit_card,
+                file: _cccdFront,
+                onTap: _isNfcScanned ? () => _takePicture(true) : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng hoàn thành Bước 2 (Quét NFC) trước!"))),
+                colorScheme: colorScheme,
+                isDisabled: !_isNfcScanned,
               ),
+              
               const SizedBox(height: 40),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
@@ -276,27 +279,28 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     required File? file,
     required VoidCallback onTap,
     required ColorScheme colorScheme,
+    bool isDisabled = false,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: isDisabled ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng hoàn thành bước trước!"))) : onTap,
       child: Column(
         children: [
           Container(
             height: 120,
             width: double.infinity,
             decoration: BoxDecoration(
-              color: colorScheme.surfaceVariant,
+              color: isDisabled ? Colors.grey[300] : colorScheme.surfaceVariant,
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: colorScheme.outline, width: 1),
+              border: Border.all(color: isDisabled ? Colors.grey : colorScheme.outline, width: 1),
               image: file != null ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
             ),
             child: file == null
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, size: 40, color: colorScheme.primary.withOpacity(0.6)),
+                      Icon(icon, size: 40, color: isDisabled ? Colors.grey : colorScheme.primary.withOpacity(0.6)),
                       const SizedBox(height: 5),
-                      const Text("Bấm chụp", style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      Text("Bấm chụp", style: TextStyle(fontSize: 12, color: isDisabled ? Colors.grey : Colors.grey)),
                     ],
                   )
                 : Container(
@@ -308,7 +312,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
                   ),
           ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: isDisabled ? Colors.grey : Colors.black)),
         ],
       ),
     );

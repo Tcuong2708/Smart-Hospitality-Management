@@ -203,7 +203,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       barrierDismissible: false,
       builder: (context) => AlertDialog(
         title: const Icon(Icons.check_circle, color: Colors.green, size: 60),
-        content: const Text("Thanh toán thành công! Phòng đã được chuyển sang trạng thái dọn dẹp.", textAlign: TextAlign.center),
+        content: const Text("Thanh toán thành công! Hệ thống đã ghi nhận giao dịch của bạn.", textAlign: TextAlign.center),
         actions: [
           TextButton(onPressed: () => Navigator.of(context).popUntil((route) => route.isFirst), child: const Text("HOÀN TẤT")),
         ],
