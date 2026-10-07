@@ -17,6 +17,8 @@
         .text-gold { color: #C5A017 !important; }
         .btn-gold { background-color: #C5A017 !important; color: white !important; border: none !important; transition: 0.3s; }
         .btn-gold:hover { background-color: #a68512 !important; transform: translateY(-1px); }
+        .admin-card { background: white; border-radius: 12px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
+        .admin-header { background-color: #0F2942; color: white; padding: 20px 25px; border-bottom: 4px solid #C5A017; }
     </style>
 
   <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
@@ -54,19 +56,16 @@
                     <div id="alert-message" class="alert d-none border-0 shadow-sm text-center mb-4"></div>
 
                     <!-- Box hiển thị đánh giá -->
-                    <div class="testimonial-box shadow-sm border position-relative bg-light rounded-4 p-5 text-center mx-auto" id="testimonialBox" style="max-width: 800px;">
-                        <!-- Nút xóa (có thể chỉ cho Admin/User của review đó) -->
-                        <!-- <button class="delete-btn" onclick="deleteTestimonial()"><i class="bi bi-trash"></i> Xóa</button> -->
+                    <div class="testimonial-box" id="testimonialBox">
                         
-                        <div class="nav-arrow left position-absolute top-50 start-0 translate-middle-y ms-3 fs-3 text-muted" id="btn-prev" style="cursor: pointer;">&#10094;</div>
-                        <div class="nav-arrow right position-absolute top-50 end-0 translate-middle-y me-3 fs-3 text-muted" id="btn-next" style="cursor: pointer;">&#10095;</div>
+                        <div class="nav-arrow left" id="btn-prev">&#10094;</div>
+                        <div class="nav-arrow right" id="btn-next">&#10095;</div>
 
-                        <div class="testimonial-content">
-                            <img loading="lazy" id="avatar" class="testimonial-img mb-3 rounded-circle shadow-sm" style="width: 90px; height: 90px; object-fit: cover;"
-                                 src="https://ui-avatars.com/api/?name=Khach+Hang&background=001f3f&color=fff" alt="avatar" />
-                            <div class="stars mb-2 text-warning fs-5" id="stars">⭐⭐⭐⭐⭐</div>
-                            <h5 class="testimonial-name fw-bold text-navy" id="name">Đang tải dữ liệu...</h5>
-                            <p class="testimonial-text fst-italic text-secondary px-md-5 mt-3" id="text"></p>
+                        <div class="testimonial-content text-center">
+                            <img loading="lazy" id="avatar" class="testimonial-img" src="https://ui-avatars.com/api/?name=Khach+Hang&background=001f3f&color=fff" alt="avatar" />
+                            <div class="stars mb-2" id="stars">⭐⭐⭐⭐⭐</div>
+                            <h5 class="testimonial-name" id="name">Đang tải dữ liệu...</h5>
+                            <p class="testimonial-text px-md-5" id="text"></p>
                         </div>
                     </div>
 
@@ -104,7 +103,7 @@
                                 <textarea id="review-content" class="form-control" rows="5" required placeholder="Chia sẻ cảm nghĩ thực tế của bạn về chất lượng dịch vụ tại MAY HOTEL..."></textarea>
                             </div>
                             <div class="col-12 text-center mt-4">
-                                <button type="submit" class="btn btn-submit px-5 py-3 rounded-pill text-uppercase fw-bold shadow-sm text-white w-100 w-md-auto">
+                                <button type="submit" class="btn btn-gold px-5 py-3 rounded-pill text-uppercase fw-bold shadow-sm w-100 w-md-auto">
                                     <i class="bi bi-send-fill me-2"></i> Gửi Đánh Giá
                                 </button>
                             </div>

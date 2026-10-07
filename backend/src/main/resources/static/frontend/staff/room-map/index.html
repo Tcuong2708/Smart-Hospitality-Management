@@ -35,13 +35,51 @@
 <body>
     <div class="container-fluid py-4">
         <div class="admin-card mb-4">
-            <div class="admin-header d-flex justify-content-between align-items-center">
+            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <h3 class="fw-bold text-uppercase mb-0">
-                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Sơ đồ phòng nghỉ trực quan
+                    <i class="bi bi-grid-3x3-gap-fill me-2"></i>Sơ đồ phòng nghỉ
                 </h3>
-                <a href="../../admin/check-in/index.html" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;">
-                    <i class="bi bi-journal-bookmark-fill me-2"></i>Xem danh sách Chờ Check-in
-                </a>
+                <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1 justify-content-end">
+                    <div class="dropdown">
+                        <button class="btn bg-white border-0 shadow-sm dropdown-toggle text-muted fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-building me-1"></i> Lọc Tầng
+                        </button>
+                        <ul class="dropdown-menu shadow p-2" id="filterFloorDropdown" style="min-width: 200px;">
+                            <!-- Checkbox load từ JS -->
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn bg-white border-0 shadow-sm dropdown-toggle text-muted fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-tags me-1"></i> Lọc Loại Phòng
+                        </button>
+                        <ul class="dropdown-menu shadow p-2" id="filterRoomTypeDropdown" style="min-width: 200px;">
+                            <!-- Checkbox load từ JS -->
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn bg-white border-0 shadow-sm dropdown-toggle text-muted fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-people me-1"></i> Lọc Sức Chứa
+                        </button>
+                        <ul class="dropdown-menu shadow p-2" id="filterCapacityDropdown" style="min-width: 200px;">
+                            <!-- Checkbox load từ JS -->
+                        </ul>
+                    </div>
+
+                    <div class="dropdown">
+                        <button class="btn bg-white border-0 shadow-sm dropdown-toggle text-muted fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-funnel me-1"></i> Lọc Trạng Thái
+                        </button>
+                        <ul class="dropdown-menu shadow p-2" id="filterStatusDropdown" style="min-width: 250px;">
+                            <!-- Checkbox load từ JS -->
+                        </ul>
+                    </div>
+
+                    <a href="../../admin/check-in/index.html" class="btn btn-gold px-4 shadow-sm text-white fw-bold" style="background: #C5A017;">
+                        <i class="bi bi-journal-bookmark-fill me-2"></i>DS Chờ Check-in
+                    </a>
+                </div>
             </div>
             
             <div class="card-body p-4">
@@ -56,8 +94,80 @@
                     <p class="text-muted mt-2">Đang tải sơ đồ phòng...</p>
                 </div>
 
-                <div class="room-grid" id="room-grid">
-                    <!-- Room cards will be rendered here by JS -->
+                <div id="room-map-container">
+                    <!-- Room map structured by floors will be rendered here by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Đổi Phòng -->
+    <div class="modal fade" id="transferRoomModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 20px; overflow: hidden;">
+                <div class="modal-header text-white px-4 py-3" style="background: linear-gradient(135deg, #0F2942, #1e456d);">
+                    <h5 class="modal-title fw-bold text-uppercase" style="color: #e8c642; letter-spacing: 0.5px;">
+                        <i class="bi bi-arrow-left-right me-2"></i>Xử lý Đổi Phòng
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="d-flex align-items-center mb-4 p-3 rounded" style="background-color: rgba(220, 53, 69, 0.08); border-left: 4px solid #dc3545;">
+                        <div class="me-3 fs-3 text-danger"><i class="bi bi-door-open-fill"></i></div>
+                        <div>
+                            <div class="text-muted small fw-bold text-uppercase">Phòng hiện tại</div>
+                            <div class="fs-5 fw-bold text-danger">
+                                <span id="current-room-id">---</span> 
+                                <span class="fs-6 fw-normal text-secondary ms-1">(<span id="current-room-type">---</span>)</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-navy"><i class="bi bi-search me-1 text-gold"></i>Chọn phòng mới <span class="text-danger">*</span></label>
+                        <select class="form-select form-select-lg shadow-sm border-secondary-subtle" id="new-room-select" required style="border-radius: 10px;">
+                            <option value="">-- Chọn phòng trống --</option>
+                            <!-- JS will populate empty rooms here -->
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label fw-bold text-navy"><i class="bi bi-chat-left-text me-1 text-gold"></i>Lý do đổi phòng <span class="text-danger">*</span></label>
+                        <select class="form-select shadow-sm border-secondary-subtle" id="transfer-reason" required style="border-radius: 10px;">
+                            <option value="Khách yêu cầu nâng hạng">Khách yêu cầu nâng hạng</option>
+                            <option value="Sự cố kỹ thuật (Điều hòa, Nước...)">Sự cố kỹ thuật (Điều hòa, Nước...)</option>
+                            <option value="Lý do khác">Lý do khác</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-4" id="other-reason-container" style="display: none;">
+                        <input type="text" class="form-control shadow-sm border-secondary-subtle" id="other-reason" placeholder="Nhập lý do cụ thể..." style="border-radius: 10px;">
+                    </div>
+
+                    <div class="p-3 bg-light rounded-3 mt-4 border shadow-sm">
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted fw-bold">Tiền phòng hiện tại:</span>
+                            <span class="fw-bold" id="current-price-disp">0 VNĐ</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                            <span class="text-muted fw-bold">Tiền phòng mới:</span>
+                            <span class="fw-bold" style="color: var(--navy-color);" id="new-price-disp">0 VNĐ</span>
+                        </div>
+                        <hr class="border-secondary opacity-25">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="fw-bold text-uppercase">Chênh lệch:</span>
+                            <span class="fw-bold text-danger fs-4" id="price-diff-disp">0 VNĐ</span>
+                        </div>
+                        <div class="text-muted fst-italic text-end mt-1" style="font-size: 0.75rem;">
+                            <i class="bi bi-info-circle me-1"></i>Tự động cộng/trừ vào Hóa đơn
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 px-4 pb-4 pt-0">
+                    <button type="button" class="btn btn-light fw-bold px-4 border rounded-pill" data-bs-dismiss="modal">Hủy</button>
+                    <button type="button" class="btn fw-bold px-4 rounded-pill shadow-sm text-white" id="btn-confirm-transfer" style="background: linear-gradient(135deg, #C5A017, #e8c642);">
+                        <i class="bi bi-check-circle-fill me-1"></i> Xác nhận Đổi Phòng
+                    </button>
                 </div>
             </div>
         </div>

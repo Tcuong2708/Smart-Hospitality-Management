@@ -15,7 +15,7 @@
               <i class="bi bi-receipt me-2 text-gold"></i>Đơn Hàng #<th:block th:text="${invoice.id}"></th:block>
             </h4>
             <span class="badge badge-date fs-6 px-3 py-2">
-                            <i class="bi bi-calendar3 me-1"></i> <th:block th:text="${#temporals.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm')}"></th:block>
+                            <i class="bi bi-calendar3 me-1"></i> <th:block th:text="${invoice.ngayDat != null ? #dates.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm') : ''}"></th:block>
                         </span>
           </div>
           <div class="card-body p-4">
@@ -62,7 +62,7 @@
                 <td class="ps-4 fw-bold text-navy">
                   <span th:text="${invoice.phong != null ? invoice.phong.name : 'Mã phòng: #' + invoice.maPhong}">Phòng</span>
                   <div class="small text-muted fw-normal">
-                    Thời gian: <th:block th:text="${#temporals.format(invoice.ngayCheckIn, 'dd/MM/yyyy')}"></th:block> đến <th:block th:text="${#temporals.format(invoice.ngayCheckOut, 'dd/MM/yyyy')}"></th:block>
+                    Thời gian: <th:block th:text="${invoice.ngayCheckIn != null ? #dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy') : ''}"></th:block> đến <th:block th:text="${invoice.ngayCheckOut != null ? #dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy') : ''}"></th:block>
                   </div>
                 </td>
                 <td class="text-center">1</td>
@@ -81,7 +81,7 @@
         </div>
 
         <div class="mt-4 text-center">
-          <a th:href="@{/admin/invoices}" class="btn btn-outline-secondary px-4 py-2 fw-bold">
+          <a th:href="@{/receptionist/invoices}" class="btn btn-outline-secondary px-4 py-2 fw-bold">
             <i class="bi bi-arrow-left me-2"></i> Quay lại danh sách
           </a>
         </div>

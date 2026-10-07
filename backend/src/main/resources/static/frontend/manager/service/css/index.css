@@ -1,0 +1,52 @@
+:root {
+    --navy: #0f2942;
+    --gold: #C5A017;
+    --gold-hover: #a68512;
+    --light-bg: #f8f9fa;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.text-navy { color: var(--navy) !important; }
+.text-gold { color: var(--gold) !important; }
+
+.btn-gold {
+    background-color: var(--gold);
+    color: white;
+    border: none;
+    transition: all 0.3s ease;
+}
+
+.btn-gold:hover {
+    background-color: var(--gold-hover);
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(197, 160, 23, 0.3) !important;
+}
+
+.admin-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow) !important;
+    border: 1px solid rgba(0,0,0,0.05);
+}
+
+.table-header-navy {
+    background-color: var(--navy) !important;
+}
+
+.table-header-navy th {
+    background-color: var(--navy) !important;
+    color: white !important;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    border-bottom: none;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(15, 41, 66, 0.03);
+}

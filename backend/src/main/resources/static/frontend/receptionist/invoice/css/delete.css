@@ -1,0 +1,35 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --gold-hover: #a68512;
+    --light-bg: #f8f9fa;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    --danger-color: #dc3545;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.delete-card {
+    border-radius: 12px;
+    overflow: hidden;
+    max-width: 550px;
+    box-shadow: var(--card-shadow) !important;
+}
+
+.delete-header {
+    background-color: var(--danger-color);
+}
+
+.order-summary {
+    border-left: 4px solid var(--navy-color);
+}
+
+.warning-box {
+    background-color: #fff3cd;
+    border: 1px solid #ffecb5;
+    color: #664d03;
+    font-size: 0.95rem;
+}

@@ -44,6 +44,19 @@
                                     </div>
                                     <div class="profile-name" id="display-name">Đang tải...</div>
                                     <div class="profile-role" id="display-role">MEMBER</div>
+                                    
+                                    <div class="loyalty-card mt-4 p-3 bg-white text-dark rounded shadow-sm mx-4 text-start border-top border-warning border-4">
+                                        <h6 class="fw-bold mb-1 text-uppercase text-navy" style="color: var(--navy-color);"><i class="bi bi-star-fill text-warning me-2"></i>Thẻ Thành Viên</h6>
+                                        <h5 class="fw-bold text-warning mb-0" id="display-tier">Hạng Vàng</h5>
+                                        <p class="small text-muted mb-2">Điểm tích lũy: <strong class="text-danger fs-5" id="display-points">5,420</strong></p>
+                                        <a href="points.html" class="btn btn-sm btn-warning w-100 fw-bold mt-2 text-dark shadow-sm">
+                                            <i class="bi bi-star-fill me-1"></i> Tra cứu điểm thưởng & Thẻ
+                                        </a>
+                                        <button class="btn btn-sm btn-outline-dark w-100 fw-bold mt-2" type="button" data-bs-toggle="modal" data-bs-target="#pointsModal">
+                                            Xem nhanh lịch sử
+                                        </button>
+                                    </div>
+                                    
                                     <p class="mt-4 small fst-italic">"Trải nghiệm đẳng cấp thượng lưu"</p>
                                 </div>
                             </div>
@@ -98,7 +111,7 @@
                                             rows="3"></textarea>
                                     </div>
 
-                                    <div class="d-flex justify-content-end pt-2 border-top">
+                                    <div class="d-flex justify-content-end pt-3 mt-4 border-top">
                                         <button type="submit" id="btn-update" class="btn btn-update">
                                             <i class="bi bi-save2-fill me-2"></i>Lưu thông tin
                                         </button>
@@ -114,6 +127,51 @@
         </div>
     </div>
 
+    <!-- Modal Tra cứu điểm -->
+    <div class="modal fade" id="pointsModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header text-white" style="background-color: var(--navy-color, #0F2942);">
+            <h5 class="modal-title fw-bold"><i class="bi bi-clock-history text-warning me-2"></i>Lịch sử Điểm Thưởng</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-0">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th class="small text-uppercase">Ngày giao dịch</th>
+                        <th class="small text-uppercase">Nội dung</th>
+                        <th class="small text-uppercase text-center">Loại</th>
+                        <th class="small text-uppercase text-end">Điểm</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>10/09/2026</td>
+                        <td>Nhận phòng hóa đơn HD001</td>
+                        <td class="text-center"><span class="badge bg-success">Tích điểm</span></td>
+                        <td class="text-end fw-bold text-success">+ 420</td>
+                    </tr>
+                    <tr>
+                        <td>15/08/2026</td>
+                        <td>Đổi điểm giảm giá HD085</td>
+                        <td class="text-center"><span class="badge bg-danger">Đổi điểm</span></td>
+                        <td class="text-end fw-bold text-danger">- 1000</td>
+                    </tr>
+                    <tr>
+                        <td>01/01/2026</td>
+                        <td>Điểm tặng tân binh</td>
+                        <td class="text-center"><span class="badge bg-success">Tích điểm</span></td>
+                        <td class="text-end fw-bold text-success">+ 6000</td>
+                    </tr>
+                </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../layout.js"></script>
     <script src="../app.js"></script>
     <script src="js/profile.js"></script>

@@ -10,10 +10,15 @@
     .invoice-box { background: #fff; max-width: 800px; margin: 30px auto; padding: 40px; box-shadow: 0 0 20px rgba(0,0,0,0.1); }
     .theme-color { color: #0F2942; }
     .gold-color { color: #C5A017; }
+    .navbar, footer, #chat-circle, .chat-box, .toast-container { display: none !important; }
+    @page {
+        size: A4;
+        margin: 15mm;
+    }
     @media print {
       .no-print { display: none !important; }
-      .invoice-box { box-shadow: none; margin: 0; width: 100%; max-width: 100%; padding: 0; }
-      body { background: #fff; }
+      .invoice-box { box-shadow: none; margin: 0; width: 100%; max-width: 100%; padding: 0; display: block !important; }
+      body { background: #fff; width: 100%; height: 100%; }
     }
   </style>
 </head>
@@ -23,13 +28,16 @@
   <button onclick="window.print()" class="btn btn-primary fw-bold px-4 me-2">
     <i class="bi bi-printer-fill me-1"></i> IN HÓA ĐƠN
   </button>
-  <a th:href="@{/admin/invoices}" class="btn btn-secondary px-4">Quay lại</a>
+  <a th:href="@{/receptionist/invoices}" class="btn btn-secondary px-4">Quay lại</a>
 </div>
 
 <div class="invoice-box">
   <div class="row border-bottom pb-4 mb-4 align-items-center">
     <div class="col-8">
-      <h2 class="fw-bold theme-color m-0">MAY HOTEL LUXURY</h2>
+      <div class="d-flex align-items-center gap-3 mb-2">
+        <img th:src="@{/images/logo-web.png}" alt="May Hotel Logo" style="height: 50px; object-fit: contain;">
+        <h2 class="fw-bold theme-color m-0">MAY HOTEL</h2>
+      </div>
       <div class="small text-muted">CN1: 140 Lê Trọng Tấn, TP. HCM</div>
       <div class="small text-muted">CN2: 86 Tân Hòa Đông, Q.6, TP. HCM</div>
       <div class="small text-muted">Hotline: 1800 9327 | Email: MayHotel.hotel@gmail.com</div>
@@ -37,7 +45,7 @@
     <div class="col-4 text-end">
       <div class="fw-bold fs-4 theme-color">HÓA ĐƠN GTGT</div>
       <div class="text-danger fw-bold" th:text="'#HD-' + ${invoice.id}">#HD-0</div>
-      <small class="text-muted">Ngày xuất: <th:block th:text="${#temporals.format(#temporals.createNow(), 'dd/MM/yyyy HH:mm')}"></th:block></small>
+      <small class="text-muted">Ngày xuất: <th:block th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy HH:mm')}"></th:block></small>
     </div>
   </div>
 
@@ -50,8 +58,8 @@
     </div>
     <div class="col-6 text-end">
       <h6 class="fw-bold theme-color text-uppercase border-bottom pb-1 text-end">Thông tin lưu trú</h6>
-      <div>Check-in: <b th:text="${#temporals.format(invoice.ngayCheckIn, 'dd/MM/yyyy')}">01/01/2026</b></div>
-      <div>Check-out: <b th:text="${#temporals.format(invoice.ngayCheckOut, 'dd/MM/yyyy')}">02/01/2026</b></div>
+      <div>Check-in: <b th:text="${invoice.ngayCheckIn != null ? #dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy') : ''}">01/01/2026</b></div>
+      <div>Check-out: <b th:text="${invoice.ngayCheckOut != null ? #dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy') : ''}">02/01/2026</b></div>
       <div class="text-primary fst-italic" th:text="'(' + ${soDem} + ' đêm)'">(1 đêm)</div>
     </div>
   </div>
@@ -80,7 +88,7 @@
 
   <div class="row mt-5 pt-3 border-top align-items-center">
     <div class="col-6">
-      <p class="fst-italic text-muted small m-0">Cảm ơn quý khách đã tin tưởng chọn May Hotel Luxury!</p>
+      <p class="fst-italic text-muted small m-0">Cảm ơn quý khách đã tin tưởng chọn May Hotel!</p>
     </div>
     <div class="col-6 text-end">
       <h5 class="fw-bold theme-color mb-1">TỔNG THANH TOÁN</h5>

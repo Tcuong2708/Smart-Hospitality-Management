@@ -1,0 +1,26 @@
+:root {
+    --navy: #0f2942;
+    --gold: #C5A017;
+    --light-bg: #f8f9fa;
+    --danger: #dc3545;
+    --card-shadow: 0 15px 35px rgba(0, 0, 0, 0.08);
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Inter', sans-serif;
+}
+
+.text-navy { color: var(--navy) !important; }
+
+.form-card {
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--card-shadow) !important;
+}
+
+.info-box {
+    background-color: #f8f9fa;
+    border-left: 4px solid var(--navy);
+    border-radius: 8px;
+}

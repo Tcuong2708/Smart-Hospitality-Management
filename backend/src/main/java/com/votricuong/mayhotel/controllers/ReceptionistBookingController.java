@@ -33,7 +33,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Controller
-@RequestMapping("/receptionist/booking")
+@RequestMapping({"/receptionist/booking"})
 public class ReceptionistBookingController extends BaseController {
 
     private final RoomRepository roomRepository;
@@ -117,6 +117,7 @@ public class ReceptionistBookingController extends BaseController {
         model.addAttribute("vacantRooms", vacantRooms);
         model.addAttribute("bookings", displayBookings);
         model.addAttribute("roomTypes", roomTypeRepository.findAll());
+        setExtraCSS(model, "view/Receptionist/booking/index :: extra_css");
         return render(model, "view/Receptionist/booking/index");
     }
 

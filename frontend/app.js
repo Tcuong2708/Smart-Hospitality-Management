@@ -232,6 +232,7 @@ function renderUserMenu(data) {
             html.push(`
                 <li><div class="dropdown-header text-uppercase text-primary-custom fw-bold mt-1" style="font-size: 0.75rem; padding-left: 1rem;">Khách hàng</div></li>
                 <li><a class="dropdown-item" href="${basePath}home/booking/history.html"><i class="bi bi-clock-history me-2" style="color: var(--accent-color);"></i>Lịch sử đặt phòng</a></li>
+                <li><a class="dropdown-item" href="${basePath}account/points.html"><i class="bi bi-star-fill me-2 text-warning"></i>Tra cứu điểm thưởng</a></li>
                 <li><hr class="dropdown-divider" /></li>
                 <li><a class="dropdown-item" href="${basePath}account/profile.html"><i class="bi bi-person-circle me-2" style="color: var(--accent-color);"></i>Hồ sơ của tôi</a></li>
                 <li><a class="dropdown-item text-danger fw-bold mt-2" href="#" id="btnLogout"><i class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>

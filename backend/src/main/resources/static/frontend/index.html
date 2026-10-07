@@ -55,14 +55,13 @@
             <!-- Ép chiều cao 100% -->
             <div class="carousel-inner h-100">
               <div class="carousel-item active h-100">
-                <!-- Thêm object-fit: cover để ảnh không bị méo khi kéo giãn -->
-                <img loading="lazy" src="images/a1.jpg" class="d-block w-100 h-100" style="object-fit: cover; min-height: 400px;" alt="Sảnh khách sạn">
+                <div class="w-100 h-100" style="background-image: url('images/a1.jpg'); background-size: cover; background-position: center center; min-height: 450px;" title="Không gian đẳng cấp"></div>
               </div>
               <div class="carousel-item h-100">
-                <img loading="lazy" src="images/a2.jpg" class="d-block w-100 h-100" style="object-fit: cover; min-height: 400px;" alt="Hồ bơi">
+                <div class="w-100 h-100" style="background-image: url('images/a2.jpg'); background-size: cover; background-position: center center; min-height: 450px;" title="Nội thất sang trọng"></div>
               </div>
               <div class="carousel-item h-100">
-                <img loading="lazy" src="images/a3.jpg" class="d-block w-100 h-100" style="object-fit: cover; min-height: 400px;" alt="Phòng nghỉ">
+                <div class="w-100 h-100" style="background-image: url('images/a3.jpg'); background-size: cover; background-position: center center; min-height: 450px;" title="Thư giãn tuyệt đối"></div>
               </div>
             </div>
             <button class="carousel-control-prev" type="button" data-bs-target="#promoCarousel" data-bs-slide="prev">
@@ -74,27 +73,35 @@
           </div>
         </div>
 
-        <!-- CỘT PHẢI: ƯU ĐÃI -->
+        <!-- CỘT PHẢI: TÌM PHÒNG TRỐNG -->
         <div class="col-lg-4 d-flex">
-          <div class="promo-box p-4 p-xl-5 w-100 d-flex flex-column justify-content-center border-0" style="background-color: #001f3f;">
-            <h4 class="fw-bold mb-3 text-warning text-uppercase" style="letter-spacing: 1px;">
-              <i class="bi bi-gift-fill me-2"></i>Ưu đãi đặc biệt
+          <div class="promo-box p-4 p-xl-5 w-100 d-flex flex-column justify-content-center border-0" style="background-color: #0F2942;">
+            <h4 class="fw-bold mb-4 text-gold text-uppercase" style="letter-spacing: 1px; color: #C5A017;">
+              <i class="bi bi-search me-2"></i>Tìm phòng trống
             </h4>
-            <h2 class="fw-bold text-white mb-3">Mùa lễ hội đã đến!</h2>
-            <p class="mb-4" style="color: rgba(255,255,255,0.8);">
-              Đặt phòng ngay hôm nay để trải nghiệm dịch vụ đẳng cấp 5 sao với ưu đãi <strong class="text-white">Voucher lên tới 1.000.000đ</strong>.<br>
-              <em class="small mt-2 d-block text-warning">* Áp dụng cho thành viên Gold & Platinum.</em>
-            </p>
-            <div class="alert mb-4 d-flex align-items-center rounded-3" style="background-color: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #fff;">
-              <i class="bi bi-alarm fs-2 me-3 text-warning"></i>
-              <div>
-                <small class="text-uppercase text-warning fw-bold">Thời gian còn lại:</small><br>
-                <span class="fs-4 fw-bold font-monospace">12 : 05 : 45</span>
+            <form id="searchRoomForm">
+              <div class="mb-3">
+                <label class="text-white small fw-bold mb-1">Ngày nhận phòng</label>
+                <input type="date" class="form-control" id="checkinDate" required>
               </div>
-            </div>
-            <button class="btn btn-light w-100 mt-auto fw-bold py-3 rounded-pill" style="color: #001f3f;">
-              NHẬN ƯU ĐÃI NGAY <i class="bi bi-arrow-right-circle-fill ms-2 fs-5"></i>
-            </button>
+              <div class="mb-3">
+                <label class="text-white small fw-bold mb-1">Ngày trả phòng</label>
+                <input type="date" class="form-control" id="checkoutDate" required>
+              </div>
+              <div class="row mb-4">
+                <div class="col-6">
+                  <label class="text-white small fw-bold mb-1">Người lớn</label>
+                  <input type="number" class="form-control" id="adults" min="1" value="2" required>
+                </div>
+                <div class="col-6">
+                  <label class="text-white small fw-bold mb-1">Trẻ em</label>
+                  <input type="number" class="form-control" id="children" min="0" value="0">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-gold w-100 mt-2 fw-bold py-3 text-white rounded-3 shadow-sm" style="background-color: #C5A017; border: none;">
+                KIỂM TRA PHÒNG <i class="bi bi-arrow-right-circle-fill ms-2 fs-5 align-middle"></i>
+              </button>
+            </form>
           </div>
         </div>
 
@@ -174,6 +181,85 @@
       </div>
     </section>
 
+    </section>
+
+  </div>
+
+  <!-- Modal Đặt Phòng Trực Tuyến -->
+  <div class="modal fade" id="onlineBookingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-header bg-navy text-white" style="background-color: #0F2942;">
+          <h5 class="modal-title fw-bold text-gold" style="color: #C5A017;"><i class="bi bi-journal-check me-2"></i>Xác nhận đặt phòng trực tuyến</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="row">
+            <div class="col-md-5 mb-4 mb-md-0">
+              <div class="bg-light p-3 rounded h-100 border text-center">
+                <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">Thông tin phòng</h6>
+                <img id="bookingRoomImg" src="" class="img-fluid rounded mb-3 shadow-sm" alt="Room" style="max-height: 180px; object-fit: cover;">
+                <h5 id="bookingRoomName" class="fw-bold text-navy mb-2">--</h5>
+                <p class="mb-1 small text-muted"><i class="bi bi-people-fill me-1"></i> Sức chứa: <span id="bookingCapacity" class="fw-bold">--</span> người</p>
+                <div class="d-flex justify-content-between align-items-center mt-4 pt-3 border-top">
+                  <span class="fw-bold">Tổng tiền:</span>
+                  <span id="bookingPrice" class="fw-bold fs-5 text-danger">--</span>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-7">
+              <form id="onlineBookingForm">
+                <h6 class="fw-bold text-navy border-bottom pb-2 mb-3">Thông tin khách hàng</h6>
+                <div class="row mb-3">
+                  <div class="col-sm-6">
+                    <label class="form-label small fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                    <input type="text" class="form-control form-control-sm" required>
+                  </div>
+                  <div class="col-sm-6">
+                    <label class="form-label small fw-bold">Số điện thoại <span class="text-danger">*</span></label>
+                    <input type="tel" class="form-control form-control-sm" required>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">Email</label>
+                  <input type="email" class="form-control form-control-sm">
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">Phương thức thanh toán <span class="text-danger">*</span></label>
+                  <select class="form-select form-select-sm" id="paymentMethod" required>
+                    <option value="qr">Thanh toán đặt cọc trực tuyến (Mã QR)</option>
+                    <option value="later">Thanh toán sau (Giữ chỗ)</option>
+                  </select>
+                </div>
+                <div class="mb-3">
+                  <label class="form-label small fw-bold">Ghi chú</label>
+                  <textarea class="form-control form-control-sm" rows="2" placeholder="Yêu cầu đặc biệt..."></textarea>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer bg-light border-top-0">
+          <button type="button" class="btn btn-secondary fw-bold" data-bs-dismiss="modal">Hủy</button>
+          <button type="button" class="btn btn-gold text-white fw-bold px-4 shadow-sm" id="btnConfirmBooking" style="background: #C5A017;">Xác nhận đặt & Cọc</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Quét QR Thanh Toán -->
+  <div class="modal fade" id="qrPaymentModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-dialog-centered modal-sm">
+      <div class="modal-content border-0 shadow-lg">
+        <div class="modal-body p-4 text-center">
+          <h5 class="fw-bold text-navy mb-3">Quét mã QR để đặt cọc</h5>
+          <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MAYHOTEL_PAYMENT" alt="QR Code" class="img-fluid border p-2 rounded mb-3 shadow-sm">
+          <p class="small text-muted mb-4">Vui lòng dùng ứng dụng Ngân hàng để quét mã. Giao dịch sẽ tự động xác nhận sau khi chuyển khoản thành công.</p>
+          <div class="spinner-border mb-3" role="status" style="color: #C5A017;"></div>
+          <p class="small fw-bold text-navy" id="qrStatusText">Đang chờ xác nhận thanh toán...</p>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Javascript -->

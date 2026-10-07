@@ -1,0 +1,49 @@
+:root {
+    --navy-color: #0F2942;
+    --gold-color: #C5A017;
+    --bg-light: #f4f6f9;
+}
+
+body {
+    background-color: var(--bg-light);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.admin-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 5px 20px rgba(15, 41, 66, 0.1);
+    overflow: hidden;
+}
+
+.admin-header {
+    background-color: var(--navy-color);
+    color: white;
+    padding: 20px 25px;
+    border-bottom: 3px solid var(--gold-color);
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(197, 160, 23, 0.05);
+}
+
+.status-badge {
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.status-1 { background-color: #d1e7dd; color: #0f5132; border: 1px solid #badbcc; } /* Trống */
+.status-2 { background-color: #f8d7da; color: #842029; border: 1px solid #f5c2c7; } /* Đã đặt */
+.status-3 { background-color: #fff3cd; color: #664d03; border: 1px solid #ffecb5; } /* Bảo trì */
+
+.btn-action {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    line-height: 32px;
+    border-radius: 5px;
+    display: inline-block;
+    text-align: center;
+}

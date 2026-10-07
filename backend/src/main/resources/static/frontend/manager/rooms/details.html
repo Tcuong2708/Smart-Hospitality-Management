@@ -1,0 +1,106 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chi Tiết Phòng - Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="admin-room.css">
+
+  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+  <link rel="stylesheet" href="../../style.css" />
+  <style>
+    .navbar-nav .nav-link.active-menu {
+      font-weight: 700 !important;
+      color: #d4af37 !important; /* Màu vàng Gold */
+      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
+      border-radius: 8px; /* Bo tròn góc */
+      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
+      transition: 0.3s all ease-in-out;
+    }
+  </style>
+
+</head>
+<body>
+    <div class="container py-5">
+        <a href="index.html" class="text-decoration-none text-muted mb-3 d-inline-block">
+            <i class="bi bi-arrow-left me-1"></i> Trở về Quản lý phòng
+        </a>
+
+        <div class="admin-card">
+            <div class="admin-header">
+                <h4 class="mb-0 fw-bold text-uppercase" style="letter-spacing: 1px;">
+                    <i class="bi bi-info-circle-fill me-2 text-warning"></i>Chi Tiết Phòng
+                </h4>
+            </div>
+
+            <div class="card-body p-4 p-md-5">
+                <div id="loading" class="text-center py-5">
+                    <div class="spinner-border text-primary"></div>
+                </div>
+
+                <div id="detail-content" class="d-none">
+                    <div class="row">
+                        <div class="col-md-5 mb-4 mb-md-0 text-center">
+                            <img loading="lazy" id="dt-image" src="" alt="Room Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; object-fit: cover;">
+                        </div>
+                        <div class="col-md-7">
+                            <h3 class="fw-bold text-navy mb-3" id="dt-name">...</h3>
+                            
+                            <table class="table table-bordered">
+                                <tbody>
+                                    <tr>
+                                        <th class="bg-light" style="width: 30%;">Mã Phòng (ID)</th>
+                                        <td id="dt-id">...</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">Giá Phòng</th>
+                                        <td class="text-danger fw-bold fs-5" id="dt-price">...</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">Trạng Thái</th>
+                                        <td id="dt-status">...</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">Loại Phòng (Mã)</th>
+                                        <td id="dt-type">...</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">Số Giường Phụ</th>
+                                        <td id="dt-bed">...</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">Mô tả</th>
+                                        <td id="dt-desc">...</td>
+                                    </tr>
+                                    <tr>
+                                        <th class="bg-light">Ghi chú nội bộ</th>
+                                        <td id="dt-note" class="fst-italic text-muted">...</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            <div class="mt-4 text-end">
+                                <a href="index.html" class="btn btn-secondary px-4 me-2">Đóng</a>
+                                <a id="btn-edit-link" href="#" class="btn btn-primary px-4" style="background-color: var(--navy-color);">
+                                    <i class="bi bi-pencil-square me-1"></i> Chỉnh sửa
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="details.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>
+

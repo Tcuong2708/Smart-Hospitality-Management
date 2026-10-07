@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quản lý Đặt Phòng - Lễ Tân</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../../style.css" />
+    <style>
+      .navbar-nav .nav-link.active-menu { font-weight: 700 !important; color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); border-radius: 8px; padding: 8px 16px !important; transition: 0.3s all ease-in-out; }
+      .admin-card { background: white; border-radius: 8px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
+      .admin-header { background-color: var(--primary-color, #0F2942); color: white; padding: 20px 25px; border-bottom: 3px solid var(--accent-color, #C5A017); }
+      .table-header-navy th { background-color: var(--primary-color, #0F2942) !important; color: white !important; border-bottom: 2px solid var(--accent-color, #C5A017) !important; padding: 15px 10px !important; text-transform: uppercase; font-size: 0.85rem; vertical-align: middle; }
+    </style>
+</head>
+<body>
+
+<div class="main-content">
+    <div class="container py-5">
+        <div class="card shadow-sm border-0 admin-card">
+            <div class="admin-header d-flex justify-content-between align-items-center">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-calendar-check-fill me-2" style="color: var(--accent-color);"></i>Quản Lý Đặt Phòng
+                </h3>
+                <a href="#" class="btn btn-gold px-4 shadow-sm text-white" style="background: #C5A017;" data-bs-toggle="modal" data-bs-target="#directBookingModal">
+                    <i class="bi bi-plus-circle-fill me-1"></i> Thêm Đặt Phòng
+                </a>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header-navy">
+                        <tr>
+                            <th class="text-center text-uppercase small text-white">Mã Đặt</th>
+                            <th class="text-center text-uppercase small text-white">Khách Hàng</th>
+                            <th class="text-center text-uppercase small text-white">Phòng</th>
+                            <th class="text-center text-uppercase small text-white">Ngày Check-in</th>
+                            <th class="text-center text-uppercase small text-white">Ngày Check-out</th>
+                            <th class="text-center text-uppercase small text-white">Trạng thái</th>
+                            <th class="text-center text-uppercase small text-white" style="width:150px;"><i class="bi bi-robot text-warning me-1"></i> AI Dự đoán</th>
+                            <th class="text-center text-uppercase small text-white">Thao tác</th>
+                        </tr>
+                        </thead>
+                        <tbody id="table-body">
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary"></div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Đặt Phòng Trực Tiếp (UC21) -->
+<div class="modal fade" id="directBookingModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header text-white" style="background-color: #0F2942; border-bottom: 4px solid #C5A017; border-top-left-radius: calc(0.3rem - 1px); border-top-right-radius: calc(0.3rem - 1px);">
+                <h5 class="modal-title fw-bold text-uppercase d-flex align-items-center" style="letter-spacing: 1px;">
+                    <i class="bi bi-calendar-plus-fill me-2" style="color: #C5A017;"></i> Đặt phòng trực tiếp
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-4 bg-light">
+                <!-- Bước 1: Tìm phòng -->
+                <div class="card border-0 shadow-sm mb-4">
+                    <div class="card-header bg-white fw-bold text-navy"><i class="bi bi-search me-1"></i>1. Tìm phòng trống</div>
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Check-in</label>
+                                <input type="date" class="form-control" id="db-checkin">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Check-out</label>
+                                <input type="date" class="form-control" id="db-checkout">
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small fw-bold">Loại phòng</label>
+                                <select class="form-select" id="db-room-type">
+                                    <option value="">Tất cả</option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="Deluxe">Deluxe</option>
+                                    <option value="Suite">Suite</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mt-3 text-end">
+                            <button class="btn btn-navy text-white fw-bold px-4" id="btn-search-rooms"><i class="bi bi-search me-2"></i>Tìm kiếm</button>
+                        </div>
+                        <!-- Kết quả tìm phòng -->
+                        <div id="db-search-results" class="mt-3 d-none">
+                            <label class="form-label small fw-bold text-success">Chọn phòng:</label>
+                            <select class="form-select border-success" id="db-selected-room">
+                                <option value="P105">Phòng 105 - Standard (500,000 VNĐ)</option>
+                                <option value="P202">Phòng 202 - Deluxe (800,000 VNĐ)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bước 2: Thông tin khách hàng -->
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white fw-bold text-navy"><i class="bi bi-person-vcard me-1"></i>2. Thông tin khách hàng</div>
+                    <div class="card-body">
+                        <div class="row g-3 align-items-end mb-3">
+                            <div class="col-md-8">
+                                <label class="form-label small fw-bold">Nhập CCCD / Passport <span class="text-danger">*</span></label>
+                                <input type="text" class="form-control" id="db-cccd" placeholder="Nhập CCCD để tự động điền thông tin khách cũ">
+                            </div>
+                            <div class="col-md-4 d-flex gap-2">
+                                <button class="btn btn-outline-navy flex-grow-1 fw-bold" id="btn-check-customer"><i class="bi bi-search me-1"></i>Tra cứu</button>
+                                <button class="btn btn-primary fw-bold" id="btn-nfc-scan" title="Quét CCCD qua NFC" style="background-color: #0F2942; border-color: #0F2942;"><i class="bi bi-wifi"></i> NFC</button>
+                            </div>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Họ và tên</label>
+                                <input type="text" class="form-control" id="db-fullname" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label small fw-bold">Số điện thoại</label>
+                                <input type="text" class="form-control" id="db-phone" required>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer bg-white border-top-0">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
+                <button type="button" class="btn btn-gold text-white fw-bold px-4" id="btn-confirm-booking" style="background: #C5A017;"><i class="bi bi-check-circle-fill me-1"></i>Xác nhận đặt phòng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="index.js"></script>
+<script src="../../layout.js"></script>
+<script src="../../app.js"></script>
+</body>
+</html>

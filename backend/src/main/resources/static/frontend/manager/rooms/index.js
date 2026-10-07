@@ -1,0 +1,193 @@
+document.addEventListener('DOMContentLoaded', () => {
+    const API_URL = 'http://localhost:8080/admin/api/rooms/json';
+    const tbody = document.getElementById('table-body');
+    const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount) + ' đ';
+
+    // Sửa lỗi backdrop che modal do thẻ modal bị lồng bên trong thẻ có z-index
+    const modalElement = document.getElementById('roomModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+    }
+
+    const renderStatus = (maTrangThai) => {
+        switch(maTrangThai) {
+            case 1: return `<span class="status-badge status-1">Đang Trống</span>`;
+            case 2: return `<span class="status-badge status-2">Đã Đặt</span>`;
+            case 3: return `<span class="status-badge status-3">Bảo Trì</span>`;
+            default: return `<span class="status-badge bg-secondary text-white">Unknown</span>`;
+        }
+    };
+
+    const mockRooms = [
+        { id: '101', name: 'Phòng 101', category: 'Standard', view: 'Hướng Thành Phố', price: 800000, imageUrl: 'Deluxe1.jpg', maTrangThai: 1, desc: 'Phòng tiêu chuẩn 1 giường đơn', note: '' },
+        { id: '102', name: 'Phòng 102', category: 'Standard', view: 'Hướng Thành Phố', price: 800000, imageUrl: 'Deluxe2.jpg', maTrangThai: 1, desc: 'Phòng tiêu chuẩn 1 giường đơn', note: '' },
+        { id: '103', name: 'Phòng 103', category: 'Superior', view: 'Hướng Biển', price: 1200000, imageUrl: 'Deluxe3.jpg', maTrangThai: 1, desc: 'Phòng cao cấp 1 giường đôi', note: '' },
+        { id: '104', name: 'Phòng 104', category: 'Superior', view: 'Hướng Biển', price: 1200000, imageUrl: 'Deluxe4.jpg', maTrangThai: 2, desc: 'Phòng cao cấp 1 giường đôi', note: 'View biển' },
+        { id: '201', name: 'Phòng 201', category: 'Deluxe', view: 'Hướng Thành Phố', price: 1800000, imageUrl: 'Deluxe5.jpg', maTrangThai: 3, desc: 'Phòng Deluxe 2 giường đôi', note: 'Đang sửa ống nước' },
+        { id: '202', name: 'Phòng 202', category: 'Suite', view: 'Hướng Biển', price: 3500000, imageUrl: 'Deluxe6.jpg', maTrangThai: 1, desc: 'Phòng Tổng thống', note: 'VIP' }
+    ];
+
+    const data = mockRooms;
+    
+    function renderTable(roomsToRender) {
+        if(!roomsToRender || roomsToRender.length === 0) {
+            tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Không tìm thấy dữ liệu.</td></tr>`;
+            return;
+        }
+
+        let html = '';
+        roomsToRender.forEach(p => {
+            let imgUrl = p.imageUrl ? (p.imageUrl.startsWith("http") ? p.imageUrl : `../../images/${p.imageUrl}`) : 'https://via.placeholder.com/80';
+            
+            html += `
+                <tr>
+                    <td class="text-center fw-bold text-secondary">${p.id}</td>
+                    <td class="text-center">
+                        <img src="${imgUrl}" alt="${p.name}" class="rounded" style="width: 80px; height: 60px; object-fit: cover; border: 1px solid #ddd;">
+                    </td>
+                    <td class="text-center fw-bold" style="color: #0F2942;">${p.name}</td>
+                    <td class="text-center"><span class="badge bg-secondary">${p.category}</span></td>
+                    <td class="text-center fw-bold text-dark">${p.view}</td>
+                    <td class="text-center text-danger fw-bold">${formatCurrency(p.price)}</td>
+                    <td class="text-center">${renderStatus(p.maTrangThai)}</td>
+                    <td class="text-center">
+                        <button class="btn btn-sm btn-info text-white shadow-sm btn-view" data-id="${p.id}" title="Chi tiết"><i class="bi bi-eye"></i></button>
+                        <button class="btn btn-sm btn-warning text-white shadow-sm mx-1 btn-edit" data-id="${p.id}" title="Sửa"><i class="bi bi-pencil"></i></button>
+                        <button class="btn btn-sm btn-danger shadow-sm ms-1 btn-delete" data-id="${p.id}" title="Xóa"><i class="bi bi-trash"></i></button>
+                    </td>
+                </tr>
+            `;
+        });
+        tbody.innerHTML = html;
+        bindTableEvents();
+    }
+
+    // Chức năng tìm kiếm và lọc trên Table Header
+    const searchRoom = document.getElementById('searchRoom');
+    const thFilterCategory = document.getElementById('thFilterCategory');
+    const thFilterView = document.getElementById('thFilterView');
+    const thFilterStatus = document.getElementById('thFilterStatus');
+
+    // Hàm lấy label trạng thái
+    const getStatusLabel = (maTrangThai) => {
+        if(maTrangThai === 1) return 'Đang Trống';
+        if(maTrangThai === 2) return 'Đã Đặt';
+        if(maTrangThai === 3) return 'Bảo Trì';
+        return 'Unknown';
+    };
+
+    // Render checkbox list for Category
+    if (thFilterCategory) {
+        const categories = [...new Set(mockRooms.map(r => r.category))];
+        thFilterCategory.innerHTML = categories.map((cat, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-category" type="checkbox" value="${cat}" id="th_cat_${idx}">
+                    <label class="form-check-label" for="th_cat_${idx}">${cat}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Render checkbox list for View
+    if (thFilterView) {
+        const views = [...new Set(mockRooms.map(r => r.view))];
+        thFilterView.innerHTML = views.map((v, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-view" type="checkbox" value="${v}" id="th_view_${idx}">
+                    <label class="form-check-label" for="th_view_${idx}">${v}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Render checkbox list for Status
+    if (thFilterStatus) {
+        const statuses = [...new Set(mockRooms.map(r => r.maTrangThai))];
+        thFilterStatus.innerHTML = statuses.map((st, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-status" type="checkbox" value="${st}" id="th_st_${idx}">
+                    <label class="form-check-label" for="th_st_${idx}">${getStatusLabel(st)}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Gắn sự kiện thay đổi
+    document.querySelectorAll('.th-cb-category, .th-cb-view, .th-cb-status').forEach(cb => {
+        cb.addEventListener('change', applyFilters);
+    });
+
+    function applyFilters() {
+        const keyword = (searchRoom.value || '').toLowerCase().trim();
+        const selectedCategories = Array.from(document.querySelectorAll('.th-cb-category:checked')).map(cb => cb.value);
+        const selectedViews = Array.from(document.querySelectorAll('.th-cb-view:checked')).map(cb => cb.value);
+        const selectedStatuses = Array.from(document.querySelectorAll('.th-cb-status:checked')).map(cb => parseInt(cb.value));
+
+        const filtered = mockRooms.filter(r => {
+            const matchKeyword = r.name.toLowerCase().includes(keyword) || r.id.toLowerCase().includes(keyword);
+            const matchCategory = selectedCategories.length === 0 || selectedCategories.includes(r.category);
+            const matchView = selectedViews.length === 0 || selectedViews.includes(r.view);
+            const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.maTrangThai);
+            return matchKeyword && matchCategory && matchView && matchStatus;
+        });
+
+        renderTable(filtered);
+    }
+
+    if (searchRoom) searchRoom.addEventListener('input', applyFilters);
+
+    // Initial render
+    renderTable(mockRooms);
+
+    function bindTableEvents() {
+
+    // Sự kiện Sửa phòng
+    document.querySelectorAll('.btn-edit').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const room = mockRooms.find(r => r.id === id);
+            
+            if (room) {
+                document.getElementById('roomModalTitle').innerText = 'Cập Nhật Thông Tin Phòng';
+                document.getElementById('form-name').value = room.name;
+                document.getElementById('form-category').value = room.category;
+                document.getElementById('form-price').value = room.price;
+                document.getElementById('form-extra-bed').value = room.extraBed || 0;
+                document.getElementById('form-image').value = room.imageUrl || '';
+                document.getElementById('form-desc').value = room.desc || '';
+                document.getElementById('form-note').value = room.note || '';
+                
+                new bootstrap.Modal(document.getElementById('roomModal')).show();
+            }
+        });
+    });
+
+    // Reset form khi đóng modal
+    const roomModal = document.getElementById('roomModal');
+    if (roomModal) {
+        roomModal.addEventListener('hidden.bs.modal', () => {
+            document.getElementById('roomForm').reset();
+            document.getElementById('roomModalTitle').innerText = 'Thêm Phòng Mới';
+        });
+    }
+    
+    document.querySelectorAll('.btn-delete').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if(confirm('Bạn có chắc chắn muốn xóa phòng này?')) alert('Đã xóa!');
+        });
+    });
+    
+    document.querySelectorAll('.btn-view').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const id = e.currentTarget.dataset.id;
+            const room = mockRooms.find(r => r.id === id);
+            if(room) {
+                alert(`Mã: ${room.id}\nTên: ${room.name}\nLoại: ${room.category}\nMô tả: ${room.desc}\nGhi chú: ${room.note}`);
+            }
+        });
+    });
+    }
+});

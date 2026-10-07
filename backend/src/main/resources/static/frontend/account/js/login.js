@@ -31,7 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             // Mock Login để kiểm tra phân quyền
             if (password === '123') {
-                const validUsers = ['admin', 'director', 'accountant', 'hr', 'housekeeping', 'staff', 'guest'];
+                const validUsers = ['admin', 'director', 'manager', 'accountant', 'housekeeping', 'staff', 'guest'];
                 if (validUsers.includes(username)) {
                     // Lưu thông tin người dùng vào localStorage
                     localStorage.setItem('userRole', username);
@@ -40,12 +40,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Phân luồng điều hướng dựa trên role
                     if (username === 'admin') {
                         window.location.href = '../admin/users/index.html'; // Admin vào quản lý người dùng
-                    } else if (username === 'director') {
-                        window.location.href = '../admin/rooms/index.html'; // Giám đốc vào quản lý phòng
+                    } else if (username === 'director' || username === 'manager') {
+                        window.location.href = '../manager/rooms/index.html'; // Quản lý vào quản lý phòng
                     } else if (username === 'accountant') {
-                        window.location.href = '../admin/statistical/index.html'; // Kế toán vào thống kê
-                    } else if (username === 'hr') {
-                        window.location.href = '../admin/employees/index.html'; // Nhân sự vào quản lý nhân viên
+                        window.location.href = '../manager/statistical/index.html'; // Kế toán vào thống kê
                     } else if (username === 'housekeeping') {
                         window.location.href = '../staff/room-status/index.html'; // Buồng phòng vào cập nhật trạng thái
                     } else if (username === 'staff') {

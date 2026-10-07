@@ -13,8 +13,9 @@ const basePath = currentScriptSrc.substring(0, currentScriptSrc.indexOf('layout.
 const NAVBAR_HTML = `
   <nav class="navbar navbar-expand-lg sticky-top glass-navbar">
     <div class="container">
-      <a class="navbar-brand" href="${basePath}index.html">
-        <i class="bi bi-buildings-fill me-2"></i>MAY HOTEL
+      <a class="navbar-brand d-flex align-items-center" href="${basePath}index.html">
+        <img src="${basePath}images/Logo web.png" alt="Logo" style="height: 32px; object-fit: contain; margin-right: 8px;">
+        <span class="fw-bold" style="letter-spacing: 1px;">MAY HOTEL</span>
       </a>
       
       <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
@@ -26,6 +27,7 @@ const NAVBAR_HTML = `
           <li class="nav-item"><a class="nav-link" href="${basePath}index.html">Trang chủ</a></li>
           <li class="nav-item"><a class="nav-link" href="${basePath}home/info/info.html">Thông tin</a></li>
           <li class="nav-item"><a class="nav-link" href="${basePath}home/rooms/list.html">Phòng nghỉ</a></li>
+          <li class="nav-item"><a class="nav-link" href="${basePath}home/services/list.html">Dịch vụ</a></li>
           <li class="nav-item"><a class="nav-link" href="${basePath}home/review/review.html">Đánh giá</a></li>
 
           <!-- Dropdown Tài khoản User -->
@@ -48,7 +50,10 @@ const FOOTER_HTML = `
     <div class="container">
       <div class="row gy-5">
         <div class="col-md-4">
-          <h5 class="brand-footer"><i class="bi bi-buildings-fill me-2"></i>MAY HOTEL</h5>
+          <div class="brand-footer mb-3 d-flex align-items-center">
+             <img src="${basePath}images/Logo web.png" alt="Logo" style="height: 40px; object-fit: contain; margin-right: 12px;">
+             <span class="fw-bold fs-4">MAY HOTEL</span>
+          </div>
           <p>Trải nghiệm sự sang trọng và tiện nghi bậc nhất. Chúng tôi cam kết mang đến cho bạn những kỳ nghỉ không thể nào quên.</p>
         </div>
         <div class="col-md-4">

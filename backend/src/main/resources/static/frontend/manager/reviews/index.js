@@ -1,0 +1,210 @@
+document.addEventListener('DOMContentLoaded', () => {
+    // Sửa lỗi backdrop che modal
+    const modalElement = document.getElementById('replyModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+    }
+    
+    let mockReviews = [
+        { id: 101, tenPhong: 'Phòng Deluxe VIP P302', soSao: 5, noiDung: 'Trải nghiệm tuyệt vời. Nhân viên phục vụ rất nhiệt tình!', trangThai: 0 },
+        { id: 102, tenPhong: 'Phòng Standard P105', soSao: 4, noiDung: 'Phòng sạch sẽ gọn gàng, cách âm hơi kém một chút nhưng tạm ổn.', trangThai: 1 },
+        { id: 103, tenPhong: 'Hồ bơi vô cực', soSao: 5, noiDung: 'Nước cực kỳ sạch, không gian sang trọng.', trangThai: 0 },
+        { id: 104, tenPhong: 'Phòng Suite P501', soSao: 2, noiDung: 'Máy lạnh không lạnh, tivi bị mất tín hiệu lúc tối. Thất vọng.', trangThai: 0 },
+        { id: 105, tenPhong: 'Phòng Gia đình P204', soSao: 5, noiDung: 'Phù hợp cho gia đình có trẻ em. Giường êm.', trangThai: 1 },
+    ];
+
+    const tableBody = document.getElementById('review-table-body');
+
+    function renderReviews(reviews) {
+        if (!tableBody) return;
+        tableBody.innerHTML = '';
+
+        if (reviews.length === 0) {
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">Hệ thống hiện tại chưa nhận được phản hồi đánh giá nào từ khách hàng.</td>
+                </tr>
+            `;
+            return;
+        }
+
+        reviews.forEach(r => {
+            // Render số sao
+            let starsHtml = '';
+            for(let i = 0; i < r.soSao; i++) {
+                starsHtml += '<span class="text-warning"><i class="bi bi-star-fill"></i></span> ';
+            }
+
+            // Render trạng thái
+            let statusBadge = '';
+            let actionHtml = '';
+
+            if (r.trangThai === 0) {
+                statusBadge = '<span class="badge bg-warning text-dark px-3 py-2 rounded-pill">Chờ duyệt</span>';
+                actionHtml = `
+                    <button class="btn btn-sm btn-success text-white shadow-sm fw-bold approve-btn mb-1 w-100" data-id="${r.id}">
+                        <i class="bi bi-check-circle"></i> Duyệt
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary shadow-sm hide-btn mb-1 w-100" data-id="${r.id}">
+                        <i class="bi bi-eye-slash"></i> Ẩn
+                    </button>
+                    <button class="btn btn-sm btn-outline-navy shadow-sm reply-btn w-100" data-id="${r.id}" data-content="${r.noiDung}">
+                        <i class="bi bi-reply"></i> Phản hồi
+                    </button>
+                `;
+            } else if (r.trangThai === 1) {
+                statusBadge = '<span class="badge bg-success px-3 py-2 rounded-pill">Công khai</span>';
+                actionHtml = `
+                    <button class="btn btn-sm btn-outline-secondary shadow-sm hide-btn mb-1 w-100" data-id="${r.id}">
+                        <i class="bi bi-eye-slash"></i> Ẩn
+                    </button>
+                    <button class="btn btn-sm btn-outline-navy shadow-sm reply-btn w-100" data-id="${r.id}" data-content="${r.noiDung}">
+                        <i class="bi bi-reply"></i> Phản hồi
+                    </button>
+                `;
+            } else {
+                statusBadge = '<span class="badge bg-secondary px-3 py-2 rounded-pill">Nội bộ (Đã ẩn)</span>';
+                actionHtml = `
+                    <button class="btn btn-sm btn-success text-white shadow-sm fw-bold approve-btn mb-1 w-100" data-id="${r.id}">
+                        <i class="bi bi-eye"></i> Hiện lại
+                    </button>
+                `;
+            }
+
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td class="text-center fw-bold text-muted">#${r.id}</td>
+                <td class="text-center fw-bold text-navy">${r.tenPhong}</td>
+                <td class="text-center">${starsHtml}</td>
+                <td class="text-center text-truncate" style="max-width: 350px;" title="${r.noiDung}">${r.noiDung}</td>
+                <td class="text-center">${statusBadge}</td>
+                <td class="text-center">
+                    <div class="d-flex flex-column align-items-center">
+                        ${actionHtml}
+                    </div>
+                </td>
+            `;
+            tableBody.appendChild(tr);
+        });
+
+        // Event listeners
+        bindEvents();
+    }
+
+    if (tableBody) {
+        renderReviews(mockReviews);
+    }
+
+    const searchReview = document.getElementById('searchReview');
+    const thFilterReviewStatusDropdown = document.getElementById('thFilterReviewStatusDropdown');
+
+    if (thFilterReviewStatusDropdown) {
+        const statuses = [
+            { val: 0, label: 'Chờ duyệt' },
+            { val: 1, label: 'Công khai' },
+            { val: 2, label: 'Nội bộ (Đã ẩn)' }
+        ];
+        thFilterReviewStatusDropdown.innerHTML = statuses.map((st, idx) => `
+            <li>
+                <div class="form-check mb-1 ms-1">
+                    <input class="form-check-input th-cb-status" type="checkbox" value="${st.val}" id="th_rev_${idx}">
+                    <label class="form-check-label" for="th_rev_${idx}">${st.label}</label>
+                </div>
+            </li>
+        `).join('');
+
+        document.querySelectorAll('.th-cb-status').forEach(cb => {
+            cb.addEventListener('change', applyFilter);
+        });
+    }
+
+    function applyFilter() {
+        const keyword = (searchReview?.value || '').toLowerCase().trim();
+        const selectedStatuses = Array.from(document.querySelectorAll('.th-cb-status:checked')).map(cb => parseInt(cb.value));
+        
+        const filtered = mockReviews.filter(r => {
+            const matchKeyword = r.tenPhong.toLowerCase().includes(keyword) || r.noiDung.toLowerCase().includes(keyword) || r.id.toString().includes(keyword);
+            const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(r.trangThai);
+            return matchKeyword && matchStatus;
+        });
+        renderReviews(filtered);
+    }
+
+    if (searchReview) searchReview.addEventListener('input', applyFilter);
+
+    function bindEvents() {
+        document.querySelectorAll('.approve-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
+                if(confirm('Chuyển trạng thái hiển thị công khai cho bình luận này?')) {
+                    const review = mockReviews.find(r => r.id === id);
+                    if(review) {
+                        review.trangThai = 1;
+                        applyFilter();
+                        alert('Đã cấp phép hiển thị công khai.');
+                    }
+                }
+            });
+        });
+
+        document.querySelectorAll('.hide-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
+                if(confirm('Bạn có chắc chắn muốn ẩn bài viết này? (Chỉ hiển thị lưu trữ nội bộ)')) {
+                    const review = mockReviews.find(r => r.id === id);
+                    if(review) {
+                        review.trangThai = 2;
+                        applyFilter();
+                        alert('Đã ẩn bài viết. Dữ liệu được bảo lưu nội bộ.');
+                    }
+                }
+            });
+        });
+
+        let replyModalInstance = bootstrap.Modal.getInstance(document.getElementById('replyModal'));
+        if (!replyModalInstance) {
+            replyModalInstance = new bootstrap.Modal(document.getElementById('replyModal'));
+        }
+
+        let currentReplyId = null;
+
+        document.querySelectorAll('.reply-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const id = parseInt(e.currentTarget.dataset.id);
+                const content = e.currentTarget.dataset.content;
+                currentReplyId = id;
+                document.getElementById('reply-review-content').textContent = '"' + content + '"';
+                document.getElementById('reply-content').value = '';
+                
+                replyModalInstance.show();
+            });
+        });
+
+        const submitReplyBtn = document.getElementById('btn-submit-reply');
+        if (submitReplyBtn) {
+            const newSubmitBtn = submitReplyBtn.cloneNode(true);
+            submitReplyBtn.parentNode.replaceChild(newSubmitBtn, submitReplyBtn);
+            
+            newSubmitBtn.addEventListener('click', () => {
+                const reply = document.getElementById('reply-content').value.trim();
+                if(!reply) {
+                    alert('Vui lòng nhập nội dung phản hồi.');
+                    return;
+                }
+                
+                // Ở đây có thể lưu 'reply' vào object mockReviews[currentReplyId]
+                if(currentReplyId) {
+                    const review = mockReviews.find(r => r.id === currentReplyId);
+                    if (review) {
+                        review.reply = reply; // Lưu phản hồi
+                        review.trangThai = 1; // Duyệt luôn nếu đang phản hồi
+                        applyFilter();
+                    }
+                }
+
+                if(replyModalInstance) replyModalInstance.hide();
+                alert('Phản hồi đã được gửi đến khách hàng thành công!');
+            });
+        }
+    }
+});

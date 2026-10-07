@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Chi tiết Đơn Đặt - MAY HOTEL</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/frontend/receptionist/invoice/css/details.css}" />
+    <link rel="stylesheet" th:href="@{/frontend/style.css}" />
+</th:block>
+</head>
+<body>
+    <div th:fragment="body_content">
+    <div class="container py-5">
+        <div th:if="${success}" class="alert alert-success border-0 shadow-sm text-center mb-4" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger border-0 shadow-sm text-center mb-4" th:text="${error}"></div>
+
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="card order-card mb-4 shadow-sm">
+                    <div class="order-header d-flex justify-content-between align-items-center flex-wrap gap-2 text-white p-4" style="background-color: #0F2942;">
+                        <h4 class="mb-0 fw-bold text-uppercase text-white">
+                            <i class="bi bi-receipt me-2 text-gold" style="color: #C5A017;"></i>Đơn Hàng #<th:block th:text="${invoice.id}"></th:block>
+                        </h4>
+                        <span class="badge bg-light text-dark fs-6 px-3 py-2 fw-bold">
+                            <i class="bi bi-calendar3 me-1"></i> <th:block th:text="${#dates.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm')}"></th:block>
+                        </span>
+                    </div>
+                    <div class="card-body p-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="info-group">
+                                    <label class="fw-bold text-navy"><i class="bi bi-person-fill me-2 text-muted"></i>Khách hàng:</label>
+                                    <span class="fw-bold text-dark" th:text="${invoice.hoTen}">Tên Khách</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-group">
+                                    <label class="fw-bold text-navy"><i class="bi bi-telephone-fill me-2 text-muted"></i>Số điện thoại:</label>
+                                    <span th:text="${invoice.sdt}">SĐT</span>
+                                </div>
+                            </div>
+                            <div class="col-md-12 border-top pt-3 mt-2">
+                                <div class="info-group">
+                                    <label class="fw-bold text-navy"><i class="bi bi-geo-alt-fill me-2 text-muted"></i>Địa chỉ:</label>
+                                    <span th:text="${invoice.diaChi}">Việt Nam</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <h5 class="mb-3 fw-bold text-uppercase ps-3 border-start border-5 border-warning text-navy" style="color: #0F2942;">
+                    Danh sách phòng đã đặt
+                </h5>
+
+                <div class="card order-card shadow-sm border-0 overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                            <tr>
+                                <th class="ps-4 py-3">Tên phòng / Chi tiết</th>
+                                <th class="text-center">Số lượng</th>
+                                <th class="text-end">Đơn giá/Đêm</th>
+                                <th class="text-end pe-4">Thành tiền</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr>
+                                <td class="ps-4 fw-bold text-navy">
+                                    <span th:text="${invoice.tenPhong}">Phòng 101</span>
+                                    <div class="small text-muted fw-normal">
+                                        Thời gian: <th:block th:text="${#dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy')}"></th:block> đến <th:block th:text="${#dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy')}"></th:block>
+                                    </div>
+                                </td>
+                                <td class="text-center">1</td>
+                                <td class="text-end" th:text="${invoice.phong != null ? #numbers.formatDecimal(invoice.phong.price, 0, 'COMMA', 0, 'POINT') + ' đ' : '-'}">0 đ</td>
+                                <td class="text-end pe-4 fw-bold text-danger" th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                            </tr>
+                            <tr style="background-color: #f8f9fa;">
+                                <td colspan="3" class="text-end fw-bold py-2 fs-6 text-navy border-0">Giảm giá (Điểm thưởng):</td>
+                                <td class="text-end pe-4 fw-bold fs-6 py-2 text-danger border-0">
+                                    <div class="d-flex justify-content-end align-items-center">
+                                        <span id="discount-amount">- 0 đ</span>
+                                        <button class="btn btn-sm btn-outline-warning ms-3 fw-bold" data-bs-toggle="modal" data-bs-target="#usePointsModal">Đổi điểm</button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr style="background-color: #f8f9fa;">
+                                <td colspan="3" class="text-end fw-bold py-3 fs-5 text-navy">TỔNG CỘNG CẦN TRẢ:</td>
+                                <td class="text-end pe-4 fw-bold fs-4 py-3 text-gold" style="color: #C5A017;" th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</td>
+                            </tr>
+                            <tr style="background-color: #ffffff;">
+                                <td colspan="3" class="text-end fw-bold py-2 text-muted align-middle">Khách đưa (Tiền mặt):</td>
+                                <td class="text-end pe-4 py-2">
+                                    <input type="number" id="cash-received" class="form-control text-end fw-bold fs-5 text-dark" placeholder="Nhập số tiền..." min="0" oninput="calculateChange()" style="width: 100%; border: 2px solid #0F2942;">
+                                </td>
+                            </tr>
+                            <tr style="background-color: #ffffff;">
+                                <td colspan="3" class="text-end fw-bold py-2 text-muted">Tiền thừa trả khách:</td>
+                                <td class="text-end pe-4 fw-bold fs-5 py-2 text-success" id="change-amount">0 đ</td>
+                            </tr>
+                            <tr style="background-color: #e6f9ec;">
+                                <td colspan="4" class="text-center fw-bold py-2 fs-6 text-success border-0 rounded-bottom">
+                                    <i class="bi bi-star-fill text-warning me-2"></i>Khách hàng sẽ tích lũy được: <span id="earned-points">+ 50 Điểm</span> sau khi thanh toán hóa đơn này.
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="mt-4 text-center">
+                    <a th:href="@{/receptionist/invoices}" class="btn btn-outline-secondary px-4 py-2 fw-bold">
+                        <i class="bi bi-arrow-left me-2"></i> Quay lại danh sách
+                    </a>
+                    <a th:href="@{/receptionist/invoices/print/{id}(id=${invoice.id})}" target="_blank" class="btn btn-gold text-white px-4 py-2 fw-bold ms-2" style="background: #C5A017;">
+                        <i class="bi bi-printer-fill me-2"></i> In Hóa đơn GTGT
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Quy đổi điểm -->
+    <div class="modal fade" id="usePointsModal" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+          <div class="modal-header text-white" style="background-color: #0F2942;">
+            <h5 class="modal-title fw-bold"><i class="bi bi-star-fill text-warning me-2"></i>Quy đổi điểm thưởng</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+          </div>
+          <div class="modal-body p-4 text-center">
+             <p class="text-muted mb-2">Số điểm khả dụng của khách hàng:</p>
+             <h3 class="text-warning fw-bold mb-4">5,420 Điểm</h3>
+             <div class="mb-3 text-start">
+                 <label class="form-label fw-bold">Nhập số điểm muốn đổi (1 điểm = 1.000 VNĐ):</label>
+                 <input type="number" class="form-control form-control-lg text-center fw-bold text-navy" id="points-to-use" max="5420" min="0" value="0">
+             </div>
+             <div class="alert alert-success mb-0 text-start" id="discount-preview">
+                 Giảm tương ứng: <strong class="fs-5 text-danger" id="discount-preview-amount">- 0 VNĐ</strong>
+             </div>
+          </div>
+          <div class="modal-footer bg-light">
+             <button type="button" class="btn btn-secondary fw-bold shadow-sm" data-bs-dismiss="modal">Hủy</button>
+             <button type="button" class="btn btn-gold text-white fw-bold px-4 shadow-sm" style="background-color: #C5A017; border:none;" data-bs-dismiss="modal" onclick="alert('Đã áp dụng mã giảm giá từ điểm thưởng!')">Áp dụng</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <th:block th:fragment="extra_js">
+        <script th:inline="javascript">
+            const totalAmount = /*[[${invoice.totalPrice}]]*/ 0;
+            function calculateChange() {
+                const received = parseFloat(document.getElementById('cash-received').value) || 0;
+                const change = received - totalAmount;
+                const formatted = change > 0 ? new Intl.NumberFormat('vi-VN').format(change) + ' đ' : '0 đ';
+                document.getElementById('change-amount').innerText = formatted;
+            }
+        </script>
+    </th:block>
+</body>
+</html>

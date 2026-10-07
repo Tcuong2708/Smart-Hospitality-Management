@@ -29,9 +29,46 @@ document.addEventListener('DOMContentLoaded', () => {
     let servicesData = [];
     let selectedServices = [];
     let categoryMap = {};
+    const userMaxPoints = 5420;
+    let redeemedPoints = 0;
+    let redeemedDiscount = 0;
+
+    // DOM Points elements
+    const pointsSwitch = document.getElementById('use-points-switch');
+    const pointsBox = document.getElementById('points-input-box');
+    const pointsInput = document.getElementById('input-points-to-use');
+    const pointsDiscountText = document.getElementById('points-discount-text');
+    const sumDiscountRow = document.getElementById('sum-discount-row');
+    const sumDiscountTotal = document.getElementById('sum-discount-total');
 
     // Helper formatter
     const formatCurrency = (amount) => new Intl.NumberFormat('vi-VN').format(amount);
+
+    // Bắt sự kiện Đổi điểm
+    if (pointsSwitch) {
+        pointsSwitch.addEventListener('change', () => {
+            if (pointsSwitch.checked) {
+                pointsBox.classList.remove('d-none');
+                if (!pointsInput.value || parseInt(pointsInput.value) <= 0) {
+                    pointsInput.value = Math.min(500, userMaxPoints);
+                }
+            } else {
+                pointsBox.classList.add('d-none');
+                pointsInput.value = 0;
+            }
+            updateSummary();
+        });
+    }
+
+    if (pointsInput) {
+        pointsInput.addEventListener('input', () => {
+            let val = parseInt(pointsInput.value) || 0;
+            if (val > userMaxPoints) val = userMaxPoints;
+            if (val < 0) val = 0;
+            pointsInput.value = val;
+            updateSummary();
+        });
+    }
 
     // 2. Khởi tạo ngày mặc định (Hôm nay và Ngày mai)
     const initDates = () => {
@@ -83,8 +120,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
         document.getElementById('sum-services-total').textContent = formatCurrency(servicesTotal) + ' đ';
 
-        // Tổng cộng
-        const finalTotal = baseTotal + servicesTotal;
+        // Đổi điểm giảm giá
+        const subTotal = baseTotal + servicesTotal;
+        redeemedPoints = (pointsSwitch && pointsSwitch.checked) ? (parseInt(pointsInput.value) || 0) : 0;
+        redeemedDiscount = redeemedPoints * 1000;
+        if (redeemedDiscount > subTotal) {
+            redeemedDiscount = subTotal;
+        }
+
+        if (pointsDiscountText) pointsDiscountText.textContent = `- ${formatCurrency(redeemedDiscount)} đ`;
+
+        if (redeemedDiscount > 0) {
+            if (sumDiscountRow) sumDiscountRow.classList.remove('d-none');
+            if (sumDiscountTotal) sumDiscountTotal.textContent = `- ${formatCurrency(redeemedDiscount)} đ`;
+        } else {
+            if (sumDiscountRow) sumDiscountRow.classList.add('d-none');
+        }
+
+        // Tổng cộng cuối cùng
+        const finalTotal = subTotal - redeemedDiscount;
         document.getElementById('sum-final-total').textContent = formatCurrency(finalTotal) + ' đ';
 
         // Kiểm tra hợp lệ
@@ -193,7 +247,9 @@ document.addEventListener('DOMContentLoaded', () => {
             ngayTra: checkout,
             serviceIds: selectedServices,
             phuongThucThanhToan: paymentMethod,
-            ghiChu: note
+            ghiChu: note,
+            diemDoi: redeemedPoints,
+            giamGiaDiem: redeemedDiscount
         };
 
         // UI Loading

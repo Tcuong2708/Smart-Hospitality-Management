@@ -20,11 +20,11 @@
         </h3>
         
         <!-- Thanh tra cứu mã đặt phòng -->
-        <form id="searchBookingForm" class="d-flex shadow-sm rounded" onsubmit="return false;" style="min-width: 300px;">
+        <form id="searchBookingForm" class="d-flex shadow-sm rounded" onsubmit="event.preventDefault(); alert('Đã lọc danh sách trả phòng theo từ khóa ' + document.getElementById('bookingCodeInput').value);" style="min-width: 320px;">
             <div class="input-group">
                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
                 <input type="text" id="bookingCodeInput" class="form-control border-start-0 ps-0" placeholder="Nhập mã đặt phòng..." required autocomplete="off">
-                <button class="btn btn-primary fw-bold px-3" type="button" style="background-color: #C5A017; border-color: #C5A017; color: white;" onclick="alert('Chức năng tra cứu đang được xây dựng')">Tra cứu</button>
+                <button class="btn btn-gold fw-bold px-3 text-white" type="submit" style="background: linear-gradient(135deg, #C5A017, #d4af37); border: none;">Tra cứu</button>
             </div>
         </form>
       </div>

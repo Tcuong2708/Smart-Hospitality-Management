@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nghiệp vụ Nhận phòng (Check-in) - MAY HOTEL</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<th:block th:fragment="extra_css">
+    <link rel="stylesheet" th:href="@{/frontend/receptionist/check-in/css/index.css}" />
+    <link rel="stylesheet" th:href="@{/frontend/style.css}" />
+</th:block>
+</head>
+<body>
+    <div th:fragment="body_content">
+    <div class="container py-5">
+        <div id="alert-container"></div>
+
+        <div class="card shadow-sm border-0 rounded-3 overflow-hidden admin-card">
+            <div class="admin-header d-flex flex-wrap gap-3 justify-content-between align-items-center p-4" style="background-color: #0F2942; color: white;">
+                <h3 class="fw-bold text-uppercase mb-0 text-white">
+                    <i class="bi bi-box-arrow-in-right me-2 text-gold" style="color: #C5A017;"></i>Nghiệp vụ Nhận phòng (Check-in)
+                </h3>
+                
+                <!-- Thanh tra cứu mã đặt phòng -->
+                <form id="searchBookingForm" class="d-flex shadow-sm rounded" onsubmit="searchBookingCode(event)" style="min-width: 300px;">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                        <input type="text" id="bookingCodeInput" class="form-control border-start-0 ps-0" placeholder="Nhập mã đặt phòng..." required autocomplete="off">
+                        <button class="btn btn-gold fw-bold px-3 text-white" type="submit" style="background-color: #C5A017; border-color: #C5A017;">Tra cứu</button>
+                    </div>
+                </form>
+            </div>
+
+            <div th:if="${success}" class="alert alert-success border-0 shadow-sm text-center m-3" th:text="${success}"></div>
+            <div th:if="${error}" class="alert alert-danger border-0 shadow-sm text-center m-3" th:text="${error}"></div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
+                            <tr>
+                                <th class="ps-4 py-3 text-uppercase small text-white">Mã HD</th>
+                                <th class="text-uppercase small text-white">Khách hàng</th>
+                                <th class="text-uppercase small text-white">Số điện thoại</th>
+                                <th class="text-center text-uppercase small text-white">Số phòng phân bổ</th>
+                                <th class="text-uppercase small text-white">Thời gian dự kiến</th>
+                                <th class="text-end text-uppercase small text-white">Tổng tiền tạm tính</th>
+                                <th class="text-center text-uppercase small text-white" style="width: 240px;">Thao tác nghiệp vụ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="checkin-table-body">
+                            <tr th:if="${invoices == null or #lists.isEmpty(invoices)}">
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-inbox fs-2 d-block mb-2 opacity-50"></i>
+                                    Hiện tại chưa có phiếu đặt phòng nào chờ làm thủ tục Check-in.
+                                </td>
+                            </tr>
+                            <tr th:unless="${invoices == null or #lists.isEmpty(invoices)}" th:each="item : ${invoices}">
+                                <td class="ps-4 fw-bold text-navy" th:text="'#' + ${item.id}">#1</td>
+                                <td class="fw-bold text-secondary">
+                                    <span th:text="${item.hoTen}">Tên khách</span>
+                                    <span th:if="${#strings.equalsIgnoreCase(item.hoTen, 'Khách vãng lai')}" class="badge bg-light text-dark border small ms-1" style="font-size: 0.65rem;">Khách vãng lai</span>
+                                </td>
+                                <td th:text="${item.sdt}">SĐT</td>
+                                <td class="text-center">
+                                    <span th:if="${item.maPhong != null}" class="badge bg-success px-3 py-2 rounded-pill fw-bold">
+                                        <i class="bi bi-door-open-fill me-1"></i> <span th:text="${#strings.startsWith(item.tenPhong, 'Phòng') ? item.tenPhong : 'Phòng ' + item.tenPhong}">Phòng 101</span>
+                                    </span>
+                                    <span th:unless="${item.maPhong != null}" class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
+                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Chưa xếp phòng
+                                    </span>
+                                </td>
+                                <td>
+                                    <small class="d-block text-muted">Nhận: <strong class="text-dark" th:text="${item.ngayCheckIn}">01/01</strong></small>
+                                    <small class="d-block text-muted">Trả: <strong class="text-dark" th:text="${item.ngayCheckOut}">02/01</strong></small>
+                                </td>
+                                <td class="text-end fw-bold text-danger" th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                                <td class="text-center">
+                                    <form th:action="@{/receptionist/checkin/execute/{id}(id=${item.id})}" method="get" class="d-flex flex-column gap-2 p-2 rounded bg-light border">
+                                        <div class="input-group input-group-sm">
+                                            <label class="input-group-text bg-navy text-white small" th:for="'room-' + ${item.id}"><i class="bi bi-key-fill"></i></label>
+                                            <select name="maPhong" th:id="'room-' + ${item.id}" class="form-select form-select-sm fw-bold text-navy" required>
+                                                <option value="">-- Gán số phòng --</option>
+                                                <option th:if="${item.maPhong != null}" th:value="${item.maPhong}" th:text="${#strings.startsWith(item.tenPhong, 'Phòng') ? item.tenPhong : 'Phòng ' + item.tenPhong}" selected></option>
+                                                <option th:each="p : ${emptyRooms}"
+                                                        th:value="${p.id}"
+                                                        th:text="${#strings.startsWith(p.name, 'Phòng') ? p.name : 'Phòng ' + p.name}"
+                                                        th:if="${(item.maLoaiPhong == null or p.roomTypeId == item.maLoaiPhong) and (item.maPhong == null or p.id != item.maPhong)}"
+                                                ></option>
+                                            </select>
+                                        </div>
+                                        <div class="d-flex gap-1">
+                                            <button type="button" class="btn btn-outline-primary btn-sm w-50 fw-bold small py-1" style="font-size: 0.72rem;" th:onclick="'openMobileVerifyModal(' + ${item.id} + ', \'' + ${item.hoTen} + '\')'">
+                                                <i class="bi bi-phone-vibrate me-1"></i> NFC
+                                            </button>
+                                            <button type="button" class="btn btn-outline-navy btn-sm w-50 fw-bold small py-1" style="font-size: 0.72rem;" th:onclick="'openVerifyIdModal(' + ${item.id} + ')'">
+                                                <i class="bi bi-person-vcard me-1"></i> CCCD AI
+                                            </button>
+                                        </div>
+                                        <div class="form-check form-switch m-0 text-start ps-4">
+                                            <input class="form-check-input cursor-pointer" type="checkbox" name="isPaidUpfront" value="true" th:id="'checkPaid-' + ${item.id}" th:checked="${item.idTaiKhoan == null}">
+                                            <label class="form-check-label small fw-bold text-secondary" th:for="'checkPaid-' + ${item.id}" style="font-size: 0.75rem;">Thu trước 1 đêm (TM)</label>
+                                        </div>
+                                        <button type="submit" class="btn btn-sm text-white w-100 rounded-pill fw-bold small py-1 shadow-sm border-0" style="background: linear-gradient(135deg, #C5A017, #d4af37);" onclick="return confirm('Xác nhận số phòng vật lý bàn giao, lập biên bản cọc và tiến hành Check-in?')">
+                                            <i class="bi bi-check2-circle me-1"></i> Duyệt nhận phòng
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal fade" id="verifyIdModal" tabindex="-1" aria-labelledby="verifyIdModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content border-0 shadow">
+                <div class="modal-header bg-navy text-white">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-person-vcard me-2 text-gold"></i>Xác thực Giấy tờ tuỳ thân (AI Scanner)</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <ul class="nav nav-tabs mb-3" id="verifyTabs" role="tablist">
+                        <li class="nav-item"><button class="nav-link active fw-bold text-navy" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button"><i class="bi bi-upload me-1"></i> Tải ảnh CCCD</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold text-navy" id="webcam-tab" data-bs-toggle="tab" data-bs-target="#webcam" type="button"><i class="bi bi-camera-video me-1"></i> Camera AI Vision</button></li>
+                        <li class="nav-item"><button class="nav-link fw-bold text-navy" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button"><i class="bi bi-keyboard me-1"></i> Nhập tay</button></li>
+                    </ul>
+                    <div class="tab-content" id="verifyTabsContent">
+                        <div class="tab-pane fade show active" id="upload" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6"><label class="form-label fw-bold text-secondary small">Mặt trước CCCD</label><input class="form-control form-control-sm" type="file" id="front-cccd" accept="image/*"></div>
+                                <div class="col-md-6"><label class="form-label fw-bold text-secondary small">Mặt sau CCCD</label><input class="form-control form-control-sm" type="file" id="back-cccd" accept="image/*"></div>
+                            </div>
+                            <div class="text-center mt-3"><button type="button" class="btn btn-outline-navy btn-sm fw-bold px-4" onclick="simulateAIExtract()"><i class="bi bi-qr-code-scan me-1"></i> Trích xuất AI Vision</button></div>
+                        </div>
+                        <div class="tab-pane fade" id="webcam" role="tabpanel">
+                            <div class="text-center py-4 bg-light rounded border"><i class="bi bi-camera-video fs-1 text-muted d-block mb-2"></i><button type="button" class="btn btn-primary btn-sm fw-bold px-4" onclick="alert('Đã kích hoạt Camera AI thành công! Độ tương thích FaceID: 99.4%')"><i class="bi bi-camera me-1"></i> Bật Camera quét</button></div>
+                        </div>
+                        <div class="tab-pane fade" id="manual" role="tabpanel">
+                            <div class="row g-3">
+                                <div class="col-md-6"><label class="form-label small fw-bold">Họ và tên</label><input type="text" class="form-control form-control-sm" placeholder="VD: JOHN DOE"></div>
+                                <div class="col-md-6"><label class="form-label small fw-bold">Số Hộ chiếu / CCCD</label><input type="text" class="form-control form-control-sm" placeholder="Nhập số giấy tờ"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <hr class="my-3">
+                    <label class="form-label fw-bold text-navy small"><i class="bi bi-file-earmark-text me-1"></i>Dữ liệu trích xuất</label>
+                    <textarea class="form-control form-control-sm bg-light font-monospace" id="raw-data-result" rows="3" readonly placeholder="Dữ liệu sẽ hiển thị ở đây..."></textarea>
+                </div>
+                <div class="modal-footer bg-light">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Hủy bỏ</button>
+                    <button type="button" class="btn btn-gold btn-sm rounded-pill fw-bold px-4" data-bs-dismiss="modal" onclick="alert('Xác nhận lưu thông tin giấy tờ thành công!')"><i class="bi bi-check2-circle me-1"></i> Xác nhận đính kèm</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="mobileVerifyModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header bg-navy text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-phone-vibrate text-gold me-2"></i>Xác thực CCCD & NFC qua Mobile App</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <div id="mobile-verify-waiting">
+                        <div class="spinner-grow text-gold mb-3" role="status" style="width: 3rem; height: 3rem;"></div>
+                        <h5 class="fw-bold text-navy">Đang chờ kết nối từ Mobile App...</h5>
+                        <p class="text-muted small mb-3">Yêu cầu khách hàng sử dụng tính năng "Check-in thông minh" quét NFC CCCD & FaceID trên điện thoại.</p>
+                        <div class="p-3 bg-light rounded border"><i class="bi bi-qr-code-scan display-4 text-dark mb-2"></i><p class="small fw-bold text-secondary mb-0">Mã kết nối: <span id="mobile-verify-code" class="text-primary">REQ-8892</span></p></div>
+                    </div>
+                    <div id="mobile-verify-success" class="d-none py-2">
+                        <i class="bi bi-check-circle-fill text-success display-2 mb-2"></i>
+                        <h5 class="fw-bold text-success">Xác thực NFC & AI Thành công!</h5>
+                        <p class="text-muted small mb-0">Dữ liệu thẻ chip NFC và khuôn mặt hợp lệ 99.8%.</p>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0 justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" data-bs-dismiss="modal">Đóng</button>
+                    <button type="button" class="btn btn-warning btn-sm rounded-pill fw-bold" onclick="simulateMobileSuccess()"><i class="bi bi-magic me-1"></i> (Giả lập) Mobile quét xong</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="searchResultModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg" style="border-radius: 12px; overflow: hidden;">
+                <div class="modal-header bg-navy text-white border-0">
+                    <h5 class="modal-title fw-bold"><i class="bi bi-info-circle-fill me-2 text-gold"></i>Kết quả Tra cứu Đặt phòng</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4 text-center">
+                    <h4 class="fw-bold text-navy mb-2" id="res-hoTen">Nguyễn Văn A</h4>
+                    <span class="badge bg-success px-3 py-2 fs-6 rounded-pill mb-3">Đang chờ nhận phòng</span>
+                    <div class="p-3 bg-light rounded border text-start">
+                        <div class="mb-2"><strong>Mã phiếu:</strong> <span id="res-maHD">#1</span></div>
+                        <div class="mb-2"><strong>Số điện thoại:</strong> <span>0901234567</span></div>
+                        <div><strong>Ghi chú:</strong> <span class="text-muted">Khách yêu cầu phòng tầng cao.</span></div>
+                    </div>
+                </div>
+                <div class="modal-footer bg-light border-0"><button type="button" class="btn btn-secondary btn-sm px-4 rounded-pill" data-bs-dismiss="modal">Đóng</button></div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <th:block th:fragment="extra_js">
+        <script th:src="@{/frontend/receptionist/check-in/js/index.js}"></script>
+        <script>
+            function openMobileVerifyModal(id, hoTen) {
+                document.getElementById('mobile-verify-code').innerText = 'REQ-' + id + '-' + Math.floor(Math.random()*1000);
+                document.getElementById('mobile-verify-waiting').classList.remove('d-none');
+                document.getElementById('mobile-verify-success').classList.add('d-none');
+                const modal = new bootstrap.Modal(document.getElementById('mobileVerifyModal'));
+                modal.show();
+            }
+            function simulateMobileSuccess() {
+                document.getElementById('mobile-verify-waiting').classList.add('d-none');
+                document.getElementById('mobile-verify-success').classList.remove('d-none');
+            }
+            function openVerifyIdModal(id) {
+                document.getElementById('raw-data-result').value = '';
+                const modal = new bootstrap.Modal(document.getElementById('verifyIdModal'));
+                modal.show();
+            }
+            function simulateAIExtract() {
+                const sample = { "Số CCCD": "079201998822", "Họ và tên": "NGUYỄN VĂN A", "Ngày sinh": "15/08/1995", "AI FaceMatch": "Trùng khớp 99.6%" };
+                document.getElementById('raw-data-result').value = JSON.stringify(sample, null, 2);
+            }
+            function searchBookingCode(e) {
+                e.preventDefault();
+                const code = document.getElementById('bookingCodeInput').value.trim();
+                if (!code) return;
+                document.getElementById('res-maHD').innerText = code;
+                const modal = new bootstrap.Modal(document.getElementById('searchResultModal'));
+                modal.show();
+            }
+        </script>
+    </th:block>
+</body>
+</html>

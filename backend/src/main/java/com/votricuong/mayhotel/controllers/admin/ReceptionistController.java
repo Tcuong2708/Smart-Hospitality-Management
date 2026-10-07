@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller
-@RequestMapping("/receptionist")
+@RequestMapping({"/receptionist", "/admin"})
 public class ReceptionistController extends BaseController {
 
     private final InvoiceRepository invoiceRepository;
@@ -147,10 +147,10 @@ public class ReceptionistController extends BaseController {
                 .collect(Collectors.toList());
         model.addAttribute("emptyRooms", emptyRooms);
 
-        // Nạp CSS riêng cho trang này để hiển thị đúng lưới Grid thay vì dọc
+        // Nạp CSS riêng cho trang này
         setExtraCSS(model, "view/Admin/RoomMap/room-map :: extra_css");
 
-        // Render template RoomMap có sẵn
+        // Render template RoomMap
         return render(model, "view/Admin/RoomMap/room-map");
     }
 

@@ -1,26 +1,15 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Quản lý Đặt Phòng - Lễ Tân</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="../../style.css" />
+<div th:fragment="body_content" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:fragment="extra_css">
     <style>
       .navbar-nav .nav-link.active-menu { font-weight: 700 !important; color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); border-radius: 8px; padding: 8px 16px !important; transition: 0.3s all ease-in-out; }
       .admin-card { background: white; border-radius: 8px; box-shadow: 0 5px 20px rgba(15,41,66,0.1); overflow: hidden; }
       .admin-header { background-color: var(--primary-color, #0F2942); color: white; padding: 20px 25px; border-bottom: 3px solid var(--accent-color, #C5A017); }
       .table-header-navy th { background-color: var(--primary-color, #0F2942) !important; color: white !important; border-bottom: 2px solid var(--accent-color, #C5A017) !important; padding: 15px 10px !important; text-transform: uppercase; font-size: 0.85rem; vertical-align: middle; }
     </style>
-</head>
-<body>
+</th:block>
 
-<div th:fragment="body_content">
+
 <div class="main-content">
     <div class="container py-5">
         <div class="card shadow-sm border-0 admin-card">
@@ -48,27 +37,9 @@
                         </tr>
                         </thead>
                         <tbody id="table-body">
-                            <tr th:each="item : ${bookings}">
-                                <td class="text-center fw-bold" th:text="'#' + ${item.order.id}"></td>
-                                <td class="text-center" th:text="${item.customerName}"></td>
-                                <td class="text-center fw-bold text-navy" th:text="${item.roomName}"></td>
-                                <td class="text-center" th:text="${item.order.expectedIn != null ? #dates.format(item.order.expectedIn, 'dd/MM/yyyy') : ''}"></td>
-                                <td class="text-center" th:text="${item.order.expectedOut != null ? #dates.format(item.order.expectedOut, 'dd/MM/yyyy') : ''}"></td>
-                                <td class="text-center">
-                                    <span class="badge" th:classappend="${item.order.status == 'Đã nhận phòng' ? 'bg-success' : 'bg-warning text-dark'}" th:text="${item.order.status}"></span>
-                                </td>
-                                <td class="text-center">
-                                    <span class="badge fs-6 shadow-sm mb-1" th:classappend="${item.riskBadge}" th:text="${item.order.noShowRiskLevel != null ? item.order.noShowRiskLevel + ' (' + item.order.noShowRiskPercentage + '%)' : 'Đang xử lý...'}"></span><br>
-                                    <button th:if="${item.order.noShowRiskLevel == 'Cao'}" class="btn btn-sm btn-outline-danger mt-1 fw-bold" title="Kích hoạt hệ thống AI tự hủy"><i class="bi bi-robot me-1"></i>Hủy tự động</button>
-                                </td>
-                                <td class="text-center">
-                                    <button class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết"><i class="bi bi-eye"></i></button>
-                                    <button class="btn btn-sm btn-warning text-white shadow-sm mx-1" title="Sửa"><i class="bi bi-pencil"></i></button>
-                                </td>
-                            </tr>
-                            <tr th:if="${#lists.isEmpty(bookings)}">
-                                <td colspan="8" class="text-center py-5 text-muted">
-                                    Không có dữ liệu đặt phòng nào.
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <div class="spinner-border text-primary"></div>
                                 </td>
                             </tr>
                         </tbody>
@@ -89,8 +60,7 @@
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form th:action="@{/receptionist/booking/checkout}" method="post">
-                <div class="modal-body p-4 bg-light">
+            <div class="modal-body p-4 bg-light"><form action="/receptionist/booking/checkout" method="POST">
                 <!-- Bước 1: Tìm phòng -->
                 <div class="card border-0 shadow-sm mb-4">
                     <div class="card-header bg-white fw-bold text-navy"><i class="bi bi-search me-1"></i>1. Tìm phòng trống</div>
@@ -98,29 +68,31 @@
                         <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold">Check-in</label>
-                                <input type="date" class="form-control" id="db-checkin" name="ngayNhan" required>
+                                <input type="date" name="ngayNhan" class="form-control" id="db-checkin" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold">Check-out</label>
-                                <input type="date" class="form-control" id="db-checkout" name="ngayTra" required>
+                                <input type="date" name="ngayTra" class="form-control" id="db-checkout" required>
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label small fw-bold">Loại phòng</label>
-                                <select class="form-select" id="db-room-type" name="roomTypeId">
+                                <select class="form-select" id="db-room-type">
                                     <option value="">Tất cả</option>
-                                    <option th:each="type : ${roomTypes}" th:value="${type.id}" th:text="${type.name}"></option>
+                                    <option value="Standard">Standard</option>
+                                    <option value="Deluxe">Deluxe</option>
+                                    <option value="Suite">Suite</option>
                                 </select>
                             </div>
                         </div>
                         <div class="mt-3 text-end">
-                            <button type="button" class="btn btn-navy text-white fw-bold px-4" id="btn-search-rooms" onclick="alert('Hệ thống đã tự động lấy toàn bộ danh sách phòng mới nhất ở mục [Chọn phòng] bên dưới! Bạn không cần ấn tìm kiếm nữa.')"><i class="bi bi-search me-2"></i>Tìm kiếm</button>
+                            <button type="button" class="btn btn-navy text-white fw-bold px-4" id="btn-search-rooms"><i class="bi bi-search me-2"></i>Tìm kiếm</button>
                         </div>
                         <!-- Kết quả tìm phòng -->
-                        <div id="db-search-results" class="mt-3">
+                        <div id="db-search-results" class="mt-3 d-none">
                             <label class="form-label small fw-bold text-success">Chọn phòng:</label>
-                            <select class="form-select border-success" id="db-selected-room" name="roomId">
-                                <option value="" disabled selected>-- Chọn phòng --</option>
-                                <option th:each="room : ${vacantRooms}" th:value="${room.id}" th:text="${(room.name != null ? room.name : 'Phòng ' + room.id) + ' - Giá: ' + (room.price != null ? room.price : 0) + ' VNĐ'}"></option>
+                            <select name="roomId" class="form-select border-success" id="db-selected-room">
+                                <option value="P105">Phòng 105 - Standard (500,000 VNĐ)</option>
+                                <option value="P202">Phòng 202 - Deluxe (800,000 VNĐ)</option>
                             </select>
                         </div>
                     </div>
@@ -136,17 +108,18 @@
                                 <input type="text" class="form-control" id="db-cccd" placeholder="Nhập CCCD để tự động điền thông tin khách cũ">
                             </div>
                             <div class="col-md-4 d-flex gap-2">
-                                <button class="btn btn-outline-navy flex-grow-1 fw-bold" id="btn-check-customer"><i class="bi bi-search me-1"></i>Tra cứu</button>
+                                <button type="button" class="btn btn-outline-navy flex-grow-1 fw-bold" id="btn-check-customer"><i class="bi bi-search me-1"></i>Tra cứu</button>
+                                <button type="button" class="btn btn-primary fw-bold" id="btn-nfc-scan" title="Quét CCCD qua NFC" style="background-color: #0F2942; border-color: #0F2942;"><i class="bi bi-wifi"></i> NFC</button>
                             </div>
                         </div>
                         <div class="row g-3">
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Họ và tên</label>
-                                <input type="text" class="form-control" id="db-fullname" name="guestName" required>
+                                <input type="text" name="guestName" class="form-control" id="db-fullname" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label small fw-bold">Số điện thoại</label>
-                                <input type="text" class="form-control" id="db-phone" name="phone" required>
+                                <input type="text" name="phone" class="form-control" id="db-phone" required>
                             </div>
                         </div>
                     </div>
@@ -154,29 +127,21 @@
             </div>
             <div class="modal-footer bg-white border-top-0">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Hủy</button>
-                <button type="submit" class="btn btn-gold text-white fw-bold px-4" style="background: #C5A017;"><i class="bi bi-check-circle-fill me-1"></i>Xác nhận đặt phòng</button>
+                <button type="submit" class="btn btn-gold text-white fw-bold px-4" id="btn-confirm-booking" style="background: #C5A017;"><i class="bi bi-check-circle-fill me-1"></i>Xác nhận đặt phòng</button></form>
             </div>
-            </form>
         </div>
     </div>
 </div>
-<!-- Script xử lý giao diện -->
-<script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Sửa lỗi backdrop che modal bị đen màn hình
-    const modalElement = document.getElementById('directBookingModal');
-    if (modalElement) {
-        document.body.appendChild(modalElement);
-    }
 
-    // Logic Tra Cứu Khách Cũ
-    const btnCheckCustomer = document.getElementById('btn-check-customer');
-    if(btnCheckCustomer) {
-        btnCheckCustomer.addEventListener('click', (e) => {
-            e.preventDefault();
-            alert('Tính năng tra cứu tự động sẽ gọi API theo CCCD trong phiên bản sau.');
-        });
-    }
-});
+
+
+
+
+<th:block th:fragment="extra_js">
+<script th:inline="javascript">
+window.mockBookings = /*[[${bookings}]]*/ [];
+window.mockVacantRooms = /*[[${vacantRooms}]]*/ [];
 </script>
+<script th:src="@{/js/Receptionist/booking/index.js}"></script>
+</th:block>
 </div>

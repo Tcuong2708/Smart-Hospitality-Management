@@ -18,9 +18,9 @@
                     <li class="nav-item dropdown" th:if="${session.user.role == 'RECEPTIONIST'}">
                         <a class="nav-link dropdown-toggle fw-semibold" href="#" data-bs-toggle="dropdown">Nghiệp vụ Lễ tân</a>
                         <ul class="dropdown-menu border-0 shadow">
-                            <li><a class="dropdown-item py-2" th:href="@{/admin/room-map}"><i class="bi bi-grid-3x3-gap-fill me-2" style="color: #C5A017;"></i>Sơ đồ phòng trực quan</a></li>
-                            <li><a class="dropdown-item py-2" th:href="@{/admin/booking}"><i class="bi bi-calendar-check-fill me-2" style="color: #C5A017;"></i>Quản lý Đặt phòng</a></li>
-                            <li><a class="dropdown-item py-2" th:href="@{/admin/invoices}"><i class="bi bi-receipt me-2" style="color: #C5A017;"></i>Quản lý Hoá đơn</a></li>
+                            <li><a class="dropdown-item py-2" th:href="@{/receptionist/room-map}"><i class="bi bi-grid-3x3-gap-fill me-2" style="color: #C5A017;"></i>Sơ đồ phòng trực quan</a></li>
+                            <li><a class="dropdown-item py-2" th:href="@{/receptionist/booking}"><i class="bi bi-calendar-check-fill me-2" style="color: #C5A017;"></i>Quản lý Đặt phòng</a></li>
+                            <li><a class="dropdown-item py-2" th:href="@{/receptionist/invoices}"><i class="bi bi-receipt me-2" style="color: #C5A017;"></i>Quản lý Hoá đơn</a></li>
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item py-2" th:href="@{/receptionist/check-in}"><i class="bi bi-box-arrow-in-right me-2" style="color: #C5A017;"></i>Làm thủ tục Nhận phòng</a></li>
                             <li><a class="dropdown-item py-2" th:href="@{/receptionist/check-out}"><i class="bi bi-box-arrow-left me-2" style="color: #C5A017;"></i>Làm thủ tục Trả phòng</a></li>

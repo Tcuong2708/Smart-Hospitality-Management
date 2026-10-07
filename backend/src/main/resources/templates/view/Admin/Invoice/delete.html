@@ -30,7 +30,7 @@
                     </div>
                     <div class="d-flex justify-content-between mb-2">
                         <span class="text-muted"><i class="bi bi-calendar3 me-1"></i>Ngày đặt:</span>
-                        <span class="fw-bold text-dark" th:text="${#temporals.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm')}">01/01/2026</span>
+                        <span class="fw-bold text-dark" th:text="${invoice.ngayDat != null ? #dates.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm') : ''}">01/01/2026</span>
                     </div>
                     <div class="d-flex justify-content-between border-top pt-2 mt-2">
                         <span class="text-muted">Tổng tiền:</span>

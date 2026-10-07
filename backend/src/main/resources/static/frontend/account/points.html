@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tra cứu điểm thưởng - MAY HOTEL</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../style.css" />
+    <style>
+      .navbar-nav .nav-link.active-menu { font-weight: 700 !important; color: #d4af37 !important; background-color: rgba(212, 175, 55, 0.1); border-radius: 8px; padding: 8px 16px !important; transition: 0.3s all ease-in-out; }
+      .points-card {
+        background: linear-gradient(135deg, #0F2942 0%, #1a3d5f 100%);
+        color: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(15, 41, 66, 0.2);
+        border: 2px solid #C5A017;
+      }
+      .gold-text { color: #C5A017 !important; }
+      .tier-badge { background-color: #C5A017; color: #0F2942; font-weight: 700; padding: 6px 16px; border-radius: 20px; text-transform: uppercase; }
+      .benefit-card { background: white; border-radius: 12px; border: 1px solid #e9ecef; transition: transform 0.3s ease, box-shadow 0.3s ease; }
+      .benefit-card:hover { transform: translateY(-4px); box-shadow: 0 8px 25px rgba(0,0,0,0.08); }
+    </style>
+</head>
+
+<body class="bg-light">
+
+    <div class="main-content">
+        <div class="container py-5">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="../index.html" class="text-decoration-none text-navy">Trang chủ</a></li>
+                    <li class="breadcrumb-item"><a href="profile.html" class="text-decoration-none text-navy">Tài khoản</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Tra cứu điểm thưởng</li>
+                </ol>
+            </nav>
+
+            <!-- Hero Section / Points Card -->
+            <div class="card points-card p-4 p-md-5 mb-5 position-relative overflow-hidden">
+                <div class="row align-items-center">
+                    <div class="col-md-7 mb-4 mb-md-0">
+                        <div class="d-flex align-items-center gap-3 mb-3">
+                            <span class="tier-badge" id="user-tier"><i class="bi bi-star-fill me-1"></i>Hạng Vàng</span>
+                            <span class="badge bg-light text-dark fw-bold">May Hotel Loyalty</span>
+                        </div>
+                        <h1 class="display-4 fw-bold gold-text mb-2" id="user-points">5,420 <span class="fs-4 text-white">Điểm</span></h1>
+                        <p class="fs-5 text-light opacity-90 mb-3">
+                            Giá trị quy đổi tương đương: <strong class="gold-text" id="user-vnd">5.420.000 VNĐ</strong>
+                        </p>
+                        <p class="small text-white-50 mb-0">Tỷ lệ quy đổi: 1 điểm = 1.000 VNĐ giảm giá trực tiếp khi thanh toán đặt phòng.</p>
+                    </div>
+                    <div class="col-md-5">
+                        <div class="bg-white bg-opacity-10 p-4 rounded-3 border border-light border-opacity-25">
+                            <div class="d-flex justify-content-between text-white small mb-2 fw-bold">
+                                <span>Tiến trình nâng hạng Kim Cương</span>
+                                <span>5,420 / 10,000 điểm</span>
+                            </div>
+                            <div class="progress mb-3" style="height: 12px; background-color: rgba(255,255,255,0.2);">
+                                <div class="progress-bar bg-warning progress-bar-striped progress-bar-animated" role="progressbar" style="width: 54.2%;"></div>
+                            </div>
+                            <small class="text-white-50 d-block text-center">Tích lũy thêm <strong>4,580 điểm</strong> để thăng hạng <strong>Kim Cương</strong> (Hưởng giảm giá 15%).</small>
+                            <a href="../home/rooms/list.html" class="btn btn-warning w-100 fw-bold mt-3 text-dark shadow-sm">
+                                <i class="bi bi-calendar-check me-2"></i>Đặt phòng để tích điểm
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quyền lợi hạng thẻ -->
+            <div class="row mb-5">
+                <div class="col-12 text-center mb-4">
+                    <h3 class="fw-bold text-navy text-uppercase"><i class="bi bi-award-fill gold-text me-2"></i>Quyền Lợi Hạng Thẻ Thành Viên</h3>
+                    <div style="width: 60px; height: 3px; background-color: #C5A017; margin: 10px auto;"></div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card benefit-card p-4 text-center h-100">
+                        <div class="fs-1 text-secondary mb-2"><i class="bi bi-shield"></i></div>
+                        <h5 class="fw-bold text-navy mb-1">Hạng Đồng</h5>
+                        <p class="small text-muted mb-2">0 - 999 điểm</p>
+                        <ul class="list-unstyled small text-start text-muted mb-0">
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Tích 1% tổng hóa đơn</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Quà tặng sinh nhật</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card benefit-card p-4 text-center h-100">
+                        <div class="fs-1 text-info mb-2"><i class="bi bi-shield-shaded"></i></div>
+                        <h5 class="fw-bold text-navy mb-1">Hạng Bạc</h5>
+                        <p class="small text-muted mb-2">1,000 - 4,999 điểm</p>
+                        <ul class="list-unstyled small text-start text-muted mb-0">
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Tích 3% tổng hóa đơn</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Giảm 5% dịch vụ ăn uống</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Ưu tiên nhận phòng sớm</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card benefit-card p-4 text-center h-100 border-warning shadow-sm">
+                        <div class="fs-1 gold-text mb-2"><i class="bi bi-shield-fill-check"></i></div>
+                        <h5 class="fw-bold gold-text mb-1">Hạng Vàng (Hiện tại)</h5>
+                        <p class="small text-muted mb-2">5,000 - 9,999 điểm</p>
+                        <ul class="list-unstyled small text-start text-muted mb-0">
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Tích 5% tổng hóa đơn</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Giảm 10% tổng hóa đơn đặt phòng</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Miễn phí đồ uống đón tiếp</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="card benefit-card p-4 text-center h-100" style="background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);">
+                        <div class="fs-1 text-primary mb-2"><i class="bi bi-gem"></i></div>
+                        <h5 class="fw-bold text-primary mb-1">Hạng Kim Cương</h5>
+                        <p class="small text-muted mb-2">Từ 10,000 điểm</p>
+                        <ul class="list-unstyled small text-start text-muted mb-0">
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Tích 10% tổng hóa đơn</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Giảm 15% tổng hóa đơn phòng</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Miễn phí nâng hạng phòng VIP</li>
+                            <li><i class="bi bi-check-circle-fill text-success me-2"></i>Xe đưa đón sân bay miễn phí</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bảng Lịch sử Điểm Thưởng -->
+            <div class="card shadow-sm border-0 rounded-3">
+                <div class="card-header bg-white py-3 px-4 d-flex flex-wrap justify-content-between align-items-center gap-3 border-bottom">
+                    <h5 class="fw-bold text-navy mb-0">
+                        <i class="bi bi-clock-history gold-text me-2"></i>Lịch Sử Giao Dịch Điểm Thưởng
+                    </h5>
+                    
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <div class="btn-group" role="group">
+                            <button type="button" class="btn btn-outline-navy btn-sm active filter-btn" data-filter="all">Tất cả</button>
+                            <button type="button" class="btn btn-outline-navy btn-sm filter-btn" data-filter="EARN">Tích điểm</button>
+                            <button type="button" class="btn btn-outline-navy btn-sm filter-btn" data-filter="REDEEM">Đổi điểm</button>
+                        </div>
+                        <input type="text" id="search-history" class="form-control form-control-sm" placeholder="Tìm theo mã HĐ..." style="width: 180px;">
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4 py-3">Mã Hóa Đơn / Nội Dung</th>
+                                    <th class="text-center">Ngày Thực Hiện</th>
+                                    <th class="text-center">Loại Giao Dịch</th>
+                                    <th class="text-end pe-4">Số Điểm</th>
+                                </tr>
+                            </thead>
+                            <tbody id="points-history-body">
+                                <!-- JS Load Data -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../layout.js"></script>
+    <script src="../app.js"></script>
+    <script src="js/points.js"></script>
+</body>
+
+</html>

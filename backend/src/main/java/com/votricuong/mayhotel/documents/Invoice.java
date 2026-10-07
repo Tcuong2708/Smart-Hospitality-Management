@@ -17,6 +17,8 @@ import java.util.List;
 @Document(collection = "invoices")
 public class Invoice {
 
+    public static final String SEQUENCE_NAME = "invoices";
+
     @Id
     private Long id;
 
