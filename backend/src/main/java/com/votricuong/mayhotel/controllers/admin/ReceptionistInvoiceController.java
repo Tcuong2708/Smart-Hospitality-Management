@@ -243,13 +243,10 @@ public class ReceptionistInvoiceController extends BaseController {
             Long nextBookingId = sequenceGeneratorService.generateSequence("booking_orders");
             BookingOrder booking = BookingOrder.builder()
                     .id(nextBookingId)
-                    .orderDate(new Date())
-                    .checkInDate(checkIn)
-                    .checkOutDate(checkOut)
-                    .totalAmount(totalAmount)
+                    .bookingDate(new Date())
+                    .expectedIn(checkIn)
+                    .expectedOut(checkOut)
                     .status("Reserved")
-                    .paymentStatus("UNPAID")
-                    .depositAmount(0.0)
                     .noShowRiskLevel("Thấp")
                     .build();
             bookingOrderRepository.save(booking);
