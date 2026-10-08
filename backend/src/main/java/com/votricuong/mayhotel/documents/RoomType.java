@@ -26,8 +26,10 @@ public class RoomType implements java.io.Serializable {
     private Integer quantity;
     
     @org.springframework.data.annotation.Transient
+    @Builder.Default
     private Integer availableRoomsCount = 0;
     
     @org.springframework.data.annotation.Transient
+    @Builder.Default
     private Integer totalRoomsCount = 0;
 }
