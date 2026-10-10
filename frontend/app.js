@@ -307,11 +307,11 @@ function setupChatBot() {
         appendMessage(msg, 'msg-user');
         chatInput.value = '';
 
-        // 2. Hiá»‡u á»©ng Loading
+        // 2. Hiệu ứng bong bóng 3 chấm đang gõ (...)
         const loadingId = 'loading-' + Date.now();
         appendMessage(
-            '<span class="spinner-border spinner-border-sm text-warning me-2"></span> Luna Ä‘ang xá»­ lÃ½...',
-            'msg-bot text-muted fst-italic',
+            '<div class="typing-indicator"><span></span><span></span><span></span></div>',
+            'msg-bot shadow-sm',
             loadingId
         );
 
