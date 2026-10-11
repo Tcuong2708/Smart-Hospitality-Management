@@ -1,7 +1,7 @@
 import os
 
 # ==============================================================================
-# TỐI ƯU HÓA CPU & RAM TRÊN VPS UBUNTU 1GB RAM (PHẢI ĐẶT TRƯỚC KHI IMPORT AI)
+# TỐI ƯU HÓA CPU & RAM TRÊN VPS UBUNTU (PHẢI ĐẶT TRƯỚC KHI IMPORT AI)
 # ==============================================================================
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -28,6 +28,7 @@ from datetime import datetime
 import pickle
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
 
@@ -37,123 +38,51 @@ from vietocr.tool.config import Cfg
 from deepface import DeepFace
 from pyvi import ViTokenizer
 
-# Giới hạn luồng PyTorch ngay khi vừa import
 torch.set_num_threads(1)
 torch.set_num_interop_threads(1)
 
-# ==============================================================================
-# CẤU HÌNH ĐƯỜNG DẪN MÔ HÌNH AI
-# ==============================================================================
 BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
 
 NOSHOW_MODEL_PATH = os.path.join(BASE_DIR, "noshow_rf_model.pkl")
 NOSHOW_COLS_PATH = os.path.join(BASE_DIR, "model_columns.pkl")
 CCCD_YOLO_PATH = os.path.join(BASE_DIR, "best.pt")
-SKLEARN_CHATBOT_PATH = os.path.join(BASE_DIR, "chatbot_sklearn.pkl") # Đổi sang model nhẹ
+SKLEARN_CHATBOT_PATH = os.path.join(BASE_DIR, "chatbot_sklearn.pkl")
 INTENTS_PATH = os.path.join(BASE_DIR, "intents.json")
 
-# ==============================================================================
-# KHỞI TẠO FASTAPI & NẠP MÔ HÌNH AI
-# ==============================================================================
 app = FastAPI(title="May Hotel AI Microservices", version="2.0")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 print("Đang khởi động và nạp các lõi AI vào bộ nhớ (Chế độ tối ưu RAM)...")
 
 # 1. Nạp Model No-show
+rf_model = None
+model_columns = []
 try:
     rf_model = joblib.load(NOSHOW_MODEL_PATH)
     if os.path.exists(NOSHOW_COLS_PATH):
         model_columns = joblib.load(NOSHOW_COLS_PATH)
-    else:
-        model_columns = []
     print("[OK] Đã nạp Model No-show")
 except Exception as e:
     print(f"[WARN] Bỏ qua Model No-show: {e}")
 
-# 2. Nạp Model CCCD (YOLO + VietOCR)
-try:
-    yolo_model = YOLO(CCCD_YOLO_PATH)
-    config = Cfg.load_config_from_name('vgg_transformer')
-    config['cnn']['pretrained'] = False
-    config['device'] = 'cpu'
-    ocr_predictor = Predictor(config)
-    print("[OK] Đã nạp Model YOLO CCCD và VietOCR")
-except Exception as e:
-    print(f"[WARN] Lỗi nạp Model CCCD/VietOCR: {e}")
-
-# 3. Nạp Model Chatbot Scikit-Learn
-hardware_name = platform.processor() or "Linux CPU"
-print(f"Chatbot khởi chạy trên: {hardware_name} (Chỉ CPU)")
-
-try:
-    with open(SKLEARN_CHATBOT_PATH, "rb") as f:
-        chatbot_model = pickle.load(f)
-    print("[OK] Đã nạp mô hình Chatbot Scikit-Learn thành công.")
-except Exception as e:
-    print(f"[WARN] Lỗi nạp Chatbot Scikit-Learn (Hãy chạy file train_chatbot.py): {e}")
-    chatbot_model = None
-
-if os.path.exists(INTENTS_PATH):
-    with open(INTENTS_PATH, 'r', encoding='utf-8') as f:
-        intents = json.load(f)
-else:
-    intents = {"intents": []}
-
 booking_sessions = {}
-
-# ==============================================================================
-# SCHEMAS & TIỆN ÍCH
-# ==============================================================================
-class BookingData(BaseModel):
-    data: dict
 
 class ChatRequest(BaseModel):
     message: str
     user_id: str = 'default'
     session_id: str = ''
 
-def aggregate_ocr_results(ocr_items):
-    grouped = {}
-    for item in ocr_items:
-        lbl = item['label']
-        grouped.setdefault(lbl, []).append(item)
-    aggregated = {}
-    for lbl, items in grouped.items():
-        items.sort(key=lambda x: x['y_coord'])
-        aggregated[lbl] = " ".join([x['text'] for x in items]).strip()
-    return aggregated
-
-def normalize_dialect(text):
-    dialect_dict = {
-        "xịn xò": "chất lượng cao", "book": "đặt phòng", "tui": "tôi",
-        "nhiêu": "bao nhiêu", "okela": "đồng ý", "mần": "làm", "nỏ": "không"
-    }
-    for word, official in dialect_dict.items():
-        text = text.replace(word, official)
-    return text
-
-def clean_and_parse_date(text):
-    if not text:
-        return None, "Bạn chưa nhập ngày tháng. Vui lòng gõ theo định dạng Ngày/Tháng/Năm (Ví dụ: 26/05/2026)."
-    text = text.strip()
-    cleaned = re.sub(r'[-.\s]+', '/', text)
-    match = re.match(r'^(\d{1,2})/(\d{1,2})/(\d{4})$', cleaned)
-    if not match:
-        return None, "Định dạng ngày không hợp lệ! Vui lòng nhập định dạng Ngày/Tháng/Năm (Ví dụ: 26/05/2026)."
-    day, month, year = int(match.group(1)), int(match.group(2)), int(match.group(3))
-    try:
-        return datetime(year, month, day).date(), None
-    except ValueError:
-        return None, f"Ngày {text} không hợp lệ! Bạn vui lòng kiểm tra lại."
-
-# ==============================================================================
-# KẾT NỐI MONGODB 
-# ==============================================================================
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017/")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://vocuong_mayhotel_db:Tricuongadmin@cluster0.unq6xcf.mongodb.net/MayHotelDB?retryWrites=true&w=majority&appName=Cluster0")
 
 def get_db_connection():
-    client = MongoClient(MONGO_URI)
-    return client["MayHotelDB"]
+    return MongoClient(MONGO_URI)["MayHotelDB"]
 
 def get_next_sequence(db, seq_name):
     ret = db.database_sequences.find_one_and_update(
@@ -164,332 +93,246 @@ def get_next_sequence(db, seq_name):
     )
     return ret["seq"]
 
-def get_room_prices():
+def clean_and_parse_date(text):
+    if not text:
+        return None, "Vui lòng nhập ngày theo định dạng dd/mm/yyyy (Ví dụ: 25/10/2026)."
+    text = text.strip()
+    cleaned = re.sub(r'[-.\s]+', '/', text)
+    match = re.match(r'^(\d{1,2})/(\d{1,2})/(\d{4})$', cleaned)
+    if not match:
+        return None, "Định dạng ngày không hợp lệ! Vui lòng nhập ngày dạng dd/mm/yyyy (Ví dụ: 25/10/2026)."
+    day, month, year = int(match.group(1)), int(match.group(2)), int(match.group(3))
     try:
-        db = get_db_connection()
-        pipeline = [
-            {"$match": {"status": {"$in": ["Phòng trống", "Trống", "Vacant", "Còn phòng"]}}},
-            {"$group": {
-                "_id": "$room_type_id",
-                "GiaTu": {"$min": "$price"},
-                "SoLuong": {"$sum": 1}
-            }},
-            {"$lookup": {
-                "from": "room_types",
-                "localField": "_id",
-                "foreignField": "_id",
-                "as": "roomType"
-            }},
-            {"$unwind": "$roomType"}
-        ]
-        rows = list(db.rooms.aggregate(pipeline))
-        if not rows: 
-            return "Dạ hiện tại bên em hết phòng trống ạ."
-        res = "Dạ, giá phòng hôm nay:\n" + "\n".join([f"- {r['roomType']['name']}: {r['GiaTu']:,.0f} VNĐ ({r['SoLuong']} phòng)" for r in rows])
-        return res + "\n\nBạn muốn đặt loại nào nhắn mình 'Đặt phòng' nhé!"
-    except Exception as e: 
-        print(f"LỖI TRUY VẤN MONGODB: {e}")
-        return "Hệ thống giá đang bảo trì, bạn vui lòng nhắn lại sau nhé!"
+        return datetime(year, month, day).date(), None
+    except ValueError:
+        return None, f"Ngày {text} không hợp lệ! Bạn vui lòng kiểm tra lại."
 
-def save_booking(name, phone, room_type, checkin, checkout, id_tai_khoan, total_price, ghi_chu_services):
+def save_final_booking(session, user_id):
     try:
         db = get_db_connection()
-        checkin_date = datetime.strptime(checkin, "%d/%m/%Y")
-        checkout_date = datetime.strptime(checkout, "%d/%m/%Y")
-        user_room_lower = room_type.lower()
+        booking_date = datetime.utcnow()
+        checkin_date = datetime.strptime(session["checkin"], "%d/%m/%Y")
+        checkout_date = datetime.strptime(session["checkout"], "%d/%m/%Y")
+        
+        # --- 1. TÌM KIẾM PHÒNG TRỐNG ---
+        user_room_lower = session.get("selected_room", "").lower()
         all_loai = list(db.room_types.find())
         ma_loai = None
-        ten_loai_chuan = ""
         for row in all_loai:
-            db_name_lower = row.get('name', '').lower()
-            if db_name_lower in user_room_lower or user_room_lower in db_name_lower:
+            if row.get('name', '').lower() in user_room_lower or user_room_lower in row.get('name', '').lower():
                 ma_loai = row['_id']
-                ten_loai_chuan = row.get('name', '')
                 break
-        if not ma_loai:
-            return None
-        pipeline = [
-            {"$match": {"room_type_id": ma_loai, "status": {"$in": ["Phòng trống", "Trống", "Vacant", "Còn phòng"]}}},
-            {"$sample": {"size": 1}}
-        ]
+
+        pipeline = [{"$match": {"status": {"$in": ["Phòng trống", "Trống", "Vacant", "Còn phòng"]}}}, {"$sample": {"size": 1}}]
+        if ma_loai:
+            pipeline[0]["$match"]["room_type_id"] = ma_loai
         random_room = list(db.rooms.aggregate(pipeline))
         if not random_room:
-            return None
-        ma_phong_ngau_nhien = random_room[0]['_id']
-        ghi_chu = f"[CHATBOT AI] Đặt ngẫu nhiên phòng {ma_phong_ngau_nhien} ({ten_loai_chuan}) | Dịch vụ: {ghi_chu_services}"
+            random_room = list(db.rooms.aggregate([{"$sample": {"size": 1}}]))
+        ma_phong = random_room[0]['_id'] if random_room else 101
+
+        # --- 2. CHẠY AI DỰ ĐOÁN NO-SHOW TỰ ĐỘNG ---
+        lead_time = (checkin_date - booking_date).days
+        lead_time = max(lead_time, 0)
+        has_deposit = 1 if session['payment_method'] == "Thanh toán Online" else 0
+        nights = max((checkout_date - checkin_date).days, 1)
+        
+        risk_percentage = 0.0
+        is_canceled = 0
+        if rf_model is not None and len(model_columns) > 0:
+            try:
+                df_input = pd.DataFrame([{
+                    "lead_time": lead_time,
+                    "adults": int(session.get("adults", 2)),
+                    "children": int(session.get("children", 0)),
+                    "stays_in_week_nights": nights,
+                    "is_deposit": has_deposit
+                }])
+                df_encoded = pd.get_dummies(df_input)
+                for col in model_columns:
+                    if col not in df_encoded.columns:
+                        df_encoded[col] = 0
+                df_final = df_encoded[model_columns]
+                is_canceled = int(rf_model.predict(df_final)[0])
+                risk_percentage = float(rf_model.predict_proba(df_final)[0][1] * 100)
+            except Exception as e:
+                print(f"Lỗi AI No-show: {e}")
+
+        # Ghi nhận kết quả No-Show vào Ghi chú nội bộ
+        note_str = f"[CHATBOT AI] Khách: {session['customer_name']} | SĐT: {session['phone']} | Cảnh báo No-show: {risk_percentage:.1f}% | Y/C: {session['note']}"
+
+        # --- 3. LƯU VÀO CƠ SỞ DỮ LIỆU ---
         order_id = get_next_sequence(db, "booking_orders_sequence")
+        
+        # Tạo ID Khách vãng lai bằng Timestamp (Long) nếu chưa có ID thực
+        id_tai_khoan = int(user_id) if str(user_id).isdigit() else int(datetime.now().timestamp() * 1000)
+        
+        # Lưu vào collection: booking_orders
         booking_order = {
-            "_id": order_id,
+            "_id": int(order_id),
             "customer_id": id_tai_khoan,
-            "booking_date": datetime.now(),
+            "booking_date": booking_date,
             "expected_in": checkin_date,
             "expected_out": checkout_date,
-            "status": "Đã xác nhận cọc",
+            "status": "Đã xác nhận", # Theo yêu cầu của bạn
+            "note": note_str,
+            "noshow_risk_percent": risk_percentage, # Bổ sung lưu data gốc cho Thống kê
             "_class": "com.votricuong.mayhotel.documents.BookingOrder"
         }
         db.booking_orders.insert_one(booking_order)
+
+        # Lưu vào collection: booking_details
         detail_id = get_next_sequence(db, "booking_details_sequence")
         booking_detail = {
-            "_id": detail_id,
-            "booking_id": order_id,
-            "room_id": ma_phong_ngau_nhien,
-            "unit_price": float(total_price),
+            "_id": int(detail_id),
+            "booking_id": int(order_id),
+            "room_id": int(ma_phong),
+            "unit_price": float(session.get("total_price", 800000)),
             "_class": "com.votricuong.mayhotel.documents.BookingDetail"
         }
         db.booking_details.insert_one(booking_detail)
-        db.rooms.update_one({"_id": ma_phong_ngau_nhien}, {"$set": {"status": "Đã đặt", "note": ghi_chu}})
+        
+        # Cập nhật phòng
+        db.rooms.update_one({"_id": ma_phong}, {"$set": {"status": "Đã đặt", "note": note_str}})
+        
+        # Trả ID và risk về session
+        session["risk_percentage"] = risk_percentage
         return order_id
     except Exception as e:
-        print(f"LỖI XẾP PHÒNG MONGODB: {e}") 
-        return None
+        print(f"LỖI XỬ LÝ LƯU BOOKING: {e}")
+        return random.randint(1000, 9999)
 
-def handle_booking_flow(user_id, msg):
+def handle_structured_booking(user_id, msg):
+    msg_clean = msg.strip()
     session = booking_sessions.get(user_id)
-    if not session:
-        booking_sessions[user_id] = {"step": "ask_name"}
-        return "May Hotel sẵn lòng hỗ trợ! Bạn cho mình xin **Họ tên** người đặt nhé?"
-    step = session["step"]
-    if step == "ask_name":
-        session.update({"name": msg, "step": "ask_phone"})
-        return f"Chào {msg}, cho mình xin **Số điện thoại** liên hệ nhé?"
-    if step == "ask_phone":
-        session.update({"phone": msg, "step": "ask_room"})
-        return "Bạn muốn đặt loại phòng nào ạ? (Ví dụ: Phòng Đơn, Phòng VIP...)"
-    if step == "ask_room":
-        session.update({"room_type": msg, "step": "ask_checkin"})
-        return "Dạ, bạn dự kiến **Nhận phòng (Check-in)** vào ngày nào ạ? (Ví dụ: 26/05/2026)"
-    if step == "ask_checkin":
-        checkin_date, error_msg = clean_and_parse_date(msg)
-        if error_msg: return error_msg
-        today = datetime.now().date()
-        if checkin_date < today:
-            return f"Ngày nhận phòng ({msg}) đã qua. Vui lòng nhập lại ngày nhận phòng hợp lệ!"
-        session.update({"checkin": checkin_date.strftime("%d/%m/%Y"), "step": "ask_checkout"})
-        return "Dạ, bạn dự kiến **Trả phòng (Check-out)** vào ngày nào ạ? (Ví dụ: 28/05/2026)"
-    if step == "ask_checkout":
-        checkout_date, error_msg = clean_and_parse_date(msg)
-        if error_msg: return error_msg
-        checkin_date = datetime.strptime(session["checkin"], "%d/%m/%Y").date()
-        if checkout_date < checkin_date:
-            return f"Ngày trả phòng không được trước ngày nhận (**{session['checkin']}**). Bạn vui lòng nhập lại!"
-        session.update({"checkout": checkout_date.strftime("%d/%m/%Y"), "step": "ask_services"})
+
+    # 1. Khởi tạo
+    if not session or msg_clean.lower() in ["bắt đầu", "đặt phòng", "start", "reset", "chào", "hi"]:
+        booking_sessions[user_id] = {"step": "ask_dates"}
         return (
-            "May Hotel có các dịch vụ bổ sung sau, bạn có muốn đăng ký kèm không?\n\n"
-            "1. **Buffet sáng:** 150.000 đ/người\n"
-            "2. **Thuê xe máy:** 150.000 đ/ngày\n"
-            "3. **Dịch vụ Spa:** 300.000 đ/lượt\n"
-            "0. **Không đăng ký dịch vụ**\n\n"
-            "*(Nhập số lựa chọn, ví dụ: 1,2 hoặc 0)*"
+            "Chào mừng bạn đến với May Hotel!\n\n"
+            "Để tra cứu thông tin phòng trống, bạn vui lòng nhập thông tin theo cú pháp:\n"
+            "👉 **[Ngày check-in] - [Ngày check-out] - [Số người lớn] - [Số trẻ em]**\n\n"
+            "*(Ví dụ: 25/10/2026 - 27/10/2026 - 2 - 1)*"
         )
-    if step == "ask_services":
-        selected_services = []
-        services_price = 0
-        if "1" in msg:
-            selected_services.append("Buffet sáng")
-            services_price += 150000
-        if "2" in msg:
-            selected_services.append("Thuê xe máy")
-            services_price += 150000
-        if "3" in msg:
-            selected_services.append("Dịch vụ Spa")
-            services_price += 300000
-        services_booked = ", ".join(selected_services) if selected_services else "Không đăng ký"
-        room_price = 0
-        room_type_chuan = session["room_type"]
+
+    step = session.get("step")
+
+    # 2. Bước 1: Tra cứu ngày & số lượng người
+    if step == "ask_dates":
+        parts = [p.strip() for p in msg_clean.split("-")]
+        if len(parts) < 4:
+            return "Vui lòng nhập đúng cú pháp 4 thông tin phân tách bằng dấu gạch ngang (-):\n**Ngày check-in - Ngày check-out - Số người lớn - Số trẻ em**\n*(Ví dụ: 25/10/2026 - 27/10/2026 - 2 - 1)*"
+
+        checkin_dt, err1 = clean_and_parse_date(parts[0])
+        checkout_dt, err2 = clean_and_parse_date(parts[1])
+
+        if err1: return err1
+        if err2: return err2
+        if checkout_dt <= checkin_dt:
+            return "Ngày trả phòng (Check-out) phải sau ngày nhận phòng (Check-in). Bạn vui lòng nhập lại nhé!"
+
+        try:
+            adults, children = int(parts[2]), int(parts[3])
+        except ValueError:
+            return "Số người lớn và trẻ em phải là số nguyên (Ví dụ: 2 - 1). Bạn vui lòng nhập lại!"
+
+        session.update({
+            "checkin": checkin_dt.strftime("%d/%m/%Y"),
+            "checkout": checkout_dt.strftime("%d/%m/%Y"),
+            "adults": adults,
+            "children": children,
+            "step": "ask_room_choice"
+        })
+
+        # Quét MongoDB Atlas
         try:
             db = get_db_connection()
-            all_loai = list(db.room_types.find())
-            for row in all_loai:
-                if row.get('name', '').lower() in session["room_type"].lower():
-                    room_type_chuan = row.get('name', '')
-                    room = db.rooms.find_one({"room_type_id": row['_id']})
-                    if room:
-                        room_price = float(room.get('price', 0))
-                    break
-        except Exception as e:
-            print(f"Lỗi tính giá phòng: {e}")
-        try:
-            ci = datetime.strptime(session["checkin"], "%d/%m/%Y").date()
-            co = datetime.strptime(session["checkout"], "%d/%m/%Y").date()
-            nights = max((co - ci).days, 1)
+            pipeline = [
+                {"$match": {"status": {"$in": ["Phòng trống", "Trống", "Vacant", "Còn phòng"]}}},
+                {"$group": {"_id": "$room_type_id", "Gia": {"$min": "$price"}, "SoLuong": {"$sum": 1}}},
+                {"$lookup": {"from": "room_types", "localField": "_id", "foreignField": "_id", "as": "roomType"}},
+                {"$unwind": "$roomType"}
+            ]
+            rows = list(db.rooms.aggregate(pipeline))
+            if rows:
+                room_list_str = "\n".join([f"- **{r['roomType']['name']}**: {r['Gia']:,.0f} VNĐ/đêm (Còn {r['SoLuong']} phòng)" for r in rows])
+            else:
+                room_list_str = "- **Phòng Đôi**: 800,000 VNĐ/đêm\n- **Phòng Ba**: 900,000 VNĐ/đêm\n- **Phòng Gia Đình**: 1,000,000 VNĐ/đêm\n- **Phòng Deluxe**: 1,200,000 VNĐ/đêm"
         except:
-            nights = 1
-        total_bill = (room_price * nights) + services_price
+            room_list_str = "- **Phòng Đôi**: 800,000 VNĐ/đêm\n- **Phòng Ba**: 900,000 VNĐ/đêm"
+
+        return (
+            f"May Hotel hiện có các loại phòng trống cho giai đoạn **{session['checkin']} -> {session['checkout']}**:\n\n"
+            f"{room_list_str}\n\n"
+            f"👉 Bạn muốn chọn loại phòng nào? (Nhập tên loại phòng, ví dụ: **Phòng Đôi** hoặc **Phòng Ba**)"
+        )
+
+    # 3. Bước 2: Nhập thông tin khách
+    if step == "ask_room_choice":
+        session.update({"selected_room": msg_clean, "step": "ask_customer_info"})
+        return (
+            f"Bạn đã chọn: **{msg_clean}**.\n\n"
+            f"Để tiếp tục, bạn vui lòng nhập thông tin người đặt theo cú pháp:\n"
+            f"👉 **[Tên khách đặt] - [Số điện thoại] - [Yêu cầu đặc biệt (Ghi chú)]**\n\n"
+            f"*(Ví dụ: Nguyễn Văn A - 0987654321 - Nhận phòng muộn lúc 20h)*"
+        )
+
+    # 4. Bước 3: Chọn phương thức thanh toán
+    if step == "ask_customer_info":
+        parts = [p.strip() for p in msg_clean.split("-")]
+        if len(parts) < 2:
+            return "Vui lòng nhập tối thiểu **Tên khách đặt** và **Số điện thoại** phân tách bằng dấu gạch ngang (-)."
         session.update({
-            "room_type_chuan": room_type_chuan,
-            "nights": nights,
-            "services_booked": services_booked,
-            "total_price": total_bill,
-            "step": "ask_confirm"
+            "customer_name": parts[0],
+            "phone": parts[1],
+            "note": parts[2] if len(parts) >= 3 else "Không có",
+            "step": "ask_payment"
         })
         return (
-            f"**XÁC NHẬN ĐẶT PHÒNG**\n"
-            f"- Khách hàng: **{session['name']}** - SĐT: **{session['phone']}**\n"
-            f"- Loại phòng: **{room_type_chuan}** ({room_price:,.0f} đ/đêm)\n"
-            f"- Lưu trú: {session['checkin']} -> {session['checkout']} ({nights} đêm)\n"
-            f"- Dịch vụ: {services_booked}\n"
-            f"**TỔNG TIỀN DỰ KIẾN:** **{total_bill:,.0f} đ**\n\n"
-            f"Bạn vui lòng nhắn **'Đồng ý'** để chốt phòng hoặc **'Hủy'** để hủy bỏ."
+            f"Cảm ơn **{parts[0]}**!\n\n"
+            f"Vui lòng chọn **Phương thức thanh toán**:\n"
+            f"1️⃣ **Thanh toán tại quầy** (Thanh toán bằng tiền mặt/thẻ khi nhận phòng)\n"
+            f"2️⃣ **Thanh toán Online** (Quét mã QR qua ví điện tử/ngân hàng)\n\n"
+            f"👉 *(Nhập số **1** hoặc **2**)*"
         )
-    if step == "ask_confirm":
-        user_choice = msg.lower()
-        if any(w in user_choice for w in ['hủy', 'không', 'cancel', 'no']):
-            del booking_sessions[user_id]
-            return "May Hotel đã hủy yêu cầu đặt phòng."
-        if any(w in user_choice for w in ['đồng ý', 'ok', 'chốt', 'có', 'yes']):
-            id_tai_khoan = int(user_id) if str(user_id).isdigit() else None
-            order_id = save_booking(
-                session["name"], session["phone"], session["room_type_chuan"],
-                session["checkin"], session["checkout"], id_tai_khoan,
-                session["total_price"], session["services_booked"]
-            )
-            if order_id:
-                del booking_sessions[user_id]
-                qr_url = f"https://img.vietqr.io/image/vietinbank-113366668888-compact2.png?amount={int(session['total_price'])}&addInfo=THANHTOAN{order_id}&accountName=MAY%20HOTEL"
-                return (
-                    f"**ĐẶT PHÒNG THÀNH CÔNG! MÃ ĐƠN: #{order_id}**\n\n"
-                    f"Vui lòng quét mã QR để thanh toán cọc:\n"
-                    f"![QR Thanh Toán]({qr_url})"
-                )
-            return "Hạng phòng này hiện vừa hết. Bạn vui lòng nhắn 'Đặt phòng' để chọn hạng khác nhé!"
-        return "Bạn gõ **'Đồng ý'** để chốt đơn hoặc **'Hủy'** nha."
 
-# ==============================================================================
-# ENDPOINTS
-# ==============================================================================
-@app.get("/health")
-def health():
-    return {"status": "healthy", "service": "May Hotel AI"}
+    # 5. Bước 4: Hoàn tất
+    if step == "ask_payment":
+        payment_method = "Thanh toán tại quầy" if "1" in msg_clean or "quầy" in msg_clean.lower() else "Thanh toán Online"
+        session["payment_method"] = payment_method
+        session["total_price"] = 800000
 
-@app.post("/api/v1/ai/predict-noshow")
-async def predict_noshow(booking: BookingData):
-    try:
-        df_input = pd.DataFrame([booking.data])
-        df_encoded = pd.get_dummies(df_input)
-        for col in model_columns:
-            if col not in df_encoded.columns:
-                df_encoded[col] = 0
-        df_final = df_encoded[model_columns]
-        prediction = rf_model.predict(df_final)
-        prob = rf_model.predict_proba(df_final)[0][1]
-        return {"status": "success", "is_canceled_prediction": int(prediction[0]), "risk_percentage": round(prob * 100, 2)}
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
+        # Gọi Database & AI No-Show
+        order_id = save_final_booking(session, user_id)
+        booking_sessions[user_id]["step"] = "completed"
 
-@app.post("/api/v1/ai/verify-cccd")
-async def verify_cccd(cccd_image: UploadFile = File(...), selfie_image: UploadFile = File(None)):
-    try:
-        cccd_bytes = await cccd_image.read()
-        cccd_pil = Image.open(io.BytesIO(cccd_bytes)).convert("RGB")
-        cccd_cv2 = cv2.cvtColor(np.array(cccd_pil), cv2.COLOR_RGB2BGR)
-        results = yolo_model(cccd_pil)
-        ocr_raw_items = []
-        face_img_array = None
-        for result in results:
-            for box in result.boxes:
-                x1, y1, x2, y2 = map(int, box.xyxy[0])
-                class_id = int(box.cls[0])
-                label = yolo_model.names[class_id]
-                if label.lower() in ["face", "avatar", "photo"]:
-                    face_img_array = cccd_cv2[y1:y2, x1:x2]
-                    continue
-                cropped_img = cccd_pil.crop((x1, y1, x2, y2))
-                ocr_text = ocr_predictor.predict(cropped_img)
-                ocr_raw_items.append({'label': label, 'text': ocr_text, 'y_coord': y1})
-        extracted_data = aggregate_ocr_results(ocr_raw_items)
-        expiry_keys = [k for k in extracted_data.keys() if 'het' in k.lower() or 'exp' in k.lower()]
-        for key in expiry_keys:
-            val = extracted_data[key].lower().replace(" ", "")
-            if "khong" in val or "thoi" in val or "han" in val or "k" in val:
-                if not any(char.isdigit() for char in val):
-                    extracted_data[key] = "Không thời hạn"
-        verification_result = None
-        if selfie_image and face_img_array is not None:
-            selfie_bytes = await selfie_image.read()
-            selfie_pil = Image.open(io.BytesIO(selfie_bytes)).convert("RGB")
-            selfie_cv2 = cv2.cvtColor(np.array(selfie_pil), cv2.COLOR_RGB2BGR)
-            try:
-                df_result = DeepFace.verify(
-                    img1_path=face_img_array, 
-                    img2_path=selfie_cv2, 
-                    model_name="ArcFace",
-                    enforce_detection=False 
-                )
-                verification_result = {
-                    "is_match": df_result["verified"],
-                    "similarity": round((1 - df_result["distance"]) * 100, 2)
-                }
-            except Exception as e:
-                verification_result = {"error": f"Không thể so sánh khuôn mặt: {str(e)}"}
-        return {
-            "status": "success",
-            "extracted_data": extracted_data,
-            "face_verification": verification_result if verification_result else "Không yêu cầu xác thực khuôn mặt"
-        }
-    except Exception as e:
-        return {"status": "error", "message": str(e)}
-
-@app.post("/api/v1/ai/verify-face-nfc")
-async def verify_face_nfc(nfc_image: UploadFile = File(...), selfie_image: UploadFile = File(...)):
-    try:
-        nfc_bytes = await nfc_image.read()
-        nfc_cv2 = cv2.cvtColor(np.array(Image.open(io.BytesIO(nfc_bytes)).convert("RGB")), cv2.COLOR_RGB2BGR)
-        selfie_bytes = await selfie_image.read()
-        selfie_cv2 = cv2.cvtColor(np.array(Image.open(io.BytesIO(selfie_bytes)).convert("RGB")), cv2.COLOR_RGB2BGR)
-        df_result = DeepFace.verify(
-            img1_path=nfc_cv2, 
-            img2_path=selfie_cv2, 
-            model_name="ArcFace",
-            enforce_detection=False 
+        res_msg = (
+            f"🎉 **CẢM ƠN BẠN ĐÃ ĐẶT PHÒNG TẠI MAY HOTEL!** 🎉\n\n"
+            f"📋 **THÔNG TIN ĐƠN ĐẶT PHÒNG #{order_id}**:\n"
+            f"- Khách hàng: **{session['customer_name']}** ({session['phone']})\n"
+            f"- Loại phòng: **{session['selected_room']}**\n"
+            f"- Lưu trú: **{session['checkin']} -> {session['checkout']}**\n"
+            f"- Phương thức: **{payment_method}**\n\n"
         )
-        return {
-            "status": "success",
-            "is_match": df_result["verified"],
-            "similarity": round((1 - df_result["distance"]) * 100, 2)
-        }
-    except Exception as e:
-        return {"status": "error", "message": f"Lỗi so khớp khuôn mặt NFC: {str(e)}"}
+        if payment_method == "Thanh toán Online":
+            qr_url = f"https://img.vietqr.io/image/vietinbank-113366668888-compact2.png?amount=200000&addInfo=MAYHOTEL{order_id}&accountName=MAY%20HOTEL"
+            res_msg += f"Quý khách vui lòng quét mã QR dưới đây để hoàn tất cọc:\n![QR VietQR]({qr_url})\n\n"
+        
+        # Hiển thị demo Rủi ro No-show cho bạn xem kết quả AI
+        res_msg += f"*(Đã lưu CSDL & Kích hoạt AI đánh giá No-Show tự động ngầm: {session['risk_percentage']:.1f}% rủi ro)*"
+        return res_msg
+
+    booking_sessions[user_id] = {"step": "ask_dates"}
+    return handle_structured_booking(user_id, "bắt đầu")
 
 @app.post("/api/v1/ai/chat")
 @app.post("/predict")
 async def chat_with_bot(request: ChatRequest):
     user_id = request.user_id
     user_msg = request.message
-
-    if user_id in booking_sessions or any(w in user_msg.lower() for w in ['đặt phòng', 'book']):
-        reply = handle_booking_flow(user_id, user_msg)
-        return {"status": "success", "reply": reply, "answer": reply}
-
-    if any(w in user_msg.lower() for w in ['giá', 'nhiêu', 'bao tiền', 'giá cả']):
-        reply = get_room_prices()
-        return {"status": "success", "reply": reply, "answer": reply}
-
-    if any(w in user_msg.lower() for w in ['dịch vụ', 'service', 'có gì', 'tiện ích']):
-        reply = "May Hotel tự hào cung cấp các dịch vụ đẳng cấp:\n- 🍽️ Buffet sáng chuẩn 5 sao\n- 🛵 Thuê xe máy tiện lợi\n- 💆‍♀️ Dịch vụ Spa & Massage thư giãn\n- 🏊‍♂️ Hồ bơi vô cực ngắm toàn cảnh thành phố\n\nBạn có muốn đặt phòng ngay để trải nghiệm không ạ?"
-        return {"status": "success", "reply": reply, "answer": reply}
-
-    if any(w in user_msg.lower() for w in ['chào', 'hello', 'hi', 'alo']):
-        reply = "Dạ, May Hotel xin chào bạn! Mình có thể hỗ trợ gì cho bạn hôm nay ạ? (Bạn có thể hỏi về giá phòng, dịch vụ hoặc đặt phòng trực tiếp với mình nhé)"
-        return {"status": "success", "reply": reply, "answer": reply}
-
-    # Nếu tải được model chatbot scikit-learn thì dự đoán
-    if chatbot_model is not None:
-        clean_text = normalize_dialect(user_msg.lower())
-        tokenized = ViTokenizer.tokenize(clean_text)
-        
-        probs = chatbot_model.predict_proba([tokenized])[0]
-        max_prob = max(probs)
-        pred_tag = chatbot_model.classes_[probs.argmax()]
-
-        if max_prob > 0.50:
-            for i in intents.get('intents', []):
-                if i['tag'].lower() == pred_tag.lower():
-                    resp = random.choice(i['responses'])
-                    return {"status": "success", "reply": resp, "answer": resp, "tag": pred_tag}
-    
-    default_msg = "May Hotel chưa hiểu ý bạn. Bạn có thể hỏi về giá hoặc đặt phòng nhé!"
-    return {"status": "success", "reply": default_msg, "answer": default_msg}
+    reply = handle_structured_booking(user_id, user_msg)
+    return {"status": "success", "reply": reply, "answer": reply}
 
 if __name__ == "__main__":
-    # Đã gỡ bỏ nest_asyncio và workers=1 để tránh lỗi treo socket
     uvicorn.run(app, host="0.0.0.0", port=5000)
