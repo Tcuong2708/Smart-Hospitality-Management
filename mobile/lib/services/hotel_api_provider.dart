@@ -391,7 +391,7 @@ class HotelApiProvider {
   Future<Map<String, dynamic>?> verifyFaceNFC(File nfcImage, File selfieImage) async {
     try {
       // Đọc AI_URL từ môi trường
-      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://10.0.2.2:5000";
+      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://138.2.72.9:5000";
       
       Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 30)));
 
@@ -415,7 +415,7 @@ class HotelApiProvider {
   // Gọi API verify-cccd (YOLO + VietOCR + FaceMatch)
   Future<Map<String, dynamic>?> verifyCccdWithSelfie(File cccdImage, File selfieImage) async {
     try {
-      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://10.0.2.2:5000";
+      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://138.2.72.9:5000";
       Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 60)));
 
       FormData formData = FormData.fromMap({
