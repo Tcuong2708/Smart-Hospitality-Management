@@ -119,7 +119,8 @@
                                             mãi</a>
                                     </li>
                                     <li><a class="dropdown-item" th:href="@{/manager/loyalty}"><i
-                                                class="bi bi-award-fill me-2" style="color: #C5A017;"></i>Quản lý Chính sách Tích điểm</a>
+                                                class="bi bi-award-fill me-2" style="color: #C5A017;"></i>Quản lý Chính
+                                            sách Tích điểm</a>
                                     </li>
                                     <li>
                                         <hr class="dropdown-divider" />
@@ -158,8 +159,7 @@
                                 </th:block>
 
                                 <!-- NGHIỆP VỤ LỄ TÂN -->
-                                <th:block
-                                    th:if="${session.user.role == 'RECEPTIONIST'}">
+                                <th:block th:if="${session.user.role == 'RECEPTIONIST'}">
                                     <li>
                                         <div class="dropdown-header text-uppercase text-warning fw-bold mt-1"
                                             style="font-size: 0.75rem; padding-left: 1rem;">Nghiệp vụ lễ tân</div>
@@ -218,7 +218,8 @@
                                             khoản</a>
                                     </li>
                                     <li><a class="dropdown-item" th:href="@{/admin/backup}"><i
-                                                class="bi bi-database-down me-2" style="color: #C5A017;"></i>Sao lưu phục
+                                                class="bi bi-database-down me-2" style="color: #C5A017;"></i>Sao lưu
+                                            phục
                                             hồi</a>
                                     </li>
                                     <li>
@@ -417,7 +418,7 @@
                 scrollToBottom();
 
                 $.ajax({
-                    url: "/predict",
+                    url: "/api/v1/ai/chat",
                     type: "POST",
                     contentType: "application/json",
                     data: JSON.stringify({ message: msg }),
