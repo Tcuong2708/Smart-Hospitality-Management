@@ -27,4 +27,18 @@ public class AiController {
         String aiResponse = aiService.getAiResponse(prompt);
         return ResponseEntity.ok(Map.of("response", aiResponse));
     }
+    
+    @PostMapping("/chat")
+    public ResponseEntity<Map<String, String>> chatAi(@RequestBody Map<String, String> request) {
+        String message = request.get("message");
+        if (message == null || message.trim().isEmpty()) {
+            message = request.get("prompt"); 
+        }
+        if (message == null || message.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Message is required"));
+        }
+
+        String aiResponse = aiService.getAiResponse(message);
+        return ResponseEntity.ok(Map.of("response", aiResponse));
+    }    
 }
