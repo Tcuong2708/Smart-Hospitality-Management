@@ -91,23 +91,28 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     try {
       // 1. Gọi Python AI Server trích xuất OCR và FaceMatch
       final aiRes = await HotelApiProvider().verifyCccdWithSelfie(_cccdFront!, _selfie!);
+      if (aiRes == null || aiRes['status'] != 'success') {
+        setState(() {
+          _isProcessing = false;
+          _statusMessage = "AI không xác thực được danh tính. Vui lòng thử lại.";
+        });
+        return;
+      }
       
       String aiResultStr = "XÁC THỰC AI KHỚP KHOẢNG 98.5%";
-      if (aiRes != null && aiRes['status'] == 'success') {
-        final faceVer = aiRes['face_verification'];
-        if (faceVer != null && faceVer is Map) {
-          final matchRate = faceVer['similarity'] ?? 98.5;
-          aiResultStr = "KHỚP KHUÔN MẶT AI: $matchRate%";
-        } else {
-          aiResultStr = "KHÔNG DÙNG FACEMATCH, CHỈ CÓ OCR";
-        }
+      final faceVer = aiRes['face_verification'];
+      if (faceVer != null && faceVer is Map) {
+        final matchRate = faceVer['similarity'] ?? 98.5;
+        aiResultStr = "KHỚP KHUÔN MẶT AI: $matchRate%";
+      } else {
+        aiResultStr = "KHÔNG DÙNG FACEMATCH, CHỈ CÓ OCR";
       }
 
       setState(() {
-        _statusMessage = "AI xác thực thành công! Đang cập nhật hệ thống khách sạn...";
+        _statusMessage = "AI xác thực thành công! Đang đồng bộ với lễ tân...";
       });
 
-      // 2. Gọi Backend Java Spring Boot để chuyển trạng thái phòng thành Đã nhận phòng
+      // 2. Ghi nhận xác thực; lễ tân vẫn là nơi gán phòng và hoàn tất check-in.
       final res = await HotelApiProvider().submitCheckInAI(
         widget.bookingId, 
         aiResultStr,
@@ -116,7 +121,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       if (res != null) {
         setState(() {
           _isProcessing = false;
-          _statusMessage = "Nhận phòng thành công! Đang kích hoạt thẻ NFC...";
+          _statusMessage = "Đã xác thực! Vui lòng chờ lễ tân gán phòng...";
           _nfcAccessCode = res['nfcAccessCode'];
         });
 
@@ -131,19 +136,8 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       debugPrint("Lỗi xác thực AI: $e");
       setState(() {
         _isProcessing = false;
-        _statusMessage = "Lỗi kết nối AI Server. Tiến hành xác thực mặc định.";
+        _statusMessage = "Không thể xác thực. Vui lòng kiểm tra lại ảnh và thử lại.";
       });
-
-      // Fallback khi AI Server offline
-      final res = await HotelApiProvider().submitCheckInAI(widget.bookingId, "XÁC THỰC BẰNG CAMERA MOBILE");
-      if (res != null) {
-        setState(() {
-          _isProcessing = false;
-          _statusMessage = "Nhận phòng thành công! Đang kích hoạt thẻ NFC...";
-          _nfcAccessCode = res['nfcAccessCode'];
-        });
-        _startNfcWriting();
-      }
     }
   }
 

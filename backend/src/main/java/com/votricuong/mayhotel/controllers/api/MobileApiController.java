@@ -461,11 +461,16 @@ public class MobileApiController {
                 map.put("ngayTra", o.getExpectedOut().toInstant().toString());
                 map.put("tongTien", tongTien);
                 map.put("trangThai", o.getStatus() != null ? o.getStatus() : "Chờ xác nhận");
+                map.put("isFaceVerified", Boolean.TRUE.equals(o.getIsFaceVerified()));
+                map.put("tenPhong", "Chưa gán phòng");
+                map.put("roomId", null);
+                map.put("hinhAnh", "");
                 
                 // Tìm chi tiết để lấy thông tin phòng
                 List<BookingDetail> details = bookingDetailRepository.findByBookingId(o.getId());
                 if (!details.isEmpty() && details.get(0).getRoomId() != null) {
                     roomRepository.findById(details.get(0).getRoomId()).ifPresent(r -> {
+                        map.put("roomId", r.getId());
                         map.put("tenPhong", r.getName());
                         map.put("hinhAnh", r.getImageUrl() != null ? r.getImageUrl() : "");
                     });
@@ -542,8 +547,8 @@ public class MobileApiController {
             
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", bookingId);
-            resp.put("status", "Đã nhận phòng");
-            resp.put("canOrderService", true);
+            resp.put("status", "Đã xác thực - chờ lễ tân gán phòng");
+            resp.put("canOrderService", false);
             resp.put("nfcAccessCode", nfcCode);
             resp.put("cccdParsed", cccdData);
             

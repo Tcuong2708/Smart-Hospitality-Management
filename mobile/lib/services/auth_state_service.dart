@@ -3,9 +3,15 @@ import 'package:flutter/material.dart';
 class AuthState {
   final String role;
   final String username;
+  final int? userId;
   final bool isLoggedIn;
 
-  AuthState({this.role = 'customer', this.username = 'Guest', this.isLoggedIn = false});
+  AuthState({
+    this.role = 'customer',
+    this.username = 'Guest',
+    this.userId,
+    this.isLoggedIn = false,
+  });
 }
 
 class AuthStateService extends ChangeNotifier {
@@ -17,8 +23,13 @@ class AuthStateService extends ChangeNotifier {
 
   AuthState get currentAuth => _currentAuth;
 
-  void login(String role, String username) {
-    _currentAuth = AuthState(role: role, username: username, isLoggedIn: true);
+  void login(String role, String username, {int? userId}) {
+    _currentAuth = AuthState(
+      role: role,
+      username: username,
+      userId: userId,
+      isLoggedIn: true,
+    );
     notifyListeners();
   }
 

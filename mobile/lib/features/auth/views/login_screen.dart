@@ -70,7 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
         await prefs.setString('saved_username', usernameInput);
         await prefs.setString('saved_password', passwordInput);
 
-        AuthStateService().login(role, username);
+        final userId = int.tryParse(loginResult['id']?.toString() ?? '');
+        AuthStateService().login(role, username, userId: userId);
         _showCustomSnackBar("Đăng nhập thành công với quyền $role!", Colors.green);
         Navigator.pop(context);
       } else {
@@ -108,7 +109,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (loginResult != null && mounted) {
         String role = loginResult['role'].toString();
         String name = loginResult['name']?.toString() ?? googleUser.displayName ?? "Khách Google";
-        AuthStateService().login(role, name);
+        final userId = int.tryParse(loginResult['id']?.toString() ?? '');
+        AuthStateService().login(role, name, userId: userId);
         _showCustomSnackBar("Đăng nhập Google thành công!", Colors.green);
         Navigator.pop(context);
       } else {
@@ -156,7 +158,8 @@ class _LoginScreenState extends State<LoginScreen> {
       if (loginResult != null && mounted) {
         String role = loginResult['role'].toString();
         String name = loginResult['name']?.toString() ?? savedUsername;
-        AuthStateService().login(role, name);
+        final userId = int.tryParse(loginResult['id']?.toString() ?? '');
+        AuthStateService().login(role, name, userId: userId);
         _showCustomSnackBar("Đăng nhập sinh trắc học thành công!", Colors.green);
         Navigator.pop(context);
       } else {

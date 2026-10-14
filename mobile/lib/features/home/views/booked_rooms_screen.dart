@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
+import 'package:may_hotel_app/services/auth_state_service.dart';
 import '../../../core/utils/responsive.dart';
 import '../../checkin/views/mobile_self_checkin_screen.dart';
 import '../../services/views/service_order_screen.dart';
@@ -33,8 +34,20 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
     });
 
     try {
-      const int maKHHardcode = 3; // Đồng bộ Mã khách hàng tương tự bên trang Booking
-      final res = await _apiProvider.getTransactionHistory(maKHHardcode);
+      final auth = AuthStateService().currentAuth;
+      final userId = auth.userId;
+      if (!auth.isLoggedIn || userId == null) {
+        if (mounted) {
+          setState(() {
+            _bookedRooms = [];
+            _errorMessage = 'Vui lòng đăng nhập để xem lịch sử đặt phòng.';
+            _isLoading = false;
+          });
+        }
+        return;
+      }
+
+      final res = await _apiProvider.getTransactionHistory(userId);
       if (mounted) {
         setState(() {
           _bookedRooms = res;
@@ -510,7 +523,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
 
   // 💳 THIẾT KẾ CARD PHÒNG ĐÃ ĐẶT
   Widget _buildBookingCard(dynamic item, ColorScheme colorScheme, bool isDarkMode) {
-    String tenPhong = item['tenPhong']?.toString() ?? 'Hạng phòng cao cấp';
+    String tenPhong = item['tenPhong']?.toString().trim().isNotEmpty == true
+        ? item['tenPhong'].toString()
+        : 'Chưa gán phòng';
     String hinhAnh = item['hinhAnh']?.toString() ?? '';
 
     String ngayNhan = _safeFormatDate(item['ngayNhanPhong'] ?? item['ngayNhan']);
@@ -518,13 +533,18 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
 
     double tongTien = double.tryParse(item['tongTien']?.toString() ?? '0') ?? 0;
     String trangThai = item['trangThai']?.toString() ?? 'Chờ xác nhận';
+    final bool isFaceVerified = item['isFaceVerified'] == true;
+    if (isFaceVerified &&
+        trangThai != 'Đã nhận phòng' &&
+        trangThai != 'Occupied' &&
+        trangThai != 'In Use') {
+      trangThai = 'Đã xác thực - chờ lễ tân gán phòng';
+    }
 
     if (hinhAnh.startsWith('assets/images/http')) {
       hinhAnh = hinhAnh.replaceFirst('assets/images/', '');
     }
     final bool isNetworkImage = hinhAnh.startsWith('http');
-    String maskedRoomTitle = tenPhong.replaceAll(RegExp(r'P\d+'), 'P***');
-
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
@@ -565,7 +585,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                     children: [
                       Expanded(
                         child: Text(
-                          maskedRoomTitle,
+                          tenPhong,
                           style: TextStyle(fontSize: Responsive.sp(context, 15), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
@@ -607,7 +627,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
   Widget _buildActionButtons(dynamic item, String trangThai, ColorScheme colorScheme) {
     final int bookingId = int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
 
-    if (trangThai == "Đã xác nhận" || trangThai == "Reserved") {
+    if (trangThai == "Đã xác nhận" ||
+        trangThai == "Reserved" ||
+        trangThai == "Pending" ||
+        trangThai == "Chờ nhận phòng" ||
+        trangThai == "Đã xác thực - chờ lễ tân gán phòng") {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme.primary,
@@ -762,7 +786,13 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
       cardColor = Colors.grey.withOpacity(0.2);
       textColor = isDarkMode ? Colors.grey.shade300 : Colors.grey.shade700;
       displayStatus = "Đã trả phòng";
-    } else if (status.contains('Thành công') || status.contains('Đã xác nhận') || status.contains('Reserved') || status.contains('True')) {
+    } else if (status.contains('Thành công') ||
+        status.contains('Đã xác nhận') ||
+        status.contains('Reserved') ||
+        status.contains('Pending') ||
+        status.contains('Chờ nhận phòng') ||
+        status.contains('Đã xác thực') ||
+        status.contains('True')) {
       cardColor = Colors.green.withOpacity(0.15);
       textColor = isDarkMode ? Colors.greenAccent : Colors.green.shade700;
       displayStatus = "Chờ nhận phòng";
