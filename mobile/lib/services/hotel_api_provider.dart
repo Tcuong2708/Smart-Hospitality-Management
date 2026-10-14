@@ -1,38 +1,20 @@
 import 'dart:io';
+
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:may_hotel_app/features/admin/models/staff_model.dart';
 import 'package:may_hotel_app/models/user_model.dart';
 import '../models/room_model.dart';
+import 'hotel_api_client.dart';
+import 'room_search_cache.dart';
 
 class HotelApiProvider {
-  late Dio _dio;
+  final Dio _dio = HotelApiClient.instance.dio;
+  static final Map<String, Future<List<dynamic>>> _inFlightSearches =
+      <String, Future<List<dynamic>>>{};
 
-  HotelApiProvider() {
-    // Đọc Base URL từ file môi trường cấu hình của hệ thống
-    final String baseUrl = dotenv.env['BASE_URL'] ?? "https://cuong-smarthotel.me";
-    
-    _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        "Accept": "application/json",
-        "Content-Type": "application/json",
-      },
-    ));
-
-    // GIỮ NGUYÊN PHẦN BYPASS SSL KHI TEST LOCAL CỦA CƯỜNG
-    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-      final client = HttpClient();
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-    debugPrint("May Hotel API Provider đang kết nối tới: $baseUrl");
-  }
+  HotelApiProvider();
 
   // =========================================================================
   // PHÂN HỆ: QUẢN LÝ NHÂN SỰ ĐỒNG BỘ STAFF_MODEL
@@ -257,25 +239,84 @@ class HotelApiProvider {
   // ==========================================
   // API: TRA CỨU PHÒNG TRỐNG (PHẦN 2.1)
   // ==========================================
-  Future<List<dynamic>> searchRooms(DateTime ngayNhan, DateTime ngayTra, int adults, int children) async {
+  Future<List<dynamic>> searchRooms(
+    DateTime ngayNhan,
+    DateTime ngayTra,
+    int adults,
+    int children,
+    {CancelToken? cancelToken}
+  ) async {
+    final startDate = DateTime(ngayNhan.year, ngayNhan.month, ngayNhan.day);
+    final endDate = DateTime(ngayTra.year, ngayTra.month, ngayTra.day);
+    final cacheKey =
+        '${_formatDate(startDate)}|${_formatDate(endDate)}|$adults|$children';
+    final cachedResults = RoomSearchCache.instance.read(cacheKey);
+    if (cachedResults != null) return cachedResults;
+
+    final existingRequest = _inFlightSearches[cacheKey];
+    if (existingRequest != null) return existingRequest;
+
+    final request = _searchRoomsFromApi(
+      startDate,
+      endDate,
+      adults,
+      children,
+      cacheKey,
+      cancelToken,
+    );
+    _inFlightSearches[cacheKey] = request;
+
+    try {
+      return await request;
+    } finally {
+      if (identical(_inFlightSearches[cacheKey], request)) {
+        _inFlightSearches.remove(cacheKey);
+      }
+    }
+  }
+
+  Future<List<dynamic>> _searchRoomsFromApi(
+    DateTime ngayNhan,
+    DateTime ngayTra,
+    int adults,
+    int children,
+    String cacheKey,
+    CancelToken? cancelToken,
+  ) async {
     try {
       final response = await _dio.get(
-        "/api/v1/mobile/rooms/search",
+        '/api/v1/mobile/rooms/search',
         queryParameters: {
-          "ngayNhan": ngayNhan.toIso8601String(),
-          "ngayTra": ngayTra.toIso8601String(),
-          "adults": adults,
-          "children": children,
+          'ngayNhan': _formatApiDateTime(ngayNhan),
+          'ngayTra': _formatApiDateTime(ngayTra),
+          'adults': adults,
+          'children': children,
         },
+        cancelToken: cancelToken,
       );
-      if (response.statusCode == 200) {
-        return response.data['data'] ?? [];
-      }
-      return [];
+      if (response.statusCode != 200) return [];
+
+      final data = response.data;
+      final results = data is Map && data['data'] is List
+          ? List<dynamic>.from(data['data'] as List)
+          : <dynamic>[];
+      RoomSearchCache.instance.write(cacheKey, results);
+      return results;
     } catch (e) {
-      _handleError("Lỗi tra cứu phòng", e);
+      _handleError('Lỗi tra cứu phòng', e);
       return [];
     }
+  }
+
+  String _formatDate(DateTime date) {
+    final month = date.month.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
+    return '${date.year}-$month-$day';
+  }
+
+  String _formatApiDateTime(DateTime date) {
+    return DateTime.utc(date.year, date.month, date.day)
+        .toIso8601String();
   }
   
   // ==========================================

@@ -53,4 +53,16 @@ public class Invoice {
     private Long userId;
     private Boolean isPaid;
     private Double surcharge;
+
+    @org.springframework.data.mongodb.core.mapping.Field("loyalty_points_awarded")
+    private Boolean loyaltyPointsAwarded;
+
+    @org.springframework.data.mongodb.core.mapping.Field("earned_points")
+    private Integer earnedPoints;
+
+    @org.springframework.data.mongodb.core.mapping.Field("redeemed_points")
+    private Integer redeemedPoints;
+
+    @org.springframework.data.mongodb.core.mapping.Field("points_discount")
+    private Double pointsDiscount;
 }

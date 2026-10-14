@@ -33,6 +33,7 @@ public class BookingController extends BaseController {
     private final com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService;
     private final InvoiceRepository invoiceRepository;
     private final com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository;
+    private final com.votricuong.mayhotel.services.LoyaltyService loyaltyService;
 
     public BookingController(RoomRepository roomRepository, 
                              ServiceRepository serviceRepository, 
@@ -42,7 +43,8 @@ public class BookingController extends BaseController {
                              com.votricuong.mayhotel.repositories.CustomerRepository customerRepository,
                              com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService,
                              InvoiceRepository invoiceRepository,
-                             com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository) {
+                             com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository,
+                             com.votricuong.mayhotel.services.LoyaltyService loyaltyService) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.bookingOrderRepository = bookingOrderRepository;
@@ -52,6 +54,7 @@ public class BookingController extends BaseController {
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.invoiceRepository = invoiceRepository;
         this.roomTypeRepository = roomTypeRepository;
+        this.loyaltyService = loyaltyService;
     }
 
     // 1. SELECT SERVICES (Redirect to checkout with services)
@@ -243,7 +246,30 @@ public class BookingController extends BaseController {
 
     // 4. CHECKOUT VIEW (HIỂN THỊ TRANG THANH TOÁN)
     @GetMapping("/checkout")
-    public String checkoutView(HttpSession session, Model model, RedirectAttributes redirectAttributes) {
+    public String checkoutView(
+            @RequestParam(value = "maLoai", required = false) String maLoaiParam,
+            HttpSession session,
+            Model model,
+            RedirectAttributes redirectAttributes,
+            jakarta.servlet.http.HttpServletRequest request) {
+        if (maLoaiParam != null && !maLoaiParam.isBlank()) {
+            Long maLoai = parseRoomTypeId(maLoaiParam);
+            if (maLoai == null) {
+                redirectAttributes.addFlashAttribute("error", "Mã loại phòng không hợp lệ.");
+                return "redirect:/";
+            }
+
+            String bookingResult = startCheckout(
+                    maLoai,
+                    1,
+                    session,
+                    redirectAttributes,
+                    request);
+            if (!"redirect:/booking/checkout".equals(bookingResult)) {
+                return bookingResult;
+            }
+        }
+
         BookingSession currentBooking = (BookingSession) session.getAttribute("CurrentBooking");
         if (currentBooking == null) {
             redirectAttributes.addFlashAttribute("error", "Vui lòng chọn phòng để đặt!");
@@ -274,12 +300,32 @@ public class BookingController extends BaseController {
         model.addAttribute("listDichVu", serviceRepository.findAll());
 
         User dummyUser = new User();
-        // dummyUser.setFullName("");
-        // dummyUser.setPhone("");
+        User sessionUser = (User) session.getAttribute("user");
+        if (sessionUser != null) {
+            dummyUser = sessionUser;
+        }
+        int availablePoints = sessionUser == null
+                ? 0
+                : customerRepository.findFirstByUserIdOrderByIdAsc(sessionUser.getId())
+                        .map(customer -> customer.getPoints() == null ? 0 : customer.getPoints())
+                        .orElse(0);
         model.addAttribute("currentUser", dummyUser);
+        model.addAttribute("availablePoints", availablePoints);
 
         setExtraCSS(model, "view/Booking/checkout :: extra_css");
         return render(model, "view/Booking/checkout");
+    }
+
+    private Long parseRoomTypeId(String value) {
+        String normalized = value.trim();
+        if (normalized.matches("(?i)L\\d+")) {
+            normalized = normalized.substring(1);
+        }
+        try {
+            return Long.valueOf(normalized);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     // 5. PROCESS CHECKOUT (XỬ LÝ LƯU BOOKING ORDER)
@@ -291,6 +337,8 @@ public class BookingController extends BaseController {
             @RequestParam(value = "ngayTra", required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate ngayTra,
             @RequestParam(value = "phuongThucThanhToan", required = false) String phuongThucThanhToan,
             @RequestParam(value = "ghiChu", required = false) String ghiChu,
+            @RequestParam(value = "diemDoi", defaultValue = "0") Integer diemDoi,
+            @RequestParam(value = "giamGiaDiem", defaultValue = "0") Double giamGiaDiem,
             HttpSession session,
             Model model,
             RedirectAttributes redirectAttributes) {
@@ -344,16 +392,18 @@ public class BookingController extends BaseController {
                 return "redirect:/booking/checkout";
             }
             
-            // Xử lý Customer
-            com.votricuong.mayhotel.documents.Customer customer = null;
-            if (phone != null && !phone.isEmpty()) {
+            User sessionUser = (User) session.getAttribute("user");
+            // Tài khoản đăng nhập là nguồn liên kết chính; chỉ dùng số điện thoại
+            // để tìm khách vãng lai khi không có bản ghi theo user_id.
+            com.votricuong.mayhotel.documents.Customer customer = sessionUser == null
+                    ? null
+                    : customerRepository.findFirstByUserIdOrderByIdAsc(sessionUser.getId()).orElse(null);
+            if (customer == null && phone != null && !phone.isEmpty()) {
                 List<com.votricuong.mayhotel.documents.Customer> existingCustomers = customerRepository.findByPhone(phone);
                 if (!existingCustomers.isEmpty()) {
                     customer = existingCustomers.get(0);
                 }
             }
-            
-            User sessionUser = (User) session.getAttribute("user");
 
             if (customer == null) {
                 customer = new com.votricuong.mayhotel.documents.Customer();
@@ -378,6 +428,13 @@ public class BookingController extends BaseController {
                 if (needUpdate) {
                     customerRepository.save(customer);
                 }
+            }
+
+            int requestedPoints = diemDoi == null ? 0 : diemDoi;
+            int availablePoints = customer.getPoints() == null ? 0 : customer.getPoints();
+            if (requestedPoints < 0 || requestedPoints > availablePoints) {
+                redirectAttributes.addFlashAttribute("error", "Số điểm sử dụng không hợp lệ hoặc vượt quá điểm hiện có.");
+                return "redirect:/booking/checkout";
             }
 
             // Tạo BookingOrder
@@ -426,6 +483,13 @@ public class BookingController extends BaseController {
                 serviceTicketRepository.save(st);
             }
 
+            double roomAndServiceTotal = tongGiaCacPhong + totalDichVu;
+            double pointsDiscount = Math.min(requestedPoints * 1000.0, roomAndServiceTotal);
+            int redeemedPoints = (int) Math.ceil(pointsDiscount / 1000.0);
+            if (redeemedPoints > 0) {
+                redeemedPoints = loyaltyService.redeemPoints(customer, redeemedPoints);
+            }
+
             // Xóa session
             session.removeAttribute("CurrentBooking");
             session.removeAttribute("selectedServiceIds");
@@ -435,7 +499,7 @@ public class BookingController extends BaseController {
             invoice.setId(sequenceGeneratorService.generateSequence("invoices_sequence"));
             invoice.setBookingId(generatedMaHD);
             invoice.setCreatedAt(new Date());
-            invoice.setTotalAmount(tongGiaCacPhong + totalDichVu);
+            invoice.setTotalAmount(roomAndServiceTotal - pointsDiscount);
             invoice.setPayMethod(phuongThucThanhToan);
             invoice.setInvoiceStatus("Reserved");
             invoice.setNote(noteStr);
@@ -448,6 +512,8 @@ public class BookingController extends BaseController {
             invoice.setUserId(customer.getUserId());
             invoice.setIsPaid(false);
             invoice.setSurcharge(0.0);
+            invoice.setRedeemedPoints(redeemedPoints);
+            invoice.setPointsDiscount(pointsDiscount);
             invoiceRepository.save(invoice);
 
             if ("ONLINE".equalsIgnoreCase(phuongThucThanhToan)) {
@@ -485,8 +551,10 @@ public class BookingController extends BaseController {
             if (invoiceOpt.isPresent()) {
                 Invoice invoice = invoiceOpt.get();
                 invoice.setIsPaid(true);
+                invoice.setInvoiceStatus("Paid");
                 invoice.setNote((invoice.getNote() != null ? invoice.getNote() : "") + " | [ONLINE] Đã thanh toán trực tuyến thành công.");
                 invoiceRepository.save(invoice);
+                loyaltyService.awardPointsForPaidInvoice(invoice);
                 ra.addFlashAttribute("success", "Thanh toán trực tuyến thành công! Phòng của bạn đã được đảm bảo.");
             }
         } catch (Exception e) {

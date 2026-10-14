@@ -5,6 +5,7 @@ import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.RoomType;
 import com.votricuong.mayhotel.repositories.InvoiceRepository;
+import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import lombok.Builder;
@@ -27,13 +28,17 @@ public class ReceptionistController extends BaseController {
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository;
+    private final com.votricuong.mayhotel.services.LoyaltyService loyaltyService;
+    private final BookingOrderRepository bookingOrderRepository;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
-    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository) {
+    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository) {
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.bookingDetailRepository = bookingDetailRepository;
+        this.loyaltyService = loyaltyService;
+        this.bookingOrderRepository = bookingOrderRepository;
     }
 
     @Data
@@ -50,6 +55,7 @@ public class ReceptionistController extends BaseController {
         private Double totalPrice;
         private Long idTaiKhoan;
         private String ghiChu;
+        private boolean isVerified;
     }
 
     @Data
@@ -82,6 +88,11 @@ public class ReceptionistController extends BaseController {
             }
         }
         
+        boolean isVerified = inv.getBookingId() != null
+                && bookingOrderRepository.findById(inv.getBookingId())
+                        .map(order -> Boolean.TRUE.equals(order.getIsFaceVerified()))
+                        .orElse(false);
+
         return InvoiceDTO.builder()
                 .id(inv.getId())
                 .hoTen(inv.getGuestName())
@@ -94,6 +105,7 @@ public class ReceptionistController extends BaseController {
                 .totalPrice(inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0)
                 .idTaiKhoan(inv.getUserId())
                 .ghiChu(inv.getNote())
+                .isVerified(isVerified)
                 .build();
     }
 
@@ -203,6 +215,9 @@ public class ReceptionistController extends BaseController {
                 invoice.setIsPaid(true);
             }
             invoiceRepository.save(invoice);
+            if (Boolean.TRUE.equals(isPaidUpfront)) {
+                loyaltyService.awardPointsForPaidInvoice(invoice);
+            }
 
             redirectAttributes.addFlashAttribute("success", "Nhận phòng thành công cho mã #" + id);
         } catch (Exception e) {
@@ -245,6 +260,7 @@ public class ReceptionistController extends BaseController {
             invoice.setInvoiceStatus("Completed");
             invoice.setIsPaid(true);
             invoiceRepository.save(invoice);
+            loyaltyService.awardPointsForPaidInvoice(invoice);
 
             if (invoice.getRoomId() != null) {
                 roomRepository.findById(invoice.getRoomId()).ifPresent(room -> {

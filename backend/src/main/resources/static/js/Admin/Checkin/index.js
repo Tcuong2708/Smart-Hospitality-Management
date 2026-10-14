@@ -18,16 +18,8 @@ async function fetchCheckinData() {
     const tbody = document.getElementById('checkin-table-body');
     const invoices = window.mockCheckinInvoices || window.mockInvoices || [];
 
-    const mockEmptyRooms = [
-        { id: 101, view: 'Hướng Thành Phố', type: 'Standard' }, 
-        { id: 104, view: 'Hướng Biển', type: 'Standard' }, 
-        { id: 202, view: 'Hướng Núi', type: 'Deluxe' }, 
-        { id: 203, view: 'Hướng Biển', type: 'Deluxe' },
-        { id: 303, view: 'Hướng Núi', type: 'Suite' }
-    ];
-
     try {
-        const emptyRooms = mockEmptyRooms;
+        const emptyRooms = window.mockEmptyRooms || [];
         
         if (invoices.length === 0) {
             tbody.innerHTML = `
@@ -128,11 +120,6 @@ async function fetchCheckinData() {
     }
 }
 
-window.mockCheckinInvoices = [
-    { id: 3, hoTen: 'Lê Hoàng C', idTaiKhoan: 10, sdt: '0912345678', ngayCheckIn: '2026-06-18', ngayCheckOut: '2026-06-20', totalPrice: 5400000, maPhong: null, isVerified: false },
-    { id: 4, hoTen: 'Khách Vãng Lai', idTaiKhoan: null, sdt: '0999888777', ngayCheckIn: '2026-06-18', ngayCheckOut: '2026-06-19', totalPrice: 1500000, maPhong: 301, isVerified: true }
-];
-
 let stream = null;
 let currentCheckinId = null;
 let currentAssigningCheckinId = null;
@@ -203,11 +190,6 @@ window.simulateMobileSuccess = function(fromApi = false) {
 
 window.completeMobileVerification = function() {
     // Tìm invoice và update state
-    const invoice = window.mockCheckinInvoices.find(i => i.id === currentVerifyCheckinId);
-    if (invoice) {
-        invoice.isVerified = true;
-    }
-    
     // Đóng modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('mobileVerifyModal'));
     modal.hide();
@@ -307,7 +289,8 @@ window.selectRoomForCheckin = function(roomId, view, type) {
 function openCccdModal(event, id) {
     event.preventDefault();
     const form = event.target;
-    const maPhong = form.querySelector('select[name="maPhong"]').value;
+    const roomInput = form.querySelector('input[name="maPhong"]');
+    const maPhong = roomInput ? roomInput.value : '';
     const isPaidUpfront = form.querySelector('input[name="isPaidUpfront"]').checked;
 
     if (!maPhong) {
@@ -524,13 +507,11 @@ document.getElementById('btn-complete-checkin').addEventListener('click', async 
     btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
 
     try {
-        const response = await fetch(`${API_URL}/execute/${id}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ maPhong, isPaidUpfront, verifyData: data })
+        const query = new URLSearchParams({
+            maPhong: maPhong,
+            isPaidUpfront: String(isPaidUpfront)
         });
+        const response = await fetch(`/receptionist/checkin/execute/${id}?${query.toString()}`);
 
         if (response.ok) {
             showAlert('Duyệt nhận phòng thành công!', 'success');

@@ -1,22 +1,10 @@
-document.addEventListener('DOMContentLoaded', () => {
-    
-    // Mock user points history data
-    const pointsData = {
-        currentPoints: 5420,
-        membershipTier: "Hạng Vàng",
-        history: [
-            { id: "HD092", title: "Thanh toán hóa đơn phòng VIP #101", date: "02/10/2026", type: "EARN", points: +420, note: "Tích lũy 5% từ hóa đơn 8.400.000đ" },
-            { id: "HD085", title: "Sử dụng điểm đổi voucher giảm giá", date: "15/09/2026", type: "REDEEM", points: -1000, note: "Giảm 1.000.000đ hóa đơn đặt phòng trực tuyến" },
-            { id: "HD071", title: "Thanh toán hóa đơn phòng Deluxe #202", date: "28/08/2026", type: "EARN", points: +600, note: "Tích lũy 5% từ hóa đơn 12.000.000đ" },
-            { id: "HD050", title: "Thưởng sinh nhật khách hàng VIP", date: "10/08/2026", type: "EARN", points: +500, note: "Quà tặng sinh nhật thành viên Hạng Vàng" },
-            { id: "HD032", title: "Thanh toán hóa đơn dịch vụ Spa & Buffet", date: "05/07/2026", type: "EARN", points: +300, note: "Tích lũy dịch vụ đi kèm" },
-            { id: "HD012", title: "Điểm thưởng chào mừng tân binh", date: "01/01/2026", type: "EARN", points: +4600, note: "Tạo tài khoản và xác thực thành viên" }
-        ]
-    };
-
+document.addEventListener('DOMContentLoaded', async () => {
     const tbody = document.getElementById('points-history-body');
     const userPointsEl = document.getElementById('user-points');
     const userVndEl = document.getElementById('user-vnd');
+    const progressLabelEl = document.getElementById('tier-progress-label');
+    const progressBarEl = document.getElementById('tier-progress-bar');
+    const progressRemainingEl = document.getElementById('tier-progress-remaining');
     const filterBtns = document.querySelectorAll('.filter-btn');
     const searchInput = document.getElementById('search-history');
 
@@ -25,11 +13,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // Format currency
     const formatNumber = (num) => new Intl.NumberFormat('vi-VN').format(num);
 
-    // Update Header Stats
-    if (userPointsEl) userPointsEl.innerHTML = `${formatNumber(pointsData.currentPoints)} <span class="fs-4 text-white">Điểm</span>`;
-    if (userVndEl) userVndEl.innerHTML = `${formatNumber(pointsData.currentPoints * 1000)} VNĐ`;
+    async function loadPoints() {
+        const response = await fetch('/account/api/v1/points', {
+            credentials: 'same-origin',
+            cache: 'no-store'
+        });
+        const payload = await response.json();
+        if (!response.ok || !payload.success) throw new Error(payload.message || 'Không tải được điểm thưởng.');
+        const pointsData = payload.data;
+        const currentPoints = Math.max(0, Number(pointsData.currentPoints) || 0);
+        const nextTierPoints = 10000;
+        const progressPercent = Math.min(100, (currentPoints / nextTierPoints) * 100);
+        const remainingPoints = Math.max(0, nextTierPoints - currentPoints);
+        if (userPointsEl) userPointsEl.innerHTML = `${formatNumber(currentPoints)} <span class="fs-4 text-white">Điểm</span>`;
+        if (userVndEl) userVndEl.innerHTML = `${formatNumber(currentPoints * 1000)} VNĐ`;
+        if (progressLabelEl) progressLabelEl.textContent = `${formatNumber(currentPoints)} / ${formatNumber(nextTierPoints)} điểm`;
+        if (progressBarEl) {
+            progressBarEl.style.width = `${progressPercent}%`;
+            progressBarEl.setAttribute('aria-valuenow', String(currentPoints));
+            progressBarEl.setAttribute('aria-valuemax', String(nextTierPoints));
+        }
+        if (progressRemainingEl) progressRemainingEl.textContent = `${formatNumber(remainingPoints)} điểm`;
+        const tierEl = document.getElementById('user-tier');
+        if (tierEl) tierEl.innerHTML = `<i class="bi bi-star-fill me-1"></i>${pointsData.membershipTier}`;
 
-    function renderHistory() {
+        function renderHistory() {
         if (!tbody) return;
         const searchTerm = (searchInput ? searchInput.value : '').toLowerCase().trim();
 
@@ -74,21 +82,24 @@ document.addEventListener('DOMContentLoaded', () => {
                 </tr>
             `;
         }).join('');
-    }
+        }
 
-    renderHistory();
+        renderHistory();
 
-    // Event Listeners for Filters
-    filterBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            filterBtns.forEach(b => b.classList.remove('active'));
-            e.currentTarget.classList.add('active');
-            currentFilter = e.currentTarget.dataset.filter;
-            renderHistory();
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                filterBtns.forEach(b => b.classList.remove('active'));
+                e.currentTarget.classList.add('active');
+                currentFilter = e.currentTarget.dataset.filter;
+                renderHistory();
+            });
         });
-    });
 
-    if (searchInput) {
-        searchInput.addEventListener('input', renderHistory);
+        if (searchInput) searchInput.addEventListener('input', renderHistory);
     }
+
+    loadPoints().catch(error => {
+        console.error('[Points] Không thể tải dữ liệu điểm:', error);
+        if (tbody) tbody.innerHTML = '<tr><td colspan="4" class="text-center py-5 text-danger">Không thể tải dữ liệu điểm thưởng.</td></tr>';
+    });
 });

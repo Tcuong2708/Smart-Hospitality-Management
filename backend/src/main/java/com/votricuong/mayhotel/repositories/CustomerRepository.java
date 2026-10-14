@@ -11,6 +11,7 @@ import java.util.List;
 @Repository
 public interface CustomerRepository extends MongoRepository<Customer, Long> {
     List<Customer> findByUserId(Long userId);
+    Optional<Customer> findFirstByUserIdOrderByIdAsc(Long userId);
     List<Customer> findByPhone(String phone);
     List<Customer> findByEmail(String email);
 }

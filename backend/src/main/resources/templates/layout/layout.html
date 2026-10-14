@@ -229,11 +229,20 @@
 
                                 <!-- DÀNH CHO KHÁCH HÀNG -->
                                 <th:block th:if="${session.user.role == 'CUSTOMER'}">
+                                    <li>
+                                        <div class="dropdown-header text-uppercase text-primary fw-bold mt-1"
+                                            style="font-size: 0.75rem; padding-left: 1rem;">Khách hàng</div>
+                                    </li>
                                     <li><a class="dropdown-item" th:href="@{/booking/history}"><i
-                                                class="bi bi-clock-history me-2"></i>Lịch sử đặt phòng</a></li>
+                                                class="bi bi-clock-history me-2" style="color: #C5A017;"></i>Lịch sử đặt phòng</a></li>
+                                    <li><a class="dropdown-item" th:href="@{/account/points}"><i
+                                                class="bi bi-star-fill me-2 text-warning"></i>Tra cứu điểm thưởng</a></li>
+                                    <li>
+                                        <hr class="dropdown-divider" />
+                                    </li>
                                 </th:block>
                                 <li><a class="dropdown-item" th:href="@{/account/profile}"><i
-                                            class="bi bi-person-circle me-2"></i>Hồ sơ của tôi</a></li>
+                                            class="bi bi-person-circle me-2" style="color: #C5A017;"></i>Hồ sơ của tôi</a></li>
                                 <li><a class="dropdown-item text-danger fw-bold mt-2" th:href="@{/account/logout}"><i
                                             class="bi bi-box-arrow-right me-2"></i>Đăng xuất</a></li>
                             </th:block>

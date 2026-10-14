@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+import org.springframework.data.mongodb.core.mapping.Field;
 
 @Data
 @Builder
@@ -24,11 +25,18 @@ public class User implements java.io.Serializable {
     private String email;
     
     private String phone;
+
+    @Field("full_name")
+    private String fullName;
+
+    private String address;
+
+    private String nationality;
     
-    @org.springframework.data.mongodb.core.mapping.Field("status")
+    @Field("status")
     private String status;
     
-    @org.springframework.data.mongodb.core.mapping.Field("quoc_tich")
+    @Field("quoc_tich")
     private String quocTich;
     
     // Reference to Role
@@ -46,6 +54,12 @@ public class User implements java.io.Serializable {
     }
 
     public String getFullName() {
+        if (fullName != null && !fullName.isBlank()) return fullName;
         return username != null ? username : email;
+    }
+
+    public String getNationality() {
+        if (nationality != null && !nationality.isBlank()) return nationality;
+        return quocTich;
     }
 }

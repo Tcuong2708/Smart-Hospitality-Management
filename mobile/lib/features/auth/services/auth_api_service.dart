@@ -1,33 +1,9 @@
-import 'dart:io';
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../../services/hotel_api_client.dart';
 
 class AuthApiService {
-  late Dio _dio;
-
-  AuthApiService() {
-    final String baseUrl = dotenv.env['BASE_URL'] ?? "http://10.0.2.2:8080";
-
-    _dio = Dio(BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: const Duration(seconds: 10),
-      receiveTimeout: const Duration(seconds: 10),
-      headers: {
-        "Accept": "application/json",
-      },
-    ));
-
-    // Bypass SSL certificate checks for local development / testing
-    (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
-      final client = HttpClient();
-      client.badCertificateCallback = (X509Certificate cert, String host, int port) => true;
-      return client;
-    };
-
-    debugPrint("🔑 AuthApiService initialized with base URL: $baseUrl");
-  }
+  final Dio _dio = HotelApiClient.instance.dio;
 
   /// 1. Đăng nhập qua API
   /// Trả về một Map chứa: { 'id', 'name', 'role' } nếu thành công

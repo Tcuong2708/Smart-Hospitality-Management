@@ -29,6 +29,7 @@ import com.votricuong.mayhotel.services.EmailService;
 import java.time.LocalDate;
 import java.time.Instant;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,8 +50,9 @@ public class MobileApiController {
     private final ServiceTicketRepository serviceTicketRepository;
     private final CustomerRepository customerRepository;
     private final SequenceGeneratorService sequenceGeneratorService;
+    private final com.votricuong.mayhotel.services.LoyaltyService loyaltyService;
 
-    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService) {
+    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.services.LoyaltyService loyaltyService) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.invoiceRepository = invoiceRepository;
@@ -63,6 +65,7 @@ public class MobileApiController {
         this.serviceTicketRepository = serviceTicketRepository;
         this.customerRepository = customerRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
+        this.loyaltyService = loyaltyService;
     }
 
     private String hashPassword(String password) {
@@ -242,11 +245,8 @@ public class MobileApiController {
             @RequestParam(value = "adults", required = false, defaultValue = "2") Integer adults,
             @RequestParam(value = "children", required = false, defaultValue = "0") Integer children) {
         try {
-            if (!ngayNhanStr.endsWith("Z")) ngayNhanStr += "Z";
-            if (!ngayTraStr.endsWith("Z")) ngayTraStr += "Z";
-            
-            Date ngayNhan = Date.from(Instant.parse(ngayNhanStr));
-            Date ngayTra = Date.from(Instant.parse(ngayTraStr));
+            Date ngayNhan = parseMobileDate(ngayNhanStr);
+            Date ngayTra = parseMobileDate(ngayTraStr);
             
             if (ngayTra.before(ngayNhan) || ngayTra.equals(ngayNhan)) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("Ngày trả phòng phải sau ngày nhận phòng"));
@@ -333,10 +333,8 @@ public class MobileApiController {
             String ngayTraStr = (String) payload.get("ngayTra");
             
             if (!ngayNhanStr.endsWith("Z")) ngayNhanStr += "Z";
-            if (!ngayTraStr.endsWith("Z")) ngayTraStr += "Z";
-            
-            Date ngayNhan = Date.from(Instant.parse(ngayNhanStr));
-            Date ngayTra = Date.from(Instant.parse(ngayTraStr));
+            Date ngayNhan = parseMobileDate(ngayNhanStr);
+            Date ngayTra = parseMobileDate(ngayTraStr);
             
             List<Room> availableRooms = roomRepository.findAll().stream()
                 .filter(r -> roomTypeId.equals(r.getRoomTypeId()) && (
@@ -662,13 +660,41 @@ public class MobileApiController {
     public ResponseEntity<ApiResponse<Map<String, Object>>> confirmPayment(@RequestBody Map<String, Object> payload) {
         try {
             Long bookingId = Long.valueOf(payload.get("bookingId").toString());
-            // Lấy thêm các tham số nếu cần xử lý thực tế
-            // Integer paymentMethodId = (Integer) payload.get("paymentMethodId");
-            
-            // Giả lập xử lý thanh toán thành công
-            return ResponseEntity.ok(ApiResponse.success("Xác nhận thanh toán dịch vụ thành công", Map.of("bookingId", bookingId, "status", "PAID")));
+            Optional<Invoice> invoiceOpt = invoiceRepository.findByBookingId(bookingId).stream().findFirst();
+            if (invoiceOpt.isEmpty()) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Không tìm thấy hóa đơn của đơn đặt phòng"));
+            }
+
+            Invoice invoice = invoiceOpt.get();
+            invoice.setIsPaid(true);
+            invoice.setInvoiceStatus("Paid");
+            invoiceRepository.save(invoice);
+            int earnedPoints = loyaltyService.awardPointsForPaidInvoice(invoice);
+
+            Map<String, Object> result = new HashMap<>();
+            result.put("bookingId", bookingId);
+            result.put("status", "PAID");
+            result.put("earnedPoints", earnedPoints);
+            return ResponseEntity.ok(ApiResponse.success("Thanh toán thành công", result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi xác nhận thanh toán: " + e.getMessage()));
         }
+    }
+
+    private Date parseMobileDate(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Ngày không được để trống");
+        }
+
+        String normalized = value.trim();
+        if (normalized.length() == 10) {
+            return Date.from(
+                LocalDate.parse(normalized)
+                    .atStartOfDay(ZoneOffset.UTC)
+                    .toInstant()
+            );
+        }
+
+        return Date.from(Instant.parse(normalized));
     }
 }

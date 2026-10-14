@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../services/hotel_api_provider.dart';
 import '../../../services/language_service.dart';
 import '../../../services/auth_state_service.dart';
@@ -8,6 +7,7 @@ import '../../auth/views/login_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../widgets/room_card.dart';
 import 'booking_screen.dart';
+import 'package:dio/dio.dart';
 
 class SearchRoomScreen extends StatefulWidget {
   const SearchRoomScreen({Key? key}) : super(key: key);
@@ -24,6 +24,8 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
   bool _hasSearched = false;
   int _adults = 2;
   int _children = 0;
+  CancelToken? _searchCancelToken;
+  int _searchRequestVersion = 0;
 
   Future<void> _performSearch() async {
     if (_selectedDateRange == null) {
@@ -35,20 +37,38 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
       );
       return;
     }
+    if (_isLoading) return;
 
+    final dateRange = _selectedDateRange!;
+    final requestVersion = ++_searchRequestVersion;
+    _searchCancelToken?.cancel('Một yêu cầu tra cứu mới đã bắt đầu.');
+    _searchCancelToken = CancelToken();
     setState(() {
       _isLoading = true;
       _hasSearched = true;
     });
 
-    final results = await _apiProvider.searchRooms(_selectedDateRange!.start, _selectedDateRange!.end, _adults, _children);
-    
-    if (mounted) {
+    final results = await _apiProvider.searchRooms(
+      dateRange.start,
+      dateRange.end,
+      _adults,
+      _children,
+      cancelToken: _searchCancelToken,
+    );
+
+    if (mounted && requestVersion == _searchRequestVersion) {
       setState(() {
         _searchResults = results;
         _isLoading = false;
       });
     }
+  }
+
+  @override
+  void dispose() {
+    _searchRequestVersion++;
+    _searchCancelToken?.cancel('Màn hình tra cứu đã đóng.');
+    super.dispose();
   }
 
   void _navigateToBooking(String title, String price, String image, int id) {
@@ -116,15 +136,19 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                   color: Colors.black.withOpacity(0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 5),
-                )
-              ]
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   "Chọn thời gian lưu trú",
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: colorScheme.onSurface),
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                    color: colorScheme.onSurface,
+                  ),
                 ),
                 const SizedBox(height: 15),
                 InkWell(
@@ -147,17 +171,48 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                         );
                       },
                     );
-                    if (picked != null) setState(() => _selectedDateRange = picked);
+                    if (picked != null) {
+                      final start = DateUtils.dateOnly(picked.start);
+                      final end = DateUtils.dateOnly(picked.end);
+                      if (!end.isAfter(start)) {
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                "Ngày trả phòng phải sau ngày nhận phòng!",
+                              ),
+                              backgroundColor: Colors.orange,
+                            ),
+                          );
+                        }
+                        return;
+                      }
+                      setState(
+                        () => _selectedDateRange = DateTimeRange(
+                          start: start,
+                          end: end,
+                        ),
+                      );
+                    }
                   },
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
-                      color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                      color: isDark
+                          ? Colors.grey.shade900
+                          : Colors.grey.shade100,
                       borderRadius: BorderRadius.circular(15),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.calendar_month_outlined, color: isDark ? Colors.amber : colorScheme.primary, size: 22),
+                        Icon(
+                          Icons.calendar_month_outlined,
+                          color: isDark ? Colors.amber : colorScheme.primary,
+                          size: 22,
+                        ),
                         const SizedBox(width: 15),
                         Expanded(
                           child: Text(
@@ -165,9 +220,13 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                                 ? "Chọn ngày Check-in - Check-out"
                                 : "${_selectedDateRange!.start.day}/${_selectedDateRange!.start.month} - ${_selectedDateRange!.end.day}/${_selectedDateRange!.end.month}",
                             style: TextStyle(
-                                color: _selectedDateRange == null ? colorScheme.onSurface.withOpacity(0.4) : colorScheme.onSurface,
-                                fontWeight: _selectedDateRange == null ? FontWeight.normal : FontWeight.bold,
-                                fontSize: 14
+                              color: _selectedDateRange == null
+                                  ? colorScheme.onSurface.withOpacity(0.4)
+                                  : colorScheme.onSurface,
+                              fontWeight: _selectedDateRange == null
+                                  ? FontWeight.normal
+                                  : FontWeight.bold,
+                              fontSize: 14,
                             ),
                           ),
                         ),
@@ -182,12 +241,21 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Người lớn", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorScheme.onSurface)),
+                          Text(
+                            "Người lớn",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                              color: isDark
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Row(
@@ -200,7 +268,13 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                                   },
                                   color: colorScheme.primary,
                                 ),
-                                Text("$_adults", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                Text(
+                                  "$_adults",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                                 IconButton(
                                   icon: const Icon(Icons.add_circle_outline),
                                   onPressed: () {
@@ -219,12 +293,21 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text("Trẻ em", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: colorScheme.onSurface)),
+                          Text(
+                            "Trẻ em",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              color: colorScheme.onSurface,
+                            ),
+                          ),
                           const SizedBox(height: 8),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12),
                             decoration: BoxDecoration(
-                              color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+                              color: isDark
+                                  ? Colors.grey.shade900
+                                  : Colors.grey.shade100,
                               borderRadius: BorderRadius.circular(15),
                             ),
                             child: Row(
@@ -233,15 +316,23 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                                 IconButton(
                                   icon: const Icon(Icons.remove_circle_outline),
                                   onPressed: () {
-                                    if (_children > 0) setState(() => _children--);
+                                    if (_children > 0)
+                                      setState(() => _children--);
                                   },
                                   color: colorScheme.primary,
                                 ),
-                                Text("$_children", style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                                Text(
+                                  "$_children",
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                                 IconButton(
                                   icon: const Icon(Icons.add_circle_outline),
                                   onPressed: () {
-                                    if (_children < 10) setState(() => _children++);
+                                    if (_children < 10)
+                                      setState(() => _children++);
                                   },
                                   color: colorScheme.primary,
                                 ),
@@ -261,69 +352,97 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.primary,
                       padding: const EdgeInsets.symmetric(vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15),
+                      ),
                     ),
-                    child: const Text("Tìm phòng", style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    child: const Text(
+                      "Tìm phòng",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          
+
           Expanded(
-            child: _isLoading 
-              ? const Center(child: CircularProgressIndicator())
-              : (!_hasSearched)
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.search_rounded, size: 80, color: colorScheme.onSurface.withOpacity(0.1)),
-                          const SizedBox(height: 16),
-                          Text("Tra cứu phòng trống ngay", style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))),
-                        ],
-                      ),
-                    )
-                  : (_searchResults.isEmpty)
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.hotel_class_outlined, size: 80, color: colorScheme.onSurface.withOpacity(0.1)),
-                              const SizedBox(height: 16),
-                              Text("Không có phòng trống trong thời gian này", style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5))),
-                            ],
-                          ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(20),
-                          itemCount: _searchResults.length,
-                          itemBuilder: (context, index) {
-                            final room = _searchResults[index];
-                            String rawImg = room['imageUrl']?.toString() ?? "";
-                            String processedImg = rawImg;
-                            if (rawImg.isNotEmpty && !rawImg.startsWith('http')) {
-                              final String baseUrl = dotenv.env['BASE_URL'] ?? "http://138.2.72.9:8000";
-                              processedImg = "$baseUrl/images/$rawImg";
-                            }
-                            
-                            return RoomCard(
-                              title: room['name'],
-                              location: "Sẵn sàng phục vụ",
-                              price: room['price'].toString(),
-                              rating: "5.0",
-                              imageUrl: processedImg,
-                              onAddTap: () {
-                                _navigateToBooking(
-                                  room['name'],
-                                  room['price'].toString(),
-                                  processedImg,
-                                  room['id']
-                                );
-                              },
-                            );
-                          },
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : (!_hasSearched)
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_rounded,
+                          size: 80,
+                          color: colorScheme.onSurface.withOpacity(0.1),
                         ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Tra cứu phòng trống ngay",
+                          style: TextStyle(
+                            color: colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : (_searchResults.isEmpty)
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.hotel_class_outlined,
+                          size: 80,
+                          color: colorScheme.onSurface.withOpacity(0.1),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          "Không có phòng trống trong thời gian này",
+                          style: TextStyle(
+                            color: colorScheme.onSurface.withOpacity(0.5),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: _searchResults.length,
+                    itemBuilder: (context, index) {
+                      final room = _searchResults[index];
+                      String rawImg = room['imageUrl']?.toString() ?? "";
+                      String processedImg = rawImg;
+                      if (rawImg.isNotEmpty && !rawImg.startsWith('http')) {
+                        final String baseUrl =
+                            dotenv.env['BASE_URL'] ?? "http://138.2.72.9:8000";
+                        processedImg = "$baseUrl/images/$rawImg";
+                      }
+
+                      return RoomCard(
+                        title: room['name'],
+                        location: "Sẵn sàng phục vụ",
+                        price: room['price'].toString(),
+                        rating: "5.0",
+                        imageUrl: processedImg,
+                        onAddTap: () {
+                          _navigateToBooking(
+                            room['name'],
+                            room['price'].toString(),
+                            processedImg,
+                            room['id'],
+                          );
+                        },
+                      );
+                    },
+                  ),
           ),
         ],
       ),

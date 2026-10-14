@@ -88,7 +88,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const sl = inputSoLuong.value;
         // Chuyển hướng sang trang checkout ở luồng MỚI, truyền tham số phòng
-        window.location.href = `../booking/checkout.html?room_id=${roomId}&qty=${sl}`;
+        window.location.href = `/booking/create?roomId=${roomId}&soDem=1`;
     });
 
     const mockCategories = [

@@ -243,11 +243,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color textColor = colorScheme.onSurface;
 
-    return ListTile(
-      leading: Icon(icon, color: color ?? (isDark ? goldAccent : navyPrimary)),
-      title: Text(title, style: TextStyle(color: color ?? textColor, fontWeight: FontWeight.w500, fontSize: Responsive.sp(context, 16))),
-      trailing: Icon(Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.white30 : textColor.withValues(alpha: 0.3)),
-      onTap: onTap,
+    return Material(
+      color: Colors.transparent,
+      child: ListTile(
+        leading: Icon(icon, color: color ?? (isDark ? goldAccent : navyPrimary)),
+        title: Text(title, style: TextStyle(color: color ?? textColor, fontWeight: FontWeight.w500, fontSize: Responsive.sp(context, 16))),
+        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.white30 : textColor.withValues(alpha: 0.3)),
+        onTap: onTap,
+      ),
     );
   }
 }

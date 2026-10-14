@@ -25,6 +25,9 @@ public class Customer {
     private String fullName;
     
     private String phone;
+
+    @Field("address")
+    private String address;
     
     private String cccd;
     
@@ -45,6 +48,9 @@ public class Customer {
     // --- CÁC THUỘC TÍNH BỔ SUNG CHO NGHIỆP VỤ CHECK-IN AI ---
     @Field("quoc_tich")
     private String quocTich;
+
+    @Field("nationality")
+    private String nationality;
     
     @Field("que_quan")
     private String queQuan;

@@ -212,7 +212,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                     </a>
                                 </div>
                                 <div class="col-6">
-                                    <a href="../booking/checkout.html?maLoai=${p.maLoai}" class="btn btn-gold text-white fw-bold w-100 h-100 d-flex align-items-center justify-content-center text-uppercase" style="background-color: #C5A017; border: none; border-radius: 4px; font-size: 0.85rem; min-height: 42px;">
+                                    <a href="/booking/checkout?maLoai=${p.maLoai}" class="btn btn-gold text-white fw-bold w-100 h-100 d-flex align-items-center justify-content-center text-uppercase" style="background-color: #C5A017; border: none; border-radius: 4px; font-size: 0.85rem; min-height: 42px;">
                                         <i class="bi bi-calendar-check-fill me-1"></i> Đặt ngay
                                     </a>
                                 </div>

@@ -33,7 +33,7 @@ class NavItem {
     required this.icon,
     required this.label,
     required this.screen,
-    this.isBig = false
+    this.isBig = false,
   });
 }
 
@@ -41,7 +41,8 @@ class MainScreen extends StatefulWidget {
   final String role;
   final String username;
 
-  const MainScreen({Key? key, required this.role, required this.username}) : super(key: key);
+  const MainScreen({Key? key, required this.role, required this.username})
+    : super(key: key);
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
@@ -58,30 +59,93 @@ class _MainScreenState extends State<MainScreen> {
 
   void _initializeMenu() {
     final lang = LanguageService();
-    
+
     if (widget.role == 'admin') {
       _navItems = [
-        NavItem(icon: Icons.analytics_outlined, label: lang.translate('statistics'), screen: AdminStatisticsScreen()),
-        NavItem(icon: Icons.meeting_room_outlined, label: lang.translate('rooms'), screen: AdminRoomScreen()),
-        NavItem(icon: Icons.admin_panel_settings, label: lang.translate('admin'), screen: AdminManagementScreen(), isBig: true),
-        NavItem(icon: Icons.people_alt_outlined, label: lang.translate('personnel'), screen: const AdminUserScreen()),
-        NavItem(icon: Icons.person_outline, label: lang.translate('profile'), screen: ProfileScreen(username: widget.username)),
+        NavItem(
+          icon: Icons.analytics_outlined,
+          label: lang.translate('statistics'),
+          screen: AdminStatisticsScreen(),
+        ),
+        NavItem(
+          icon: Icons.meeting_room_outlined,
+          label: lang.translate('rooms'),
+          screen: AdminRoomScreen(),
+        ),
+        NavItem(
+          icon: Icons.admin_panel_settings,
+          label: lang.translate('admin'),
+          screen: AdminManagementScreen(),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.people_alt_outlined,
+          label: lang.translate('personnel'),
+          screen: const AdminUserScreen(),
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('profile'),
+          screen: ProfileScreen(username: widget.username),
+        ),
       ];
     } else if (widget.role == 'staff') {
       _navItems = [
-        NavItem(icon: Icons.grid_view_rounded, label: lang.translate('map'), screen: const RoomMapScreen()),
-        NavItem(icon: Icons.checklist_rtl_rounded, label: 'Check-in', screen: CheckInScreen()),
-        NavItem(icon: Icons.nfc_rounded, label: 'Quét CCCD', screen: const CccdCheckinScreen(), isBig: true),
-        NavItem(icon: Icons.print_rounded, label: 'In Hóa Đơn', screen: const ReceiptPrinterScreen()),
-        NavItem(icon: Icons.person_outline, label: lang.translate('profile'), screen: ProfileScreen(username: widget.username)),
+        NavItem(
+          icon: Icons.grid_view_rounded,
+          label: lang.translate('map'),
+          screen: const RoomMapScreen(),
+        ),
+        NavItem(
+          icon: Icons.checklist_rtl_rounded,
+          label: 'Check-in',
+          screen: CheckInScreen(),
+        ),
+        NavItem(
+          icon: Icons.nfc_rounded,
+          label: 'Quét CCCD',
+          screen: const CccdCheckinScreen(),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.print_rounded,
+          label: 'In Hóa Đơn',
+          screen: const ReceiptPrinterScreen(),
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('profile'),
+          screen: ProfileScreen(username: widget.username),
+        ),
       ];
     } else {
       _navItems = [
-        NavItem(icon: Icons.home_max_rounded, label: lang.translate('home'), screen: const HomeScreen()),
-        NavItem(icon: Icons.calendar_month_outlined, label: lang.translate('booked'), screen: const BookedRoomsScreen()),
-        NavItem(icon: Icons.search_rounded, label: "Tìm phòng", screen: const SearchRoomScreen(), isBig: true),
-        NavItem(icon: Icons.chat_bubble_outline, label: lang.translate('chatbot'), screen: const ChatScreen()),
-        NavItem(icon: Icons.person_outline, label: lang.translate('me'), screen: ProfileScreen(username: widget.username)),
+        NavItem(
+          icon: Icons.home_max_rounded,
+          label: lang.translate('home'),
+          screen: const HomeScreen(),
+        ),
+        NavItem(
+          icon: Icons.calendar_month_outlined,
+          label: lang.translate('booked'),
+          screen: const BookedRoomsScreen(),
+        ),
+        NavItem(
+          icon: Icons.search_rounded,
+          label: "Tìm phòng",
+          screen: const SearchRoomScreen(),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.chat_bubble_outline,
+          label: lang.translate('chatbot'),
+          screen: const ChatScreen(),
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('me'),
+          screen: ProfileScreen(username: widget.username),
+        ),
       ];
     }
   }
@@ -94,21 +158,25 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 🚀 LẮNG NGHE THEME & NGÔN NGỮ CHỦ ĐỘNG
+    // LẮNG NGHE THEME & NGÔN NGỮ CHỦ ĐỘNG
     return ListenableBuilder(
       listenable: Listenable.merge([themeNotifier, LanguageService()]),
       builder: (context, _) {
         final bool isDark = themeNotifier.value == ThemeMode.dark;
         _initializeMenu(); // Cập nhật lại menu khi ngôn ngữ đổi
-        
+
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness: isDark
+                ? Brightness.light
+                : Brightness.dark,
             statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
             systemNavigationBarColor: Colors.transparent,
             systemNavigationBarDividerColor: Colors.transparent,
-            systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+            systemNavigationBarIconBrightness: isDark
+                ? Brightness.light
+                : Brightness.dark,
             systemNavigationBarContrastEnforced: false,
           ),
           child: Scaffold(
@@ -131,11 +199,13 @@ class _MainScreenState extends State<MainScreen> {
 
   Widget _buildModernNav() {
     bool isTablet = MediaQuery.of(context).size.width >= 600;
-    
+
     return Container(
       height: 75,
       margin: EdgeInsets.symmetric(
-        horizontal: isTablet ? 100 : 10, // Co bóp thanh điều hướng trên máy tính bảng cho đẹp
+        horizontal: isTablet
+            ? 100
+            : 10, // Co bóp thanh điều hướng trên máy tính bảng cho đẹp
         vertical: 10,
       ),
       decoration: BoxDecoration(
@@ -143,11 +213,11 @@ class _MainScreenState extends State<MainScreen> {
         borderRadius: BorderRadius.circular(30),
         boxShadow: [
           BoxShadow(
-              color: AppColors.primary.withOpacity(0.3),
-              blurRadius: 15,
-              spreadRadius: 2,
-              offset: const Offset(0, 5)
-          )
+            color: AppColors.primary.withOpacity(0.3),
+            blurRadius: 15,
+            spreadRadius: 2,
+            offset: const Offset(0, 5),
+          ),
         ],
       ),
       child: Row(
@@ -173,9 +243,14 @@ class _MainScreenState extends State<MainScreen> {
             decoration: BoxDecoration(
               color: isSelected ? Colors.white : Colors.white.withOpacity(0.2),
               shape: BoxShape.circle,
-              boxShadow: isSelected ? [
-                BoxShadow(color: Colors.white.withOpacity(0.5), blurRadius: 10)
-              ] : [],
+              boxShadow: isSelected
+                  ? [
+                      BoxShadow(
+                        color: Colors.white.withOpacity(0.5),
+                        blurRadius: 10,
+                      ),
+                    ]
+                  : [],
             ),
             child: Icon(
               item.icon,
