@@ -43,10 +43,7 @@ class HotelApiProvider {
           data: staff.toJson(),
         );
       } else {
-        response = await _dio.post(
-          "/api/admin/staff",
-          data: staff.toJson(),
-        );
+        response = await _dio.post("/api/admin/staff", data: staff.toJson());
       }
       return response.statusCode == 200;
     } catch (e) {
@@ -77,7 +74,10 @@ class HotelApiProvider {
     try {
       Response response;
       if (isEdit) {
-        response = await _dio.put("/api/admin/users/${user.idTaiKhoan}", data: user.toJson());
+        response = await _dio.put(
+          "/api/admin/users/${user.idTaiKhoan}",
+          data: user.toJson(),
+        );
       } else {
         response = await _dio.post("/api/admin/users", data: user.toJson());
       }
@@ -148,7 +148,10 @@ class HotelApiProvider {
 
   Future<List<dynamic>> getTransactionHistory(int userId) async {
     try {
-      final response = await _dio.get("/api/v1/mobile/booking/history", queryParameters: {"userId": userId});
+      final response = await _dio.get(
+        "/api/v1/mobile/booking/history",
+        queryParameters: {"userId": userId},
+      );
       if (response.statusCode == 200) {
         return response.data['data'] ?? [];
       }
@@ -243,9 +246,9 @@ class HotelApiProvider {
     DateTime ngayNhan,
     DateTime ngayTra,
     int adults,
-    int children,
-    {CancelToken? cancelToken}
-  ) async {
+    int children, {
+    CancelToken? cancelToken,
+  }) async {
     final startDate = DateTime(ngayNhan.year, ngayNhan.month, ngayNhan.day);
     final endDate = DateTime(ngayTra.year, ngayTra.month, ngayTra.day);
     final cacheKey =
@@ -315,22 +318,21 @@ class HotelApiProvider {
   }
 
   String _formatApiDateTime(DateTime date) {
-    return DateTime.utc(date.year, date.month, date.day)
-        .toIso8601String();
+    return DateTime.utc(date.year, date.month, date.day).toIso8601String();
   }
-  
+
   // ==========================================
   // API: CÁC LUỒNG MOBILE MỚI (2.2 - 2.6)
   // ==========================================
-  
-  Future<Map<String, dynamic>?> submitCheckInAI(int bookingId, String cccdData) async {
+
+  Future<Map<String, dynamic>?> submitCheckInAI(
+    int bookingId,
+    String cccdData,
+  ) async {
     try {
       final response = await _dio.post(
         "/api/v1/mobile/booking/checkin",
-        data: {
-          "bookingId": bookingId,
-          "cccdData": cccdData,
-        },
+        data: {"bookingId": bookingId, "cccdData": cccdData},
       );
       if (response.statusCode == 200) {
         return response.data['data'];
@@ -355,7 +357,11 @@ class HotelApiProvider {
     }
   }
 
-  Future<Map<String, dynamic>?> orderMobileService(int bookingId, int serviceId, int quantity) async {
+  Future<Map<String, dynamic>?> orderMobileService(
+    int bookingId,
+    int serviceId,
+    int quantity,
+  ) async {
     try {
       final response = await _dio.post(
         "/api/v1/mobile/services/order",
@@ -390,7 +396,10 @@ class HotelApiProvider {
 
   Future<bool> sendOTP(String email) async {
     try {
-      final response = await _dio.post("/api/auth/send-otp", data: {"Email": email});
+      final response = await _dio.post(
+        "/api/auth/send-otp",
+        data: {"Email": email},
+      );
       return response.statusCode == 200;
     } catch (e) {
       _handleError("Lỗi gửi OTP", e);
@@ -400,7 +409,10 @@ class HotelApiProvider {
 
   Future<bool> verifyOTP(String email, String code) async {
     try {
-      final response = await _dio.post("/api/auth/verify-otp", data: {"Email": email, "OTPCode": code});
+      final response = await _dio.post(
+        "/api/auth/verify-otp",
+        data: {"Email": email, "OTPCode": code},
+      );
       return response.statusCode == 200;
     } catch (e) {
       _handleError("Lỗi xác thực OTP", e);
@@ -419,7 +431,9 @@ class HotelApiProvider {
         data: {"message": message},
       );
       if (response.statusCode == 200) {
-        return response.data['reply'] ?? response.data['message'] ?? "Xin lỗi, tôi chưa hiểu ý bạn.";
+        return response.data['reply'] ??
+            response.data['message'] ??
+            "Xin lỗi, tôi chưa hiểu ý bạn.";
       }
       return "Hệ thống đang bận, bạn vui lòng thử lại sau!";
     } catch (e) {
@@ -429,20 +443,38 @@ class HotelApiProvider {
   }
 
   // Gọi trực tiếp lên Python AI Server (FastAPI) để verify face (NFC)
-  Future<Map<String, dynamic>?> verifyFaceNFC(File nfcImage, File selfieImage) async {
+  Future<Map<String, dynamic>?> verifyFaceNFC(
+    File nfcImage,
+    File selfieImage,
+  ) async {
     try {
       // Đọc AI_URL từ môi trường
-      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://135.149.8.115:5000";
-      
-      Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 30)));
+      final String aiBaseUrl =
+          dotenv.env['AI_URL'] ?? "http://135.149.8.115:5000";
+
+      Dio aiDio = Dio(
+        BaseOptions(
+          baseUrl: aiBaseUrl,
+          connectTimeout: const Duration(seconds: 30),
+        ),
+      );
 
       FormData formData = FormData.fromMap({
-        "nfc_image": await MultipartFile.fromFile(nfcImage.path, filename: "nfc.jpg"),
-        "selfie_image": await MultipartFile.fromFile(selfieImage.path, filename: "selfie.jpg"),
+        "nfc_image": await MultipartFile.fromFile(
+          nfcImage.path,
+          filename: "nfc.jpg",
+        ),
+        "selfie_image": await MultipartFile.fromFile(
+          selfieImage.path,
+          filename: "selfie.jpg",
+        ),
       });
 
-      final response = await aiDio.post("/api/v1/ai/verify-face-nfc", data: formData);
-      
+      final response = await aiDio.post(
+        "/api/v1/ai/verify-face-nfc",
+        data: formData,
+      );
+
       if (response.statusCode == 200) {
         return response.data;
       }
@@ -454,18 +486,36 @@ class HotelApiProvider {
   }
 
   // Gọi API verify-cccd (YOLO + VietOCR + FaceMatch)
-  Future<Map<String, dynamic>?> verifyCccdWithSelfie(File cccdImage, File selfieImage) async {
+  Future<Map<String, dynamic>?> verifyCccdWithSelfie(
+    File cccdImage,
+    File selfieImage,
+  ) async {
     try {
-      final String aiBaseUrl = dotenv.env['AI_URL'] ?? "http://135.149.8.115:5000";
-      Dio aiDio = Dio(BaseOptions(baseUrl: aiBaseUrl, connectTimeout: const Duration(seconds: 60)));
+      final String aiBaseUrl =
+          dotenv.env['AI_URL'] ?? "http://135.149.8.115:5000";
+      Dio aiDio = Dio(
+        BaseOptions(
+          baseUrl: aiBaseUrl,
+          connectTimeout: const Duration(seconds: 60),
+        ),
+      );
 
       FormData formData = FormData.fromMap({
-        "cccd_image": await MultipartFile.fromFile(cccdImage.path, filename: "cccd.jpg"),
-        "selfie_image": await MultipartFile.fromFile(selfieImage.path, filename: "selfie.jpg"),
+        "cccd_image": await MultipartFile.fromFile(
+          cccdImage.path,
+          filename: "cccd.jpg",
+        ),
+        "selfie_image": await MultipartFile.fromFile(
+          selfieImage.path,
+          filename: "selfie.jpg",
+        ),
       });
 
-      final response = await aiDio.post("/api/v1/ai/verify-cccd", data: formData);
-      
+      final response = await aiDio.post(
+        "/api/v1/ai/verify-cccd",
+        data: formData,
+      );
+
       if (response.statusCode == 200) {
         return response.data;
       }
@@ -482,7 +532,7 @@ class HotelApiProvider {
 
   Future<Map<String, dynamic>> createBooking({
     required int maPhong,
-    required int maKH,
+    required int userId,
     required DateTime ngayNhanPhong,
     required DateTime ngayTraPhong,
     required int soNguoi,
@@ -491,13 +541,12 @@ class HotelApiProvider {
     String? customerPhone,
   }) async {
     try {
-      // Đọc thông tin từ SharedPreference hoặc truyền từ ngoài vào.
-      // Vì Flutter gọi maKHHardcode = 3, dùng tạm userId = maKH
       final body = {
-        'userId': maKH,
+        'userId': userId,
         'roomTypeId': maPhong, // Mobile truyền ID loại phòng qua widget.maPhong
-        'ngayNhan': ngayNhanPhong.toUtc().toIso8601String(),
-        'ngayTra': ngayTraPhong.toUtc().toIso8601String(),
+        // Gửi ngày thuần để không bị lùi một ngày khi đổi từ UTC+7 sang UTC.
+        'ngayNhan': _formatDate(ngayNhanPhong),
+        'ngayTra': _formatDate(ngayTraPhong),
         'soNguoi': soNguoi,
         'ghiChu': ghiChu,
         'customerName': customerName,
@@ -509,7 +558,9 @@ class HotelApiProvider {
       print('📥 createBooking response từ Java: ${res.data}');
 
       if (res.statusCode == 200) {
-        final data = res.data['data']; // Vì backend trả về ApiResponse.success(..., data)
+        final data = res
+            .data['data']; // Vì backend trả về ApiResponse.success(..., data)
+        RoomSearchCache.instance.invalidate();
         return {
           'bookingId': data['bookingId'] ?? 0,
           'totalAmount': (data['total'] ?? 0).toDouble(),
@@ -554,19 +605,29 @@ class HotelApiProvider {
     required double donGia,
   }) async {
     try {
-      final body = {'bookingId': bookingId, 'serviceId': maDichVu, 'quantity': soLuong, 'price': donGia};
+      final body = {
+        'bookingId': bookingId,
+        'serviceId': maDichVu,
+        'quantity': soLuong,
+        'price': donGia,
+      };
 
       print('📤 addService body gửi qua Dio: $body');
       final res = await _dio.post('/api/v1/mobile/services/order', data: body);
       print('📥 addService response từ Java: ${res.data}');
 
       if (res.statusCode == 200) {
-        final data = res.data;
+        final responseData = Map<String, dynamic>.from(res.data as Map);
+        final data = responseData['data'] is Map
+            ? Map<String, dynamic>.from(responseData['data'] as Map)
+            : <String, dynamic>{};
         return {
-          'success': data['success'] ?? true,
-          'message': data['message'] ?? 'Thêm dịch vụ thành công',
-          'serviceAmount': (donGia * soLuong).toDouble(),
-          'totalAmount': (donGia * soLuong).toDouble(),
+          'success': responseData['success'] ?? true,
+          'message': responseData['message'] ?? 'Thêm dịch vụ thành công',
+          'serviceAmount':
+              (data['totalPrice'] as num?)?.toDouble() ??
+              (donGia * soLuong).toDouble(),
+          'totalAmount': (data['totalAmount'] as num?)?.toDouble() ?? 0.0,
         };
       }
       throw Exception('Add service failed status code: ${res.statusCode}');
@@ -580,7 +641,11 @@ class HotelApiProvider {
   // 🌟 🌟 🌟 ĐÃ CHUYỂN ĐỔI SANG DIO: PHÂN HỆ THANH TOÁN (PAYMENT) 🌟 🌟 🌟
   // =========================================================================
 
-  Future<bool> confirmPayment(int bookingId, double totalAmount, int paymentMethodId) async {
+  Future<bool> confirmPayment(
+    int bookingId,
+    double totalAmount,
+    int paymentMethodId,
+  ) async {
     try {
       final body = {
         'bookingId': bookingId,
@@ -589,7 +654,10 @@ class HotelApiProvider {
       };
 
       print('confirmPayment body gửi qua Dio: $body');
-      final res = await _dio.post('/api/v1/mobile/booking/confirm-payment', data: body);
+      final res = await _dio.post(
+        '/api/v1/mobile/booking/confirm-payment',
+        data: body,
+      );
       print('confirmPayment response từ Java: ${res.data}');
 
       return res.statusCode == 200;
@@ -635,7 +703,7 @@ class HotelApiProvider {
         "username": username,
         "fullName": "Khách hàng May Hotel",
         "phone": "0123456789",
-        "email": "guest@mayhotel.com"
+        "email": "guest@mayhotel.com",
       };
     } catch (e) {
       debugPrint("Lỗi gọi API lấy Profile: $e");
@@ -643,16 +711,19 @@ class HotelApiProvider {
     }
   }
 
-  Future<bool> updateUserProfile(String username, Map<String, dynamic> updateData) async {
+  Future<bool> updateUserProfile(
+    String username,
+    Map<String, dynamic> updateData,
+  ) async {
     try {
-      final bodyPayload = {
-        "username": username,
-        ...updateData,
-      };
+      final bodyPayload = {"username": username, ...updateData};
 
       print('📤 Dữ liệu cập nhật Profile gửi qua Dio: $bodyPayload');
 
-      final response = await _dio.post("/api/auth/update-profile", data: bodyPayload);
+      final response = await _dio.post(
+        "/api/auth/update-profile",
+        data: bodyPayload,
+      );
 
       print('📥 Phản hồi cập nhật từ JAVA: ${response.data}');
 
@@ -666,5 +737,4 @@ class HotelApiProvider {
       return false;
     }
   }
-
 }

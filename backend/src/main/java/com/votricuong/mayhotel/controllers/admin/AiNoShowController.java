@@ -42,7 +42,7 @@ public class AiNoShowController extends BaseController {
         String aiApiUrl = "http://127.0.0.1:5000/api/v1/ai/predict-noshow";
 
         for (BookingOrder order : activeBookings) {
-            if ("Chờ nhận phòng".equals(order.getStatus()) || "Đã xác nhận cọc".equals(order.getStatus())) {
+            if (isPendingCheckIn(order.getStatus())) {
                 // Tự động phân tích AI nếu chưa có
                 if (order.getNoShowRiskLevel() == null) {
                     double risk = 0.0;
@@ -135,5 +135,13 @@ public class AiNoShowController extends BaseController {
 
         model.addAttribute("bookings", displayList);
         return render(model, "view/Receptionist/AiNoShow/index");
+    }
+
+    private boolean isPendingCheckIn(String status) {
+        return "Pending".equals(status)
+                || "Đã xác nhận".equals(status)
+                || "Chờ nhận phòng".equals(status)
+                || "Đã xác nhận cọc".equals(status)
+                || "Reserved".equals(status);
     }
 }

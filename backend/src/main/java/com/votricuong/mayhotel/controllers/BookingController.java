@@ -688,9 +688,12 @@ public class BookingController extends BaseController {
         for (com.votricuong.mayhotel.documents.BookingDetail bd : details) {
             if (bd.getRoomId() != null) {
                 roomRepository.findById(bd.getRoomId()).ifPresent(room -> {
-                    room.setStatus("Trống");
-                    room.setNote("");
-                    roomRepository.save(room);
+                    if ("Reserved".equalsIgnoreCase(room.getStatus())
+                            || "Đã đặt".equalsIgnoreCase(room.getStatus())) {
+                        room.setStatus("Trống");
+                        room.setNote("");
+                        roomRepository.save(room);
+                    }
                 });
             }
         }

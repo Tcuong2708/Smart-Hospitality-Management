@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/features/profile/views/payment_method_screen.dart';
-import 'package:may_hotel_app/features/services/views/service_management_screen.dart';
+import 'package:may_hotel_app/services/auth_state_service.dart';
 
 class BookingScreen extends StatefulWidget {
   final String roomTitle;
@@ -69,7 +69,12 @@ class _BookingScreenState extends State<BookingScreen> {
             const SizedBox(height: 15),
             _buildTextField(_nationalityController, "Quốc tịch", Icons.flag),
             const SizedBox(height: 15),
-            _buildTextField(_addressController, "Địa chỉ", Icons.map, maxLines: 2),
+            _buildTextField(
+              _addressController,
+              "Địa chỉ",
+              Icons.map,
+              maxLines: 2,
+            ),
           ],
         ),
       ),
@@ -96,7 +101,11 @@ class _BookingScreenState extends State<BookingScreen> {
             children: [
               Text(
                 widget.roomTitle,
-                style: const TextStyle(fontSize: 18, fontStyle: FontStyle.normal, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontStyle: FontStyle.normal,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               Text(
                 "\$${widget.roomPrice}/night",
@@ -141,12 +150,12 @@ class _BookingScreenState extends State<BookingScreen> {
   }
 
   Widget _buildTextField(
-      TextEditingController controller,
-      String label,
-      IconData icon, {
-        TextInputType inputType = TextInputType.text,
-        int maxLines = 1,
-      }) {
+    TextEditingController controller,
+    String label,
+    IconData icon, {
+    TextInputType inputType = TextInputType.text,
+    int maxLines = 1,
+  }) {
     return TextField(
       controller: controller,
       keyboardType: inputType,
@@ -169,7 +178,13 @@ class _BookingScreenState extends State<BookingScreen> {
       padding: const EdgeInsets.all(25),
       decoration: const BoxDecoration(
         color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, -5))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 10,
+            offset: Offset(0, -5),
+          ),
+        ],
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -178,10 +193,17 @@ class _BookingScreenState extends State<BookingScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text("Tổng cộng ($nights đêm)", style: const TextStyle(color: Colors.grey)),
+              Text(
+                "Tổng cộng ($nights đêm)",
+                style: const TextStyle(color: Colors.grey),
+              ),
               Text(
                 "\$${total.toStringAsFixed(2)}",
-                style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.blue),
+                style: const TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                ),
               ),
             ],
           ),
@@ -189,16 +211,26 @@ class _BookingScreenState extends State<BookingScreen> {
             onPressed: (nights > 0 && _nameController.text.isNotEmpty)
                 ? () => _createBookingAndNavigate(total)
                 : () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Vui lòng chọn ngày và nhập Họ và tên.')),
-              );
-            },
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Vui lòng chọn ngày và nhập Họ và tên.'),
+                      ),
+                    );
+                  },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.black,
               padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(15),
+              ),
             ),
-            child: const Text("Xác nhận", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Xác nhận",
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       ),
@@ -228,10 +260,16 @@ class _BookingScreenState extends State<BookingScreen> {
     );
 
     try {
-      const int maKHHardcode = 3;
+      final auth = AuthStateService().currentAuth;
+      final userId = auth.userId;
+      if (!auth.isLoggedIn || userId == null) {
+        throw Exception(
+          'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.',
+        );
+      }
       final res = await _apiProvider.createBooking(
         maPhong: widget.maPhong,
-        maKH: maKHHardcode,
+        userId: userId,
         ngayNhanPhong: _selectedDateRange!.start,
         ngayTraPhong: _selectedDateRange!.end,
         soNguoi: 1,
@@ -260,13 +298,17 @@ class _BookingScreenState extends State<BookingScreen> {
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res['message']?.toString() ?? 'Tạo booking thất bại')),
+          SnackBar(
+            content: Text(res['message']?.toString() ?? 'Tạo booking thất bại'),
+          ),
         );
       }
     } catch (e) {
       if (context.mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Lỗi: $e')));
       }
     }
   }

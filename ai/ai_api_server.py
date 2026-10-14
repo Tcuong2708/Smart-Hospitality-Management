@@ -160,6 +160,8 @@ def save_final_booking(session, user_id):
 
         # Ghi nhận kết quả No-Show vào Ghi chú nội bộ
         note_str = f"[CHATBOT AI] Khách: {session['customer_name']} | SĐT: {session['phone']} | Cảnh báo No-show: {risk_percentage:.1f}% | Y/C: {session['note']}"
+        risk_level = "Cao" if risk_percentage >= 70 else ("Trung bình" if risk_percentage >= 40 else "Thấp")
+        cancel_time = checkin_date.replace(hour=14 if risk_level == "Cao" else 18, minute=0, second=0, microsecond=0)
 
         # --- 3. LƯU VÀO CƠ SỞ DỮ LIỆU ---
         order_id = get_next_sequence(db, "booking_orders_sequence")
@@ -175,8 +177,12 @@ def save_final_booking(session, user_id):
             "expected_in": checkin_date,
             "expected_out": checkout_date,
             "status": "Đã xác nhận", # Theo yêu cầu của bạn
+            "notes": note_str,
             "note": note_str,
-            "noshow_risk_percent": risk_percentage, # Bổ sung lưu data gốc cho Thống kê
+            "no_show_risk_level": risk_level,
+            "no_show_risk_percentage": risk_percentage,
+            "noshow_risk_percent": risk_percentage,
+            "auto_cancel_time": cancel_time,
             "_class": "com.votricuong.mayhotel.documents.BookingOrder"
         }
         db.booking_orders.insert_one(booking_order)

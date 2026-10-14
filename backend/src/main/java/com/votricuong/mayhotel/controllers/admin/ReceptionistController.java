@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -45,6 +46,7 @@ public class ReceptionistController extends BaseController {
     @Builder
     public static class InvoiceDTO {
         private Long id;
+        private Long bookingId;
         private String hoTen;
         private String sdt;
         private Long maPhong;
@@ -55,6 +57,7 @@ public class ReceptionistController extends BaseController {
         private Double totalPrice;
         private Long idTaiKhoan;
         private String ghiChu;
+        @com.fasterxml.jackson.annotation.JsonProperty("isVerified")
         private boolean isVerified;
     }
 
@@ -69,22 +72,65 @@ public class ReceptionistController extends BaseController {
         private Integer sucChua;
     }
 
+    @Data
+    @Builder
+    public static class CheckInRoomDTO {
+        private Long id;
+        private String name;
+        private String label;
+        private Long roomTypeId;
+        private String type;
+        private String view;
+    }
+
+    private CheckInRoomDTO mapToCheckInRoomDTO(Room room, Map<Long, RoomType> roomTypes) {
+        RoomType roomType = roomTypes.get(room.getRoomTypeId());
+        String typeName = roomType == null ? "" : roomType.getName();
+        String normalizedType = typeName == null ? "" : typeName.toLowerCase(java.util.Locale.ROOT);
+        String displayType;
+        if (normalizedType.contains("tiêu chuẩn") || normalizedType.contains("standard")) {
+            displayType = "Standard";
+        } else if (normalizedType.contains("deluxe")) {
+            displayType = "Deluxe";
+        } else if (normalizedType.contains("suite")) {
+            displayType = "Suite";
+        } else if (typeName != null && !typeName.isBlank()) {
+            displayType = typeName.replaceFirst("(?i)^Phòng\\s+", "");
+        } else {
+            displayType = "Chưa phân loại";
+        }
+
+        String roomName = room.getName() == null ? "" : room.getName();
+        String roomLabel = roomName.replaceAll("\\D+", "");
+        if (roomLabel.isBlank()) {
+            roomLabel = String.valueOf(room.getId());
+        }
+
+        return CheckInRoomDTO.builder()
+                .id(room.getId())
+                .name(roomName)
+                .label(roomLabel)
+                .roomTypeId(room.getRoomTypeId())
+                .type(displayType)
+                .view(room.getViewDirection())
+                .build();
+    }
+
     private InvoiceDTO mapToDTO(Invoice inv) {
         String tenPhongStr = "";
         Long maLoai = null;
-        if (inv.getRoomId() != null) {
-            Room r = roomRepository.findById(inv.getRoomId()).orElse(null);
+        Long assignedRoomId = inv.getRoomId();
+        if (assignedRoomId == null && inv.getBookingId() != null) {
+            List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(inv.getBookingId());
+            if (details != null && !details.isEmpty() && details.get(0).getRoomId() != null) {
+                assignedRoomId = details.get(0).getRoomId();
+            }
+        }
+        if (assignedRoomId != null) {
+            Room r = roomRepository.findById(assignedRoomId).orElse(null);
             if (r != null) {
                 tenPhongStr = r.getName();
                 maLoai = r.getRoomTypeId();
-            }
-        } else if (inv.getBookingId() != null) {
-            List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(inv.getBookingId());
-            if (details != null && !details.isEmpty() && details.get(0).getRoomId() != null) {
-                Room r = roomRepository.findById(details.get(0).getRoomId()).orElse(null);
-                if (r != null) {
-                    maLoai = r.getRoomTypeId();
-                }
             }
         }
         
@@ -95,10 +141,11 @@ public class ReceptionistController extends BaseController {
 
         return InvoiceDTO.builder()
                 .id(inv.getId())
+                .bookingId(inv.getBookingId())
                 .hoTen(inv.getGuestName())
                 .sdt(inv.getPhone())
-                .maPhong(inv.getRoomId())
-                .tenPhong(tenPhongStr.isEmpty() && inv.getRoomId() != null ? ("Phòng " + inv.getRoomId()) : tenPhongStr)
+                .maPhong(assignedRoomId)
+                .tenPhong(tenPhongStr.isEmpty() && assignedRoomId != null ? ("Phòng " + assignedRoomId) : tenPhongStr)
                 .maLoaiPhong(maLoai)
                 .ngayCheckIn(inv.getCheckInDate() != null ? dateFormat.format(inv.getCheckInDate()) : "")
                 .ngayCheckOut(inv.getCheckOutDate() != null ? dateFormat.format(inv.getCheckOutDate()) : "")
@@ -176,8 +223,19 @@ public class ReceptionistController extends BaseController {
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
 
-        List<Room> emptyRooms = roomRepository.findAll().stream()
-                .filter(r -> "Trống".equalsIgnoreCase(r.getStatus()) || "Vacant".equalsIgnoreCase(r.getStatus()))
+        List<Long> assignedRoomIds = invoices.stream()
+                .map(InvoiceDTO::getMaPhong)
+                .filter(java.util.Objects::nonNull)
+                .collect(Collectors.toList());
+
+        Map<Long, RoomType> roomTypes = roomTypeRepository.findAll().stream()
+                .collect(Collectors.toMap(RoomType::getId, type -> type));
+
+        List<CheckInRoomDTO> emptyRooms = roomRepository.findAll().stream()
+                .filter(r -> "Trống".equalsIgnoreCase(r.getStatus())
+                        || "Vacant".equalsIgnoreCase(r.getStatus())
+                        || (assignedRoomIds.contains(r.getId()) && "Reserved".equalsIgnoreCase(r.getStatus())))
+                .map(room -> mapToCheckInRoomDTO(room, roomTypes))
                 .collect(Collectors.toList());
 
         model.addAttribute("invoices", invoices);
@@ -200,7 +258,37 @@ public class ReceptionistController extends BaseController {
             Room room = roomRepository.findById(maPhong)
                     .orElseThrow(() -> new Exception("Phòng không tồn tại."));
 
-            if (!"Vacant".equalsIgnoreCase(room.getStatus()) && !"Trống".equalsIgnoreCase(room.getStatus())) {
+            List<com.votricuong.mayhotel.documents.BookingDetail> bookingDetails = invoice.getBookingId() == null
+                    ? List.of()
+                    : bookingDetailRepository.findByBookingId(invoice.getBookingId());
+
+            Long bookedRoomId = bookingDetails.stream()
+                    .map(com.votricuong.mayhotel.documents.BookingDetail::getRoomId)
+                    .filter(java.util.Objects::nonNull)
+                    .findFirst()
+                    .orElse(invoice.getRoomId());
+            if (bookedRoomId == null) {
+                throw new Exception("Không xác định được loại phòng khách đã đặt.");
+            }
+
+            Long bookedRoomTypeId = bookedRoomId.equals(room.getId())
+                    ? room.getRoomTypeId()
+                    : roomRepository.findById(bookedRoomId)
+                            .map(Room::getRoomTypeId)
+                            .orElse(null);
+            if (bookedRoomTypeId == null || room.getRoomTypeId() == null) {
+                throw new Exception("Không xác định được loại phòng để thực hiện check-in.");
+            }
+            if (!bookedRoomTypeId.equals(room.getRoomTypeId())) {
+                throw new Exception("Chỉ được check-in phòng đúng loại khách đã đặt.");
+            }
+
+            boolean assignedToThisBooking = maPhong.equals(invoice.getRoomId())
+                    || bookingDetails.stream().anyMatch(detail -> maPhong.equals(detail.getRoomId()));
+            boolean roomCanBeCheckedIn = "Vacant".equalsIgnoreCase(room.getStatus())
+                    || "Trống".equalsIgnoreCase(room.getStatus())
+                    || (assignedToThisBooking && "Reserved".equalsIgnoreCase(room.getStatus()));
+            if (!roomCanBeCheckedIn) {
                 throw new Exception("Phòng này hiện không trống, vui lòng chọn phòng khác.");
             }
 
@@ -217,6 +305,20 @@ public class ReceptionistController extends BaseController {
             invoiceRepository.save(invoice);
             if (Boolean.TRUE.equals(isPaidUpfront)) {
                 loyaltyService.awardPointsForPaidInvoice(invoice);
+            }
+
+            if (invoice.getBookingId() != null) {
+                bookingOrderRepository.findById(invoice.getBookingId()).ifPresent(order -> {
+                    order.setStatus("Đã nhận phòng");
+                    order.setAutoCancelTime(null);
+                    bookingOrderRepository.save(order);
+                });
+                Date checkedInAt = new Date();
+                for (com.votricuong.mayhotel.documents.BookingDetail detail : bookingDetails) {
+                    detail.setRoomId(maPhong);
+                    detail.setActualIn(checkedInAt);
+                    bookingDetailRepository.save(detail);
+                }
             }
 
             redirectAttributes.addFlashAttribute("success", "Nhận phòng thành công cho mã #" + id);
@@ -262,6 +364,19 @@ public class ReceptionistController extends BaseController {
             invoiceRepository.save(invoice);
             loyaltyService.awardPointsForPaidInvoice(invoice);
 
+            if (invoice.getBookingId() != null) {
+                bookingOrderRepository.findById(invoice.getBookingId()).ifPresent(order -> {
+                    order.setStatus("Đã trả phòng");
+                    bookingOrderRepository.save(order);
+                });
+                Date checkedOutAt = new Date();
+                for (com.votricuong.mayhotel.documents.BookingDetail detail
+                        : bookingDetailRepository.findByBookingId(invoice.getBookingId())) {
+                    detail.setActualOut(checkedOutAt);
+                    bookingDetailRepository.save(detail);
+                }
+            }
+
             if (invoice.getRoomId() != null) {
                 roomRepository.findById(invoice.getRoomId()).ifPresent(room -> {
                     room.setStatus("Trống");
@@ -303,6 +418,14 @@ public class ReceptionistController extends BaseController {
 
             invoice.setRoomId(newRoomId);
             invoiceRepository.save(invoice);
+
+            if (invoice.getBookingId() != null) {
+                for (com.votricuong.mayhotel.documents.BookingDetail detail
+                        : bookingDetailRepository.findByBookingId(invoice.getBookingId())) {
+                    detail.setRoomId(newRoomId);
+                    bookingDetailRepository.save(detail);
+                }
+            }
 
             redirectAttributes.addFlashAttribute("success", "Đổi từ phòng " + oldRoom.getName() + " sang phòng " + newRoom.getName() + " thành công!");
         } catch (Exception e) {

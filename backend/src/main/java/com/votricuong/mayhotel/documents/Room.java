@@ -36,4 +36,12 @@ public class Room implements java.io.Serializable {
     
     @Field("location_zone")
     private String locationZone; // "LEFT", "RIGHT"
+
+    /**
+     * Alias used by the existing check-in view, which reads the JSON property
+     * named "view" instead of "viewDirection".
+     */
+    public String getView() {
+        return viewDirection;
+    }
 }

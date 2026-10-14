@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart'; // 🎯 BỔ SUNG: Điều phối màu sắc icon pin/đồng hồ hệ thống
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/features/profile/views/payment_method_screen.dart';
-import 'package:may_hotel_app/features/services/views/service_management_screen.dart';
+import 'package:may_hotel_app/services/auth_state_service.dart';
 import '../../../core/utils/responsive.dart'; // 📐 Tối ưu kích thước co giãn màn hình
 
 class BookingScreen extends StatefulWidget {
@@ -58,7 +58,9 @@ class _BookingScreenState extends State<BookingScreen> {
         ),
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+          statusBarIconBrightness: isDarkMode
+              ? Brightness.light
+              : Brightness.dark,
           statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
         ),
       ),
@@ -72,7 +74,11 @@ class _BookingScreenState extends State<BookingScreen> {
 
             Text(
               "Thời gian lưu trú",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: Responsive.sp(context, 16), color: colorScheme.onSurface),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: Responsive.sp(context, 16),
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 12),
             _buildDatePicker(context, colorScheme, isDarkMode),
@@ -81,10 +87,19 @@ class _BookingScreenState extends State<BookingScreen> {
 
             Text(
               "Thông tin người đặt",
-              style: TextStyle(fontWeight: FontWeight.bold, fontSize: Responsive.sp(context, 16), color: colorScheme.onSurface),
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: Responsive.sp(context, 16),
+                color: colorScheme.onSurface,
+              ),
             ),
             const SizedBox(height: 15),
-            _buildTextField(context, _nameController, "Họ và tên *", Icons.person),
+            _buildTextField(
+              context,
+              _nameController,
+              "Họ và tên *",
+              Icons.person,
+            ),
             const SizedBox(height: 15),
             _buildTextField(
               context,
@@ -94,7 +109,12 @@ class _BookingScreenState extends State<BookingScreen> {
               inputType: TextInputType.phone,
             ),
             const SizedBox(height: 15),
-            _buildTextField(context, _nationalityController, "Quốc tịch", Icons.flag_outlined),
+            _buildTextField(
+              context,
+              _nationalityController,
+              "Quốc tịch",
+              Icons.flag_outlined,
+            ),
             const SizedBox(height: 15),
             _buildTextField(
               context,
@@ -106,7 +126,13 @@ class _BookingScreenState extends State<BookingScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomConfirm(context, colorScheme, isDarkMode, nights, total),
+      bottomNavigationBar: _buildBottomConfirm(
+        context,
+        colorScheme,
+        isDarkMode,
+        nights,
+        total,
+      ),
     );
   }
 
@@ -117,7 +143,10 @@ class _BookingScreenState extends State<BookingScreen> {
     }
 
     final bool isNetworkImage = cleanImageUrl.startsWith('http');
-    String maskedRoomTitle = widget.roomTitle.replaceAll(RegExp(r'P\d+'), 'P***');
+    String maskedRoomTitle = widget.roomTitle.replaceAll(
+      RegExp(r'P\d+'),
+      'P***',
+    );
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
@@ -126,29 +155,35 @@ class _BookingScreenState extends State<BookingScreen> {
           borderRadius: BorderRadius.circular(15),
           child: isNetworkImage
               ? Image.network(
-            cleanImageUrl,
-            width: 90,
-            height: 90,
-            fit: BoxFit.cover,
-            errorBuilder: (c, e, s) => Container(
-              width: 90,
-              height: 90,
-              color: colorScheme.surfaceVariant,
-              child: Icon(Icons.hotel, color: colorScheme.onSurfaceVariant),
-            ),
-          )
+                  cleanImageUrl,
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.cover,
+                  errorBuilder: (c, e, s) => Container(
+                    width: 90,
+                    height: 90,
+                    color: colorScheme.surfaceVariant,
+                    child: Icon(
+                      Icons.hotel,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                )
               : Image.asset(
-            cleanImageUrl,
-            width: 90,
-            height: 90,
-            fit: BoxFit.cover,
-            errorBuilder: (c, e, s) => Container(
-              width: 90,
-              height: 90,
-              color: colorScheme.surfaceVariant,
-              child: Icon(Icons.hotel, color: colorScheme.onSurfaceVariant),
-            ),
-          ),
+                  cleanImageUrl,
+                  width: 90,
+                  height: 90,
+                  fit: BoxFit.cover,
+                  errorBuilder: (c, e, s) => Container(
+                    width: 90,
+                    height: 90,
+                    color: colorScheme.surfaceVariant,
+                    child: Icon(
+                      Icons.hotel,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(width: 15),
 
@@ -159,14 +194,22 @@ class _BookingScreenState extends State<BookingScreen> {
             children: [
               Text(
                 maskedRoomTitle,
-                style: TextStyle(fontSize: Responsive.sp(context, 17), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                style: TextStyle(
+                  fontSize: Responsive.sp(context, 17),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 6),
               Text(
                 "${double.parse(widget.roomPrice).toStringAsFixed(0)} VNĐ/đêm",
-                style: TextStyle(color: colorScheme.onSurface.withOpacity(0.6), fontWeight: FontWeight.w600, fontSize: 14),
+                style: TextStyle(
+                  color: colorScheme.onSurface.withOpacity(0.6),
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
               ),
             ],
           ),
@@ -175,7 +218,11 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildDatePicker(BuildContext context, ColorScheme colorScheme, bool isDarkMode) {
+  Widget _buildDatePicker(
+    BuildContext context,
+    ColorScheme colorScheme,
+    bool isDarkMode,
+  ) {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surface,
@@ -185,7 +232,7 @@ class _BookingScreenState extends State<BookingScreen> {
             color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: InkWell(
@@ -215,7 +262,11 @@ class _BookingScreenState extends State<BookingScreen> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
           child: Row(
             children: [
-              Icon(Icons.calendar_month_outlined, color: isDarkMode ? Colors.amber : colorScheme.primary, size: 22),
+              Icon(
+                Icons.calendar_month_outlined,
+                color: isDarkMode ? Colors.amber : colorScheme.primary,
+                size: 22,
+              ),
               const SizedBox(width: 15),
               Expanded(
                 child: Text(
@@ -223,9 +274,13 @@ class _BookingScreenState extends State<BookingScreen> {
                       ? "Chọn ngày Check-in - Check-out"
                       : "${_selectedDateRange!.start.day}/${_selectedDateRange!.start.month} - ${_selectedDateRange!.end.day}/${_selectedDateRange!.end.month}",
                   style: TextStyle(
-                      color: _selectedDateRange == null ? colorScheme.onSurface.withOpacity(0.4) : colorScheme.onSurface,
-                      fontWeight: _selectedDateRange == null ? FontWeight.normal : FontWeight.bold,
-                      fontSize: 14
+                    color: _selectedDateRange == null
+                        ? colorScheme.onSurface.withOpacity(0.4)
+                        : colorScheme.onSurface,
+                    fontWeight: _selectedDateRange == null
+                        ? FontWeight.normal
+                        : FontWeight.bold,
+                    fontSize: 14,
                   ),
                 ),
               ),
@@ -236,7 +291,14 @@ class _BookingScreenState extends State<BookingScreen> {
     );
   }
 
-  Widget _buildTextField(BuildContext context, TextEditingController controller, String hint, IconData icon, {TextInputType inputType = TextInputType.text, int maxLines = 1}) {
+  Widget _buildTextField(
+    BuildContext context,
+    TextEditingController controller,
+    String hint,
+    IconData icon, {
+    TextInputType inputType = TextInputType.text,
+    int maxLines = 1,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -249,7 +311,7 @@ class _BookingScreenState extends State<BookingScreen> {
             color: Colors.black.withOpacity(isDark ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: TextField(
@@ -258,27 +320,43 @@ class _BookingScreenState extends State<BookingScreen> {
         maxLines: maxLines,
         style: TextStyle(color: colorScheme.onSurface),
         decoration: InputDecoration(
-          prefixIcon: Icon(icon, color: colorScheme.primary.withOpacity(0.7), size: 22),
+          prefixIcon: Icon(
+            icon,
+            color: colorScheme.primary.withOpacity(0.7),
+            size: 22,
+          ),
           hintText: hint,
-          hintStyle: TextStyle(color: colorScheme.onSurface.withOpacity(0.4), fontSize: 14),
+          hintStyle: TextStyle(
+            color: colorScheme.onSurface.withOpacity(0.4),
+            fontSize: 14,
+          ),
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          contentPadding: const EdgeInsets.symmetric(
+            vertical: 16,
+            horizontal: 12,
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildBottomConfirm(BuildContext context, ColorScheme colorScheme, bool isDarkMode, int nights, double total) {
+  Widget _buildBottomConfirm(
+    BuildContext context,
+    ColorScheme colorScheme,
+    bool isDarkMode,
+    int nights,
+    double total,
+  ) {
     return Container(
       padding: EdgeInsets.all(Responsive.sp(context, 20)),
       decoration: BoxDecoration(
         color: colorScheme.surface,
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withOpacity(isDarkMode ? 0.4 : 0.08),
-              blurRadius: 12,
-              offset: const Offset(0, -4)
-          )
+            color: Colors.black.withOpacity(isDarkMode ? 0.4 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
         ],
       ),
       child: SafeArea(
@@ -289,14 +367,21 @@ class _BookingScreenState extends State<BookingScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Tổng cộng ($nights đêm)", style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5), fontSize: 13, fontWeight: FontWeight.w500)),
+                Text(
+                  "Tổng cộng ($nights đêm)",
+                  style: TextStyle(
+                    color: colorScheme.onSurface.withOpacity(0.5),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
                 const SizedBox(height: 4),
                 Text(
                   "${total.toStringAsFixed(0)} VNĐ",
                   style: TextStyle(
-                      fontSize: Responsive.sp(context, 20),
-                      fontWeight: FontWeight.bold,
-                      color: isDarkMode ? Colors.amber : colorScheme.primary
+                    fontSize: Responsive.sp(context, 20),
+                    fontWeight: FontWeight.bold,
+                    color: isDarkMode ? Colors.amber : colorScheme.primary,
                   ),
                 ),
               ],
@@ -305,23 +390,39 @@ class _BookingScreenState extends State<BookingScreen> {
               onPressed: (nights > 0 && _nameController.text.isNotEmpty)
                   ? () => _createBookingAndNavigate(total)
                   : () {
-                ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('⚠️ Vui lòng chọn ngày và nhập Họ và tên.'),
-                    backgroundColor: Colors.orange,
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                );
-              },
+                      ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: const Text(
+                            '⚠️ Vui lòng chọn ngày và nhập Họ và tên.',
+                          ),
+                          backgroundColor: Colors.orange,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      );
+                    },
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
-                padding: EdgeInsets.symmetric(horizontal: Responsive.width(context) * 0.08, vertical: 15),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                padding: EdgeInsets.symmetric(
+                  horizontal: Responsive.width(context) * 0.08,
+                  vertical: 15,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15),
+                ),
                 elevation: 3,
               ),
-              child: const Text("Xác nhận", style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+              child: const Text(
+                "Xác nhận",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
             ),
           ],
         ),
@@ -345,7 +446,9 @@ class _BookingScreenState extends State<BookingScreen> {
           content: const Text('⚠️ Vui lòng nhập họ tên và số điện thoại'),
           backgroundColor: Colors.orange,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       return;
@@ -356,10 +459,14 @@ class _BookingScreenState extends State<BookingScreen> {
       ScaffoldMessenger.of(context).removeCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('⚠️ Số điện thoại không hợp lệ (Phải là 10 số hợp lệ tại VN)'),
+          content: const Text(
+            '⚠️ Số điện thoại không hợp lệ (Phải là 10 số hợp lệ tại VN)',
+          ),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       );
       return;
@@ -372,14 +479,22 @@ class _BookingScreenState extends State<BookingScreen> {
     );
 
     try {
-      const int maKHHardcode = 3;
+      final auth = AuthStateService().currentAuth;
+      final userId = auth.userId;
+      if (!auth.isLoggedIn || userId == null) {
+        throw Exception(
+          'Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.',
+        );
+      }
       final res = await _apiProvider.createBooking(
         maPhong: widget.maPhong,
-        maKH: maKHHardcode,
+        userId: userId,
         ngayNhanPhong: _selectedDateRange!.start,
         ngayTraPhong: _selectedDateRange!.end,
         soNguoi: 1,
-        ghiChu: 'Dien thoai: $dienThoai, Quoc tich: $quocTich, Dia chi: $diaChi',
+        ghiChu: 'Quoc tich: $quocTich, Dia chi: $diaChi',
+        customerName: hoTen,
+        customerPhone: dienThoai,
       );
 
       if (!context.mounted) return;
@@ -392,9 +507,9 @@ class _BookingScreenState extends State<BookingScreen> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ServiceManagementScreen(
+            builder: (_) => PaymentMethodScreen(
               bookingId: generatedBookingId,
-              initialAmount: currentTotal,
+              totalAmount: currentTotal,
             ),
           ),
         );

@@ -11,19 +11,15 @@ document.addEventListener('DOMContentLoaded', () => {
         return d.toLocaleDateString('vi-VN');
     };
 
-    const mockData = window.mockBookings && window.mockBookings.length > 0 ? window.mockBookings.map(b => ({
+    const bookings = Array.isArray(window.mockBookings) ? window.mockBookings.map(b => ({
         id: b.order.id,
         customer: b.customerName,
         room: b.roomName,
         checkin: formatDate(b.order.expectedIn),
         checkout: formatDate(b.order.expectedOut),
         status: b.order.status,
-        aiRisk: (b.order.noShowRiskLevel || 'Không xác định') + ' (' + (b.order.noShowProbability != null ? b.order.noShowProbability : '?') + '%)'
-    })) : [
-        { id: 'BK1001', customer: 'Trần Văn X', room: 'P101', checkin: '10/09/2026', checkout: '12/09/2026', status: 'Đã nhận phòng', aiRisk: 'Thấp (10%)' },
-        { id: 'BK1002', customer: 'Lê Thị Y', room: 'P202', checkin: '12/09/2026', checkout: '15/09/2026', status: 'Chờ nhận phòng', aiRisk: 'Cao (85%)' },
-        { id: 'BK1003', customer: 'Nguyễn Văn Z', room: 'P303', checkin: '15/09/2026', checkout: '18/09/2026', status: 'Chờ nhận phòng', aiRisk: 'Vừa (45%)' }
-    ];
+        aiRisk: (b.order.noShowRiskLevel || 'Không xác định') + ' (' + (b.order.noShowRiskPercentage != null ? b.order.noShowRiskPercentage : '?') + '%)'
+    })) : [];
     const tableBody = document.getElementById('table-body');
     function renderData(data) {
         if (!tableBody) return;
@@ -36,8 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
             else if (item.aiRisk.includes('Cao')) riskBadge = 'bg-danger';
             else riskBadge = 'bg-warning text-dark';
 
-            let autoCancelBtn = item.aiRisk.includes('Cao') ? `<button class="btn btn-sm btn-outline-danger mt-1 fw-bold" onclick="alert('Đã kích hoạt Hủy tự động cho ${item.id}')" title="Kích hoạt hệ thống AI tự hủy"><i class="bi bi-robot me-1"></i>Hủy tự động</button>` : '';
-
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td class="text-center fw-bold">${item.id}</td>
@@ -48,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="text-center"><span class="badge ${statusBadge}">${item.status}</span></td>
                 <td class="text-center">
                     <span class="badge ${riskBadge} fs-6 shadow-sm mb-1">${item.aiRisk}</span><br>
-                    ${autoCancelBtn}
                 </td>
                 <td class="text-center">
                     <button class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết"><i class="bi bi-eye"></i></button>
@@ -58,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
             tableBody.appendChild(tr);
         });
     }
-    renderData(mockData);
+    renderData(bookings);
 
     // Logic xử lý Đặt phòng trực tiếp
     const btnSearchRooms = document.getElementById('btn-search-rooms');

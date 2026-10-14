@@ -51,7 +51,7 @@ async function fetchCheckinData() {
                     <div class="alert alert-warning py-1 px-2 mb-2 text-center small fw-bold" style="font-size: 0.7rem;">
                         <i class="bi bi-shield-lock-fill me-1"></i>Cần xác thực danh tính
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold w-100 text-truncate mb-2" onclick="openMobileVerifyModal(${item.id}, '${item.hoTen}')">
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold w-100 text-truncate mb-2" onclick="openMobileVerifyModal(${item.id}, ${item.bookingId || 'null'}, '${item.hoTen}')">
                         <i class="bi bi-phone-vibrate me-1"></i> Xác thực (Mobile)
                     </button>
                     <input type="hidden" name="maPhong" id="room-${item.id}" value="" required>
@@ -61,7 +61,7 @@ async function fetchCheckinData() {
                 if (item.maPhong) {
                     roomSelectionHTML = `
                         <div class="text-success text-center small fw-bold mb-1" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Đã xác thực FaceID</div>
-                        <button type="button" class="btn btn-outline-navy btn-sm fw-bold w-100 text-start text-truncate mb-2" onclick="openAssignRoomModal(${item.id}, '${item.maPhong}')" id="btn-select-room-${item.id}">
+                        <button type="button" class="btn btn-outline-navy btn-sm fw-bold w-100 text-start text-truncate mb-2" onclick="openAssignRoomModal(${item.id}, '${item.maPhong}', ${item.maLoaiPhong || 'null'})" id="btn-select-room-${item.id}">
                             <i class="bi bi-door-open-fill me-1"></i> Phòng ${item.maPhong} (Đổi)
                         </button>
                         <input type="hidden" name="maPhong" id="room-${item.id}" value="${item.maPhong}" required>
@@ -69,7 +69,7 @@ async function fetchCheckinData() {
                 } else {
                     roomSelectionHTML = `
                         <div class="text-success text-center small fw-bold mb-1" style="font-size: 0.7rem;"><i class="bi bi-check-circle-fill me-1"></i>Đã xác thực FaceID</div>
-                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100 text-start text-truncate mb-2" onclick="openAssignRoomModal(${item.id}, null)" id="btn-select-room-${item.id}">
+                        <button type="button" class="btn btn-outline-danger btn-sm fw-bold w-100 text-start text-truncate mb-2" onclick="openAssignRoomModal(${item.id}, null, ${item.maLoaiPhong || 'null'})" id="btn-select-room-${item.id}">
                             <i class="bi bi-key-fill me-1"></i> Chọn phòng...
                         </button>
                         <input type="hidden" name="maPhong" id="room-${item.id}" value="" required>
@@ -124,20 +124,27 @@ let stream = null;
 let currentCheckinId = null;
 let currentAssigningCheckinId = null;
 let currentVerifyCheckinId = null;
+let currentVerifyBookingId = null;
+let selectedRoomForCheckin = null;
+let currentRequiredRoomTypeId = null;
 
 let pollingInterval = null;
+let mobileTransitionTimeout = null;
 
 // ==========================================
 // LUỒNG XÁC THỰC MOBILE NFC
 // ==========================================
-window.openMobileVerifyModal = function(id, hoTen) {
-    currentVerifyCheckinId = id;
+window.openMobileVerifyModal = function(invoiceId, bookingId, hoTen) {
+    currentVerifyCheckinId = invoiceId;
+    currentVerifyBookingId = bookingId;
     
     // Reset giao diện Modal
     document.getElementById('mobile-verify-waiting').classList.remove('d-none');
     document.getElementById('mobile-verify-success').classList.add('d-none');
     
-    document.getElementById('mobile-verify-code').textContent = 'REQ-' + id + '-' + Math.floor(Math.random()*1000);
+    document.getElementById('mobile-verify-code').textContent = bookingId
+        ? 'BOOKING-' + bookingId
+        : 'REQ-' + invoiceId;
     document.getElementById('sync-name').textContent = hoTen;
     
     document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.remove('d-none');
@@ -153,10 +160,14 @@ window.openMobileVerifyModal = function(id, hoTen) {
 
     // Bắt đầu Polling API 3 giây 1 lần
     if (pollingInterval) clearInterval(pollingInterval);
-    
-    pollingInterval = setInterval(async () => {
+    if (mobileTransitionTimeout) clearTimeout(mobileTransitionTimeout);
+
+    const pollVerificationStatus = async () => {
+        if (!currentVerifyBookingId) return;
         try {
-            const res = await fetch(`http://localhost:8080/api/v1/reception/bookings/${id}/verification-status`);
+            const res = await fetch(`/api/v1/reception/bookings/${currentVerifyBookingId}/verification-status`, {
+                cache: 'no-store'
+            });
             if (res.ok) {
                 const data = await res.json();
                 if (data.isFaceVerified === true) {
@@ -167,7 +178,9 @@ window.openMobileVerifyModal = function(id, hoTen) {
         } catch (e) {
             console.log('Polling AI verification failed:', e);
         }
-    }, 3000);
+    };
+    pollVerificationStatus();
+    pollingInterval = setInterval(pollVerificationStatus, 3000);
     
     // Xoá polling nếu Modal bị đóng thủ công
     modalEl.addEventListener('hidden.bs.modal', function onModalHidden() {
@@ -178,6 +191,14 @@ window.openMobileVerifyModal = function(id, hoTen) {
 
 window.simulateMobileSuccess = function(fromApi = false) {
     if (pollingInterval) clearInterval(pollingInterval);
+
+    const invoice = (window.mockCheckinInvoices || []).find(
+        item => String(item.id) === String(currentVerifyCheckinId)
+    );
+    if (invoice) {
+        invoice.isVerified = true;
+    }
+
     // Đóng nút giả lập và nút hủy
     document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.add('d-none');
     document.querySelector('#mobileVerifyModal .btn-warning').classList.add('d-none');
@@ -186,39 +207,77 @@ window.simulateMobileSuccess = function(fromApi = false) {
     document.getElementById('mobile-verify-waiting').classList.add('d-none');
     document.getElementById('mobile-verify-success').classList.remove('d-none');
     document.getElementById('btn-continue-room').classList.remove('d-none');
+
+    if (fromApi) {
+        mobileTransitionTimeout = setTimeout(() => {
+            window.completeMobileVerification();
+        }, 800);
+    }
 };
 
-window.completeMobileVerification = function() {
-    // Tìm invoice và update state
+window.completeMobileVerification = async function() {
+    if (mobileTransitionTimeout) clearTimeout(mobileTransitionTimeout);
+
+    const verifiedInvoice = (window.mockCheckinInvoices || []).find(
+        invoice => String(invoice.id) === String(currentVerifyCheckinId)
+    );
+    if (!verifiedInvoice) {
+        showAlert('Không tìm thấy phiếu check-in cần đồng bộ.', 'danger');
+        return;
+    }
+    verifiedInvoice.isVerified = true;
+
     // Đóng modal
     const modal = bootstrap.Modal.getInstance(document.getElementById('mobileVerifyModal'));
     modal.hide();
     
     // Rerender lại bảng để hiện nút chọn phòng
-    fetchCheckinData();
+    await fetchCheckinData();
     
     // Bật luôn modal Chọn phòng để lễ tân tiện thao tác
     setTimeout(() => {
-        openAssignRoomModal(currentVerifyCheckinId, null);
+        openAssignRoomModal(
+            currentVerifyCheckinId,
+            verifiedInvoice.maPhong,
+            verifiedInvoice.maLoaiPhong
+        );
     }, 400);
 };
 
-const mockEmptyRoomsGlobal = window.mockEmptyRooms && window.mockEmptyRooms.length > 0 ? window.mockEmptyRooms.map(r => ({id: r.name.replace(/\D/g,'') || r.id, view: r.view || 'Hướng Thành Phố', type: r.roomTypeId ? 'Tiêu chuẩn' : 'Standard'})) : [
-    { id: 101, view: 'Hướng Thành Phố', type: 'Standard' }, 
-    { id: 104, view: 'Hướng Biển', type: 'Standard' }, 
-    { id: 202, view: 'Hướng Núi', type: 'Deluxe' }, 
-    { id: 203, view: 'Hướng Biển', type: 'Deluxe' },
-    { id: 303, view: 'Hướng Núi', type: 'Suite' }
-];
+const availableRooms = Array.isArray(window.mockEmptyRooms) ? window.mockEmptyRooms : [];
+const mockEmptyRoomsGlobal = availableRooms.map(r => {
+    const roomName = r.name == null ? '' : String(r.name);
+    return {
+        id: r.id,
+        roomTypeId: r.roomTypeId,
+        view: r.view || 'Hướng Thành Phố',
+        type: r.type || 'Chưa phân loại',
+        label: r.label || roomName.replace(/\D/g, '') || String(r.id)
+    };
+});
 
-function openAssignRoomModal(checkinId, currentRoomId) {
+function openAssignRoomModal(checkinId, currentRoomId, requiredRoomTypeId) {
     currentAssigningCheckinId = checkinId;
+    currentRequiredRoomTypeId = requiredRoomTypeId == null ? null : String(requiredRoomTypeId);
+    selectedRoomForCheckin = mockEmptyRoomsGlobal.find(
+        room => String(room.id) === String(currentRoomId)
+            && String(room.roomTypeId) === currentRequiredRoomTypeId
+    ) || null;
     
     // Reset filters
-    document.getElementById('assignRoomCategory').value = '';
+    const categoryFilter = document.getElementById('assignRoomCategory');
+    const requiredTypeRoom = selectedRoomForCheckin || mockEmptyRoomsGlobal.find(
+        room => String(room.roomTypeId) === currentRequiredRoomTypeId
+    );
+    const hasMatchingCategory = requiredTypeRoom
+        && Array.from(categoryFilter.options).some(option => option.value === requiredTypeRoom.type);
+    categoryFilter.value = hasMatchingCategory ? requiredTypeRoom.type : '';
+    categoryFilter.disabled = true;
+    categoryFilter.title = 'Loại phòng được cố định theo booking của khách';
     document.getElementById('assignRoomView').value = '';
     
     renderAvailableRooms();
+    updateAssignRoomConfirmation();
 
     const modalEl = document.getElementById('assignRoomModal');
     if (modalEl.parentNode !== document.body) {
@@ -232,11 +291,17 @@ function renderAvailableRooms() {
     const listContainer = document.getElementById('availableRoomsList');
     const filterCat = document.getElementById('assignRoomCategory').value;
     const filterView = document.getElementById('assignRoomView').value;
+
+    if (currentRequiredRoomTypeId == null) {
+        listContainer.innerHTML = '<div class="text-center py-4 text-danger small"><i class="bi bi-exclamation-triangle fs-3 d-block mb-1"></i>Không xác định được loại phòng khách đã đặt.</div>';
+        return;
+    }
     
     const filteredRooms = mockEmptyRoomsGlobal.filter(r => {
+        const matchBookedType = String(r.roomTypeId) === currentRequiredRoomTypeId;
         const matchCat = filterCat === '' || r.type === filterCat;
         const matchView = filterView === '' || r.view === filterView;
-        return matchCat && matchView;
+        return matchBookedType && matchCat && matchView;
     });
 
     if (filteredRooms.length === 0) {
@@ -249,37 +314,79 @@ function renderAvailableRooms() {
         if (r.view === 'Hướng Biển') viewIcon = 'bi-water text-primary';
         else if (r.view === 'Hướng Thành Phố') viewIcon = 'bi-buildings text-secondary';
         else if (r.view === 'Hướng Núi') viewIcon = 'bi-tree text-success';
+        const isSelected = selectedRoomForCheckin
+            && String(selectedRoomForCheckin.id) === String(r.id);
 
         return `
-        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3" onclick="selectRoomForCheckin('${r.id}', '${r.view}', '${r.type}')">
+        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 room-option ${isSelected ? 'border border-2 border-success' : ''}"
+                data-room-id="${r.id}" data-room-view="${r.view}" data-room-type="${r.type}" data-room-label="${r.label}"
+                aria-pressed="${isSelected}">
             <div>
-                <h6 class="fw-bold text-navy mb-1"><i class="bi bi-door-open-fill text-gold me-2"></i>Phòng ${r.id}</h6>
+                <h6 class="fw-bold text-navy mb-1"><i class="bi bi-door-open-fill text-gold me-2"></i>Phòng ${r.label}</h6>
                 <small class="text-muted"><span class="badge bg-light text-dark border me-1">${r.type}</span></small>
             </div>
             <div class="text-end">
                 <span class="text-muted small fw-bold"><i class="bi ${viewIcon} me-1"></i>${r.view}</span>
+                ${isSelected ? '<i class="bi bi-check-circle-fill text-success ms-2" title="Đã chọn"></i>' : ''}
             </div>
         </button>
         `;
     }).join('');
 }
 
+document.getElementById('availableRoomsList').addEventListener('click', function (event) {
+    const roomOption = event.target.closest('.room-option');
+    if (!roomOption || !this.contains(roomOption)) {
+        return;
+    }
+    event.preventDefault();
+    selectedRoomForCheckin = mockEmptyRoomsGlobal.find(
+        room => String(room.id) === String(roomOption.dataset.roomId)
+            && String(room.roomTypeId) === currentRequiredRoomTypeId
+    ) || null;
+    renderAvailableRooms();
+    updateAssignRoomConfirmation();
+});
+
 // Add event listeners to filters
 document.getElementById('assignRoomCategory').addEventListener('change', renderAvailableRooms);
 document.getElementById('assignRoomView').addEventListener('change', renderAvailableRooms);
 
-// Prevent confirm button logic since we select room by clicking on the list
-document.getElementById('btnConfirmAssignRoom').style.display = 'none';
+const confirmAssignRoomButton = document.getElementById('btnConfirmAssignRoom');
+confirmAssignRoomButton.addEventListener('click', function() {
+    if (!selectedRoomForCheckin) {
+        showAlert('Vui lòng chọn một phòng trước khi xác nhận!', 'warning');
+        return;
+    }
+    window.selectRoomForCheckin(
+        selectedRoomForCheckin.id,
+        selectedRoomForCheckin.view,
+        selectedRoomForCheckin.type,
+        selectedRoomForCheckin.label
+    );
+});
 
-window.selectRoomForCheckin = function(roomId, view, type) {
+function updateAssignRoomConfirmation() {
+    confirmAssignRoomButton.disabled = !selectedRoomForCheckin;
+    confirmAssignRoomButton.innerHTML = selectedRoomForCheckin
+        ? `<i class="bi bi-check-circle-fill me-1"></i> Xác nhận Phòng ${selectedRoomForCheckin.label}`
+        : '<i class="bi bi-check-circle-fill me-1"></i> Xác nhận Gán phòng';
+}
+
+window.selectRoomForCheckin = function(roomId, view, type, label) {
     if (!currentAssigningCheckinId) return;
 
     // Update hidden input
-    document.getElementById('room-' + currentAssigningCheckinId).value = roomId;
+    const roomInput = document.getElementById('room-' + currentAssigningCheckinId);
+    const btn = document.getElementById('btn-select-room-' + currentAssigningCheckinId);
+    if (!roomInput || !btn) {
+        showAlert('Không thể gán phòng cho phiếu check-in này.', 'danger');
+        return;
+    }
+    roomInput.value = roomId;
 
     // Update button text
-    const btn = document.getElementById('btn-select-room-' + currentAssigningCheckinId);
-    btn.innerHTML = `<i class="bi bi-door-open-fill me-1"></i> P.${roomId} (${view})`;
+    btn.innerHTML = `<i class="bi bi-door-open-fill me-1"></i> Phòng ${label || roomId} (${view})`;
     btn.classList.replace('btn-outline-danger', 'btn-outline-navy');
 
     const modal = bootstrap.Modal.getInstance(document.getElementById('assignRoomModal'));

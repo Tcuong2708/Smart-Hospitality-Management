@@ -1,6 +1,9 @@
 package com.votricuong.mayhotel.scheduler;
 
 import com.votricuong.mayhotel.documents.BookingOrder;
+import com.votricuong.mayhotel.documents.BookingDetail;
+import com.votricuong.mayhotel.documents.Invoice;
+import com.votricuong.mayhotel.documents.Room;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -8,11 +11,15 @@ import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import java.util.Date;
 import java.util.List;
 
 @Component
 public class NoShowScheduler {
+
+    private static final Logger log = LoggerFactory.getLogger(NoShowScheduler.class);
 
     @Autowired
     private MongoTemplate mongoTemplate;
@@ -24,23 +31,70 @@ public class NoShowScheduler {
         
         // Tìm các booking có trạng thái "Chờ nhận phòng" hoặc "Đã xác nhận cọc"
         // và autoCancelTime <= thời gian hiện tại
-        Query query = new Query();
-        query.addCriteria(Criteria.where("status").in("Chờ nhận phòng", "Đã xác nhận cọc"));
-        query.addCriteria(Criteria.where("auto_cancel_time").lte(now));
+        Query query = new Query(Criteria.where("status")
+                .in("Pending", "Đã xác nhận", "Chờ nhận phòng", "Đã xác nhận cọc", "Reserved"));
 
         List<BookingOrder> overdueBookings = mongoTemplate.find(query, BookingOrder.class);
 
-        if (!overdueBookings.isEmpty()) {
-            System.out.println("⚠️ [No-Show AI] Phát hiện " + overdueBookings.size() + " đơn quá hạn. Đang tiến hành hủy tự động...");
-            
-            for (BookingOrder order : overdueBookings) {
-                // Cập nhật trạng thái thành "Hủy do khách không đến"
-                Update update = new Update().set("status", "Hủy do khách không đến");
-                mongoTemplate.updateFirst(new Query(Criteria.where("id").is(order.getId())), update, BookingOrder.class);
-                
-                // TODO: Giải phóng tồn kho phòng trống
-                System.out.println("✅ Đã tự động hủy đơn: " + order.getId() + " (Auto cancel time: " + order.getAutoCancelTime() + ")");
+        int cancelledCount = 0;
+        for (BookingOrder order : overdueBookings) {
+            Date cancelAt = resolveAutoCancelTime(order);
+            if (cancelAt.after(now) || Boolean.TRUE.equals(order.getIsFaceVerified())) {
+                continue;
             }
+
+            mongoTemplate.updateFirst(
+                    new Query(Criteria.where("_id").is(order.getId())),
+                    new Update().set("status", "Hủy do khách không đến")
+                            .set("auto_cancel_time", cancelAt),
+                    BookingOrder.class);
+
+            mongoTemplate.updateMulti(
+                    new Query(Criteria.where("booking_id").is(order.getId())
+                            .and("invoice_status").in("Reserved", "Pending")),
+                    new Update().set("invoice_status", "Cancelled")
+                            .set("note", "Tự động hủy do khách check-in trễ"),
+                    Invoice.class);
+
+            releaseReservedRoom(order.getId());
+            cancelledCount++;
+            log.info("No-show AI: da tu dong huy don {} do qua han check-in luc {}", order.getId(), cancelAt);
+        }
+        if (cancelledCount > 0) {
+            log.info("No-show AI: da huy {} don qua han.", cancelledCount);
+        }
+    }
+
+    private Date resolveAutoCancelTime(BookingOrder order) {
+        if (order.getAutoCancelTime() != null) {
+            return order.getAutoCancelTime();
+        }
+        if (order.getExpectedIn() == null) {
+            return new Date(Long.MAX_VALUE);
+        }
+
+        java.util.Calendar calendar = java.util.Calendar.getInstance();
+        calendar.setTime(order.getExpectedIn());
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, "Cao".equals(order.getNoShowRiskLevel()) ? 14 : 18);
+        calendar.set(java.util.Calendar.MINUTE, 0);
+        calendar.set(java.util.Calendar.SECOND, 0);
+        calendar.set(java.util.Calendar.MILLISECOND, 0);
+        return calendar.getTime();
+    }
+
+    private void releaseReservedRoom(Long bookingId) {
+        List<BookingDetail> details = mongoTemplate.find(
+                new Query(Criteria.where("booking_id").is(bookingId)),
+                BookingDetail.class);
+        for (BookingDetail detail : details) {
+            if (detail.getRoomId() == null) {
+                continue;
+            }
+            mongoTemplate.updateFirst(
+                    new Query(Criteria.where("_id").is(detail.getRoomId())
+                            .and("status").in("Đã đặt", "Reserved")),
+                    new Update().set("status", "Trống"),
+                    Room.class);
         }
     }
 }

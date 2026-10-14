@@ -25,6 +25,7 @@ import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.ServiceTicket;
 import com.votricuong.mayhotel.documents.Customer;
 import com.votricuong.mayhotel.services.EmailService;
+import com.votricuong.mayhotel.services.BookingAvailabilityService;
 
 import java.time.LocalDate;
 import java.time.Instant;
@@ -51,8 +52,9 @@ public class MobileApiController {
     private final CustomerRepository customerRepository;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final com.votricuong.mayhotel.services.LoyaltyService loyaltyService;
+    private final BookingAvailabilityService bookingAvailabilityService;
 
-    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.services.LoyaltyService loyaltyService) {
+    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingAvailabilityService bookingAvailabilityService) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.invoiceRepository = invoiceRepository;
@@ -66,6 +68,7 @@ public class MobileApiController {
         this.customerRepository = customerRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.loyaltyService = loyaltyService;
+        this.bookingAvailabilityService = bookingAvailabilityService;
     }
 
     private String hashPassword(String password) {
@@ -252,23 +255,13 @@ public class MobileApiController {
                 return ResponseEntity.badRequest().body(ApiResponse.error("Ngày trả phòng phải sau ngày nhận phòng"));
             }
 
-            List<Room> allRooms = roomRepository.findAll();
+            List<Room> allRooms = bookingAvailabilityService.findAvailableRooms(null, ngayNhan, ngayTra);
             List<RoomType> allRoomTypes = roomTypeRepository.findAll();
             Map<Long, RoomType> typeMap = allRoomTypes.stream().collect(Collectors.toMap(RoomType::getId, t -> t));
-            
-            // Lấy tất cả các phiếu đặt phòng có trùng lịch để loại bỏ phòng bận
-            List<Long> bookedRoomIds = invoiceRepository.findAll().stream()
-                .filter(inv -> "Đã xác nhận".equals(inv.getInvoiceStatus()) || "Chờ thanh toán".equals(inv.getInvoiceStatus()) || "Reserved".equals(inv.getInvoiceStatus()))
-                .map(Invoice::getBookingId) // mock, vì DB hiện chưa nối trực tiếp roomID trong invoice. 
-                // DO NOT USE INVOICE TO FILTER IN MOCK, JUST USE ROOM STATUS FOR NOW.
-                .collect(Collectors.toList());
 
-            // Gom nhóm các phòng trống theo loại phòng (ẩn đi tên phòng cụ thể)
+            // Gom nhóm các phòng còn trống theo đúng khoảng ngày (ẩn tên phòng cụ thể).
             Map<Long, List<Room>> availableRoomsByType = allRooms.stream()
-                .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()) || 
-                             "Còn phòng".equalsIgnoreCase(r.getStatus()) || 
-                             "Trống".equalsIgnoreCase(r.getStatus()) || 
-                             "Phòng trống".equalsIgnoreCase(r.getStatus()))
+                .filter(r -> r.getRoomTypeId() != null)
                 .collect(Collectors.groupingBy(Room::getRoomTypeId));
 
             List<Map<String, Object>> roomsData = availableRoomsByType.entrySet().stream()
@@ -325,36 +318,31 @@ public class MobileApiController {
     // ==========================================
 
     @PostMapping("/booking/add")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> addBooking(@RequestBody Map<String, Object> payload) {
+    public synchronized ResponseEntity<ApiResponse<Map<String, Object>>> addBooking(@RequestBody Map<String, Object> payload) {
         try {
-            Long userId = Long.valueOf(payload.get("userId").toString());
-            Long roomTypeId = Long.valueOf(payload.get("roomTypeId").toString());
-            String ngayNhanStr = (String) payload.get("ngayNhan");
-            String ngayTraStr = (String) payload.get("ngayTra");
-            
-            if (!ngayNhanStr.endsWith("Z")) ngayNhanStr += "Z";
+            Long userId = requiredLong(payload, "userId");
+            Long roomTypeId = requiredLong(payload, "roomTypeId");
+            String ngayNhanStr = requiredString(payload, "ngayNhan");
+            String ngayTraStr = requiredString(payload, "ngayTra");
+
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new IllegalArgumentException("Tài khoản đặt phòng không tồn tại"));
             Date ngayNhan = parseMobileDate(ngayNhanStr);
             Date ngayTra = parseMobileDate(ngayTraStr);
-            
-            List<Room> availableRooms = roomRepository.findAll().stream()
-                .filter(r -> roomTypeId.equals(r.getRoomTypeId()) && (
-                             "Vacant".equalsIgnoreCase(r.getStatus()) || 
-                             "Còn phòng".equalsIgnoreCase(r.getStatus()) || 
-                             "Trống".equalsIgnoreCase(r.getStatus()) || 
-                             "Phòng trống".equalsIgnoreCase(r.getStatus())
-                ))
-                .collect(Collectors.toList());
+            bookingAvailabilityService.validateStay(ngayNhan, ngayTra);
+
+            List<Room> availableRooms = bookingAvailabilityService.findAvailableRooms(roomTypeId, ngayNhan, ngayTra);
                 
             if (availableRooms.isEmpty()) {
-                return ResponseEntity.badRequest().body(ApiResponse.error("Hết phòng trống cho loại phòng này."));
+                return ResponseEntity.badRequest().body(ApiResponse.error("Hết phòng trống cho loại phòng này trong khoảng ngày đã chọn."));
             }
             
             Room selectedRoom = availableRooms.get(0);
             
             // Xử lý Customer
-            String customerName = (String) payload.get("customerName");
-            String customerPhone = (String) payload.get("customerPhone");
-            String ghiChu = (String) payload.get("ghiChu");
+            String customerName = optionalString(payload, "customerName");
+            String customerPhone = optionalString(payload, "customerPhone");
+            String ghiChu = optionalString(payload, "ghiChu");
 
             List<Customer> customers = customerRepository.findByUserId(userId);
             Customer customer;
@@ -363,34 +351,25 @@ public class MobileApiController {
                 customer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
                 customer.setUserId(userId);
                 
-                if (customerName != null && !customerName.trim().isEmpty()) {
-                    customer.setFullName(customerName);
-                } else {
-                    userRepository.findById(userId).ifPresent(u -> {
-                        customer.setFullName(u.getUsername() != null ? u.getUsername() : "Khách hàng Mobile");
-                    });
-                }
-
-                if (customerPhone != null && !customerPhone.trim().isEmpty()) {
-                    customer.setPhone(customerPhone);
-                } else {
-                    userRepository.findById(userId).ifPresent(u -> customer.setPhone(u.getPhone()));
-                }
-
-                userRepository.findById(userId).ifPresent(u -> customer.setEmail(u.getEmail()));
+                customer.setFullName(hasText(customerName)
+                        ? customerName
+                        : (hasText(user.getFullName()) ? user.getFullName() : user.getUsername()));
+                customer.setPhone(hasText(customerPhone) ? customerPhone : user.getPhone());
+                customer.setEmail(user.getEmail());
                 customerRepository.save(customer);
             } else {
                 customer = customers.get(0);
-                // Cập nhật lại thông tin mới nhất
-                if (customerName != null && !customerName.trim().isEmpty()) customer.setFullName(customerName);
-                if (customerPhone != null && !customerPhone.trim().isEmpty()) customer.setPhone(customerPhone);
+                if (hasText(customerName)) customer.setFullName(customerName);
+                if (hasText(customerPhone)) customer.setPhone(customerPhone);
+                if (!hasText(customer.getEmail())) customer.setEmail(user.getEmail());
                 customerRepository.save(customer);
             }
 
-            long diffInMillies = Math.abs(ngayTra.getTime() - ngayNhan.getTime());
-            long diff = java.util.concurrent.TimeUnit.DAYS.convert(diffInMillies, java.util.concurrent.TimeUnit.MILLISECONDS);
-            if (diff == 0) diff = 1;
-            double total = selectedRoom.getPrice() * diff;
+            long nights = java.time.temporal.ChronoUnit.DAYS.between(
+                    ngayNhan.toInstant().atZone(ZoneOffset.UTC).toLocalDate(),
+                    ngayTra.toInstant().atZone(ZoneOffset.UTC).toLocalDate());
+            double unitPrice = selectedRoom.getPrice() != null ? selectedRoom.getPrice() : 0.0;
+            double total = unitPrice * nights;
             
             BookingOrder order = new BookingOrder();
             order.setId(sequenceGeneratorService.generateSequence("booking_orders_sequence"));
@@ -398,8 +377,9 @@ public class MobileApiController {
             order.setBookingDate(new Date());
             order.setExpectedIn(ngayNhan);
             order.setExpectedOut(ngayTra);
-            order.setStatus("Đã xác nhận"); // Đã xác nhận luôn cho luồng Mobile nhanh
-            order.setNotes(ghiChu); // Đồng bộ ghi chú (quốc tịch, địa chỉ)
+            order.setStatus("Pending");
+            order.setNotes(ghiChu);
+            order.setAutoCancelTime(calculateAutoCancelTime(ngayNhan, false));
             bookingOrderRepository.save(order);
             
             BookingDetail bd = new BookingDetail();
@@ -413,19 +393,25 @@ public class MobileApiController {
             invoice.setId(sequenceGeneratorService.generateSequence("invoices_sequence"));
             invoice.setBookingId(order.getId());
             invoice.setTotalAmount(total);
-            invoice.setInvoiceStatus("Chờ thanh toán");
+            invoice.setInvoiceStatus("Pending");
             invoice.setCreatedAt(new Date());
             invoice.setUserId(userId);
+            invoice.setGuestName(customer.getFullName());
+            invoice.setPhone(customer.getPhone());
+            invoice.setRoomId(selectedRoom.getId());
+            invoice.setCheckInDate(ngayNhan);
+            invoice.setCheckOutDate(ngayTra);
+            invoice.setIsPaid(false);
+            invoice.setSurcharge(0.0);
+            invoice.setNote(ghiChu);
             invoiceRepository.save(invoice);
-            
-            selectedRoom.setStatus("Reserved");
-            roomRepository.save(selectedRoom);
             
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", order.getId());
             resp.put("invoiceId", invoice.getId());
             resp.put("roomId", selectedRoom.getId());
             resp.put("total", total);
+            resp.put("status", order.getStatus());
             
             return ResponseEntity.ok(ApiResponse.success("Đặt phòng thành công", resp));
         } catch (Exception e) {
@@ -444,24 +430,28 @@ public class MobileApiController {
             
             List<BookingOrder> orders = bookingOrderRepository.findAll().stream()
                 .filter(o -> customerId.equals(o.getCustomerId()))
-                .sorted((a, b) -> b.getBookingDate().compareTo(a.getBookingDate()))
+                .sorted(Comparator.comparing(
+                        BookingOrder::getBookingDate,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
                 .collect(Collectors.toList());
                 
             List<Map<String, Object>> data = new ArrayList<>();
             for (BookingOrder o : orders) {
                 double tongTien = 0.0;
-                Optional<Invoice> invOpt = invoiceRepository.findAll().stream()
-                        .filter(inv -> o.getId().equals(inv.getBookingId()))
-                        .findFirst();
-                if (invOpt.isPresent()) tongTien = invOpt.get().getTotalAmount();
+                Optional<Invoice> invOpt = invoiceRepository.findByBookingId(o.getId()).stream().findFirst();
+                if (invOpt.isPresent() && invOpt.get().getTotalAmount() != null) {
+                    tongTien = invOpt.get().getTotalAmount();
+                }
                 
                 Map<String, Object> map = new HashMap<>();
                 map.put("bookingId", o.getId());
-                map.put("ngayNhan", o.getExpectedIn().toInstant().toString());
-                map.put("ngayTra", o.getExpectedOut().toInstant().toString());
+                map.put("ngayNhan", o.getExpectedIn() != null ? o.getExpectedIn().toInstant().toString() : null);
+                map.put("ngayTra", o.getExpectedOut() != null ? o.getExpectedOut().toInstant().toString() : null);
                 map.put("tongTien", tongTien);
                 map.put("trangThai", o.getStatus() != null ? o.getStatus() : "Chờ xác nhận");
                 map.put("isFaceVerified", Boolean.TRUE.equals(o.getIsFaceVerified()));
+                map.put("daThanhToan", invOpt.map(inv -> Boolean.TRUE.equals(inv.getIsPaid())).orElse(false));
+                map.put("phuongThucThanhToan", invOpt.map(Invoice::getPayMethod).orElse(null));
                 map.put("tenPhong", "Chưa gán phòng");
                 map.put("roomId", null);
                 map.put("hinhAnh", "");
@@ -547,12 +537,12 @@ public class MobileApiController {
             
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", bookingId);
-            resp.put("status", "Đã xác thực - chờ lễ tân gán phòng");
+            resp.put("status", "Đã xác thực - chờ lễ tân xác nhận nhận phòng");
             resp.put("canOrderService", false);
             resp.put("nfcAccessCode", nfcCode);
             resp.put("cccdParsed", cccdData);
             
-            return ResponseEntity.ok(ApiResponse.success("Nhận phòng thành công. Quý khách đã có thể đặt dịch vụ.", resp));
+            return ResponseEntity.ok(ApiResponse.success("Xác thực thành công. Vui lòng chờ lễ tân hoàn tất nhận phòng.", resp));
         } catch(Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -570,6 +560,11 @@ public class MobileApiController {
             bookingOrderRepository.save(order);
             
             List<BookingDetail> details = bookingDetailRepository.findByBookingId(order.getId());
+            Date checkedOutAt = new Date();
+            for (BookingDetail detail : details) {
+                detail.setActualOut(checkedOutAt);
+                bookingDetailRepository.save(detail);
+            }
             if (!details.isEmpty() && details.get(0).getRoomId() != null) {
                 Long roomId = details.get(0).getRoomId();
                 roomRepository.findById(roomId).ifPresent(r -> {
@@ -579,8 +574,7 @@ public class MobileApiController {
             }
             
             // Xử lý Invoice thành Completed
-            invoiceRepository.findAll().stream()
-                .filter(inv -> bookingId.equals(inv.getBookingId()))
+            invoiceRepository.findByBookingId(bookingId).stream()
                 .findFirst()
                 .ifPresent(inv -> {
                     inv.setInvoiceStatus("Completed");
@@ -602,7 +596,14 @@ public class MobileApiController {
         try {
             Long bookingId = Long.valueOf(payload.get("bookingId").toString());
             Long serviceId = Long.valueOf(payload.get("serviceId").toString());
-            Integer quantity = (Integer) payload.getOrDefault("quantity", 1);
+            Object quantityValue = payload.getOrDefault("quantity", 1);
+            if (!(quantityValue instanceof Number)) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Số lượng dịch vụ không hợp lệ."));
+            }
+            int quantity = ((Number) quantityValue).intValue();
+            if (quantity <= 0) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Số lượng dịch vụ phải lớn hơn 0."));
+            }
             
             Optional<BookingOrder> orderOpt = bookingOrderRepository.findById(bookingId);
             if (orderOpt.isEmpty()) {
@@ -624,6 +625,9 @@ public class MobileApiController {
             }
             
             Service srv = srvOpt.get();
+            if (srv.getPrice() == null || srv.getPrice() < 0) {
+                return ResponseEntity.badRequest().body(ApiResponse.error("Giá dịch vụ không hợp lệ."));
+            }
             
             ServiceTicket stItem = new ServiceTicket();
             stItem.setId(sequenceGeneratorService.generateSequence("service_tickets_sequence"));
@@ -634,14 +638,16 @@ public class MobileApiController {
             serviceTicketRepository.save(stItem);
 
             // Cập nhật tổng tiền vào hóa đơn hiện tại (nếu có)
-            invoiceRepository.findAll().stream()
-                .filter(inv -> bookingId.equals(inv.getBookingId()))
-                .findFirst()
-                .ifPresent(inv -> {
-                    double currentTotal = inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0;
-                    inv.setTotalAmount(currentTotal + (srv.getPrice() * quantity));
-                    invoiceRepository.save(inv);
-                });
+            double serviceAmount = srv.getPrice() * quantity;
+            double updatedInvoiceTotal = serviceAmount;
+            Optional<Invoice> invoiceOpt = invoiceRepository.findByBookingId(bookingId).stream().findFirst();
+            if (invoiceOpt.isPresent()) {
+                Invoice invoice = invoiceOpt.get();
+                double currentTotal = invoice.getTotalAmount() != null ? invoice.getTotalAmount() : 0.0;
+                updatedInvoiceTotal = currentTotal + serviceAmount;
+                invoice.setTotalAmount(updatedInvoiceTotal);
+                invoiceRepository.save(invoice);
+            }
             
             // Generate Receipt Data cho Mobile render
             Map<String, Object> receipt = new HashMap<>();
@@ -652,7 +658,8 @@ public class MobileApiController {
             receipt.put("serviceName", srv.getName());
             receipt.put("quantity", quantity);
             receipt.put("unitPrice", srv.getPrice());
-            receipt.put("totalPrice", srv.getPrice() * quantity);
+            receipt.put("totalPrice", serviceAmount);
+            receipt.put("totalAmount", updatedInvoiceTotal);
             receipt.put("message", "Cảm ơn quý khách đã sử dụng dịch vụ!");
             
             return ResponseEntity.ok(ApiResponse.success("Đặt dịch vụ thành công", receipt));
@@ -664,26 +671,94 @@ public class MobileApiController {
     @PostMapping("/booking/confirm-payment")
     public ResponseEntity<ApiResponse<Map<String, Object>>> confirmPayment(@RequestBody Map<String, Object> payload) {
         try {
-            Long bookingId = Long.valueOf(payload.get("bookingId").toString());
+            Long bookingId = requiredLong(payload, "bookingId");
+            Long paymentMethodId = requiredLong(payload, "paymentMethodId");
             Optional<Invoice> invoiceOpt = invoiceRepository.findByBookingId(bookingId).stream().findFirst();
             if (invoiceOpt.isEmpty()) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("Không tìm thấy hóa đơn của đơn đặt phòng"));
             }
+            BookingOrder order = bookingOrderRepository.findById(bookingId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng"));
 
             Invoice invoice = invoiceOpt.get();
-            invoice.setIsPaid(true);
-            invoice.setInvoiceStatus("Paid");
+            boolean payAtHotel = paymentMethodId == 8L;
+            invoice.setPayMethod(resolvePaymentMethod(paymentMethodId));
+            invoice.setIsPaid(!payAtHotel);
+            // Trạng thái Reserved là đầu vào của màn hình nhận phòng; trạng thái thanh toán nằm ở isPaid.
+            invoice.setInvoiceStatus("Reserved");
             invoiceRepository.save(invoice);
-            int earnedPoints = loyaltyService.awardPointsForPaidInvoice(invoice);
+
+            order.setStatus(payAtHotel ? "Chờ nhận phòng" : "Đã xác nhận cọc");
+            bookingOrderRepository.save(order);
+
+            int earnedPoints = payAtHotel ? 0 : loyaltyService.awardPointsForPaidInvoice(invoice);
 
             Map<String, Object> result = new HashMap<>();
             result.put("bookingId", bookingId);
-            result.put("status", "PAID");
+            result.put("status", payAtHotel ? "PAY_AT_HOTEL" : "PAID");
+            result.put("bookingStatus", order.getStatus());
+            result.put("totalAmount", invoice.getTotalAmount() != null ? invoice.getTotalAmount() : 0.0);
             result.put("earnedPoints", earnedPoints);
-            return ResponseEntity.ok(ApiResponse.success("Thanh toán thành công", result));
+            String message = payAtHotel
+                    ? "Đã ghi nhận thanh toán tại quầy khi nhận phòng"
+                    : "Thanh toán thành công";
+            return ResponseEntity.ok(ApiResponse.success(message, result));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi xác nhận thanh toán: " + e.getMessage()));
         }
+    }
+
+    private Long requiredLong(Map<String, Object> payload, String field) {
+        Object value = payload.get(field);
+        if (value == null || value.toString().isBlank()) {
+            throw new IllegalArgumentException(field + " không được để trống");
+        }
+        try {
+            return Long.valueOf(value.toString());
+        } catch (NumberFormatException ex) {
+            throw new IllegalArgumentException(field + " không hợp lệ");
+        }
+    }
+
+    private String requiredString(Map<String, Object> payload, String field) {
+        String value = optionalString(payload, field);
+        if (!hasText(value)) {
+            throw new IllegalArgumentException(field + " không được để trống");
+        }
+        return value;
+    }
+
+    private String optionalString(Map<String, Object> payload, String field) {
+        Object value = payload.get(field);
+        return value == null ? null : value.toString().trim();
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private Date calculateAutoCancelTime(Date expectedIn, boolean highRisk) {
+        Calendar calendar = Calendar.getInstance();
+        calendar.setTime(expectedIn);
+        calendar.set(Calendar.HOUR_OF_DAY, highRisk ? 14 : 18);
+        calendar.set(Calendar.MINUTE, 0);
+        calendar.set(Calendar.SECOND, 0);
+        calendar.set(Calendar.MILLISECOND, 0);
+        return calendar.getTime();
+    }
+
+    private String resolvePaymentMethod(Long paymentMethodId) {
+        return switch (paymentMethodId.intValue()) {
+            case 1 -> "CARD";
+            case 2 -> "MOMO";
+            case 3 -> "ZALOPAY";
+            case 4 -> "GOOGLE_PAY";
+            case 5 -> "PAYPAL";
+            case 6 -> "SHOPEE_PAY";
+            case 7 -> "APPLE_PAY";
+            case 8 -> "PAY_AT_HOTEL";
+            default -> throw new IllegalArgumentException("Phương thức thanh toán không hợp lệ");
+        };
     }
 
     private Date parseMobileDate(String value) {
