@@ -49,4 +49,13 @@ public class BookingOrder {
     // --- THUỘC TÍNH BỔ SUNG CHO NGHIỆP VỤ CHECK-IN AI ---
     @Field("is_face_verified")
     private Boolean isFaceVerified; // Cờ xác định khách đã quét khuôn mặt thành công qua Mobile App
+
+    @Field("identity_verification_method")
+    private String identityVerificationMethod;
+
+    @Field("identity_verification_reason")
+    private String identityVerificationReason;
+
+    @Field("identity_verified_at")
+    private Date identityVerifiedAt;
 }

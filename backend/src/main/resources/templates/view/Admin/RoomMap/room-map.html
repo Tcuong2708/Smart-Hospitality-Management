@@ -7,6 +7,12 @@
                     <i class="bi bi-grid-3x3-gap-fill me-2"></i>Sơ đồ phòng nghỉ
                 </h3>
                 <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1 justify-content-end">
+                    <form th:action="@{/receptionist/room-map}" method="get" class="room-map-date-picker d-flex align-items-center bg-white rounded shadow-sm px-2">
+                        <label for="room-map-date" class="visually-hidden">Ngày xem</label>
+                        <input type="date" class="form-control border-0 shadow-none fw-semibold" id="room-map-date" name="date" th:value="${selectedDate}" aria-label="Ngày xem trạng thái phòng" onchange="this.form.submit()">
+                        <a th:unless="${isToday}" th:href="@{/receptionist/room-map}" class="btn btn-sm btn-outline-secondary text-nowrap me-1">Hôm nay</a>
+                    </form>
+
                     <div class="dropdown">
                         <button class="btn bg-white border-0 shadow-sm dropdown-toggle text-muted fw-bold" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                             <i class="bi bi-building me-1"></i> Lọc Tầng
@@ -43,18 +49,23 @@
                         </ul>
                     </div>
 
-                    <a href="../../admin/check-in/index.html" class="btn btn-gold px-4 shadow-sm text-white fw-bold" style="background: #C5A017;">
+                    <a th:href="@{/receptionist/check-in}" class="btn btn-gold px-4 shadow-sm text-white fw-bold" style="background: #C5A017;">
                         <i class="bi bi-journal-bookmark-fill me-2"></i>DS Chờ Check-in
                     </a>
                 </div>
             </div>
             
             <div class="card-body p-4">
-                <div class="d-flex gap-4 p-3 bg-white rounded shadow-sm border mb-4" style="font-size: 0.9rem;">
+                <div class="d-flex flex-wrap gap-4 p-3 bg-white rounded shadow-sm border mb-2" style="font-size: 0.9rem;">
                     <span class="fw-bold"><i class="bi bi-square-fill text-success me-1"></i>Phòng trống</span>
-                    <span class="fw-bold"><i class="bi bi-square-fill text-danger me-1"></i>Đang ở (Check-in)</span>
+                    <span class="fw-bold"><i class="bi bi-square-fill text-danger me-1"></i>Đang lưu trú</span>
+                    <span class="fw-bold"><i class="bi bi-square-fill text-primary me-1"></i>Đã đặt</span>
                     <span class="fw-bold"><i class="bi bi-square-fill text-warning me-1"></i>Chờ dọn dẹp (Sau Check-out)</span>
                 </div>
+                <p class="text-muted small mb-4">
+                    Trạng thái tại ngày <strong class="text-navy" th:text="${selectedDateDisplay}">15/10/2026</strong>.
+                    Ngày trả phòng là mốc kết thúc và không tính là một đêm lưu trú.
+                </p>
 
                 <div id="loading-spinner" class="text-center py-5">
                     <div class="spinner-border text-primary" role="status"></div>
@@ -147,13 +158,14 @@
 
 
 <th:block th:fragment="extra_css">
-<link rel="stylesheet" th:href="@{/css/room-map.css}" />
+<link rel="stylesheet" th:href="@{/css/room-map.css(v=20261015-3)}" />
 </th:block>
 <th:block th:fragment="extra_js">
 <script th:inline="javascript">
 window.mockRoomMapData = /*[[${rooms}]]*/ {};
-window.mockEmptyRooms = /*[[${emptyRooms}]]*/ [];
+window.roomMapSelectedDate = /*[[${selectedDate}]]*/ '';
+window.roomMapIsToday = /*[[${isToday}]]*/ false;
 </script>
-<script th:src="@{/js/Admin/RoomMap/room-map.js}"></script>
+<script th:src="@{/js/Admin/RoomMap/room-map.js(v=20261015-1)}"></script>
 </th:block>
 </div>

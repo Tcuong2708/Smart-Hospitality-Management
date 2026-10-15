@@ -11,6 +11,8 @@ import 'room_search_cache.dart';
 
 class HotelApiProvider {
   final Dio _dio = HotelApiClient.instance.dio;
+  final String _chatSessionId =
+      'mobile-${DateTime.now().microsecondsSinceEpoch}';
   static final Map<String, Future<List<dynamic>>> _inFlightSearches =
       <String, Future<List<dynamic>>>{};
 
@@ -428,10 +430,12 @@ class HotelApiProvider {
     try {
       final response = await _dio.post(
         "/api/reception/chatbot",
-        data: {"message": message},
+        data: {"message": message, "user_id": _chatSessionId},
       );
       if (response.statusCode == 200) {
-        return response.data['reply'] ??
+        return response.data['response'] ??
+            response.data['reply'] ??
+            response.data['answer'] ??
             response.data['message'] ??
             "Xin lỗi, tôi chưa hiểu ý bạn.";
       }

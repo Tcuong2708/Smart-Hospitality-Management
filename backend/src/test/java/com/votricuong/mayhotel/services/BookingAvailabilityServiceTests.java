@@ -10,8 +10,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -68,6 +70,48 @@ class BookingAvailabilityServiceTests {
         assertThatThrownBy(() -> service.validateStay(sameDay, sameDay))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Ngày trả phòng phải sau ngày nhận phòng");
+    }
+
+    @Test
+    void roomTimelineUsesActualStayForHistoryAndExcludesCheckoutDate() {
+        BookingOrder completedStay = order(
+                201L,
+                "Đã trả phòng",
+                "2026-10-13T00:00:00Z",
+                "2026-10-15T00:00:00Z");
+        BookingDetail detail = BookingDetail.builder()
+                .roomId(1L)
+                .actualIn(date("2026-10-13T07:00:00Z"))
+                .actualOut(date("2026-10-15T03:00:00Z"))
+                .build();
+        when(bookingOrderRepository.findAll()).thenReturn(List.of(completedStay));
+        when(bookingDetailRepository.findByBookingId(201L)).thenReturn(List.of(detail));
+
+        Map<Long, BookingAvailabilityService.RoomTimelineStatus> previousDay =
+                service.findRoomUsageOn(LocalDate.of(2026, 10, 14));
+        Map<Long, BookingAvailabilityService.RoomTimelineStatus> checkoutDay =
+                service.findRoomUsageOn(LocalDate.of(2026, 10, 15));
+
+        assertThat(previousDay).containsEntry(
+                1L, BookingAvailabilityService.RoomTimelineStatus.OCCUPIED);
+        assertThat(checkoutDay).doesNotContainKey(1L);
+    }
+
+    @Test
+    void roomTimelineMarksAnUpcomingBlockingBookingAsReserved() {
+        BookingOrder reserved = order(
+                202L,
+                "Reserved",
+                "2026-10-20T00:00:00Z",
+                "2026-10-22T00:00:00Z");
+        when(bookingOrderRepository.findAll()).thenReturn(List.of(reserved));
+        when(bookingDetailRepository.findByBookingId(202L)).thenReturn(List.of(detail(2L)));
+
+        Map<Long, BookingAvailabilityService.RoomTimelineStatus> usage =
+                service.findRoomUsageOn(LocalDate.of(2026, 10, 21));
+
+        assertThat(usage).containsEntry(
+                2L, BookingAvailabilityService.RoomTimelineStatus.RESERVED);
     }
 
     private Room room(Long id, Long roomTypeId, String status) {

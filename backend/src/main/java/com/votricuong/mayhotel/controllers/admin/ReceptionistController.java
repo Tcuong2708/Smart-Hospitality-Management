@@ -1,6 +1,7 @@
 package com.votricuong.mayhotel.controllers.admin;
 
 import com.votricuong.mayhotel.controllers.BaseController;
+import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.RoomType;
@@ -8,17 +9,23 @@ import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
+import com.votricuong.mayhotel.services.BookingAvailabilityService;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.stereotype.Controller;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.text.SimpleDateFormat;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Controller
@@ -31,15 +38,18 @@ public class ReceptionistController extends BaseController {
     private final com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository;
     private final com.votricuong.mayhotel.services.LoyaltyService loyaltyService;
     private final BookingOrderRepository bookingOrderRepository;
+    private final BookingAvailabilityService bookingAvailabilityService;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+    private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository) {
+    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository, BookingAvailabilityService bookingAvailabilityService) {
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.bookingDetailRepository = bookingDetailRepository;
         this.loyaltyService = loyaltyService;
         this.bookingOrderRepository = bookingOrderRepository;
+        this.bookingAvailabilityService = bookingAvailabilityService;
     }
 
     @Data
@@ -81,9 +91,12 @@ public class ReceptionistController extends BaseController {
         private Long roomTypeId;
         private String type;
         private String view;
+        private boolean occupied;
     }
 
-    private CheckInRoomDTO mapToCheckInRoomDTO(Room room, Map<Long, RoomType> roomTypes) {
+    private CheckInRoomDTO mapToCheckInRoomDTO(Room room,
+                                               Map<Long, RoomType> roomTypes,
+                                               boolean occupied) {
         RoomType roomType = roomTypes.get(room.getRoomTypeId());
         String typeName = roomType == null ? "" : roomType.getName();
         String normalizedType = typeName == null ? "" : typeName.toLowerCase(java.util.Locale.ROOT);
@@ -113,6 +126,7 @@ public class ReceptionistController extends BaseController {
                 .roomTypeId(room.getRoomTypeId())
                 .type(displayType)
                 .view(room.getViewDirection())
+                .occupied(occupied)
                 .build();
     }
 
@@ -158,8 +172,15 @@ public class ReceptionistController extends BaseController {
 
     // 0. GET /room-map: Hiển thị sơ đồ phòng
     @GetMapping("/room-map")
-    public String roomMapView(Model model) {
+    public String roomMapView(@RequestParam(value = "date", required = false)
+                              @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate requestedDate,
+                              Model model) {
         setPageTitle(model, "Sơ đồ phòng trực quan");
+
+        LocalDate today = LocalDate.now(HOTEL_ZONE);
+        LocalDate selectedDate = requestedDate == null ? today : requestedDate;
+        Map<Long, BookingAvailabilityService.RoomTimelineStatus> roomUsage =
+                bookingAvailabilityService.findRoomUsageOn(selectedDate);
 
         Map<Long, RoomType> typeMapFull = roomTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
@@ -167,10 +188,19 @@ public class ReceptionistController extends BaseController {
         Map<Long, List<RoomMapDTO>> roomMap = roomRepository.findAll().stream().map(room -> {
             Integer trangThai = 1; // 1 = Vacant
             String st = room.getStatus();
-            if ("Occupied".equalsIgnoreCase(st) || "In Use".equalsIgnoreCase(st) || "Đang có khách".equalsIgnoreCase(st)) {
+            BookingAvailabilityService.RoomTimelineStatus timelineStatus = roomUsage.get(room.getId());
+            if (timelineStatus == BookingAvailabilityService.RoomTimelineStatus.OCCUPIED) {
                 trangThai = 2; // 2 = Occupied
-            } else if ("Cleaning".equalsIgnoreCase(st) || "Chờ dọn dẹp".equalsIgnoreCase(st)) {
+            } else if (timelineStatus == BookingAvailabilityService.RoomTimelineStatus.RESERVED) {
+                trangThai = 4; // 4 = Reserved on selected date
+            } else if (selectedDate.equals(today)
+                    && ("Cleaning".equalsIgnoreCase(st) || "Chờ dọn dẹp".equalsIgnoreCase(st))) {
                 trangThai = 3; // 3 = Cleaning
+            } else if (selectedDate.equals(today)
+                    && ("Occupied".equalsIgnoreCase(st)
+                    || "In Use".equalsIgnoreCase(st)
+                    || "Đang có khách".equalsIgnoreCase(st))) {
+                trangThai = 2; // Dữ liệu cũ chưa có actual_in vẫn phải thể hiện đang ở hôm nay
             }
 
             String loai = "Tiêu chuẩn";
@@ -200,11 +230,10 @@ public class ReceptionistController extends BaseController {
         }, java.util.TreeMap::new, Collectors.toList()));
 
         model.addAttribute("rooms", roomMap);
-
-        List<Room> emptyRooms = roomRepository.findAll().stream()
-                .filter(r -> "Trống".equalsIgnoreCase(r.getStatus()) || "Vacant".equalsIgnoreCase(r.getStatus()))
-                .collect(Collectors.toList());
-        model.addAttribute("emptyRooms", emptyRooms);
+        model.addAttribute("selectedDate", selectedDate);
+        model.addAttribute("selectedDateDisplay", selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        model.addAttribute("today", today);
+        model.addAttribute("isToday", selectedDate.equals(today));
 
         // Nạp CSS riêng cho trang này
         setExtraCSS(model, "view/Admin/RoomMap/room-map :: extra_css");
@@ -231,11 +260,16 @@ public class ReceptionistController extends BaseController {
         Map<Long, RoomType> roomTypes = roomTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(RoomType::getId, type -> type));
 
+        Set<Long> occupiedRoomIds = bookingAvailabilityService.findOccupiedRoomIdsOn(
+                LocalDate.now(HOTEL_ZONE));
+
         List<CheckInRoomDTO> emptyRooms = roomRepository.findAll().stream()
-                .filter(r -> "Trống".equalsIgnoreCase(r.getStatus())
+                .filter(r -> occupiedRoomIds.contains(r.getId())
+                        || "Trống".equalsIgnoreCase(r.getStatus())
                         || "Vacant".equalsIgnoreCase(r.getStatus())
                         || (assignedRoomIds.contains(r.getId()) && "Reserved".equalsIgnoreCase(r.getStatus())))
-                .map(room -> mapToCheckInRoomDTO(room, roomTypes))
+                .filter(r -> r.getId() != null)
+                .map(room -> mapToCheckInRoomDTO(room, roomTypes, occupiedRoomIds.contains(room.getId())))
                 .collect(Collectors.toList());
 
         model.addAttribute("invoices", invoices);
@@ -257,6 +291,19 @@ public class ReceptionistController extends BaseController {
                     .orElseThrow(() -> new Exception("Không tìm thấy phiếu đặt phòng."));
             Room room = roomRepository.findById(maPhong)
                     .orElseThrow(() -> new Exception("Phòng không tồn tại."));
+
+            if (invoice.getBookingId() == null) {
+                throw new Exception("Không xác định được đơn đặt phòng để kiểm tra danh tính.");
+            }
+            BookingOrder verifiedBooking = bookingOrderRepository.findById(invoice.getBookingId())
+                    .orElseThrow(() -> new Exception("Không tìm thấy đơn đặt phòng."));
+            if (!Boolean.TRUE.equals(verifiedBooking.getIsFaceVerified())) {
+                throw new Exception("Khách chưa xác thực danh tính qua Mobile hoặc nhập tay ngoại lệ.");
+            }
+
+            if (bookingAvailabilityService.isRoomOccupiedOn(maPhong, LocalDate.now(HOTEL_ZONE))) {
+                throw new Exception("Phòng này đang có khách lưu trú, không thể gán cho phiếu check-in.");
+            }
 
             List<com.votricuong.mayhotel.documents.BookingDetail> bookingDetails = invoice.getBookingId() == null
                     ? List.of()
@@ -307,18 +354,14 @@ public class ReceptionistController extends BaseController {
                 loyaltyService.awardPointsForPaidInvoice(invoice);
             }
 
-            if (invoice.getBookingId() != null) {
-                bookingOrderRepository.findById(invoice.getBookingId()).ifPresent(order -> {
-                    order.setStatus("Đã nhận phòng");
-                    order.setAutoCancelTime(null);
-                    bookingOrderRepository.save(order);
-                });
-                Date checkedInAt = new Date();
-                for (com.votricuong.mayhotel.documents.BookingDetail detail : bookingDetails) {
-                    detail.setRoomId(maPhong);
-                    detail.setActualIn(checkedInAt);
-                    bookingDetailRepository.save(detail);
-                }
+            verifiedBooking.setStatus("Đã nhận phòng");
+            verifiedBooking.setAutoCancelTime(null);
+            bookingOrderRepository.save(verifiedBooking);
+            Date checkedInAt = new Date();
+            for (com.votricuong.mayhotel.documents.BookingDetail detail : bookingDetails) {
+                detail.setRoomId(maPhong);
+                detail.setActualIn(checkedInAt);
+                bookingDetailRepository.save(detail);
             }
 
             redirectAttributes.addFlashAttribute("success", "Nhận phòng thành công cho mã #" + id);

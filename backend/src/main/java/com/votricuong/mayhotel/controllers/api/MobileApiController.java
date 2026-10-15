@@ -525,6 +525,9 @@ public class MobileApiController {
             BookingOrder order = orderOpt.get();
             // Đánh dấu là đã xác thực khuôn mặt từ Mobile
             order.setIsFaceVerified(true);
+            order.setIdentityVerificationMethod("MOBILE_AI");
+            order.setIdentityVerificationReason(null);
+            order.setIdentityVerifiedAt(new Date());
             bookingOrderRepository.save(order);
             
             List<BookingDetail> details = bookingDetailRepository.findByBookingId(order.getId());
@@ -538,6 +541,8 @@ public class MobileApiController {
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", bookingId);
             resp.put("status", "Đã xác thực - chờ lễ tân xác nhận nhận phòng");
+            resp.put("verificationMethod", "MOBILE_AI");
+            resp.put("verifiedAt", order.getIdentityVerifiedAt());
             resp.put("canOrderService", false);
             resp.put("nfcAccessCode", nfcCode);
             resp.put("cccdParsed", cccdData);

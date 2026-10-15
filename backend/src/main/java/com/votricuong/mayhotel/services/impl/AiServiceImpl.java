@@ -1,6 +1,7 @@
 package com.votricuong.mayhotel.services.impl;
 
 import com.votricuong.mayhotel.services.AiService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -15,24 +16,29 @@ import java.util.Map;
 public class AiServiceImpl implements AiService {
 
     private final RestTemplate restTemplate;
-    private final String AI_SERVER_URL = "http://localhost:5000/api/v1/ai/chat";
+    private final String aiChatUrl;
 
-    public AiServiceImpl(RestTemplate restTemplate) {
+    public AiServiceImpl(
+            RestTemplate restTemplate,
+            @Value("${ai.server.url:http://localhost:5000}") String aiServerUrl) {
         this.restTemplate = restTemplate;
+        this.aiChatUrl = aiServerUrl.replaceAll("/+$", "") + "/api/v1/ai/chat";
     }
 
     @Override
-    public String getAiResponse(String prompt) {
+    public String getAiResponse(String prompt, String conversationId) {
         try {
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
             Map<String, String> requestBody = new HashMap<>();
             requestBody.put("message", prompt);
+            requestBody.put("user_id", conversationId);
+            requestBody.put("session_id", conversationId);
 
             HttpEntity<Map<String, String>> request = new HttpEntity<>(requestBody, headers);
 
-            ResponseEntity<Map> response = restTemplate.postForEntity(AI_SERVER_URL, request, Map.class);
+            ResponseEntity<Map> response = restTemplate.postForEntity(aiChatUrl, request, Map.class);
             
             if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
                 Map responseBody = response.getBody();
@@ -62,9 +68,9 @@ public class AiServiceImpl implements AiService {
                     }
                 }
             }
-            return "Xin lỗi, hệ thống AI hiện không thể phản hồi.";
+            return "Xin lỗi, hệ thống AI hiện không thể phản hồi. Vui lòng thử lại hoặc liên hệ lễ tân.";
         } catch (Exception e) {
-            return "Lỗi kết nối tới hệ thống AI: " + e.getMessage();
+            return "Trợ lý AI đang tạm thời gián đoạn. Vui lòng thử lại sau hoặc liên hệ lễ tân để được hỗ trợ.";
         }
     }
 }

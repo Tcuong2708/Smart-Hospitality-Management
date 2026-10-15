@@ -50,6 +50,6 @@ echo "Bỏ qua ngrok nếu bạn dùng IP công khai của VPS Oracle."
 echo "=========================================="
 
 # 5. Khởi chạy Server
-echo "🚀 5. KHỞI CHẠY UVICORN SERVER (0.0.0.0:8000)..."
+echo "🚀 5. KHỞI CHẠY UVICORN SERVER (0.0.0.0:5000)..."
 # Chạy với worker giới hạn để tiết kiệm RAM
-uvicorn ai_api_server:app --host 0.0.0.0 --port 8000 --workers 1
+uvicorn ai_api_server:app --host 0.0.0.0 --port 5000 --workers 1

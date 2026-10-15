@@ -24,6 +24,7 @@ import torch
 import pymongo
 from pymongo import MongoClient
 import re
+import unicodedata
 from datetime import datetime
 import pickle
 
@@ -106,6 +107,30 @@ def clean_and_parse_date(text):
         return datetime(year, month, day).date(), None
     except ValueError:
         return None, f"Ngày {text} không hợp lệ! Bạn vui lòng kiểm tra lại."
+
+def normalize_vietnamese(text):
+    normalized = unicodedata.normalize("NFD", text.lower())
+    return "".join(char for char in normalized if unicodedata.category(char) != "Mn").replace("đ", "d")
+
+def get_room_price_summary():
+    """Trả lời nhu cầu tư vấn giá trước khi bắt đầu luồng đặt phòng."""
+    try:
+        db = get_db_connection()
+        pipeline = [
+            {"$group": {"_id": "$room_type_id", "price": {"$min": "$price"}}},
+            {"$lookup": {"from": "room_types", "localField": "_id", "foreignField": "_id", "as": "room_type"}},
+            {"$unwind": "$room_type"},
+            {"$sort": {"price": 1}},
+        ]
+        rows = list(db.rooms.aggregate(pipeline))
+        if rows:
+            return "\n".join(
+                f"- **{row['room_type']['name']}**: từ {float(row.get('price') or 0):,.0f} VNĐ/đêm"
+                for row in rows
+            )
+    except Exception as exc:
+        print(f"Không thể tải bảng giá phòng: {exc}")
+    return "Giá phòng thay đổi theo loại phòng và thời gian lưu trú."
 
 def save_final_booking(session, user_id):
     try:
@@ -210,10 +235,35 @@ def save_final_booking(session, user_id):
 
 def handle_structured_booking(user_id, msg):
     msg_clean = msg.strip()
+    normalized_msg = normalize_vietnamese(msg_clean)
     session = booking_sessions.get(user_id)
 
     # 1. Khởi tạo
-    if not session or msg_clean.lower() in ["bắt đầu", "đặt phòng", "start", "reset", "chào", "hi"]:
+    if normalized_msg in ["reset", "bat dau lai", "huy tu van"]:
+        booking_sessions.pop(user_id, None)
+        session = None
+
+    if not session:
+        if any(keyword in normalized_msg for keyword in ["nhan vien", "le tan", "nguoi that", "ho tro truc tiep"]):
+            return "Mình sẽ chuyển yêu cầu của bạn đến lễ tân. Bạn vui lòng để lại số điện thoại để khách sạn liên hệ hỗ trợ."
+
+        booking_keywords = ["dat phong", "gia", "bao nhieu", "phong", "con phong", "check-in", "check in"]
+        greeting_keywords = ["chao", "hello", "hi", "xin chao"]
+        if any(keyword in normalized_msg for keyword in booking_keywords):
+            booking_sessions[user_id] = {"step": "ask_dates"}
+            price_summary = get_room_price_summary() if any(
+                keyword in normalized_msg for keyword in ["gia", "bao nhieu"]
+            ) else "Mình sẽ kiểm tra loại phòng và giá chính xác theo ngày bạn chọn."
+            return (
+                f"{price_summary}\n\n"
+                "Để kiểm tra phòng trống và giá chính xác, vui lòng nhập:\n"
+                "**[Ngày check-in] - [Ngày check-out] - [Số người lớn] - [Số trẻ em]**\n\n"
+                "Ví dụ: **25/10/2026 - 27/10/2026 - 2 - 1**"
+            )
+
+        if not any(keyword in normalized_msg for keyword in greeting_keywords):
+            return "Tôi chưa hiểu câu hỏi của bạn! Bạn có thể hỏi về giá, loại phòng, phòng trống hoặc nhập **đặt phòng** để bắt đầu."
+
         booking_sessions[user_id] = {"step": "ask_dates"}
         return (
             "Chào mừng bạn đến với May Hotel!\n\n"

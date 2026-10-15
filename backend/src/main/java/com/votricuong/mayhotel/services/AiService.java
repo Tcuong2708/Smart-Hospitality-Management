@@ -1,5 +1,5 @@
 package com.votricuong.mayhotel.services;
 
 public interface AiService {
-    String getAiResponse(String prompt);
+    String getAiResponse(String prompt, String conversationId);
 }

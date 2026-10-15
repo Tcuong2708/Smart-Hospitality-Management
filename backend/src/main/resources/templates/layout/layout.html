@@ -348,7 +348,7 @@
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <script>
+    <script th:inline="none">
         // JS Active Menu
         const currentUrl = window.location.href.split('?')[0].split('#')[0];
         const navLinks = document.querySelectorAll('.navbar-nav .nav-link');
@@ -412,7 +412,7 @@
                 var msg = $("#chat-input").val();
                 if (msg.trim() == "") return;
 
-                $("#chat-logs").append('<div class="msg-user animate-fadeIn">' + msg + '</div>');
+                $("#chat-logs").append($('<div class="msg-user animate-fadeIn"></div>').text(msg));
                 $("#chat-input").val('');
                 scrollToBottom();
 
@@ -433,7 +433,11 @@
                     data: JSON.stringify({ message: msg }),
                     success: function (res) {
                         $("#" + loadingId).remove();
-                        var botReply = res.answer.replace(/\n/g, "<br>");
+                        var rawReply = res.response || res.answer || res.reply;
+                        if (!rawReply) {
+                            rawReply = "Xin lỗi, May Bot chưa nhận được nội dung phản hồi. Vui lòng thử lại.";
+                        }
+                        var botReply = formatBotReply(String(rawReply));
                         $("#chat-logs").append('<div class="msg-bot shadow-sm">' + botReply + '</div>');
                         scrollToBottom();
                     },
@@ -443,6 +447,37 @@
                         scrollToBottom();
                     }
                 });
+            }
+
+            function formatBotReply(reply) {
+                var safe = $('<div>').text(reply).html();
+                safe = renderMarkdownImages(safe);
+                safe = safe.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+                return safe.replace(/\n/g, '<br>');
+            }
+
+            function renderMarkdownImages(text) {
+                var result = '';
+                var cursor = 0;
+                var imageStart;
+                while ((imageStart = text.indexOf('![', cursor)) !== -1) {
+                    var altEnd = text.indexOf('](', imageStart + 2);
+                    var urlEnd = altEnd === -1 ? -1 : text.indexOf(')', altEnd + 2);
+                    if (altEnd === -1 || urlEnd === -1) break;
+
+                    var alt = text.substring(imageStart + 2, altEnd);
+                    var url = text.substring(altEnd + 2, urlEnd);
+                    if (!/^https?:\/\//i.test(url)) {
+                        cursor = imageStart + 2;
+                        continue;
+                    }
+
+                    result += text.substring(cursor, imageStart);
+                    result += '<img src="' + url + '" alt="' + alt
+                        + '" class="img-fluid rounded border mt-2" style="max-width:220px">';
+                    cursor = urlEnd + 1;
+                }
+                return result + text.substring(cursor);
             }
 
             $("#chat-submit").click(function () { sendMessage(); });

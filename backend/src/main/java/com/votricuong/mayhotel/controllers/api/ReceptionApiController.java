@@ -2,9 +2,11 @@ package com.votricuong.mayhotel.controllers.api;
 
 import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.BookingOrder;
+import com.votricuong.mayhotel.documents.Customer;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +17,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 @RestController
 @RequestMapping("/api/v1/reception")
@@ -29,6 +33,9 @@ public class ReceptionApiController {
 
     @Autowired
     private BookingDetailRepository bookingDetailRepository;
+
+    @Autowired
+    private CustomerRepository customerRepository;
 
     // 1. Lấy Sơ đồ Phòng (Phân loại theo hướng)
     @GetMapping("/rooms/map")
@@ -61,11 +68,106 @@ public class ReceptionApiController {
             response.put("status", "success");
             response.put("bookingId", bookingId);
             response.put("isFaceVerified", isVerified);
+            response.put("verificationMethod", booking.getIdentityVerificationMethod() == null
+                    ? (isVerified ? "MOBILE_AI" : "PENDING")
+                    : booking.getIdentityVerificationMethod());
+            if (booking.getIdentityVerifiedAt() != null) {
+                response.put("verifiedAt", booking.getIdentityVerifiedAt());
+            }
             
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("status", "error", "message", e.getMessage()));
         }
+    }
+
+    @PostMapping("/bookings/{id}/manual-verification")
+    public ResponseEntity<?> saveManualVerification(@PathVariable("id") Long bookingId,
+                                                     @RequestBody Map<String, Object> payload) {
+        try {
+            BookingOrder booking = bookingOrderRepository.findById(bookingId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Booking."));
+            if (booking.getCustomerId() == null) {
+                throw new IllegalArgumentException("Booking chưa có hồ sơ khách hàng để cập nhật.");
+            }
+
+            String fullName = requiredText(payload, "fullName", "Họ và tên");
+            String documentNumber = requiredText(payload, "documentNumber", "Số hộ chiếu / ID");
+            String nationality = requiredText(payload, "nationality", "Quốc tịch");
+            String dateOfBirth = requiredText(payload, "dateOfBirth", "Ngày sinh");
+            String reason = requiredText(payload, "reason", "Lý do nhập tay");
+
+            if (!List.of("FOREIGN_GUEST", "NO_VALID_CCCD", "MOBILE_VERIFICATION_FAILED").contains(reason)) {
+                throw new IllegalArgumentException("Lý do nhập tay không hợp lệ.");
+            }
+
+            Date dob;
+            try {
+                dob = Date.from(LocalDate.parse(dateOfBirth)
+                        .atStartOfDay(ZoneId.systemDefault())
+                        .toInstant());
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Ngày sinh không hợp lệ.");
+            }
+
+            Customer customer = customerRepository.findById(booking.getCustomerId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ khách hàng."));
+            customer.setFullName(fullName);
+            customer.setCccd(documentNumber);
+            customer.setNationality(nationality);
+            customer.setQuocTich(nationality);
+            customer.setDob(dob);
+            customerRepository.save(customer);
+
+            booking.setIsFaceVerified(true);
+            booking.setIdentityVerificationMethod("MANUAL_EXCEPTION");
+            booking.setIdentityVerificationReason(reason);
+            booking.setIdentityVerifiedAt(new Date());
+            bookingOrderRepository.save(booking);
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("status", "success");
+            response.put("bookingId", bookingId);
+            response.put("isFaceVerified", true);
+            response.put("verificationMethod", "MANUAL_EXCEPTION");
+            response.put("message", "Đã lưu xác thực nhập tay ngoại lệ.");
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    @PostMapping("/bookings/{id}/simulate-verification")
+    public ResponseEntity<?> simulateVerification(@PathVariable("id") Long bookingId) {
+        try {
+            BookingOrder booking = bookingOrderRepository.findById(bookingId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Booking."));
+            booking.setIsFaceVerified(true);
+            booking.setIdentityVerificationMethod("DEMO_SIMULATION");
+            booking.setIdentityVerificationReason(null);
+            booking.setIdentityVerifiedAt(new Date());
+            bookingOrderRepository.save(booking);
+            return ResponseEntity.ok(Map.of(
+                    "status", "success",
+                    "bookingId", bookingId,
+                    "isFaceVerified", true,
+                    "verificationMethod", "DEMO_SIMULATION"));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body(Map.of("status", "error", "message", e.getMessage()));
+        }
+    }
+
+    private String requiredText(Map<String, Object> payload, String key, String label) {
+        Object value = payload.get(key);
+        String text = value == null ? "" : value.toString().trim();
+        if (text.isEmpty()) {
+            throw new IllegalArgumentException(label + " là thông tin bắt buộc.");
+        }
+        return text;
     }
 
     // 3. Duyệt nhận phòng & Xếp phòng (Cập nhật Khóa ngoại roomId vào BookingDetail)

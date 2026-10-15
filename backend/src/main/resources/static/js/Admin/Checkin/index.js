@@ -1,5 +1,4 @@
 const API_URL = 'http://localhost:8080/api/checkin';
-const AI_URL = 'https://[DIEN-DOMAIN-AI-CUA-BAN-VAO-DAY].ngrok-free.app';
 document.addEventListener('DOMContentLoaded', () => {
     fetchCheckinData();
 });
@@ -51,7 +50,7 @@ async function fetchCheckinData() {
                     <div class="alert alert-warning py-1 px-2 mb-2 text-center small fw-bold" style="font-size: 0.7rem;">
                         <i class="bi bi-shield-lock-fill me-1"></i>Cần xác thực danh tính
                     </div>
-                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold w-100 text-truncate mb-2" onclick="openMobileVerifyModal(${item.id}, ${item.bookingId || 'null'}, '${item.hoTen}')">
+                    <button type="button" class="btn btn-outline-primary btn-sm fw-bold w-100 text-truncate mb-2" onclick="openMobileVerifyModal(${item.id}, ${item.bookingId || 'null'})">
                         <i class="bi bi-phone-vibrate me-1"></i> Xác thực (Mobile)
                     </button>
                     <input type="hidden" name="maPhong" id="room-${item.id}" value="" required>
@@ -92,7 +91,7 @@ async function fetchCheckinData() {
                 </td>
                 <td class="text-end fw-bold text-danger">${priceFormatted}</td>
                 <td class="text-center">
-                    <form onsubmit="openCccdModal(event, ${item.id})" class="d-flex flex-column gap-2 p-2 rounded bg-light border">
+                    <form onsubmit="submitCheckin(event, ${item.id})" class="d-flex flex-column gap-2 p-2 rounded bg-light border">
                         ${roomSelectionHTML}
                         <div class="form-check form-switch m-0 text-start ps-5">
                             <input class="form-check-input cursor-pointer" type="checkbox" name="isPaidUpfront" value="true" id="checkPaid-${item.id}" ${isGuest ? 'checked' : ''}>
@@ -120,8 +119,6 @@ async function fetchCheckinData() {
     }
 }
 
-let stream = null;
-let currentCheckinId = null;
 let currentAssigningCheckinId = null;
 let currentVerifyCheckinId = null;
 let currentVerifyBookingId = null;
@@ -134,9 +131,13 @@ let mobileTransitionTimeout = null;
 // ==========================================
 // LUỒNG XÁC THỰC MOBILE NFC
 // ==========================================
-window.openMobileVerifyModal = function(invoiceId, bookingId, hoTen) {
+window.openMobileVerifyModal = function(invoiceId, bookingId) {
     currentVerifyCheckinId = invoiceId;
     currentVerifyBookingId = bookingId;
+    const invoice = (window.mockCheckinInvoices || []).find(
+        item => String(item.id) === String(invoiceId)
+    );
+    const hoTen = invoice?.hoTen || '';
     
     // Reset giao diện Modal
     document.getElementById('mobile-verify-waiting').classList.remove('d-none');
@@ -146,9 +147,15 @@ window.openMobileVerifyModal = function(invoiceId, bookingId, hoTen) {
         ? 'BOOKING-' + bookingId
         : 'REQ-' + invoiceId;
     document.getElementById('sync-name').textContent = hoTen;
-    
-    document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.remove('d-none');
-    document.querySelector('#mobileVerifyModal .btn-warning').classList.remove('d-none');
+    document.getElementById('sync-method').textContent = 'Mobile NFC + VPS AI';
+    setMobileVerifyStatus(
+        bookingId ? 'Đang kiểm tra trạng thái từ máy chủ...' : 'Phiếu này chưa có mã booking để đồng bộ Mobile.',
+        bookingId ? 'info' : 'danger'
+    );
+
+    document.getElementById('btn-cancel-mobile-verify').classList.remove('d-none');
+    document.getElementById('btn-manual-exception').classList.remove('d-none');
+    document.getElementById('btn-simulate-mobile').classList.remove('d-none');
     document.getElementById('btn-continue-room').classList.add('d-none');
 
     const modalEl = document.getElementById('mobileVerifyModal');
@@ -172,11 +179,16 @@ window.openMobileVerifyModal = function(invoiceId, bookingId, hoTen) {
                 const data = await res.json();
                 if (data.isFaceVerified === true) {
                     clearInterval(pollingInterval);
-                    window.simulateMobileSuccess(true);
+                    window.simulateMobileSuccess(true, data.verificationMethod);
+                } else {
+                    setMobileVerifyStatus('Đã kết nối máy chủ, đang chờ khách hoàn tất NFC và xác thực khuôn mặt trên Mobile...', 'info');
                 }
+            } else {
+                setMobileVerifyStatus('Chưa đọc được trạng thái booking. Hệ thống sẽ tự thử lại.', 'warning');
             }
         } catch (e) {
             console.log('Polling AI verification failed:', e);
+            setMobileVerifyStatus('Mất kết nối tạm thời với máy chủ. Hệ thống sẽ tự thử lại.', 'warning');
         }
     };
     pollVerificationStatus();
@@ -189,8 +201,34 @@ window.openMobileVerifyModal = function(invoiceId, bookingId, hoTen) {
     });
 };
 
-window.simulateMobileSuccess = function(fromApi = false) {
+function setMobileVerifyStatus(message, type) {
+    const status = document.getElementById('mobile-verify-status');
+    status.className = `alert alert-${type} py-2 small text-start mb-3`;
+    status.innerHTML = `<i class="bi bi-broadcast me-1"></i>${message}`;
+}
+
+window.simulateMobileSuccess = async function(fromApi = false, verificationMethod = null) {
     if (pollingInterval) clearInterval(pollingInterval);
+
+    if (!fromApi) {
+        if (!currentVerifyBookingId) {
+            showAlert('Phiếu này chưa có mã booking để chạy giả lập.', 'danger');
+            return;
+        }
+        try {
+            const response = await fetch(`/api/v1/reception/bookings/${currentVerifyBookingId}/simulate-verification`, {
+                method: 'POST'
+            });
+            const result = await response.json();
+            if (!response.ok) {
+                throw new Error(result.message || 'Không thể lưu trạng thái giả lập.');
+            }
+            verificationMethod = result.verificationMethod;
+        } catch (error) {
+            showAlert(error.message || 'Không thể chạy giả lập xác thực.', 'danger');
+            return;
+        }
+    }
 
     const invoice = (window.mockCheckinInvoices || []).find(
         item => String(item.id) === String(currentVerifyCheckinId)
@@ -199,20 +237,49 @@ window.simulateMobileSuccess = function(fromApi = false) {
         invoice.isVerified = true;
     }
 
-    // Đóng nút giả lập và nút hủy
-    document.querySelector('#mobileVerifyModal .btn-outline-secondary').classList.add('d-none');
-    document.querySelector('#mobileVerifyModal .btn-warning').classList.add('d-none');
+    // Đóng các nút chờ sau khi backend đã ghi nhận xác thực
+    document.getElementById('btn-cancel-mobile-verify').classList.add('d-none');
+    document.getElementById('btn-manual-exception').classList.add('d-none');
+    document.getElementById('btn-simulate-mobile').classList.add('d-none');
     
     // Hiển thị kết quả thành công và nút Tiếp tục
     document.getElementById('mobile-verify-waiting').classList.add('d-none');
     document.getElementById('mobile-verify-success').classList.remove('d-none');
     document.getElementById('btn-continue-room').classList.remove('d-none');
+    document.getElementById('sync-method').textContent = verificationMethod === 'MANUAL_EXCEPTION'
+        ? 'Nhập tay ngoại lệ bởi lễ tân'
+        : verificationMethod === 'DEMO_SIMULATION'
+            ? 'Giả lập xác thực (Demo)'
+            : 'Mobile NFC + VPS AI';
 
     if (fromApi) {
         mobileTransitionTimeout = setTimeout(() => {
             window.completeMobileVerification();
         }, 800);
     }
+};
+
+window.openManualVerificationModal = function() {
+    if (!currentVerifyBookingId) {
+        showAlert('Phiếu này chưa có mã booking để lưu xác thực nhập tay.', 'danger');
+        return;
+    }
+    if (pollingInterval) clearInterval(pollingInterval);
+
+    document.getElementById('manual-reason').value = '';
+    document.getElementById('manual-name').value = document.getElementById('sync-name').textContent || '';
+    document.getElementById('manual-id').value = '';
+    document.getElementById('manual-nationality').value = '';
+    document.getElementById('manual-dob').value = '';
+
+    const mobileModal = bootstrap.Modal.getInstance(document.getElementById('mobileVerifyModal'));
+    if (mobileModal) mobileModal.hide();
+
+    const manualModalEl = document.getElementById('verifyIdModal');
+    if (manualModalEl.parentNode !== document.body) {
+        document.body.appendChild(manualModalEl);
+    }
+    setTimeout(() => bootstrap.Modal.getOrCreateInstance(manualModalEl).show(), 250);
 };
 
 window.completeMobileVerification = async function() {
@@ -252,7 +319,8 @@ const mockEmptyRoomsGlobal = availableRooms.map(r => {
         roomTypeId: r.roomTypeId,
         view: r.view || 'Hướng Thành Phố',
         type: r.type || 'Chưa phân loại',
-        label: r.label || roomName.replace(/\D/g, '') || String(r.id)
+        label: r.label || roomName.replace(/\D/g, '') || String(r.id),
+        occupied: r.occupied === true
     };
 });
 
@@ -262,6 +330,7 @@ function openAssignRoomModal(checkinId, currentRoomId, requiredRoomTypeId) {
     selectedRoomForCheckin = mockEmptyRoomsGlobal.find(
         room => String(room.id) === String(currentRoomId)
             && String(room.roomTypeId) === currentRequiredRoomTypeId
+            && !room.occupied
     ) || null;
     
     // Reset filters
@@ -316,14 +385,16 @@ function renderAvailableRooms() {
         else if (r.view === 'Hướng Núi') viewIcon = 'bi-tree text-success';
         const isSelected = selectedRoomForCheckin
             && String(selectedRoomForCheckin.id) === String(r.id);
+        const occupiedClass = r.occupied ? 'disabled bg-light opacity-75' : '';
 
         return `
-        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 room-option ${isSelected ? 'border border-2 border-success' : ''}"
+        <button type="button" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 room-option ${occupiedClass} ${isSelected ? 'border border-2 border-success' : ''}"
                 data-room-id="${r.id}" data-room-view="${r.view}" data-room-type="${r.type}" data-room-label="${r.label}"
-                aria-pressed="${isSelected}">
+                data-room-occupied="${r.occupied}" aria-pressed="${isSelected}" ${r.occupied ? 'disabled aria-disabled="true"' : ''}>
             <div>
                 <h6 class="fw-bold text-navy mb-1"><i class="bi bi-door-open-fill text-gold me-2"></i>Phòng ${r.label}</h6>
                 <small class="text-muted"><span class="badge bg-light text-dark border me-1">${r.type}</span></small>
+                ${r.occupied ? '<span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1"><i class="bi bi-person-fill-lock me-1"></i>Đang lưu trú - Không thể chọn</span>' : ''}
             </div>
             <div class="text-end">
                 <span class="text-muted small fw-bold"><i class="bi ${viewIcon} me-1"></i>${r.view}</span>
@@ -340,9 +411,14 @@ document.getElementById('availableRoomsList').addEventListener('click', function
         return;
     }
     event.preventDefault();
+    if (roomOption.dataset.roomOccupied === 'true') {
+        showAlert('Phòng này đang có khách lưu trú và không thể gán cho phiếu check-in.', 'warning');
+        return;
+    }
     selectedRoomForCheckin = mockEmptyRoomsGlobal.find(
         room => String(room.id) === String(roomOption.dataset.roomId)
             && String(room.roomTypeId) === currentRequiredRoomTypeId
+            && !room.occupied
     ) || null;
     renderAvailableRooms();
     updateAssignRoomConfirmation();
@@ -393,249 +469,78 @@ window.selectRoomForCheckin = function(roomId, view, type, label) {
     modal.hide();
 };
 
-function openCccdModal(event, id) {
+// Lưu xác thực nhập tay ngoại lệ; AI/NFC chỉ chạy trên Mobile.
+document.getElementById('btn-complete-checkin').addEventListener('click', async function() {
+    const payload = {
+        reason: document.getElementById('manual-reason').value,
+        fullName: document.getElementById('manual-name').value.trim(),
+        documentNumber: document.getElementById('manual-id').value.trim(),
+        nationality: document.getElementById('manual-nationality').value.trim(),
+        dateOfBirth: document.getElementById('manual-dob').value
+    };
+    if (Object.values(payload).some(value => !value)) {
+        showAlert('Vui lòng nhập đầy đủ lý do, họ tên, số giấy tờ, quốc tịch và ngày sinh.', 'warning');
+        return;
+    }
+
+    const btn = this;
+    const originalHtml = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang lưu...';
+
+    try {
+        const response = await fetch(`/api/v1/reception/bookings/${currentVerifyBookingId}/manual-verification`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const result = await response.json();
+        if (!response.ok) {
+            throw new Error(result.message || 'Không thể lưu xác thực nhập tay.');
+        }
+
+        const invoice = (window.mockCheckinInvoices || []).find(
+            item => String(item.id) === String(currentVerifyCheckinId)
+        );
+        if (invoice) invoice.isVerified = true;
+
+        const verifyModal = bootstrap.Modal.getInstance(document.getElementById('verifyIdModal'));
+        if (verifyModal) verifyModal.hide();
+        showAlert('Đã lưu xác thực nhập tay ngoại lệ. Vui lòng chọn phòng đúng loại đã đặt.', 'success');
+        await fetchCheckinData();
+        setTimeout(() => {
+            if (invoice) {
+                openAssignRoomModal(currentVerifyCheckinId, invoice.maPhong, invoice.maLoaiPhong);
+            }
+        }, 300);
+    } catch (error) {
+        console.error('Error:', error);
+        showAlert(error.message || 'Có lỗi khi lưu xác thực nhập tay.', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHtml;
+    }
+});
+
+window.submitCheckin = function(event, id) {
     event.preventDefault();
     const form = event.target;
     const roomInput = form.querySelector('input[name="maPhong"]');
     const maPhong = roomInput ? roomInput.value : '';
-    const isPaidUpfront = form.querySelector('input[name="isPaidUpfront"]').checked;
-
     if (!maPhong) {
         showAlert('Vui lòng chọn phòng trước khi check-in!', 'warning');
         return;
     }
-
-    currentCheckinId = id;
-    document.getElementById('checkin-id').value = id;
-    document.getElementById('checkin-room').value = maPhong;
-    document.getElementById('checkin-paid').value = isPaidUpfront;
-
-    // Reset modal state
-    document.getElementById('raw-data-result').value = '';
-    document.getElementById('front-cccd').value = '';
-    document.getElementById('back-cccd').value = '';
-    document.getElementById('front-preview').style.display = 'none';
-    document.getElementById('front-placeholder').style.display = 'block';
-    document.getElementById('back-preview').style.display = 'none';
-    document.getElementById('back-placeholder').style.display = 'block';
-    
-    // Reset manual form
-    document.getElementById('manual-name').value = '';
-    document.getElementById('manual-id').value = '';
-    document.getElementById('manual-nationality').value = '';
-    document.getElementById('manual-dob').value = '';
-
-    stopWebcam();
-
-    const modalEl = document.getElementById('verifyIdModal');
-    // Di chuyển modal ra ngoài cùng của thẻ body để tránh lỗi z-index (bị lớp nền đen che mất)
-    if (modalEl.parentNode !== document.body) {
-        document.body.appendChild(modalEl);
-    }
-    const verifyModal = bootstrap.Modal.getOrCreateInstance(modalEl);
-    verifyModal.show();
-}
-
-// Lắng nghe sự kiện đóng modal để tắt webcam nếu đang bật
-document.getElementById('verifyIdModal').addEventListener('hidden.bs.modal', function () {
-    stopWebcam();
-});
-
-// Xử lý preview ảnh
-document.getElementById('front-cccd').addEventListener('change', function(e) {
-    previewImage(this, 'front-preview', 'front-placeholder');
-});
-document.getElementById('back-cccd').addEventListener('change', function(e) {
-    previewImage(this, 'back-preview', 'back-placeholder');
-});
-
-function previewImage(input, previewId, placeholderId) {
-    if (input.files && input.files[0]) {
-        var reader = new FileReader();
-        reader.onload = function(e) {
-            document.getElementById(previewId).src = e.target.result;
-            document.getElementById(previewId).style.display = 'block';
-            document.getElementById(placeholderId).style.display = 'none';
-        }
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-
-// Nút Trích xuất (Upload)
-document.getElementById('btn-extract-upload').addEventListener('click', async function() {
-    const frontInput = document.getElementById('front-cccd');
-    
-    if (frontInput.files.length === 0) {
-        alert("Vui lòng tải lên ảnh Mặt trước của CCCD để trích xuất!");
-        return;
-    }
-
-    const btn = this;
-    const originalHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang kết nối AI...';
-    btn.disabled = true;
-
-    try {
-        const formData = new FormData();
-        formData.append("cccd_image", frontInput.files[0]);
-
-        const response = await fetch(`${AI_URL}/api/v1/ai/verify-cccd`, {
-            method: 'POST',
-            body: formData
-        });
-
-        if (!response.ok) {
-            throw new Error(`Lỗi server AI: ${response.status}`);
-        }
-
-        const data = await response.json();
-        
-        // Format lại dữ liệu trả về để hiển thị
-        if(data.success && data.data) {
-            const resultData = {
-                "Số CCCD": data.data.id || "Không rõ",
-                "Họ và tên": data.data.name || "Không rõ",
-                "Ngày sinh": data.data.dob || "Không rõ",
-                "Giới tính": data.data.gender || "Không rõ",
-                "Ngày hết hạn": data.data.date_of_expiry || "Không rõ"
-            };
-            document.getElementById('raw-data-result').value = JSON.stringify(resultData, null, 2);
-        } else {
-            alert("AI không thể đọc được thông tin. Vui lòng sử dụng ảnh rõ nét hơn!");
-        }
-    } catch (err) {
-        console.error("AI Error:", err);
-        alert("Không thể kết nối đến AI Server! Vui lòng kiểm tra lại AI_URL hoặc Ngrok.");
-    } finally {
-        btn.innerHTML = originalHtml;
-        btn.disabled = false;
-    }
-});
-
-// Xử lý Webcam
-const video = document.getElementById('webcam-video');
-const canvas = document.getElementById('webcam-canvas');
-const btnStartCamera = document.getElementById('btn-start-camera');
-const btnCaptureScan = document.getElementById('btn-capture-scan');
-const placeholder = document.getElementById('webcam-placeholder');
-
-btnStartCamera.addEventListener('click', async function() {
-    if (stream) {
-        stopWebcam();
-        return;
-    }
-
-    try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-        video.srcObject = stream;
-        video.style.display = 'block';
-        placeholder.style.display = 'none';
-        btnStartCamera.innerHTML = '<i class="bi bi-camera-video-off me-1"></i> Tắt Camera';
-        btnStartCamera.classList.replace('btn-primary', 'btn-danger');
-        btnCaptureScan.disabled = false;
-    } catch (err) {
-        console.error("Lỗi truy cập camera:", err);
-        alert("Không thể truy cập Camera. Vui lòng kiểm tra quyền truy cập.");
-    }
-});
-
-function stopWebcam() {
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
-    video.style.display = 'none';
-    placeholder.style.display = 'block';
-    btnStartCamera.innerHTML = '<i class="bi bi-camera me-1"></i> Bật Camera';
-    btnStartCamera.classList.replace('btn-danger', 'btn-primary');
-    btnCaptureScan.disabled = true;
-}
-
-btnCaptureScan.addEventListener('click', function() {
-    // Chụp ảnh từ video vẽ lên canvas
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
-
-    // Hiển thị canvas (ảnh tĩnh) thay vì video stream
-    video.style.display = 'none';
-    canvas.style.display = 'block';
-
-    // Lưu ảnh dưới dạng Base64
-    const faceBase64 = canvas.toDataURL('image/jpeg');
-    
-    // Gắn vào một thẻ ẩn hoặc biến toàn cục để gửi kèm form Check-in
-    // Ở đây ta mô phỏng bằng Alert thông báo thành công
-    alert("Đã chụp và lưu trữ ảnh khuôn mặt thành công! Sẵn sàng đính kèm vào hồ sơ Check-in.");
-    
-    // Đổi nút Bật Camera thành Chụp Lại
-    btnStartCamera.innerHTML = '<i class="bi bi-camera-video me-1"></i> Chụp lại';
-    btnStartCamera.classList.replace('btn-danger', 'btn-primary');
-    
-    // Dừng Webcam để tiết kiệm tài nguyên sau khi chụp xong
-    if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        stream = null;
-    }
-});
-
-// Xử lý Nút Hoàn Tất trong Modal
-document.getElementById('btn-complete-checkin').addEventListener('click', async function() {
-    // Kiểm tra xem đã có dữ liệu chưa (nếu nhập tay thì lấy từ form tay)
-    const activeTab = document.querySelector('#verifyTabs .nav-link.active').id;
-    let data = document.getElementById('raw-data-result').value;
-
-    if (activeTab === 'manual-tab') {
-        const name = document.getElementById('manual-name').value;
-        const idNum = document.getElementById('manual-id').value;
-        if (!name || !idNum) {
-            alert("Vui lòng nhập đầy đủ Họ tên và Số giấy tờ!");
-            return;
-        }
-        const nationality = document.getElementById('manual-nationality').value;
-        const dob = document.getElementById('manual-dob').value;
-        data = JSON.stringify({ "Họ Tên": name, "Giấy tờ": idNum, "Quốc tịch": nationality, "Ngày sinh": dob }, null, 2);
-    } else if (!data) {
-        alert("Vui lòng thực hiện quét CCCD để lấy dữ liệu trước khi hoàn tất!");
-        return;
-    }
-
     if (!confirm('Xác nhận số phòng vật lý bàn giao, lập biên bản cọc và tiến hành Check-in?')) {
         return;
     }
-
-    const id = document.getElementById('checkin-id').value;
-    const maPhong = document.getElementById('checkin-room').value;
-    const isPaidUpfront = document.getElementById('checkin-paid').value === 'true';
-
-    const btn = this;
-    const originalHtml = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Đang xử lý...';
-
-    try {
-        const query = new URLSearchParams({
-            maPhong: maPhong,
-            isPaidUpfront: String(isPaidUpfront)
-        });
-        const response = await fetch(`/receptionist/checkin/execute/${id}?${query.toString()}`);
-
-        if (response.ok) {
-            showAlert('Duyệt nhận phòng thành công!', 'success');
-            const verifyModal = bootstrap.Modal.getInstance(document.getElementById('verifyIdModal'));
-            verifyModal.hide();
-            fetchCheckinData(); // Reload list
-        } else {
-            throw new Error('Thao tác thất bại');
-        }
-    } catch (error) {
-        console.error('Error:', error);
-        showAlert('Có lỗi xảy ra khi Check-in', 'danger');
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = originalHtml;
-    }
-});
+    const isPaidUpfront = form.querySelector('input[name="isPaidUpfront"]').checked;
+    const query = new URLSearchParams({
+        maPhong,
+        isPaidUpfront: String(isPaidUpfront)
+    });
+    window.location.assign(`/receptionist/checkin/execute/${id}?${query.toString()}`);
+};
 
 // ==========================================
 // TÍNH NĂNG TRA CỨU MÃ ĐẶT PHÒNG

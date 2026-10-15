@@ -48,130 +48,53 @@
         </div>
     </div>
 
-    <!-- Modal Xác thực CCCD -->
+    <!-- Modal nhập giấy tờ ngoại lệ: chỉ dùng khi Mobile/AI không thể xác thực -->
     <div class="modal fade" id="verifyIdModal" tabindex="-1" aria-labelledby="verifyIdModalLabel" aria-hidden="true" data-bs-backdrop="static">
         <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
             <div class="modal-content">
                 <div class="modal-header bg-navy text-white">
                     <h5 class="modal-title fw-bold" id="verifyIdModalLabel">
-                        <i class="bi bi-person-vcard me-2 text-gold"></i>Xác thực Giấy tờ tuỳ thân
+                        <i class="bi bi-person-vcard me-2 text-gold"></i>Nhập thông tin giấy tờ (Ngoại lệ)
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <!-- Nav tabs -->
-                    <ul class="nav nav-tabs mb-3" id="verifyTabs" role="tablist">
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link active fw-bold text-navy" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" role="tab" aria-controls="upload" aria-selected="true">
-                                <i class="bi bi-upload me-1"></i> Tải ảnh CCCD
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold text-navy" id="webcam-tab" data-bs-toggle="tab" data-bs-target="#webcam" type="button" role="tab" aria-controls="webcam" aria-selected="false">
-                                <i class="bi bi-camera-video me-1"></i> Quét Camera (AIVision)
-                            </button>
-                        </li>
-                        <li class="nav-item" role="presentation">
-                            <button class="nav-link fw-bold text-navy" id="manual-tab" data-bs-toggle="tab" data-bs-target="#manual" type="button" role="tab" aria-controls="manual" aria-selected="false">
-                                <i class="bi bi-keyboard me-1"></i> Nhập tay (Khách nước ngoài)
-                            </button>
-                        </li>
-                    </ul>
-
-                    <!-- Tab panes -->
-                    <div class="tab-content" id="verifyTabsContent">
-                        <!-- Tab 1: Upload -->
-                        <div class="tab-pane fade show active" id="upload" role="tabpanel" aria-labelledby="upload-tab">
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-secondary small">Mặt trước CCCD</label>
-                                    <input class="form-control form-control-sm" type="file" id="front-cccd" accept="image/*">
-                                    <div class="mt-2 border rounded d-flex align-items-center justify-content-center bg-light" style="height: 150px; overflow: hidden;">
-                                        <img loading="lazy" id="front-preview" src="" alt="Preview Mặt trước" style="max-height: 100%; max-width: 100%; display: none;">
-                                        <span id="front-placeholder" class="text-muted small"><i class="bi bi-image fs-1 d-block text-center mb-1"></i>Chưa chọn ảnh</span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label fw-bold text-secondary small">Mặt sau CCCD</label>
-                                    <input class="form-control form-control-sm" type="file" id="back-cccd" accept="image/*">
-                                    <div class="mt-2 border rounded d-flex align-items-center justify-content-center bg-light" style="height: 150px; overflow: hidden;">
-                                        <img loading="lazy" id="back-preview" src="" alt="Preview Mặt sau" style="max-height: 100%; max-width: 100%; display: none;">
-                                        <span id="back-placeholder" class="text-muted small"><i class="bi bi-image fs-1 d-block text-center mb-1"></i>Chưa chọn ảnh</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-center mt-3">
-                                <button type="button" class="btn btn-outline-navy btn-sm fw-bold px-4" id="btn-extract-upload">
-                                    <i class="bi bi-qr-code-scan me-1"></i> Quét mã QR & Trích xuất
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- Tab 2: Webcam -->
-                        <div class="tab-pane fade" id="webcam" role="tabpanel" aria-labelledby="webcam-tab">
-                            <div class="d-flex flex-column align-items-center">
-                                <div class="border rounded bg-dark position-relative overflow-hidden mb-3 w-100 d-flex justify-content-center align-items-center" style="height: 300px;">
-                                    <video id="webcam-video" autoplay playsinline style="max-width: 100%; max-height: 100%; display: none;"></video>
-                                    <canvas id="webcam-canvas" style="display: none;"></canvas>
-                                    <div id="webcam-placeholder" class="text-white text-center">
-                                        <i class="bi bi-camera-video-off fs-1 d-block mb-2 text-secondary"></i>
-                                        <span class="small text-secondary">Camera chưa được bật</span>
-                                    </div>
-                                </div>
-                                <div class="d-flex gap-2">
-                                    <button type="button" class="btn btn-primary btn-sm fw-bold" id="btn-start-camera">
-                                        <i class="bi bi-camera me-1"></i> Bật Camera
-                                    </button>
-                                    <button type="button" class="btn btn-outline-danger btn-sm fw-bold" id="btn-capture-scan" disabled>
-                                        <i class="bi bi-person-bounding-box me-1"></i> Chụp ảnh khuôn mặt (Lưu trữ)
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tab 3: Manual Entry -->
-                        <div class="tab-pane fade" id="manual" role="tabpanel" aria-labelledby="manual-tab">
-                            <div class="alert alert-warning small py-2 mb-3">
-                                <i class="bi bi-exclamation-triangle-fill me-1"></i> Dành riêng cho khách nước ngoài hoặc khách không có CCCD hợp lệ.
-                            </div>
-                            <div class="row g-3">
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">Họ và tên</label>
-                                    <input type="text" class="form-control form-control-sm" id="manual-name" placeholder="VD: JOHN DOE">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">Số Hộ chiếu / ID</label>
-                                    <input type="text" class="form-control form-control-sm" id="manual-id" placeholder="Nhập số giấy tờ">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">Quốc tịch</label>
-                                    <input type="text" class="form-control form-control-sm" id="manual-nationality" placeholder="VD: USA">
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label small fw-bold">Ngày sinh</label>
-                                    <input type="date" class="form-control form-control-sm" id="manual-dob">
-                                </div>
-                            </div>
-                        </div>
+                    <div class="alert alert-warning small mb-3">
+                        <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                        Chỉ dùng khi khách nước ngoài, không có CCCD hợp lệ hoặc Mobile/AI xác thực thất bại.
                     </div>
-
-                    <hr class="my-4">
-                    
-                    <!-- Result Area -->
-                    <div id="extracted-data-container">
-                        <label class="form-label fw-bold text-navy small"><i class="bi bi-file-earmark-text me-1"></i>Dữ liệu trích xuất (Raw Data)</label>
-                        <textarea class="form-control form-control-sm bg-light font-monospace" id="raw-data-result" rows="4" readonly placeholder="Dữ liệu sẽ hiển thị ở đây sau khi quét thành công hoặc nhập tay..."></textarea>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label small fw-bold">Lý do nhập tay <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-sm" id="manual-reason">
+                                <option value="">-- Chọn lý do ngoại lệ --</option>
+                                <option value="FOREIGN_GUEST">Khách nước ngoài</option>
+                                <option value="NO_VALID_CCCD">Không có CCCD hợp lệ</option>
+                                <option value="MOBILE_VERIFICATION_FAILED">Mobile / AI xác thực thất bại</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Họ và tên <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="manual-name" placeholder="VD: JOHN DOE">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Số Hộ chiếu / ID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="manual-id" placeholder="Nhập số giấy tờ">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Quốc tịch <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control form-control-sm" id="manual-nationality" placeholder="VD: USA">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold">Ngày sinh <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control form-control-sm" id="manual-dob">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer bg-light">
-                    <!-- Hidden inputs to store checkout context -->
-                    <input type="hidden" id="checkin-id">
-                    <input type="hidden" id="checkin-room">
-                    <input type="hidden" id="checkin-paid">
-                    
                     <button type="button" class="btn btn-secondary btn-sm rounded-pill px-4" data-bs-dismiss="modal">Hủy bỏ</button>
                     <button type="button" class="btn btn-gold btn-sm rounded-pill fw-bold px-4" id="btn-complete-checkin">
-                        <i class="bi bi-check2-circle me-1"></i> Xác nhận & Hoàn tất Check-in
+                        <i class="bi bi-shield-check me-1"></i> Xác nhận nhập tay ngoại lệ
                     </button>
                 </div>
             </div>
@@ -286,30 +209,35 @@
                         <div class="spinner-grow text-gold mb-3" role="status" style="width: 3rem; height: 3rem;">
                             <span class="visually-hidden">Loading...</span>
                         </div>
-                        <h5 class="fw-bold text-navy">Đang chờ kết nối từ Mobile App...</h5>
-                        <p class="text-muted small mb-4">Vui lòng yêu cầu khách hàng sử dụng tính năng "Check-in thông minh" trên ứng dụng MAY HOTEL, quét NFC CCCD và khuôn mặt để xác thực danh tính.</p>
+                        <h5 class="fw-bold text-navy">Đang chờ xác thực từ Mobile App...</h5>
+                        <p class="text-muted small mb-3">Khách thực hiện quét NFC CCCD và khuôn mặt trên ứng dụng MAY HOTEL. VPS AI xử lý xác thực; màn hình web này chỉ theo dõi kết quả.</p>
+                        <div class="alert alert-info py-2 small text-start mb-3" id="mobile-verify-status" role="status">
+                            <i class="bi bi-broadcast me-1"></i>Đang kiểm tra trạng thái từ máy chủ...
+                        </div>
                         
                         <div class="p-3 bg-light rounded border border-secondary-subtle">
                             <i class="bi bi-qr-code-scan display-4 text-dark mb-2"></i>
-                            <p class="small fw-bold text-secondary mb-0">Mã giao dịch: <span id="mobile-verify-code" class="text-primary">--</span></p>
+                            <p class="small fw-bold text-secondary mb-0">Mã booking đồng bộ: <span id="mobile-verify-code" class="text-primary">--</span></p>
                         </div>
                     </div>
 
                     <div id="mobile-verify-success" class="d-none py-3">
                         <i class="bi bi-check-circle-fill text-success display-1 mb-3"></i>
                         <h4 class="fw-bold text-success">Xác thực thành công!</h4>
-                        <p class="text-muted small">Dữ liệu NFC và khuôn mặt hợp lệ. Hệ thống đã đồng bộ hồ sơ khách hàng.</p>
+                        <p class="text-muted small">Backend đã nhận kết quả xác thực và đồng bộ trạng thái cho lễ tân.</p>
                         <div class="bg-light p-3 rounded text-start mt-3">
                             <p class="mb-1 small fw-bold">Họ tên: <span id="sync-name" class="text-navy">Nguyễn Văn A</span></p>
-                            <p class="mb-1 small fw-bold">Số CCCD: <span id="sync-cccd" class="text-navy">0123456789</span></p>
-                            <p class="mb-0 small fw-bold text-success"><i class="bi bi-shield-check me-1"></i>FaceID Trùng khớp 99.8%</p>
+                            <p class="mb-0 small fw-bold text-success"><i class="bi bi-shield-check me-1"></i><span id="sync-method">Mobile NFC + VPS AI</span></p>
                         </div>
                     </div>
                 </div>
-                <div class="modal-footer bg-light border-0 justify-content-between">
-                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" data-bs-dismiss="modal">Hủy giao dịch</button>
+                <div class="modal-footer bg-light border-0 justify-content-between flex-wrap gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" id="btn-cancel-mobile-verify" data-bs-dismiss="modal">Hủy giao dịch</button>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill fw-bold" id="btn-manual-exception" onclick="openManualVerificationModal()">
+                        <i class="bi bi-keyboard me-1"></i> Nhập tay ngoại lệ
+                    </button>
                     <!-- Nút giả lập (Dành cho bản Demo) -->
-                    <button type="button" class="btn btn-warning btn-sm rounded-pill fw-bold" onclick="simulateMobileSuccess()">
+                    <button type="button" class="btn btn-warning btn-sm rounded-pill fw-bold" id="btn-simulate-mobile" onclick="simulateMobileSuccess()">
                         <i class="bi bi-magic me-1"></i> (Giả lập) Mobile đã quét xong
                     </button>
                     
@@ -336,6 +264,6 @@
 window.mockCheckinInvoices = /*[[${invoices}]]*/ [];
 window.mockEmptyRooms = /*[[${emptyRooms}]]*/ [];
 </script>
-<script th:src="@{/js/Admin/Checkin/index.js(v=20261014-5)}"></script>
+<script th:src="@{/js/Admin/Checkin/index.js(v=20261015-2)}"></script>
 </th:block>
 </div>

@@ -1,6 +1,15 @@
 let mockRooms = [];
 if (window.mockRoomMapData && Object.keys(window.mockRoomMapData).length > 0) {
-  Object.values(window.mockRoomMapData).forEach(floorRooms => mockRooms.push(...floorRooms.map(r => ({...r, id: parseInt((r.name || "").replace(/\D/g, '') || r.id), capacity: r.sucChua || 2, view: r.view || 'Hướng Thành Phố'}))));
+  Object.values(window.mockRoomMapData).forEach(floorRooms => mockRooms.push(...floorRooms.map(r => {
+    const roomLabel = (r.name || '').replace(/\D/g, '') || String(r.id);
+    return {
+      ...r,
+      label: roomLabel,
+      floor: Math.floor(parseInt(roomLabel, 10) / 100),
+      capacity: r.sucChua || 2,
+      view: r.view || 'Hướng Thành Phố'
+    };
+  })));
 } else {
   mockRooms = [
     { id: 101, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1, view: 'Hướng Thành Phố' },
@@ -14,6 +23,11 @@ if (window.mockRoomMapData && Object.keys(window.mockRoomMapData).length > 0) {
     { id: 302, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 2, view: 'Hướng Biển' },
     { id: 303, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 1, view: 'Hướng Núi' },
 ];
+  mockRooms = mockRooms.map(room => ({
+    ...room,
+    label: String(room.id),
+    floor: Math.floor(room.id / 100)
+  }));
 }
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -36,7 +50,7 @@ function initFilters() {
     
     // Khởi tạo các Tầng
     if (filterFloorDropdown) {
-        const uniqueFloors = [...new Set(mockRooms.map(room => Math.floor(room.id / 100)))].sort((a,b) => a-b);
+        const uniqueFloors = [...new Set(mockRooms.map(room => room.floor))].sort((a,b) => a-b);
         filterFloorDropdown.innerHTML = uniqueFloors.map((floor, idx) => `
             <li>
                 <div class="form-check mb-1">
@@ -51,8 +65,9 @@ function initFilters() {
     if (filterStatusDropdown) {
         const statuses = [
             { val: 1, label: 'Trống' },
-            { val: 2, label: 'Đang ở (Check-in)' },
-            { val: 3, label: 'Chờ dọn dẹp (Check-out)' }
+            { val: 2, label: 'Đang lưu trú' },
+            { val: 3, label: 'Chờ dọn dẹp (Check-out)' },
+            { val: 4, label: 'Đã đặt' }
         ];
         filterStatusDropdown.innerHTML = statuses.map((st, idx) => `
             <li>
@@ -109,7 +124,7 @@ function applyFilters() {
     const selectedCapacities = Array.from(document.querySelectorAll('.filter-capacity-cb:checked')).map(cb => parseInt(cb.value));
 
     const filtered = mockRooms.filter(room => {
-        const floor = Math.floor(room.id / 100);
+        const floor = room.floor;
         const matchFloor = selectedFloors.length === 0 || selectedFloors.includes(floor);
         const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(room.maTrangThai);
         const matchType = selectedTypes.length === 0 || selectedTypes.includes(room.maLoai);
@@ -134,7 +149,7 @@ function fetchRoomMap(roomsToRender) {
     // Nhóm phòng theo tầng
     const floors = {};
     roomsToRender.forEach(room => {
-        const floorNum = Math.floor(room.id / 100);
+        const floorNum = room.floor;
         if(!floors[floorNum]) {
             floors[floorNum] = [];
         }
@@ -157,29 +172,41 @@ function fetchRoomMap(roomsToRender) {
             if (room.maTrangThai === 1) { // Trống
                 statusClass = 'status-empty';
                 actionHtml = `
-                    <a href="../../admin/check-in/index.html?roomId=${room.id}" class="btn btn-success btn-action py-1 w-100 mb-1">
-                        <i class="bi bi-box-arrow-in-right me-1"></i>Check-In
-                    </a>
+                    <div class="room-status-label bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-check-circle me-1"></i>Trống tại ngày chọn
+                    </div>
                 `;
             } else if (room.maTrangThai === 2) { // Đang ở
                 statusClass = 'status-occupied';
-                actionHtml = `
+                const todayActions = window.roomMapIsToday ? `
                     <div class="d-flex gap-1 mt-2">
-                        <a href="../../admin/check-out/index.html?roomId=${room.id}" class="btn btn-danger btn-action py-1 flex-grow-1" style="font-size: 0.8rem;">
+                        <a href="/receptionist/check-out?roomId=${room.id}" class="btn btn-danger btn-action py-1 flex-grow-1" style="font-size: 0.8rem;">
                             <i class="bi bi-box-arrow-left me-1"></i>Check-Out
                         </a>
                         <button class="btn btn-info text-white btn-action py-1 btn-transfer" style="font-size: 0.8rem;"
-                            data-id="${room.id}" data-type="${room.maLoai}" data-price="${room.price}">
+                            data-id="${room.id}" data-label="${room.label}" data-type="${room.maLoai}" data-price="${room.price}">
                             <i class="bi bi-arrow-left-right"></i> Đổi
                         </button>
+                    </div>` : '';
+                actionHtml = `
+                    <div class="room-status-label bg-danger-subtle text-danger border border-danger-subtle">
+                        <i class="bi bi-person-fill-check me-1"></i>Đang lưu trú
+                    </div>
+                    ${todayActions}
+                `;
+            } else if (room.maTrangThai === 4) { // Đã đặt theo ngày
+                statusClass = 'status-reserved';
+                actionHtml = `
+                    <div class="room-status-label bg-primary-subtle text-primary border border-primary-subtle">
+                        <i class="bi bi-calendar-check me-1"></i>Đã đặt tại ngày chọn
                     </div>
                 `;
             } else { // Chờ dọn dẹp
                 statusClass = 'status-dirty';
                 actionHtml = `
-                    <button class="btn btn-warning text-dark btn-action py-1 w-100" disabled>
-                        <i class="bi bi-hourglass-split me-1"></i>Chờ dọn...
-                    </button>
+                    <div class="room-status-label bg-warning-subtle text-dark border border-warning-subtle">
+                        <i class="bi bi-hourglass-split me-1"></i>Chờ dọn dẹp
+                    </div>
                 `;
             }
 
@@ -194,7 +221,7 @@ function fetchRoomMap(roomsToRender) {
             <div class="room-card p-3 d-flex flex-column justify-content-between ${statusClass}">
                 <div>
                     <div class="d-flex justify-content-between align-items-start">
-                        <h5 class="fw-bold text-dark m-0">Phòng ${room.id}</h5>
+                        <h5 class="fw-bold text-dark m-0">Phòng ${room.label}</h5>
                         <span class="badge bg-light text-dark border fw-bold">${room.maLoai || 'Loại 1'}</span>
                     </div>
                     <div class="d-flex justify-content-between align-items-center mt-1 mb-2">
@@ -222,10 +249,11 @@ function fetchRoomMap(roomsToRender) {
         btn.addEventListener('click', (e) => {
             const btnTarget = e.currentTarget;
             const rId = btnTarget.dataset.id;
+            const rLabel = btnTarget.dataset.label || rId;
             const rType = btnTarget.dataset.type;
             currentTransferRoomPrice = parseInt(btnTarget.dataset.price) || 0;
 
-            document.getElementById('current-room-id').textContent = rId;
+            document.getElementById('current-room-id').textContent = `Phòng ${rLabel}`;
             document.getElementById('current-room-type').textContent = rType;
             document.getElementById('current-price-disp').textContent = formatMoney(currentTransferRoomPrice);
             document.getElementById('new-price-disp').textContent = '0 đ';
@@ -238,7 +266,7 @@ function fetchRoomMap(roomsToRender) {
             mockRooms.filter(r => r.maTrangThai === 1).forEach(r => {
                 const opt = document.createElement('option');
                 opt.value = r.price;
-                opt.textContent = `Phòng ${r.id} (${r.maLoai}) - ${formatMoney(r.price)}`;
+                opt.textContent = `Phòng ${r.label} (${r.maLoai}) - ${formatMoney(r.price)}`;
                 newRoomSelect.appendChild(opt);
             });
 

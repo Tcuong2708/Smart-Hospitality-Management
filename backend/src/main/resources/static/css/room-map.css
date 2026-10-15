@@ -10,6 +10,21 @@ body {
     font-family: 'Inter', sans-serif;
 }
 
+.room-map-date-picker {
+    flex: 0 0 auto;
+    width: fit-content;
+    min-width: 0;
+    height: 42px;
+}
+
+.room-map-date-picker .form-control {
+    flex: 0 0 150px;
+    width: 150px;
+    min-width: 150px;
+    padding-left: 0.5rem;
+    padding-right: 0.25rem;
+}
+
 .room-grid { 
     display: grid; 
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); 
@@ -33,6 +48,15 @@ body {
 .status-empty { border-left: 8px solid #198754; }    /* Green - Empty */
 .status-occupied { border-left: 8px solid #DC3545; } /* Red - Occupied */
 .status-dirty { border-left: 8px solid #FFC107; }    /* Yellow - Needs cleaning */
+.status-reserved { border-left: 8px solid #0D6EFD; } /* Blue - Reserved */
+
+.room-status-label {
+    border-radius: 6px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.42rem 0.65rem;
+    text-align: center;
+}
 
 .btn-action { 
     font-size: 0.85rem; 

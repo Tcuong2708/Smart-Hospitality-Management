@@ -8,14 +8,25 @@ import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 @Service
 public class BookingAvailabilityService {
+
+    public enum RoomTimelineStatus {
+        OCCUPIED,
+        RESERVED
+    }
+
+    private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     private static final Set<String> NON_BLOCKING_BOOKING_STATUSES = Set.of(
             "đã hủy",
@@ -33,6 +44,14 @@ public class BookingAvailabilityService {
             "out of service",
             "cleaning",
             "chờ dọn dẹp"
+    );
+
+    private static final Set<String> CHECKED_IN_BOOKING_STATUSES = Set.of(
+            "đã nhận phòng",
+            "occupied",
+            "in use",
+            "đang ở",
+            "đang lưu trú"
     );
 
     private final RoomRepository roomRepository;
@@ -73,6 +92,93 @@ public class BookingAvailabilityService {
         }
         return findAvailableRooms(null, checkIn, checkOut).stream()
                 .anyMatch(room -> roomId.equals(room.getId()));
+    }
+
+    public Map<Long, RoomTimelineStatus> findRoomUsageOn(LocalDate selectedDate) {
+        if (selectedDate == null) {
+            throw new IllegalArgumentException("Ngày xem sơ đồ phòng không được để trống");
+        }
+
+        Map<Long, RoomTimelineStatus> usageByRoom = new HashMap<>();
+        LocalDate today = LocalDate.now(HOTEL_ZONE);
+
+        for (BookingOrder order : bookingOrderRepository.findAll()) {
+            if (order == null || order.getId() == null) {
+                continue;
+            }
+            for (BookingDetail detail : bookingDetailRepository.findByBookingId(order.getId())) {
+                if (detail == null || detail.getRoomId() == null) {
+                    continue;
+                }
+
+                RoomTimelineStatus usage = usageFor(order, detail, selectedDate, today);
+                if (usage == null) {
+                    continue;
+                }
+                usageByRoom.merge(detail.getRoomId(), usage,
+                        (current, candidate) -> current == RoomTimelineStatus.OCCUPIED
+                                ? current
+                                : candidate);
+            }
+        }
+        return usageByRoom;
+    }
+
+    public Set<Long> findOccupiedRoomIdsOn(LocalDate selectedDate) {
+        Set<Long> occupiedRoomIds = new HashSet<>();
+        findRoomUsageOn(selectedDate).forEach((roomId, status) -> {
+            if (status == RoomTimelineStatus.OCCUPIED) {
+                occupiedRoomIds.add(roomId);
+            }
+        });
+        return occupiedRoomIds;
+    }
+
+    public boolean isRoomOccupiedOn(Long roomId, LocalDate selectedDate) {
+        return roomId != null && findOccupiedRoomIdsOn(selectedDate).contains(roomId);
+    }
+
+    private RoomTimelineStatus usageFor(BookingOrder order,
+                                        BookingDetail detail,
+                                        LocalDate selectedDate,
+                                        LocalDate today) {
+        boolean hasActualStay = detail.getActualIn() != null;
+        boolean checkedIn = CHECKED_IN_BOOKING_STATUSES.contains(normalize(order.getStatus()));
+
+        if (hasActualStay || checkedIn) {
+            LocalDate stayStart = toLocalDate(hasActualStay ? detail.getActualIn() : order.getExpectedIn());
+            LocalDate stayEnd = toLocalDate(detail.getActualOut() != null
+                    ? detail.getActualOut()
+                    : order.getExpectedOut());
+
+            boolean withinRecordedStay = containsDate(stayStart, stayEnd, selectedDate);
+            boolean activeOverstayToday = detail.getActualOut() == null
+                    && checkedIn
+                    && stayStart != null
+                    && !today.isBefore(stayStart)
+                    && selectedDate.equals(today);
+            if (withinRecordedStay || activeOverstayToday) {
+                return RoomTimelineStatus.OCCUPIED;
+            }
+        }
+
+        LocalDate expectedStart = toLocalDate(order.getExpectedIn());
+        LocalDate expectedEnd = toLocalDate(order.getExpectedOut());
+        if (blocksInventory(order) && containsDate(expectedStart, expectedEnd, selectedDate)) {
+            return RoomTimelineStatus.RESERVED;
+        }
+        return null;
+    }
+
+    private boolean containsDate(LocalDate start, LocalDate end, LocalDate selectedDate) {
+        if (start == null || selectedDate.isBefore(start)) {
+            return false;
+        }
+        return end == null || selectedDate.isBefore(end);
+    }
+
+    private LocalDate toLocalDate(Date value) {
+        return value == null ? null : value.toInstant().atZone(HOTEL_ZONE).toLocalDate();
     }
 
     private Set<Long> findConflictingRoomIds(Date checkIn, Date checkOut) {
