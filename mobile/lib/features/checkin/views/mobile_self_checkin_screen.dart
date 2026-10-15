@@ -7,11 +7,18 @@ import 'package:may_hotel_app/services/nfc_service.dart';
 class MobileSelfCheckinScreen extends StatefulWidget {
   final int bookingId;
   final String roomName;
+  final int totalGuests;
 
-  const MobileSelfCheckinScreen({Key? key, required this.bookingId, required this.roomName}) : super(key: key);
+  const MobileSelfCheckinScreen({
+    Key? key,
+    required this.bookingId,
+    required this.roomName,
+    this.totalGuests = 1,
+  }) : super(key: key);
 
   @override
-  State<MobileSelfCheckinScreen> createState() => _MobileSelfCheckinScreenState();
+  State<MobileSelfCheckinScreen> createState() =>
+      _MobileSelfCheckinScreenState();
 }
 
 class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
@@ -23,6 +30,8 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   String? _nfcAccessCode;
   String? _nfcData; // Dữ liệu đọc từ chip NFC
   bool _isNfcScanned = false;
+  int _currentGuestIndex = 0;
+  int _verifiedGuestCount = 0;
 
   Future<void> _takePicture(bool isCccd) async {
     try {
@@ -57,48 +66,62 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         setState(() {
           _nfcData = data;
           _isNfcScanned = true;
-          _statusMessage = "3. Đọc NFC thành công! Cuối cùng, chụp Mặt trước CCCD.";
+          _statusMessage =
+              "3. Đọc NFC thành công! Cuối cùng, chụp Mặt trước CCCD.";
         });
       },
       onError: (err) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(err)));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(err)));
         setState(() {
           _statusMessage = "Đọc NFC thất bại. Hãy thử lại.";
         });
-      }
+      },
     );
   }
 
   Future<void> _submitAI() async {
     if (_selfie == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chụp ảnh khuôn mặt trước!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng chụp ảnh khuôn mặt trước!")),
+      );
       return;
     }
     if (!_isNfcScanned) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng quét chip NFC trên thẻ CCCD!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng quét chip NFC trên thẻ CCCD!")),
+      );
       return;
     }
     if (_cccdFront == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng chụp ảnh mặt trước CCCD!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Vui lòng chụp ảnh mặt trước CCCD!")),
+      );
       return;
     }
 
     setState(() {
       _isProcessing = true;
-      _statusMessage = "Đang gửi ảnh lên AI Server (YOLOv8, VietOCR & FaceMatch)...";
+      _statusMessage =
+          "Đang gửi ảnh lên AI Server (YOLOv8, VietOCR & FaceMatch)...";
     });
 
     try {
       // 1. Gọi Python AI Server trích xuất OCR và FaceMatch
-      final aiRes = await HotelApiProvider().verifyCccdWithSelfie(_cccdFront!, _selfie!);
+      final aiRes = await HotelApiProvider().verifyCccdWithSelfie(
+        _cccdFront!,
+        _selfie!,
+      );
       if (aiRes == null || aiRes['status'] != 'success') {
         setState(() {
           _isProcessing = false;
-          _statusMessage = "AI không xác thực được danh tính. Vui lòng thử lại.";
+          _statusMessage =
+              "AI không xác thực được danh tính. Vui lòng thử lại.";
         });
         return;
       }
-      
+
       String aiResultStr = "XÁC THỰC AI KHỚP KHOẢNG 98.5%";
       final faceVer = aiRes['face_verification'];
       if (faceVer != null && faceVer is Map) {
@@ -114,18 +137,35 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
 
       // 2. Ghi nhận xác thực; lễ tân vẫn là nơi gán phòng và hoàn tất check-in.
       final res = await HotelApiProvider().submitCheckInAI(
-        widget.bookingId, 
-        aiResultStr,
+        widget.bookingId,
+        "$aiResultStr | NFC: ${_nfcData ?? ''}",
+        _currentGuestIndex,
       );
 
       if (res != null) {
+        final allGuestsVerified = res['allGuestsVerified'] == true;
+        final verifiedCount =
+            int.tryParse(res['verifiedGuestCount']?.toString() ?? '') ??
+            (_currentGuestIndex + 1);
         setState(() {
           _isProcessing = false;
-          _statusMessage = "Đã xác thực! Vui lòng chờ lễ tân gán phòng...";
+          _verifiedGuestCount = verifiedCount;
           _nfcAccessCode = res['nfcAccessCode'];
+          if (allGuestsVerified) {
+            _statusMessage =
+                "Đã xác thực đủ $_verifiedGuestCount/${widget.totalGuests} khách. Vui lòng chờ lễ tân gán phòng...";
+          } else {
+            _currentGuestIndex = verifiedCount;
+            _cccdFront = null;
+            _selfie = null;
+            _nfcData = null;
+            _isNfcScanned = false;
+            _statusMessage =
+                "Đã xác thực $verifiedCount/${widget.totalGuests} khách. Tiếp tục chụp khuôn mặt cho khách ${_currentGuestIndex + 1}.";
+          }
         });
 
-        _startNfcWriting();
+        if (allGuestsVerified) _startNfcWriting();
       } else {
         setState(() {
           _isProcessing = false;
@@ -136,31 +176,33 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       debugPrint("Lỗi xác thực AI: $e");
       setState(() {
         _isProcessing = false;
-        _statusMessage = "Không thể xác thực. Vui lòng kiểm tra lại ảnh và thử lại.";
+        _statusMessage =
+            "Không thể xác thực. Vui lòng kiểm tra lại ảnh và thử lại.";
       });
     }
   }
 
   void _startNfcWriting() async {
     if (_nfcAccessCode == null) return;
-    
+
     // Ghi mã khóa vào thẻ NFC trắng
     await NfcService.startCccdScanning(
       onSuccess: (data) {
         // Trong thực tế, bạn sẽ gọi phương thức writeNfc thay vì read,
         // Nhưng ở đây ta mượn hàm scan để giả lập tương tác NFC.
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Ghi thẻ khóa NFC thành công! Mời bạn lên phòng."),
-          backgroundColor: Colors.green,
-        ));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Ghi thẻ khóa NFC thành công! Mời bạn lên phòng."),
+            backgroundColor: Colors.green,
+          ),
+        );
         Navigator.pop(context, true); // Quay lại màn hình lịch sử và refresh
       },
       onError: (err) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Lỗi NFC: $err"),
-          backgroundColor: Colors.red,
-        ));
-      }
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Lỗi NFC: $err"), backgroundColor: Colors.red),
+        );
+      },
     );
   }
 
@@ -180,19 +222,34 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
               style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
               textAlign: TextAlign.center,
             ),
+            const SizedBox(height: 6),
+            Text(
+              "Khách ${_currentGuestIndex + 1}/${widget.totalGuests} • Đã xác thực $_verifiedGuestCount/${widget.totalGuests}",
+              style: TextStyle(
+                color: colorScheme.primary,
+                fontWeight: FontWeight.w600,
+              ),
+              textAlign: TextAlign.center,
+            ),
             const SizedBox(height: 10),
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: _nfcAccessCode != null ? Colors.green.withOpacity(0.1) : Colors.blue.withOpacity(0.1),
+                color: _nfcAccessCode != null
+                    ? Colors.green.withOpacity(0.1)
+                    : Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _nfcAccessCode != null ? Colors.green : Colors.blue),
+                border: Border.all(
+                  color: _nfcAccessCode != null ? Colors.green : Colors.blue,
+                ),
               ),
               child: Text(
                 _statusMessage,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: _nfcAccessCode != null ? Colors.green[700] : Colors.blue[700],
+                  color: _nfcAccessCode != null
+                      ? Colors.green[700]
+                      : Colors.blue[700],
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -212,39 +269,69 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
 
               // BƯỚC 2: NFC (Chỉ khả dụng nếu đã có Selfie)
               ElevatedButton.icon(
-                onPressed: _selfie != null ? _scanNfcCard : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng hoàn thành Bước 1 (Selfie) trước!"))),
+                onPressed: _selfie != null
+                    ? _scanNfcCard
+                    : () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Vui lòng hoàn thành Bước 1 (Selfie) trước!",
+                          ),
+                        ),
+                      ),
                 icon: const Icon(Icons.nfc),
-                label: Text(_isNfcScanned ? "Bước 2: Đã đọc NFC" : "Bước 2: Quét chip NFC CCCD"),
+                label: Text(
+                  _isNfcScanned
+                      ? "Bước 2: Đã đọc NFC"
+                      : "Bước 2: Quét chip NFC CCCD",
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _isNfcScanned ? Colors.green : (_selfie != null ? Colors.amber : Colors.grey),
+                  backgroundColor: _isNfcScanned
+                      ? Colors.green
+                      : (_selfie != null ? Colors.amber : Colors.grey),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                 ),
               ),
               const SizedBox(height: 20),
-              
+
               // BƯỚC 3: CCCD (Chỉ khả dụng nếu đã quét NFC)
               _buildPhotoBox(
                 label: "Bước 3: Ảnh Mặt trước CCCD",
                 icon: Icons.credit_card,
                 file: _cccdFront,
-                onTap: _isNfcScanned ? () => _takePicture(true) : () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng hoàn thành Bước 2 (Quét NFC) trước!"))),
+                onTap: _isNfcScanned
+                    ? () => _takePicture(true)
+                    : () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            "Vui lòng hoàn thành Bước 2 (Quét NFC) trước!",
+                          ),
+                        ),
+                      ),
                 colorScheme: colorScheme,
                 isDisabled: !_isNfcScanned,
               ),
-              
+
               const SizedBox(height: 40),
               ElevatedButton(
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 15),
                   backgroundColor: colorScheme.primary,
                   foregroundColor: colorScheme.onPrimary,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: _isProcessing ? null : _submitAI,
-                child: _isProcessing 
+                child: _isProcessing
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text("Tiến Hành Xác Thực AI", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    : const Text(
+                        "Tiến Hành Xác Thực AI",
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
               ),
             ] else ...[
               // Giao diện hướng dẫn quẹt thẻ NFC
@@ -260,7 +347,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
                 onPressed: _startNfcWriting,
                 child: const Text("Thử ghi lại NFC"),
               ),
-            ]
+            ],
           ],
         ),
       ),
@@ -276,7 +363,11 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     bool isDisabled = false,
   }) {
     return GestureDetector(
-      onTap: isDisabled ? () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Vui lòng hoàn thành bước trước!"))) : onTap,
+      onTap: isDisabled
+          ? () => ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text("Vui lòng hoàn thành bước trước!")),
+            )
+          : onTap,
       child: Column(
         children: [
           Container(
@@ -285,16 +376,33 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             decoration: BoxDecoration(
               color: isDisabled ? Colors.grey[300] : colorScheme.surfaceVariant,
               borderRadius: BorderRadius.circular(15),
-              border: Border.all(color: isDisabled ? Colors.grey : colorScheme.outline, width: 1),
-              image: file != null ? DecorationImage(image: FileImage(file), fit: BoxFit.cover) : null,
+              border: Border.all(
+                color: isDisabled ? Colors.grey : colorScheme.outline,
+                width: 1,
+              ),
+              image: file != null
+                  ? DecorationImage(image: FileImage(file), fit: BoxFit.cover)
+                  : null,
             ),
             child: file == null
                 ? Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(icon, size: 40, color: isDisabled ? Colors.grey : colorScheme.primary.withOpacity(0.6)),
+                      Icon(
+                        icon,
+                        size: 40,
+                        color: isDisabled
+                            ? Colors.grey
+                            : colorScheme.primary.withOpacity(0.6),
+                      ),
                       const SizedBox(height: 5),
-                      Text("Bấm chụp", style: TextStyle(fontSize: 12, color: isDisabled ? Colors.grey : Colors.grey)),
+                      Text(
+                        "Bấm chụp",
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: isDisabled ? Colors.grey : Colors.grey,
+                        ),
+                      ),
                     ],
                   )
                 : Container(
@@ -302,11 +410,21 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
                       color: Colors.black.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(15),
                     ),
-                    child: const Icon(Icons.check_circle, color: Colors.greenAccent, size: 40),
+                    child: const Icon(
+                      Icons.check_circle,
+                      color: Colors.greenAccent,
+                      size: 40,
+                    ),
                   ),
           ),
           const SizedBox(height: 8),
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: isDisabled ? Colors.grey : Colors.black)),
+          Text(
+            label,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: isDisabled ? Colors.grey : Colors.black,
+            ),
+          ),
         ],
       ),
     );

@@ -9,6 +9,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
 import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 @Data
 @Builder
@@ -58,4 +60,13 @@ public class BookingOrder {
 
     @Field("identity_verified_at")
     private Date identityVerifiedAt;
+
+    @Field("guest_count")
+    private Integer guestCount;
+
+    @Field("verified_guest_count")
+    private Integer verifiedGuestCount;
+
+    @Field("guest_verifications")
+    private List<Map<String, Object>> guestVerifications;
 }

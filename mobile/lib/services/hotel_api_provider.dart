@@ -330,11 +330,16 @@ class HotelApiProvider {
   Future<Map<String, dynamic>?> submitCheckInAI(
     int bookingId,
     String cccdData,
+    int guestIndex,
   ) async {
     try {
       final response = await _dio.post(
         "/api/v1/mobile/booking/checkin",
-        data: {"bookingId": bookingId, "cccdData": cccdData},
+        data: {
+          "bookingId": bookingId,
+          "cccdData": cccdData,
+          "guestIndex": guestIndex,
+        },
       );
       if (response.statusCode == 200) {
         return response.data['data'];

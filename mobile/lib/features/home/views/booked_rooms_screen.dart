@@ -13,7 +13,8 @@ class BookedRoomsScreen extends StatefulWidget {
   State<BookedRoomsScreen> createState() => _BookedRoomsScreenState();
 }
 
-class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTickerProviderStateMixin {
+class _BookedRoomsScreenState extends State<BookedRoomsScreen>
+    with SingleTickerProviderStateMixin {
   final HotelApiProvider _apiProvider = HotelApiProvider();
   List<dynamic> _bookedRooms = [];
   bool _isLoading = true;
@@ -85,7 +86,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
     } else if (_selectedFilter == 'RESERVED') {
       return _bookedRooms.where((item) {
         String st = item['trangThai']?.toString() ?? '';
-        return st.contains('Đã xác nhận') || st.contains('Reserved') || st == 'Pending';
+        return st.contains('Đã xác nhận') ||
+            st.contains('Reserved') ||
+            st == 'Pending';
       }).toList();
     } else if (_selectedFilter == 'HISTORY') {
       return _bookedRooms.where((item) {
@@ -130,7 +133,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
         backgroundColor: colorScheme.surface,
         systemOverlayStyle: SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+          statusBarIconBrightness: isDarkMode
+              ? Brightness.light
+              : Brightness.dark,
           statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
         ),
       ),
@@ -139,7 +144,10 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
         color: colorScheme.primary,
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.symmetric(horizontal: Responsive.sp(context, 16), vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: Responsive.sp(context, 16),
+            vertical: 12,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -174,7 +182,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
             color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.06),
             blurRadius: 15,
             offset: const Offset(0, 5),
-          )
+          ),
         ],
       ),
       child: Column(
@@ -182,7 +190,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
         children: [
           Row(
             children: [
-              Icon(Icons.dashboard_customize_rounded, color: isDarkMode ? Colors.amber : colorScheme.primary, size: 20),
+              Icon(
+                Icons.dashboard_customize_rounded,
+                color: isDarkMode ? Colors.amber : colorScheme.primary,
+                size: 20,
+              ),
               const SizedBox(width: 8),
               Text(
                 "Danh mục tiện ích Khách hàng",
@@ -205,16 +217,24 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                   icon: Icons.room_service_rounded,
                   badgeText: _activeBooking != null ? "Đang ở" : null,
                   badgeColor: Colors.green,
-                  cardGradient: [const Color(0xFF0F2942), const Color(0xFF1E3E62)],
+                  cardGradient: [
+                    const Color(0xFF0F2942),
+                    const Color(0xFF1E3E62),
+                  ],
                   iconColor: Colors.amber,
                   onTap: () {
                     final active = _activeBooking;
                     if (active != null) {
-                      final bookingId = int.tryParse(active['bookingId']?.toString() ?? '0') ?? 0;
+                      final bookingId =
+                          int.tryParse(
+                            active['bookingId']?.toString() ?? '0',
+                          ) ??
+                          0;
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => ServiceOrderScreen(bookingId: bookingId),
+                          builder: (_) =>
+                              ServiceOrderScreen(bookingId: bookingId),
                         ),
                       );
                     } else {
@@ -236,9 +256,15 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                   cardGradient: isDarkMode
                       ? [Colors.grey.shade900, Colors.grey.shade800]
                       : [const Color(0xFFF4F6F9), const Color(0xFFE9ECEF)],
-                  iconColor: isDarkMode ? Colors.lightBlueAccent : const Color(0xFF0F2942),
-                  textColor: isDarkMode ? Colors.white : const Color(0xFF0F2942),
-                  subtitleColor: isDarkMode ? Colors.white70 : Colors.grey.shade700,
+                  iconColor: isDarkMode
+                      ? Colors.lightBlueAccent
+                      : const Color(0xFF0F2942),
+                  textColor: isDarkMode
+                      ? Colors.white
+                      : const Color(0xFF0F2942),
+                  subtitleColor: isDarkMode
+                      ? Colors.white70
+                      : Colors.grey.shade700,
                   onTap: () {
                     setState(() {
                       _selectedFilter = 'HISTORY';
@@ -265,16 +291,37 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                   subtitleColor: Colors.teal.shade800,
                   onTap: () {
                     final reserved = _bookedRooms.firstWhere(
-                      (item) => (item['trangThai']?.toString() ?? '').contains('Reserved') || (item['trangThai']?.toString() ?? '').contains('Đã xác nhận'),
+                      (item) =>
+                          (item['trangThai']?.toString() ?? '').contains(
+                            'Reserved',
+                          ) ||
+                          (item['trangThai']?.toString() ?? '').contains(
+                            'Đã xác nhận',
+                          ),
                       orElse: () => null,
                     );
-                    final bId = reserved != null ? (int.tryParse(reserved['bookingId']?.toString() ?? '0') ?? 0) : 0;
-                    final rName = reserved != null ? (reserved['tenPhong']?.toString() ?? 'Phòng của bạn') : 'Phòng khách sạn';
-                    
+                    final bId = reserved != null
+                        ? (int.tryParse(
+                                reserved['bookingId']?.toString() ?? '0',
+                              ) ??
+                              0)
+                        : 0;
+                    final rName = reserved != null
+                        ? (reserved['tenPhong']?.toString() ?? 'Phòng của bạn')
+                        : 'Phòng khách sạn';
+
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => MobileSelfCheckinScreen(bookingId: bId, roomName: rName),
+                        builder: (_) => MobileSelfCheckinScreen(
+                          bookingId: bId,
+                          roomName: rName,
+                          totalGuests:
+                              int.tryParse(
+                                reserved?['guestCount']?.toString() ?? '1',
+                              ) ??
+                              1,
+                        ),
                       ),
                     );
                   },
@@ -298,7 +345,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                     if (Navigator.canPop(context)) {
                       Navigator.pop(context);
                     } else {
-                      Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+                      Navigator.pushNamedAndRemoveUntil(
+                        context,
+                        '/main',
+                        (route) => false,
+                      );
                     }
                   },
                 ),
@@ -341,7 +392,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
               color: cardGradient.first.withOpacity(0.2),
               blurRadius: 8,
               offset: const Offset(0, 3),
-            )
+            ),
           ],
         ),
         child: Stack(
@@ -391,14 +442,21 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                 top: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: badgeColor ?? Colors.redAccent,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     badgeText,
-                    style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
@@ -437,7 +495,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
               ),
               selected: isSelected,
               selectedColor: isDarkMode ? Colors.amber : colorScheme.primary,
-              backgroundColor: isDarkMode ? colorScheme.surface : Colors.grey.shade200,
+              backgroundColor: isDarkMode
+                  ? colorScheme.surface
+                  : Colors.grey.shade200,
               onSelected: (selected) {
                 if (selected) {
                   setState(() {
@@ -445,7 +505,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                   });
                 }
               },
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
             ),
           );
@@ -487,7 +549,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
           if (Navigator.canPop(context)) {
             Navigator.pop(context);
           } else {
-            Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/main',
+              (route) => false,
+            );
           }
         },
         colorScheme: colorScheme,
@@ -522,13 +588,19 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
   }
 
   // 💳 THIẾT KẾ CARD PHÒNG ĐÃ ĐẶT
-  Widget _buildBookingCard(dynamic item, ColorScheme colorScheme, bool isDarkMode) {
+  Widget _buildBookingCard(
+    dynamic item,
+    ColorScheme colorScheme,
+    bool isDarkMode,
+  ) {
     String tenPhong = item['tenPhong']?.toString().trim().isNotEmpty == true
         ? item['tenPhong'].toString()
         : 'Chưa gán phòng';
     String hinhAnh = item['hinhAnh']?.toString() ?? '';
 
-    String ngayNhan = _safeFormatDate(item['ngayNhanPhong'] ?? item['ngayNhan']);
+    String ngayNhan = _safeFormatDate(
+      item['ngayNhanPhong'] ?? item['ngayNhan'],
+    );
     String ngayTra = _safeFormatDate(item['ngayTraPhong'] ?? item['ngayTra']);
 
     double tongTien = double.tryParse(item['tongTien']?.toString() ?? '0') ?? 0;
@@ -561,7 +633,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
             color: Colors.black.withOpacity(isDarkMode ? 0.3 : 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
-          )
+          ),
         ],
       ),
       child: Padding(
@@ -572,8 +644,22 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: isNetworkImage
-                  ? Image.network(hinhAnh, width: 85, height: 85, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildImagePlaceholder(colorScheme))
-                  : Image.asset(hinhAnh, width: 85, height: 85, fit: BoxFit.cover, errorBuilder: (c, e, s) => _buildImagePlaceholder(colorScheme)),
+                  ? Image.network(
+                      hinhAnh,
+                      width: 85,
+                      height: 85,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) =>
+                          _buildImagePlaceholder(colorScheme),
+                    )
+                  : Image.asset(
+                      hinhAnh,
+                      width: 85,
+                      height: 85,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) =>
+                          _buildImagePlaceholder(colorScheme),
+                    ),
             ),
             const SizedBox(width: 14),
             Expanded(
@@ -586,7 +672,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                       Expanded(
                         child: Text(
                           tenPhong,
-                          style: TextStyle(fontSize: Responsive.sp(context, 15), fontWeight: FontWeight.bold, color: colorScheme.onSurface),
+                          style: TextStyle(
+                            fontSize: Responsive.sp(context, 15),
+                            fontWeight: FontWeight.bold,
+                            color: colorScheme.onSurface,
+                          ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -597,7 +687,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                   const SizedBox(height: 6),
                   Text(
                     "📅 Lịch: $ngayNhan ➔ $ngayTra",
-                    style: TextStyle(fontSize: 12, color: colorScheme.onSurface.withOpacity(0.6), fontWeight: FontWeight.w500),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurface.withOpacity(0.6),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Row(
@@ -608,7 +702,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
                         style: TextStyle(
                           fontSize: Responsive.sp(context, 14),
                           fontWeight: FontWeight.bold,
-                          color: isDarkMode ? Colors.amber : colorScheme.primary,
+                          color: isDarkMode
+                              ? Colors.amber
+                              : colorScheme.primary,
                         ),
                       ),
                       _buildActionButtons(item, trangThai, colorScheme),
@@ -624,8 +720,13 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
   }
 
   // 🎛️ KHỐI NÚT THAO TÁC THEO TRẠNG THÁI
-  Widget _buildActionButtons(dynamic item, String trangThai, ColorScheme colorScheme) {
-    final int bookingId = int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
+  Widget _buildActionButtons(
+    dynamic item,
+    String trangThai,
+    ColorScheme colorScheme,
+  ) {
+    final int bookingId =
+        int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
 
     if (trangThai == "Đã xác nhận" ||
         trangThai == "Reserved" ||
@@ -646,6 +747,8 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
               builder: (context) => MobileSelfCheckinScreen(
                 bookingId: bookingId,
                 roomName: item['tenPhong']?.toString() ?? 'Phòng của bạn',
+                totalGuests:
+                    int.tryParse(item['guestCount']?.toString() ?? '1') ?? 1,
               ),
             ),
           );
@@ -653,9 +756,14 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
             _fetchBookingHistory();
           }
         },
-        child: const Text("Nhận phòng", style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+        child: const Text(
+          "Nhận phòng",
+          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        ),
       );
-    } else if (trangThai == "Đã nhận phòng" || trangThai == "Occupied" || trangThai == "In Use") {
+    } else if (trangThai == "Đã nhận phòng" ||
+        trangThai == "Occupied" ||
+        trangThai == "In Use") {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -670,12 +778,16 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => ServiceOrderScreen(bookingId: bookingId),
+                  builder: (context) =>
+                      ServiceOrderScreen(bookingId: bookingId),
                 ),
               );
             },
             icon: const Icon(Icons.room_service, size: 14),
-            label: const Text("Dịch vụ", style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+            label: const Text(
+              "Dịch vụ",
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
           const SizedBox(width: 6),
           OutlinedButton(
@@ -685,7 +797,14 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
               side: const BorderSide(color: Colors.redAccent),
             ),
             onPressed: () => _confirmCheckOut(item),
-            child: const Text("Trả phòng", style: TextStyle(fontSize: 11, color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: const Text(
+              "Trả phòng",
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.redAccent,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ),
         ],
       );
@@ -699,9 +818,14 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
       context: context,
       builder: (context) => AlertDialog(
         title: const Text("Xác nhận trả phòng"),
-        content: Text("Bạn có chắc chắn muốn trả phòng ${item['tenPhong']} không?\nSau khi trả phòng, quyền đặt dịch vụ sẽ tự động khóa."),
+        content: Text(
+          "Bạn có chắc chắn muốn trả phòng ${item['tenPhong']} không?\nSau khi trả phòng, quyền đặt dịch vụ sẽ tự động khóa.",
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Hủy")),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text("Hủy"),
+          ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
             onPressed: () async {
@@ -712,27 +836,42 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
               showDialog(
                 context: context,
                 barrierDismissible: false,
-                builder: (context) => const Center(child: CircularProgressIndicator()),
+                builder: (context) =>
+                    const Center(child: CircularProgressIndicator()),
               );
 
-              final bookingId = int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
-              final success = await HotelApiProvider().submitCheckOut(bookingId);
+              final bookingId =
+                  int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
+              final success = await HotelApiProvider().submitCheckOut(
+                bookingId,
+              );
 
               if (mounted) {
                 nav.pop(); // Close loading dialog
                 if (success) {
                   messenger.showSnackBar(
-                    const SnackBar(content: Text("Trả phòng thành công! Quyền đặt dịch vụ đã được khóa."), backgroundColor: Colors.green),
+                    const SnackBar(
+                      content: Text(
+                        "Trả phòng thành công! Quyền đặt dịch vụ đã được khóa.",
+                      ),
+                      backgroundColor: Colors.green,
+                    ),
                   );
                   _fetchBookingHistory();
                 } else {
                   messenger.showSnackBar(
-                    const SnackBar(content: Text("Lỗi khi trả phòng. Vui lòng thử lại."), backgroundColor: Colors.red),
+                    const SnackBar(
+                      content: Text("Lỗi khi trả phòng. Vui lòng thử lại."),
+                      backgroundColor: Colors.red,
+                    ),
                   );
                 }
               }
             },
-            child: const Text("Xác nhận", style: TextStyle(color: Colors.white)),
+            child: const Text(
+              "Xác nhận",
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -756,14 +895,21 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
           "Nếu bạn đã có phòng, vui lòng chọn nút 'Nhận phòng' ở danh sách bên dưới.",
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Đóng")),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("Đóng"),
+          ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(ctx);
               if (Navigator.canPop(context)) {
                 Navigator.pop(context);
               } else {
-                Navigator.pushNamedAndRemoveUntil(context, '/main', (route) => false);
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/main',
+                  (route) => false,
+                );
               }
             },
             child: const Text("Khám phá phòng ngay"),
@@ -778,7 +924,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
     Color textColor;
     String displayStatus = status;
 
-    if (status == 'Đã nhận phòng' || status == 'Occupied' || status == 'In Use') {
+    if (status == 'Đã nhận phòng' ||
+        status == 'Occupied' ||
+        status == 'In Use') {
       cardColor = Colors.blue.withOpacity(0.15);
       textColor = isDarkMode ? Colors.lightBlueAccent : Colors.blue.shade700;
       displayStatus = "Đang ở";
@@ -804,16 +952,26 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: cardColor, borderRadius: BorderRadius.circular(8)),
+      decoration: BoxDecoration(
+        color: cardColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
       child: Text(
         displayStatus,
-        style: TextStyle(color: textColor, fontSize: 11, fontWeight: FontWeight.bold),
+        style: TextStyle(
+          color: textColor,
+          fontSize: 11,
+          fontWeight: FontWeight.bold,
+        ),
       ),
     );
   }
 
   Widget _buildImagePlaceholder(ColorScheme colorScheme) {
-    return Container(color: Colors.grey.shade200, child: Icon(Icons.hotel, color: colorScheme.primary));
+    return Container(
+      color: Colors.grey.shade200,
+      child: Icon(Icons.hotel, color: colorScheme.primary),
+    );
   }
 
   Widget _buildEmptyOrErrorState({
@@ -834,19 +992,35 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen> with SingleTicker
             Text(
               title,
               textAlign: TextAlign.center,
-              style: TextStyle(color: colorScheme.onSurface.withOpacity(0.5), fontSize: 14, fontWeight: FontWeight.w500, height: 1.4),
+              style: TextStyle(
+                color: colorScheme.onSurface.withOpacity(0.5),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                height: 1.4,
+              ),
             ),
             const SizedBox(height: 20),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
                 backgroundColor: colorScheme.primary,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
                 elevation: 2,
               ),
               onPressed: onPressed,
-              child: Text(buttonText, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            )
+              child: Text(
+                buttonText,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
           ],
         ),
       ),

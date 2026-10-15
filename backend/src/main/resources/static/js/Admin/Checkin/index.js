@@ -181,7 +181,12 @@ window.openMobileVerifyModal = function(invoiceId, bookingId) {
                     clearInterval(pollingInterval);
                     window.simulateMobileSuccess(true, data.verificationMethod);
                 } else {
-                    setMobileVerifyStatus('Đã kết nối máy chủ, đang chờ khách hoàn tất NFC và xác thực khuôn mặt trên Mobile...', 'info');
+                    const requiredGuests = Number(data.requiredGuestCount || 1);
+                    const verifiedGuests = Number(data.verifiedGuestCount || 0);
+                    const progress = requiredGuests > 1
+                        ? ` Đã xác thực ${verifiedGuests}/${requiredGuests} khách.`
+                        : '';
+                    setMobileVerifyStatus(`Đã kết nối máy chủ.${progress} Đang chờ hoàn tất NFC và xác thực khuôn mặt trên Mobile...`, 'info');
                 }
             } else {
                 setMobileVerifyStatus('Chưa đọc được trạng thái booking. Hệ thống sẽ tự thử lại.', 'warning');

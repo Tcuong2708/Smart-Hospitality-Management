@@ -85,4 +85,25 @@ class ReceptionApiControllerTests {
         verify(customerRepository, never()).save(any(Customer.class));
         verify(bookingOrderRepository, never()).save(any(BookingOrder.class));
     }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void verificationStatusRemainsPendingUntilAllGuestsAreVerified() {
+        BookingOrder booking = BookingOrder.builder()
+                .id(22L)
+                .guestCount(2)
+                .verifiedGuestCount(1)
+                .isFaceVerified(false)
+                .identityVerificationMethod("MOBILE_AI_NFC_PARTIAL")
+                .build();
+        when(bookingOrderRepository.findById(22L)).thenReturn(Optional.of(booking));
+
+        ResponseEntity<?> response = controller.getFaceVerificationStatus(22L);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat((Map<String, Object>) response.getBody())
+                .containsEntry("requiredGuestCount", 2)
+                .containsEntry("verifiedGuestCount", 1)
+                .containsEntry("isFaceVerified", false);
+    }
 }

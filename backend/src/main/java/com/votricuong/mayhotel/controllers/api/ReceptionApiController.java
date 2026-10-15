@@ -62,12 +62,20 @@ public class ReceptionApiController {
             }
 
             BookingOrder booking = bookingOpt.get();
-            boolean isVerified = Boolean.TRUE.equals(booking.getIsFaceVerified());
+            int requiredGuestCount = booking.getGuestCount() == null || booking.getGuestCount() < 1
+                    ? 1
+                    : booking.getGuestCount();
+            int verifiedGuestCount = booking.getVerifiedGuestCount() == null
+                    ? (Boolean.TRUE.equals(booking.getIsFaceVerified()) ? requiredGuestCount : 0)
+                    : booking.getVerifiedGuestCount();
+            boolean isVerified = verifiedGuestCount >= requiredGuestCount;
 
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("bookingId", bookingId);
             response.put("isFaceVerified", isVerified);
+            response.put("requiredGuestCount", requiredGuestCount);
+            response.put("verifiedGuestCount", verifiedGuestCount);
             response.put("verificationMethod", booking.getIdentityVerificationMethod() == null
                     ? (isVerified ? "MOBILE_AI" : "PENDING")
                     : booking.getIdentityVerificationMethod());
@@ -120,6 +128,9 @@ public class ReceptionApiController {
             customerRepository.save(customer);
 
             booking.setIsFaceVerified(true);
+            int guestCount = booking.getGuestCount() == null || booking.getGuestCount() < 1 ? 1 : booking.getGuestCount();
+            booking.setGuestCount(guestCount);
+            booking.setVerifiedGuestCount(guestCount);
             booking.setIdentityVerificationMethod("MANUAL_EXCEPTION");
             booking.setIdentityVerificationReason(reason);
             booking.setIdentityVerifiedAt(new Date());
@@ -145,6 +156,9 @@ public class ReceptionApiController {
             BookingOrder booking = bookingOrderRepository.findById(bookingId)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Booking."));
             booking.setIsFaceVerified(true);
+            int guestCount = booking.getGuestCount() == null || booking.getGuestCount() < 1 ? 1 : booking.getGuestCount();
+            booking.setGuestCount(guestCount);
+            booking.setVerifiedGuestCount(guestCount);
             booking.setIdentityVerificationMethod("DEMO_SIMULATION");
             booking.setIdentityVerificationReason(null);
             booking.setIdentityVerifiedAt(new Date());

@@ -324,6 +324,7 @@ public class MobileApiController {
             Long roomTypeId = requiredLong(payload, "roomTypeId");
             String ngayNhanStr = requiredString(payload, "ngayNhan");
             String ngayTraStr = requiredString(payload, "ngayTra");
+            int guestCount = optionalPositiveInt(payload, "soNguoi", 1);
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("Tài khoản đặt phòng không tồn tại"));
@@ -338,6 +339,15 @@ public class MobileApiController {
             }
             
             Room selectedRoom = availableRooms.get(0);
+            RoomType selectedRoomType = roomTypeRepository.findById(roomTypeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy loại phòng"));
+            int maxOccupancy = selectedRoomType.getMaxOccupancy() == null
+                    ? 1
+                    : selectedRoomType.getMaxOccupancy();
+            if (guestCount > maxOccupancy) {
+                return ResponseEntity.badRequest().body(ApiResponse.error(
+                        "Số khách vượt quá sức chứa tối đa " + maxOccupancy + " người của loại phòng."));
+            }
             
             // Xử lý Customer
             String customerName = optionalString(payload, "customerName");
@@ -379,6 +389,10 @@ public class MobileApiController {
             order.setExpectedOut(ngayTra);
             order.setStatus("Pending");
             order.setNotes(ghiChu);
+            order.setGuestCount(guestCount);
+            order.setVerifiedGuestCount(0);
+            order.setGuestVerifications(new ArrayList<>());
+            order.setIsFaceVerified(false);
             order.setAutoCancelTime(calculateAutoCancelTime(ngayNhan, false));
             bookingOrderRepository.save(order);
             
@@ -450,6 +464,8 @@ public class MobileApiController {
                 map.put("tongTien", tongTien);
                 map.put("trangThai", o.getStatus() != null ? o.getStatus() : "Chờ xác nhận");
                 map.put("isFaceVerified", Boolean.TRUE.equals(o.getIsFaceVerified()));
+                map.put("guestCount", effectiveGuestCount(o));
+                map.put("verifiedGuestCount", effectiveVerifiedGuestCount(o));
                 map.put("daThanhToan", invOpt.map(inv -> Boolean.TRUE.equals(inv.getIsPaid())).orElse(false));
                 map.put("phuongThucThanhToan", invOpt.map(Invoice::getPayMethod).orElse(null));
                 map.put("tenPhong", "Chưa gán phòng");
@@ -514,18 +530,55 @@ public class MobileApiController {
     }
 
     @PostMapping("/booking/checkin")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> checkinAIAndNFC(@RequestBody Map<String, Object> payload) {
+    public synchronized ResponseEntity<ApiResponse<Map<String, Object>>> checkinAIAndNFC(
+            @RequestBody Map<String, Object> payload) {
         try {
             Long bookingId = Long.valueOf(payload.get("bookingId").toString());
             String cccdData = (String) payload.getOrDefault("cccdData", "AI_VERIFIED"); 
+            int guestIndex = optionalNonNegativeInt(payload, "guestIndex", 0);
             
             Optional<BookingOrder> orderOpt = bookingOrderRepository.findById(bookingId);
             if (orderOpt.isEmpty()) return ResponseEntity.badRequest().body(ApiResponse.error("Không tìm thấy đơn đặt phòng"));
             
             BookingOrder order = orderOpt.get();
-            // Đánh dấu là đã xác thực khuôn mặt từ Mobile
-            order.setIsFaceVerified(true);
-            order.setIdentityVerificationMethod("MOBILE_AI");
+            int requiredGuestCount = effectiveGuestCount(order);
+            if (guestIndex >= requiredGuestCount) {
+                return ResponseEntity.badRequest().body(ApiResponse.error(
+                        "Vị trí khách xác thực không hợp lệ. Booking có " + requiredGuestCount + " khách."));
+            }
+
+            List<Map<String, Object>> verifications = order.getGuestVerifications() == null
+                    ? new ArrayList<>()
+                    : new ArrayList<>(order.getGuestVerifications());
+
+            boolean duplicateIdentity = verifications.stream().anyMatch(item ->
+                    !Objects.equals(asInteger(item.get("guestIndex")), guestIndex)
+                            && Objects.equals(String.valueOf(item.get("cccdData")), cccdData));
+            if (duplicateIdentity) {
+                return ResponseEntity.badRequest().body(ApiResponse.error(
+                        "Giấy tờ này đã được dùng để xác thực cho một khách khác."));
+            }
+
+            Map<String, Object> verification = new HashMap<>();
+            verification.put("guestIndex", guestIndex);
+            verification.put("cccdData", cccdData);
+            verification.put("method", "MOBILE_AI_NFC");
+            verification.put("verifiedAt", new Date());
+            verifications.removeIf(item -> Objects.equals(asInteger(item.get("guestIndex")), guestIndex));
+            verifications.add(verification);
+
+            int verifiedGuestCount = (int) verifications.stream()
+                    .map(item -> asInteger(item.get("guestIndex")))
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .count();
+            boolean allGuestsVerified = verifiedGuestCount >= requiredGuestCount;
+
+            order.setGuestCount(requiredGuestCount);
+            order.setGuestVerifications(verifications);
+            order.setVerifiedGuestCount(verifiedGuestCount);
+            order.setIsFaceVerified(allGuestsVerified);
+            order.setIdentityVerificationMethod(allGuestsVerified ? "MOBILE_AI_NFC" : "MOBILE_AI_NFC_PARTIAL");
             order.setIdentityVerificationReason(null);
             order.setIdentityVerifiedAt(new Date());
             bookingOrderRepository.save(order);
@@ -536,15 +589,22 @@ public class MobileApiController {
                 roomId = details.get(0).getRoomId();
             }
             
-            String nfcCode = "MAYHOTEL-ROOM-" + (roomId != null ? roomId : "UNKNOWN") + "-" + UUID.randomUUID().toString().substring(0, 8);
+            String nfcCode = allGuestsVerified
+                    ? "MAYHOTEL-ROOM-" + (roomId != null ? roomId : "UNKNOWN") + "-" + UUID.randomUUID().toString().substring(0, 8)
+                    : null;
             
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", bookingId);
-            resp.put("status", "Đã xác thực - chờ lễ tân xác nhận nhận phòng");
-            resp.put("verificationMethod", "MOBILE_AI");
+            resp.put("status", allGuestsVerified
+                    ? "Đã xác thực đủ khách - chờ lễ tân xác nhận nhận phòng"
+                    : "Đã xác thực " + verifiedGuestCount + "/" + requiredGuestCount + " khách");
+            resp.put("verificationMethod", order.getIdentityVerificationMethod());
             resp.put("verifiedAt", order.getIdentityVerifiedAt());
+            resp.put("verifiedGuestCount", verifiedGuestCount);
+            resp.put("requiredGuestCount", requiredGuestCount);
+            resp.put("allGuestsVerified", allGuestsVerified);
             resp.put("canOrderService", false);
-            resp.put("nfcAccessCode", nfcCode);
+            if (nfcCode != null) resp.put("nfcAccessCode", nfcCode);
             resp.put("cccdParsed", cccdData);
             
             return ResponseEntity.ok(ApiResponse.success("Xác thực thành công. Vui lòng chờ lễ tân hoàn tất nhận phòng.", resp));
@@ -722,6 +782,43 @@ public class MobileApiController {
             return Long.valueOf(value.toString());
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException(field + " không hợp lệ");
+        }
+    }
+
+    private int effectiveGuestCount(BookingOrder order) {
+        return order.getGuestCount() == null || order.getGuestCount() < 1 ? 1 : order.getGuestCount();
+    }
+
+    private int effectiveVerifiedGuestCount(BookingOrder order) {
+        if (order.getVerifiedGuestCount() != null) return order.getVerifiedGuestCount();
+        return Boolean.TRUE.equals(order.getIsFaceVerified()) ? effectiveGuestCount(order) : 0;
+    }
+
+    private int optionalPositiveInt(Map<String, Object> payload, String field, int defaultValue) {
+        int value = optionalNonNegativeInt(payload, field, defaultValue);
+        if (value < 1) throw new IllegalArgumentException(field + " phải lớn hơn 0");
+        return value;
+    }
+
+    private int optionalNonNegativeInt(Map<String, Object> payload, String field, int defaultValue) {
+        Object raw = payload.get(field);
+        if (raw == null || raw.toString().isBlank()) return defaultValue;
+        try {
+            int value = Integer.parseInt(raw.toString());
+            if (value < 0) throw new IllegalArgumentException(field + " không được âm");
+            return value;
+        } catch (NumberFormatException e) {
+            throw new IllegalArgumentException(field + " phải là số nguyên");
+        }
+    }
+
+    private Integer asInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.valueOf(value.toString());
+        } catch (NumberFormatException e) {
+            return null;
         }
     }
 

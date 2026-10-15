@@ -30,6 +30,7 @@ class _BookingScreenState extends State<BookingScreen> {
   final _nationalityController = TextEditingController(text: "Việt Nam");
   final _addressController = TextEditingController();
   final HotelApiProvider _apiProvider = HotelApiProvider();
+  int _guestCount = 1;
 
   @override
   Widget build(BuildContext context) {
@@ -82,6 +83,48 @@ class _BookingScreenState extends State<BookingScreen> {
             ),
             const SizedBox(height: 12),
             _buildDatePicker(context, colorScheme, isDarkMode),
+
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    "Số khách lưu trú",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: Responsive.sp(context, 16),
+                      color: colorScheme.onSurface,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  onPressed: _guestCount > 1
+                      ? () => setState(() => _guestCount--)
+                      : null,
+                  icon: const Icon(Icons.remove_circle_outline),
+                ),
+                Text(
+                  "$_guestCount",
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                IconButton(
+                  onPressed: _guestCount < 10
+                      ? () => setState(() => _guestCount++)
+                      : null,
+                  icon: const Icon(Icons.add_circle_outline),
+                ),
+              ],
+            ),
+            Text(
+              "Mỗi khách phải xác thực CCCD NFC và khuôn mặt khi nhận phòng.",
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
 
             const SizedBox(height: 30),
 
@@ -491,7 +534,7 @@ class _BookingScreenState extends State<BookingScreen> {
         userId: userId,
         ngayNhanPhong: _selectedDateRange!.start,
         ngayTraPhong: _selectedDateRange!.end,
-        soNguoi: 1,
+        soNguoi: _guestCount,
         ghiChu: 'Quoc tich: $quocTich, Dia chi: $diaChi',
         customerName: hoTen,
         customerPhone: dienThoai,

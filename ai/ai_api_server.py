@@ -208,6 +208,10 @@ def save_final_booking(session, user_id):
             "no_show_risk_percentage": risk_percentage,
             "noshow_risk_percent": risk_percentage,
             "auto_cancel_time": cancel_time,
+            "guest_count": max(int(session.get("adults", 1)) + int(session.get("children", 0)), 1),
+            "verified_guest_count": 0,
+            "guest_verifications": [],
+            "is_face_verified": False,
             "_class": "com.votricuong.mayhotel.documents.BookingOrder"
         }
         db.booking_orders.insert_one(booking_order)
