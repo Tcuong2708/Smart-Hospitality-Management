@@ -43,9 +43,11 @@ dependencies:
   local_auth: ^3.0.1
   google_sign_in: ^6.2.1
   shared_preferences: ^2.2.3
+  flutter_secure_storage: ^9.2.4
   safe_device: ^1.4.1
   usb_debug_blocker: ^0.0.1
   image_picker: ^1.2.3
+  image: ^4.10.1
   blue_thermal_printer: ^1.2.3
   freerasp: ^8.2.2
   screenshot: ^3.0.0

@@ -7,4 +7,5 @@ import java.util.Optional;
 
 public interface StaffRepository extends MongoRepository<Staff, Long> {
     Optional<Staff> findByPhone(String phone);
+    boolean existsByUserId(Long userId);
 }

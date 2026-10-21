@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.util.Date;
 import java.util.List;
+import com.votricuong.mayhotel.services.BookingCancellationService;
 
 @Component
 public class NoShowScheduler {
@@ -23,6 +24,9 @@ public class NoShowScheduler {
 
     @Autowired
     private MongoTemplate mongoTemplate;
+
+    @Autowired
+    private BookingCancellationService bookingCancellationService;
 
     // Chạy mỗi phút 1 lần để kiểm tra các phiếu đặt phòng quá hạn nhận phòng (No-show)
     @Scheduled(cron = "0 * * * * *")
@@ -39,26 +43,21 @@ public class NoShowScheduler {
         int cancelledCount = 0;
         for (BookingOrder order : overdueBookings) {
             Date cancelAt = resolveAutoCancelTime(order);
-            if (cancelAt.after(now) || Boolean.TRUE.equals(order.getIsFaceVerified())) {
+            if (cancelAt.after(now)
+                    || Boolean.TRUE.equals(order.getIsFaceVerified())
+                    || Boolean.TRUE.equals(order.getLateArrivalApproved())) {
                 continue;
             }
-
-            mongoTemplate.updateFirst(
-                    new Query(Criteria.where("_id").is(order.getId())),
-                    new Update().set("status", "Hủy do khách không đến")
-                            .set("auto_cancel_time", cancelAt),
-                    BookingOrder.class);
-
-            mongoTemplate.updateMulti(
-                    new Query(Criteria.where("booking_id").is(order.getId())
-                            .and("invoice_status").in("Reserved", "Pending")),
-                    new Update().set("invoice_status", "Cancelled")
-                            .set("note", "Tự động hủy do khách check-in trễ"),
-                    Invoice.class);
-
-            releaseReservedRoom(order.getId());
-            cancelledCount++;
-            log.info("No-show AI: da tu dong huy don {} do qua han check-in luc {}", order.getId(), cancelAt);
+            try {
+                bookingCancellationService.cancel(order.getId(),
+                        BookingCancellationService.CancellationType.NO_SHOW,
+                        "Tự động hủy do quá hạn nhận phòng; phí phạt 100%, không hoàn lại");
+                cancelledCount++;
+                log.info("No-show AI: da tu dong huy don {} do qua han check-in luc {}, phat 100%",
+                        order.getId(), cancelAt);
+            } catch (IllegalStateException ex) {
+                log.debug("Bo qua don {}: {}", order.getId(), ex.getMessage());
+            }
         }
         if (cancelledCount > 0) {
             log.info("No-show AI: da huy {} don qua han.", cancelledCount);

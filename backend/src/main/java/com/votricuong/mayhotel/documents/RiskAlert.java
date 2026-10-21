@@ -30,4 +30,10 @@ public class RiskAlert {
     private Date analyzeDate;
     
     private String reason;
+
+    @Field("risk_level")
+    private String riskLevel;
+
+    @Field("analysis_status")
+    private String analysisStatus;
 }

@@ -27,6 +27,8 @@ import re
 import unicodedata
 from datetime import datetime
 import pickle
+import urllib.request
+import urllib.error
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -79,6 +81,9 @@ class ChatRequest(BaseModel):
     message: str
     user_id: str = 'default'
     session_id: str = ''
+
+class NoShowPredictionRequest(BaseModel):
+    data: dict
 
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://vocuong_mayhotel_db:Tricuongadmin@cluster0.unq6xcf.mongodb.net/MayHotelDB?retryWrites=true&w=majority&appName=Cluster0")
 
@@ -134,6 +139,34 @@ def get_room_price_summary():
 
 def save_final_booking(session, user_id):
     try:
+        # AI chỉ thu thập hội thoại; toàn bộ kiểm tra phòng và ghi dữ liệu do backend thực hiện.
+        backend_url = os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
+        internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "local-dev-secret")
+        checkin_iso = datetime.strptime(session["checkin"], "%d/%m/%Y").strftime("%Y-%m-%d")
+        checkout_iso = datetime.strptime(session["checkout"], "%d/%m/%Y").strftime("%Y-%m-%d")
+        payload = {
+            "customerName": session["customer_name"],
+            "phone": session["phone"],
+            "roomType": session.get("selected_room", ""),
+            "checkIn": checkin_iso,
+            "checkOut": checkout_iso,
+            "guestCount": max(int(session.get("adults", 1)) + int(session.get("children", 0)), 1),
+            "paymentMethod": "ONLINE" if session.get("payment_method") == "Thanh toán Online" else "COD",
+            "note": session.get("note", ""),
+        }
+        request = urllib.request.Request(
+            backend_url + "/api/v1/internal/chatbot/bookings",
+            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+            headers={"Content-Type": "application/json", "X-Internal-Token": internal_token},
+            method="POST",
+        )
+        with urllib.request.urlopen(request, timeout=20) as response:
+            result = json.loads(response.read().decode("utf-8"))
+        session["risk_percentage"] = float(result.get("riskPercentage", 0.0))
+        return int(result["bookingId"])
+
+        # Legacy direct-Mongo implementation retained below temporarily for data-reference only;
+        # it is unreachable so the chatbot cannot bypass backend business rules.
         db = get_db_connection()
         booking_date = datetime.utcnow()
         checkin_date = datetime.strptime(session["checkin"], "%d/%m/%Y")
@@ -235,7 +268,7 @@ def save_final_booking(session, user_id):
         return order_id
     except Exception as e:
         print(f"LỖI XỬ LÝ LƯU BOOKING: {e}")
-        return random.randint(1000, 9999)
+        raise RuntimeError(f"Không thể lưu đặt phòng qua backend: {e}") from e
 
 def handle_structured_booking(user_id, msg):
     msg_clean = msg.strip()
@@ -364,7 +397,15 @@ def handle_structured_booking(user_id, msg):
         session["total_price"] = 800000
 
         # Gọi Database & AI No-Show
-        order_id = save_final_booking(session, user_id)
+        try:
+            order_id = save_final_booking(session, user_id)
+        except Exception:
+            # Keep the session at the payment step so the customer can retry after
+            # the backend/AI service is available again without re-entering data.
+            return (
+                "Không thể hoàn tất đặt phòng lúc này. Thông tin của bạn vẫn được giữ; "
+                "vui lòng thử lại hoặc liên hệ lễ tân."
+            )
         booking_sessions[user_id]["step"] = "completed"
 
         res_msg = (
@@ -385,6 +426,45 @@ def handle_structured_booking(user_id, msg):
 
     booking_sessions[user_id] = {"step": "ask_dates"}
     return handle_structured_booking(user_id, "bắt đầu")
+
+@app.post("/api/v1/ai/predict-noshow")
+async def predict_noshow(request: NoShowPredictionRequest):
+    """Dự đoán thuần, không ghi MongoDB; backend là nơi lưu cảnh báo và lịch hủy."""
+    if rf_model is None or not model_columns:
+        raise HTTPException(status_code=503, detail="Mô hình no-show chưa sẵn sàng")
+
+    try:
+        raw = request.data or {}
+        df_input = pd.DataFrame([{
+            "lead_time": max(int(raw.get("lead_time", 0)), 0),
+            "adults": max(int(raw.get("adults", 1)), 1),
+            "children": max(int(raw.get("children", 0)), 0),
+            "stays_in_week_nights": max(int(raw.get("stays_in_week_nights", 1)), 1),
+            "is_deposit": 1 if int(raw.get("is_deposit", 0)) else 0,
+            "total_of_special_requests": max(int(raw.get("total_of_special_requests", 0)), 0),
+        }])
+        df_encoded = pd.get_dummies(df_input)
+        for col in model_columns:
+            if col not in df_encoded.columns:
+                df_encoded[col] = 0
+        df_final = df_encoded[model_columns]
+        probability = float(rf_model.predict_proba(df_final)[0][1] * 100)
+        level = "Cao" if probability >= 70 else ("Trung bình" if probability >= 40 else "Thấp")
+        reason = (
+            f"Mức {level}; lead time={df_input.iloc[0]['lead_time']} ngày; "
+            f"đặt cọc={df_input.iloc[0]['is_deposit']}; "
+            f"yêu cầu đặc biệt={df_input.iloc[0]['total_of_special_requests']}"
+        )
+        return {
+            "status": "success",
+            "risk_percentage": round(probability, 1),
+            "risk_level": level,
+            "reason": reason,
+        }
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=f"Dữ liệu dự đoán không hợp lệ: {exc}") from exc
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Không thể dự đoán no-show: {exc}") from exc
 
 @app.post("/api/v1/ai/chat")
 @app.post("/predict")

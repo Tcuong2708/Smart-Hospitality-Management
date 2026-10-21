@@ -60,9 +60,10 @@ class HotelApiProvider {
 
   Future<List<UserModel>> getUsers() async {
     try {
-      final response = await _dio.get("/api/admin/users");
+      final response = await _dio.get("/api/v1/mobile/admin/users");
       if (response.statusCode == 200) {
-        List data = response.data;
+        final payload = Map<String, dynamic>.from(response.data as Map);
+        final List data = payload['data'] as List? ?? const [];
         return data.map((item) => UserModel.fromJson(item)).toList();
       }
       return [];
@@ -77,15 +78,40 @@ class HotelApiProvider {
       Response response;
       if (isEdit) {
         response = await _dio.put(
-          "/api/admin/users/${user.idTaiKhoan}",
+          "/api/v1/mobile/admin/users/${user.idTaiKhoan}",
           data: user.toJson(),
         );
       } else {
-        response = await _dio.post("/api/admin/users", data: user.toJson());
+        response = await _dio.post(
+          "/api/v1/mobile/admin/users",
+          data: user.toJson(),
+        );
       }
       return response.statusCode == 200;
     } catch (e) {
       _handleError("Lỗi lưu người dùng", e);
+      return false;
+    }
+  }
+
+  Future<bool> toggleUserStatus(int userId) async {
+    try {
+      final response = await _dio.patch(
+        "/api/v1/mobile/admin/users/$userId/status",
+      );
+      return response.statusCode == 200;
+    } catch (e) {
+      _handleError("Lỗi đổi trạng thái tài khoản", e);
+      return false;
+    }
+  }
+
+  Future<bool> deleteUser(int userId) async {
+    try {
+      final response = await _dio.delete("/api/v1/mobile/admin/users/$userId");
+      return response.statusCode == 200;
+    } catch (e) {
+      _handleError("Lỗi xóa tài khoản", e);
       return false;
     }
   }
@@ -386,6 +412,117 @@ class HotelApiProvider {
       _handleError("Lỗi Đặt dịch vụ", e);
       return null;
     }
+  }
+
+  Future<Map<String, dynamic>?> orderMobileServices(
+    int bookingId,
+    List<Map<String, dynamic>> items,
+  ) async {
+    try {
+      final response = await _dio.post(
+        "/api/v1/mobile/services/order-batch",
+        data: {"bookingId": bookingId, "items": items},
+      );
+      if (response.statusCode == 200 && response.data['success'] == true) {
+        return Map<String, dynamic>.from(response.data['data'] as Map);
+      }
+      return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        return _orderMobileServicesWithLegacyApi(bookingId, items);
+      }
+      _handleError("Lỗi đặt nhiều dịch vụ", e);
+      throw HotelApiException(
+        _extractApiMessage(e, "Không thể đặt các dịch vụ."),
+      );
+    } catch (e) {
+      _handleError("Lỗi đặt nhiều dịch vụ", e);
+      throw HotelApiException("Không thể đặt các dịch vụ: $e");
+    }
+  }
+
+  Future<Map<String, dynamic>> _orderMobileServicesWithLegacyApi(
+    int bookingId,
+    List<Map<String, dynamic>> items,
+  ) async {
+    final receiptItems = <Map<String, dynamic>>[];
+    double serviceTotal = 0;
+    double invoiceTotal = 0;
+    Map<String, dynamic>? receiptTemplate;
+
+    for (var index = 0; index < items.length; index++) {
+      final item = items[index];
+      try {
+        final response = await _dio.post(
+          "/api/v1/mobile/services/order",
+          data: {
+            "bookingId": bookingId,
+            "serviceId": item['serviceId'],
+            "quantity": item['quantity'],
+          },
+        );
+        final payload = Map<String, dynamic>.from(response.data as Map);
+        if (response.statusCode != 200 || payload['success'] != true) {
+          throw HotelApiException(
+            payload['message']?.toString() ?? "Đặt dịch vụ thất bại.",
+          );
+        }
+
+        final data = Map<String, dynamic>.from(payload['data'] as Map);
+        receiptTemplate ??= data;
+        final quantity = int.tryParse(data['quantity']?.toString() ?? '') ?? 0;
+        final unitPrice =
+            double.tryParse(data['unitPrice']?.toString() ?? '') ?? 0;
+        final lineTotal =
+            double.tryParse(data['totalPrice']?.toString() ?? '') ??
+            unitPrice * quantity;
+        serviceTotal += lineTotal;
+        invoiceTotal =
+            double.tryParse(data['totalAmount']?.toString() ?? '') ??
+            invoiceTotal + lineTotal;
+        receiptItems.add({
+          'serviceId': item['serviceId'],
+          'serviceName': data['serviceName']?.toString() ?? 'Dịch vụ',
+          'quantity': quantity,
+          'unitPrice': unitPrice,
+          'lineTotal': lineTotal,
+        });
+      } on DioException catch (e) {
+        final accepted = receiptItems.length;
+        final prefix = accepted > 0
+            ? "Đã ghi nhận $accepted/${items.length} dịch vụ. "
+            : "";
+        throw HotelApiException(
+          "$prefix${_extractApiMessage(e, 'Không thể đặt dịch vụ.')}",
+        );
+      }
+    }
+
+    final template = receiptTemplate ?? const <String, dynamic>{};
+    return {
+      'title': template['title'] ?? 'HÓA ĐƠN DỊCH VỤ',
+      'hotelName': template['hotelName'] ?? 'MAY HOTEL',
+      'address': template['address'] ?? 'Tây Thạnh, TP.HCM',
+      'hotline': template['hotline'] ?? '0123456789',
+      'bookingId': bookingId,
+      'items': receiptItems,
+      'serviceTotal': serviceTotal,
+      'invoiceTotal': invoiceTotal,
+      'totalAmount': invoiceTotal,
+      'message': template['message'] ?? 'Cảm ơn quý khách đã sử dụng dịch vụ!',
+    };
+  }
+
+  String _extractApiMessage(dynamic error, String fallback) {
+    if (error is HotelApiException) return error.message;
+    if (error is DioException) {
+      final data = error.response?.data;
+      if (data is Map &&
+          data['message']?.toString().trim().isNotEmpty == true) {
+        return data['message'].toString();
+      }
+    }
+    return fallback;
   }
 
   Future<List<dynamic>> getServices() async {
@@ -704,46 +841,67 @@ class HotelApiProvider {
     }
   }
 
-  Future<Map<String, dynamic>?> getUserProfile(String username) async {
+  Future<Map<String, dynamic>?> getUserProfile(int userId) async {
     try {
-      // Server Java hiện tại chưa có API Profile cho Mobile, giả lập trả về thành công để tránh lỗi 404
-      return {
-        "success": true,
-        "username": username,
-        "fullName": "Khách hàng May Hotel",
-        "phone": "0123456789",
-        "email": "guest@mayhotel.com",
-      };
+      final response = await _dio.get("/api/v1/profile/$userId");
+      if (response.statusCode == 200 && response.data is Map) {
+        final payload = Map<String, dynamic>.from(response.data as Map);
+        if (payload['data'] is Map) {
+          return Map<String, dynamic>.from(payload['data'] as Map);
+        }
+      }
+      return null;
     } catch (e) {
       debugPrint("Lỗi gọi API lấy Profile: $e");
-      return null;
+      rethrow;
     }
   }
 
-  Future<bool> updateUserProfile(
-    String username,
+  Future<Map<String, dynamic>?> updateUserProfile(
+    int userId,
     Map<String, dynamic> updateData,
   ) async {
     try {
-      final bodyPayload = {"username": username, ...updateData};
-
-      print('📤 Dữ liệu cập nhật Profile gửi qua Dio: $bodyPayload');
-
-      final response = await _dio.post(
-        "/api/auth/update-profile",
-        data: bodyPayload,
+      final response = await _dio.patch(
+        "/api/v1/profile/$userId",
+        data: updateData,
       );
-
-      print('📥 Phản hồi cập nhật từ JAVA: ${response.data}');
-
-      if (response.statusCode == 200) {
-        return true;
+      if (response.statusCode == 200 && response.data is Map) {
+        final payload = Map<String, dynamic>.from(response.data as Map);
+        if (payload['data'] is Map) {
+          return Map<String, dynamic>.from(payload['data'] as Map);
+        }
       }
-      return false;
+      return null;
     } catch (e) {
-      // Gọi tầng xử lý lỗi thông minh để bốc tách log lỗi 400 rõ ràng
       _handleError("Lỗi gọi API cập nhật Profile", e);
-      return false;
+      rethrow;
     }
   }
+
+  Future<Map<String, dynamic>?> getCheckInVerificationStatus(
+    int bookingId,
+  ) async {
+    try {
+      final response = await _dio.get(
+        "/api/v1/reception/bookings/$bookingId/verification-status",
+      );
+      if (response.statusCode == 200 && response.data is Map) {
+        return Map<String, dynamic>.from(response.data as Map);
+      }
+      return null;
+    } catch (e) {
+      _handleError("Lỗi tải tiến độ xác thực nhận phòng", e);
+      return null;
+    }
+  }
+}
+
+class HotelApiException implements Exception {
+  final String message;
+
+  const HotelApiException(this.message);
+
+  @override
+  String toString() => message;
 }

@@ -10,6 +10,9 @@ class BookingScreen extends StatefulWidget {
   final String roomPrice;
   final String imageUrl;
   final int maPhong;
+  final DateTimeRange? initialDateRange;
+  final int? initialGuestCount;
+  final int? maxGuestCount;
 
   const BookingScreen({
     super.key,
@@ -17,6 +20,9 @@ class BookingScreen extends StatefulWidget {
     required this.roomPrice,
     required this.imageUrl,
     required this.maPhong,
+    this.initialDateRange,
+    this.initialGuestCount,
+    this.maxGuestCount,
   });
 
   @override
@@ -31,6 +37,52 @@ class _BookingScreenState extends State<BookingScreen> {
   final _addressController = TextEditingController();
   final HotelApiProvider _apiProvider = HotelApiProvider();
   int _guestCount = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    final initialRange = widget.initialDateRange;
+    if (initialRange != null) {
+      _selectedDateRange = DateTimeRange(
+        start: DateUtils.dateOnly(initialRange.start),
+        end: DateUtils.dateOnly(initialRange.end),
+      );
+    }
+    final maxGuests = (widget.maxGuestCount ?? 20).clamp(1, 20).toInt();
+    _guestCount = (widget.initialGuestCount ?? 1).clamp(1, maxGuests).toInt();
+    _loadBookingProfile();
+  }
+
+  Future<void> _loadBookingProfile() async {
+    final auth = AuthStateService().currentAuth;
+    final userId = auth.userId;
+    if (!auth.isLoggedIn || userId == null) return;
+
+    try {
+      final profile = await _apiProvider.getUserProfile(userId);
+      if (!mounted || profile == null) return;
+      setState(() {
+        _nameController.text = profile['hoTen']?.toString() ?? '';
+        _phoneController.text = profile['soDienThoai']?.toString() ?? '';
+        _nationalityController.text =
+            profile['quocTich']?.toString().trim().isNotEmpty == true
+            ? profile['quocTich'].toString()
+            : 'Việt Nam';
+        _addressController.text = profile['diaChi']?.toString() ?? '';
+      });
+    } catch (e) {
+      debugPrint('Không thể tự điền hồ sơ đặt phòng: $e');
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _nationalityController.dispose();
+    _addressController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -111,7 +163,9 @@ class _BookingScreenState extends State<BookingScreen> {
                   ),
                 ),
                 IconButton(
-                  onPressed: _guestCount < 10
+                  onPressed:
+                      _guestCount <
+                          (widget.maxGuestCount ?? 20).clamp(1, 20).toInt()
                       ? () => setState(() => _guestCount++)
                       : null,
                   icon: const Icon(Icons.add_circle_outline),
@@ -283,6 +337,7 @@ class _BookingScreenState extends State<BookingScreen> {
         onTap: () async {
           final picked = await showDateRangePicker(
             context: context,
+            initialDateRange: _selectedDateRange,
             firstDate: DateTime.now(),
             lastDate: DateTime.now().add(const Duration(days: 365)),
             builder: (context, child) {

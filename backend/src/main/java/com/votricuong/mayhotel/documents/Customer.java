@@ -51,6 +51,8 @@ public class Customer {
 
     @Field("nationality")
     private String nationality;
+
+    private String gender;
     
     @Field("que_quan")
     private String queQuan;

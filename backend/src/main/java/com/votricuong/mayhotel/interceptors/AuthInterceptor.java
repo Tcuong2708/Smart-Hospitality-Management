@@ -40,6 +40,8 @@ public class AuthInterceptor implements HandlerInterceptor {
             else if (user.getRoleId() == 3L) role = "RECEPTIONIST";
             else if (user.getRoleId() == 4L) role = "HOUSEKEEPER";
             else if (user.getRoleId() == 5L) role = "CUSTOMER";
+            else if (user.getRoleId() == 6L) role = "SERVICE_STAFF";
+            else if (user.getRoleId() == 7L) role = "ACCOUNTANT";
         }
         // Tuyến khách hàng
         if (uri.startsWith("/booking/")) {
@@ -67,7 +69,7 @@ public class AuthInterceptor implements HandlerInterceptor {
                 return false;
             }
 
-            if (!adminRoles.contains(role) && !"RECEPTIONIST".equals(role) && !"HOUSEKEEPER".equals(role)) {
+            if (!adminRoles.contains(role) && !"RECEPTIONIST".equals(role)) {
                 // Nếu là khách hàng vào admin -> Chặn
                 redirectDenied(request, response);
                 return false;

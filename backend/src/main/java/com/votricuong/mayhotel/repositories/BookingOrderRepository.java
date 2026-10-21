@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface BookingOrderRepository extends MongoRepository<BookingOrder, Long> {
+    boolean existsByCustomerId(Long customerId);
 }

@@ -39,10 +39,11 @@ public class ReceptionistController extends BaseController {
     private final com.votricuong.mayhotel.services.LoyaltyService loyaltyService;
     private final BookingOrderRepository bookingOrderRepository;
     private final BookingAvailabilityService bookingAvailabilityService;
+    private final com.votricuong.mayhotel.services.RoomStatusService roomStatusService;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
     private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository, BookingAvailabilityService bookingAvailabilityService) {
+    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService) {
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
@@ -50,6 +51,7 @@ public class ReceptionistController extends BaseController {
         this.loyaltyService = loyaltyService;
         this.bookingOrderRepository = bookingOrderRepository;
         this.bookingAvailabilityService = bookingAvailabilityService;
+        this.roomStatusService = roomStatusService;
     }
 
     @Data
@@ -188,18 +190,21 @@ public class ReceptionistController extends BaseController {
         Map<Long, List<RoomMapDTO>> roomMap = roomRepository.findAll().stream().map(room -> {
             Integer trangThai = 1; // 1 = Vacant
             String st = room.getStatus();
+            com.votricuong.mayhotel.enums.RoomStatus operationalStatus =
+                    com.votricuong.mayhotel.enums.RoomStatus.fromStored(st);
             BookingAvailabilityService.RoomTimelineStatus timelineStatus = roomUsage.get(room.getId());
             if (timelineStatus == BookingAvailabilityService.RoomTimelineStatus.OCCUPIED) {
                 trangThai = 2; // 2 = Occupied
+            } else if (!selectedDate.isBefore(today)
+                    && operationalStatus == com.votricuong.mayhotel.enums.RoomStatus.MAINTENANCE) {
+                trangThai = 5; // 5 = Maintenance
+            } else if (selectedDate.equals(today)
+                    && operationalStatus == com.votricuong.mayhotel.enums.RoomStatus.CLEANING) {
+                trangThai = 3; // 3 = Cleaning
             } else if (timelineStatus == BookingAvailabilityService.RoomTimelineStatus.RESERVED) {
                 trangThai = 4; // 4 = Reserved on selected date
             } else if (selectedDate.equals(today)
-                    && ("Cleaning".equalsIgnoreCase(st) || "Chờ dọn dẹp".equalsIgnoreCase(st))) {
-                trangThai = 3; // 3 = Cleaning
-            } else if (selectedDate.equals(today)
-                    && ("Occupied".equalsIgnoreCase(st)
-                    || "In Use".equalsIgnoreCase(st)
-                    || "Đang có khách".equalsIgnoreCase(st))) {
+                    && operationalStatus == com.votricuong.mayhotel.enums.RoomStatus.OCCUPIED) {
                 trangThai = 2; // Dữ liệu cũ chưa có actual_in vẫn phải thể hiện đang ở hôm nay
             }
 
@@ -417,17 +422,15 @@ public class ReceptionistController extends BaseController {
                         : bookingDetailRepository.findByBookingId(invoice.getBookingId())) {
                     detail.setActualOut(checkedOutAt);
                     bookingDetailRepository.save(detail);
+                    if (detail.getRoomId() != null) {
+                        roomStatusService.markCleaningAfterCheckout(detail.getRoomId(), null);
+                    }
                 }
+            } else if (invoice.getRoomId() != null) {
+                roomStatusService.markCleaningAfterCheckout(invoice.getRoomId(), null);
             }
 
-            if (invoice.getRoomId() != null) {
-                roomRepository.findById(invoice.getRoomId()).ifPresent(room -> {
-                    room.setStatus("Trống");
-                    roomRepository.save(room);
-                });
-            }
-
-            redirectAttributes.addFlashAttribute("success", "Trả phòng thành công và tất toán mã #" + maHD);
+            redirectAttributes.addFlashAttribute("success", "Trả phòng thành công. Phòng đã chuyển sang chờ buồng phòng kiểm tra.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }
@@ -438,18 +441,54 @@ public class ReceptionistController extends BaseController {
     @PostMapping("/change-room/execute")
     public String executeChangeRoom(@RequestParam("oldRoomId") Long oldRoomId,
                                     @RequestParam("newRoomId") Long newRoomId,
+                                    @RequestParam(value = "reason", required = false) String reason,
+                                    @RequestParam(value = "otherReason", required = false) String otherReason,
                                     RedirectAttributes redirectAttributes) {
         try {
+            if (oldRoomId.equals(newRoomId)) {
+                throw new Exception("Phòng mới phải khác phòng hiện tại.");
+            }
             Invoice invoice = invoiceRepository.findAll().stream()
                     .filter(inv -> "In Use".equalsIgnoreCase(inv.getInvoiceStatus()) && oldRoomId.equals(inv.getRoomId()))
                     .findFirst()
                     .orElseThrow(() -> new Exception("Không tìm thấy thông tin khách đang ở phòng cũ."));
 
+            if (invoice.getBookingId() == null) {
+                throw new Exception("Hóa đơn lưu trú chưa liên kết với phiếu đặt phòng.");
+            }
+            BookingOrder booking = bookingOrderRepository.findById(invoice.getBookingId())
+                    .orElseThrow(() -> new Exception("Không tìm thấy phiếu đặt phòng đang lưu trú."));
+            if (!"Đã nhận phòng".equalsIgnoreCase(booking.getStatus())
+                    && !"Checked-in".equalsIgnoreCase(booking.getStatus())) {
+                throw new Exception("Chỉ được đổi phòng khi khách đã check-in và đang lưu trú.");
+            }
+
             Room oldRoom = roomRepository.findById(oldRoomId).orElseThrow(() -> new Exception("Phòng cũ không tồn tại."));
             Room newRoom = roomRepository.findById(newRoomId).orElseThrow(() -> new Exception("Phòng mới không tồn tại."));
 
-            if (!"Vacant".equalsIgnoreCase(newRoom.getStatus()) && !"Trống".equalsIgnoreCase(newRoom.getStatus())) {
-                throw new Exception("Phòng mới hiện không trống, vui lòng chọn phòng khác.");
+            Date now = new Date();
+            Date stayEnd = booking.getExpectedOut() != null ? booking.getExpectedOut() : invoice.getCheckOutDate();
+            if (stayEnd == null || !stayEnd.after(now)) {
+                throw new Exception("Thời gian lưu trú đã kết thúc, không thể đổi phòng.");
+            }
+            if (!bookingAvailabilityService.isRoomAvailable(newRoomId, now, stayEnd)) {
+                throw new Exception("Phòng mới không trống trong toàn bộ thời gian lưu trú còn lại.");
+            }
+
+            String finalReason = "Lý do khác".equalsIgnoreCase(reason) ? otherReason : reason;
+            if (finalReason == null || finalReason.isBlank()) {
+                throw new Exception("Vui lòng nhập lý do đổi phòng.");
+            }
+
+            long remainingMillis = stayEnd.getTime() - now.getTime();
+            long remainingNights = Math.max(1L, (long) Math.ceil(remainingMillis / 86_400_000.0));
+            double oldPrice = oldRoom.getPrice() == null ? 0.0 : oldRoom.getPrice();
+            double newPrice = newRoom.getPrice() == null ? 0.0 : newRoom.getPrice();
+            double priceDifference = (newPrice - oldPrice) * remainingNights;
+            List<com.votricuong.mayhotel.documents.BookingDetail> details =
+                    bookingDetailRepository.findByBookingId(invoice.getBookingId());
+            if (details.isEmpty() || details.stream().noneMatch(detail -> oldRoomId.equals(detail.getRoomId()))) {
+                throw new Exception("Chi tiết lưu trú không còn khớp với phòng hiện tại.");
             }
 
             // Đổi phòng
@@ -460,17 +499,27 @@ public class ReceptionistController extends BaseController {
             roomRepository.save(newRoom);
 
             invoice.setRoomId(newRoomId);
+            invoice.setTotalAmount(Math.max(0.0,
+                    (invoice.getTotalAmount() == null ? 0.0 : invoice.getTotalAmount()) + priceDifference));
+            String transferNote = "[ĐỔI PHÒNG] " + oldRoom.getName() + " -> " + newRoom.getName()
+                    + "; lý do: " + finalReason.trim()
+                    + "; chênh lệch: " + priceDifference;
+            invoice.setNote(invoice.getNote() == null || invoice.getNote().isBlank()
+                    ? transferNote
+                    : invoice.getNote() + " | " + transferNote);
             invoiceRepository.save(invoice);
 
-            if (invoice.getBookingId() != null) {
-                for (com.votricuong.mayhotel.documents.BookingDetail detail
-                        : bookingDetailRepository.findByBookingId(invoice.getBookingId())) {
+            for (com.votricuong.mayhotel.documents.BookingDetail detail : details) {
+                if (oldRoomId.equals(detail.getRoomId())) {
                     detail.setRoomId(newRoomId);
+                    detail.setUnitPrice(newPrice);
                     bookingDetailRepository.save(detail);
                 }
             }
 
-            redirectAttributes.addFlashAttribute("success", "Đổi từ phòng " + oldRoom.getName() + " sang phòng " + newRoom.getName() + " thành công!");
+            redirectAttributes.addFlashAttribute("success", "Đổi từ phòng " + oldRoom.getName()
+                    + " sang phòng " + newRoom.getName() + " thành công. Chênh lệch hóa đơn: "
+                    + String.format("%,.0f VNĐ", priceDifference));
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }

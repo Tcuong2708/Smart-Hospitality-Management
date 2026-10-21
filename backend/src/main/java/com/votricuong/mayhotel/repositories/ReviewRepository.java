@@ -11,4 +11,5 @@ import java.util.Optional;
 public interface ReviewRepository extends MongoRepository<Review, Long> {
     Optional<Review> findByBookingId(Long bookingId);
     List<Review> findByCustomerId(Long customerId);
+    List<Review> findByStatus(String status);
 }

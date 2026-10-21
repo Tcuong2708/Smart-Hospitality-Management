@@ -8,6 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.util.Date;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -29,6 +31,15 @@ public class Room implements java.io.Serializable {
     private String status;
     private String note;
     private Integer maxExtraBeds;
+
+    @Field("status_note")
+    private String statusNote;
+
+    @Field("status_updated_at")
+    private Date statusUpdatedAt;
+
+    @Field("status_updated_by")
+    private Long statusUpdatedBy;
     
     // --- THUỘC TÍNH BỔ SUNG THEO YÊU CẦU ---
     @Field("view_direction")

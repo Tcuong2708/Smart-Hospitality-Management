@@ -3,21 +3,23 @@ package com.votricuong.mayhotel.controllers.admin;
 import com.votricuong.mayhotel.controllers.BaseController;
 import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.User;
+import com.votricuong.mayhotel.documents.Customer;
+import com.votricuong.mayhotel.documents.RiskAlert;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
-import com.votricuong.mayhotel.repositories.UserRepository;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
+import com.votricuong.mayhotel.repositories.RiskAlertRepository;
+import com.votricuong.mayhotel.services.NoShowPredictionService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -30,7 +32,13 @@ public class AiNoShowController extends BaseController {
     private BookingOrderRepository bookingOrderRepository;
 
     @Autowired
-    private UserRepository userRepository;
+    private CustomerRepository customerRepository;
+
+    @Autowired
+    private RiskAlertRepository riskAlertRepository;
+
+    @Autowired
+    private NoShowPredictionService noShowPredictionService;
 
     @GetMapping("/ai-no-show")
     public String index(Model model) {
@@ -38,86 +46,21 @@ public class AiNoShowController extends BaseController {
 
         List<BookingOrder> activeBookings = bookingOrderRepository.findAll();
         List<Map<String, Object>> displayList = new ArrayList<>();
-        RestTemplate restTemplate = new RestTemplate();
-        String aiApiUrl = "http://127.0.0.1:5000/api/v1/ai/predict-noshow";
 
         for (BookingOrder order : activeBookings) {
             if (isPendingCheckIn(order.getStatus())) {
-                // Tự động phân tích AI nếu chưa có
-                if (order.getNoShowRiskLevel() == null) {
-                    double risk = 0.0;
-                    
-                    try {
-                        // Tính toán các thuộc tính cơ bản
-                        long leadTime = 0;
-                        if (order.getBookingDate() != null && order.getExpectedIn() != null) {
-                            leadTime = (order.getExpectedIn().getTime() - order.getBookingDate().getTime()) / (1000 * 60 * 60 * 24);
-                            if (leadTime < 0) leadTime = 0;
-                        }
-                        
-                        int specialRequests = (order.getNotes() != null && !order.getNotes().isEmpty()) ? 1 : 0;
-                        
-                        // Chuẩn bị payload gửi AI
-                        Map<String, Object> dataMap = new HashMap<>();
-                        dataMap.put("lead_time", leadTime);
-                        dataMap.put("total_of_special_requests", specialRequests);
-                        
-                        Map<String, Object> requestBody = new HashMap<>();
-                        requestBody.put("data", dataMap);
-                        
-                        HttpHeaders headers = new HttpHeaders();
-                        headers.setContentType(MediaType.APPLICATION_JSON);
-                        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
-                        
-                        // Gọi API
-                        ResponseEntity<Map> response = restTemplate.postForEntity(aiApiUrl, requestEntity, Map.class);
-                        if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-                            Map<String, Object> body = response.getBody();
-                            if ("success".equals(body.get("status"))) {
-                                Object riskObj = body.get("risk_percentage");
-                                if (riskObj instanceof Number) {
-                                    risk = ((Number) riskObj).doubleValue();
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        System.out.println("⚠️ Lỗi gọi AI Model: " + e.getMessage() + ". Sẽ dùng mức rủi ro mặc định.");
-                        risk = 15.0; // Dự phòng
-                    }
-                    order.setNoShowRiskPercentage(Math.round(risk * 10.0) / 10.0);
-                    
-                    Calendar cal = Calendar.getInstance();
-                    if (order.getExpectedIn() != null) {
-                        cal.setTime(order.getExpectedIn());
-                    }
-                    
-                    if (risk >= 70.0) {
-                        order.setNoShowRiskLevel("Cao");
-                        cal.set(Calendar.HOUR_OF_DAY, 14); // Áp dụng quy định hủy sớm (14:00) cho mức độ Cao
-                        cal.set(Calendar.MINUTE, 0);
-                    } else if (risk >= 40.0) {
-                        order.setNoShowRiskLevel("Trung bình");
-                        cal.set(Calendar.HOUR_OF_DAY, 18);
-                        cal.set(Calendar.MINUTE, 0);
-                    } else {
-                        order.setNoShowRiskLevel("Thấp");
-                        cal.set(Calendar.HOUR_OF_DAY, 18);
-                        cal.set(Calendar.MINUTE, 0);
-                    }
-                    order.setAutoCancelTime(cal.getTime());
-                    bookingOrderRepository.save(order);
-                }
-
                 Map<String, Object> map = new HashMap<>();
                 map.put("order", order);
+                RiskAlert alert = riskAlertRepository.findFirstByBookingId(order.getId()).orElse(null);
+                map.put("riskAlert", alert);
                 
                 String customerName = "Khách vãng lai";
                 String customerPhone = "";
                 if (order.getCustomerId() != null) {
-                    User u = userRepository.findById(order.getCustomerId()).orElse(null);
-                    if (u != null) {
-                        customerName = u.getFullName() != null ? u.getFullName() : u.getUsername();
-                        customerPhone = u.getPhone() != null ? u.getPhone() : "Chưa cập nhật";
+                    Customer customer = customerRepository.findById(order.getCustomerId()).orElse(null);
+                    if (customer != null) {
+                        customerName = customer.getFullName() != null ? customer.getFullName() : customer.getPhone();
+                        customerPhone = customer.getPhone() != null ? customer.getPhone() : "Chưa cập nhật";
                     }
                 }
                 map.put("customerName", customerName);
@@ -130,11 +73,41 @@ public class AiNoShowController extends BaseController {
         displayList.sort((a, b) -> {
             BookingOrder o1 = (BookingOrder) a.get("order");
             BookingOrder o2 = (BookingOrder) b.get("order");
-            return Double.compare(o2.getNoShowRiskPercentage(), o1.getNoShowRiskPercentage());
+            double r1 = o1.getNoShowRiskPercentage() == null ? -1.0 : o1.getNoShowRiskPercentage();
+            double r2 = o2.getNoShowRiskPercentage() == null ? -1.0 : o2.getNoShowRiskPercentage();
+            return Double.compare(r2, r1);
         });
 
         model.addAttribute("bookings", displayList);
         return render(model, "view/Receptionist/AiNoShow/index");
+    }
+
+    @PostMapping("/ai-no-show/retry")
+    public String retryPrediction(@RequestParam Long bookingId, RedirectAttributes redirectAttributes) {
+        BookingOrder order = noShowPredictionService.analyzeAndSave(bookingId);
+        if ("SUCCESS".equals(order.getRiskAnalysisStatus())) {
+            redirectAttributes.addFlashAttribute("success", "Đã phân tích lại rủi ro cho phiếu #" + bookingId);
+        } else {
+            redirectAttributes.addFlashAttribute("error", "AI chưa sẵn sàng; phiếu vẫn giữ mốc xử lý mặc định 18:00");
+        }
+        return "redirect:/receptionist/ai-no-show";
+    }
+
+    @PostMapping("/ai-no-show/late-arrival")
+    public String approveLateArrival(@RequestParam Long bookingId,
+                                     @RequestParam String reason,
+                                     HttpSession session,
+                                     RedirectAttributes redirectAttributes) {
+        BookingOrder order = bookingOrderRepository.findById(bookingId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phiếu đặt phòng"));
+        User staff = (User) session.getAttribute("user");
+        order.setLateArrivalApproved(true);
+        order.setLateArrivalReason(reason == null ? "" : reason.trim());
+        order.setLateArrivalAt(new java.util.Date());
+        order.setLateArrivalApprovedBy(staff == null ? null : staff.getId());
+        bookingOrderRepository.save(order);
+        redirectAttributes.addFlashAttribute("success", "Đã ghi nhận khách báo nhận phòng trễ; hệ thống sẽ không tự hủy phiếu #" + bookingId);
+        return "redirect:/receptionist/ai-no-show";
     }
 
     private boolean isPendingCheckIn(String status) {

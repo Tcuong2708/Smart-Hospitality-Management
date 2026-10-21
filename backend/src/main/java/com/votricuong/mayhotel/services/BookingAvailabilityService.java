@@ -3,6 +3,7 @@ package com.votricuong.mayhotel.services;
 import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.Room;
+import com.votricuong.mayhotel.enums.RoomStatus;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
@@ -81,7 +82,7 @@ public class BookingAvailabilityService {
 
         return roomRepository.findAll().stream()
                 .filter(room -> roomTypeId == null || roomTypeId.equals(room.getRoomTypeId()))
-                .filter(this::isOperational)
+                .filter(room -> isOperational(room, checkIn))
                 .filter(room -> room.getId() != null && !conflictingRoomIds.contains(room.getId()))
                 .toList();
     }
@@ -214,8 +215,13 @@ public class BookingAvailabilityService {
         return existingCheckIn.before(requestedCheckOut) && existingCheckOut.after(requestedCheckIn);
     }
 
-    private boolean isOperational(Room room) {
-        return room != null && !OUT_OF_SERVICE_ROOM_STATUSES.contains(normalize(room.getStatus()));
+    private boolean isOperational(Room room, Date requestedCheckIn) {
+        if (room == null) return false;
+        RoomStatus current = RoomStatus.fromStored(room.getStatus());
+        if (current == RoomStatus.MAINTENANCE) return false;
+        if (current != RoomStatus.CLEANING) return true;
+        LocalDate requestedDate = toLocalDate(requestedCheckIn);
+        return requestedDate != null && requestedDate.isAfter(LocalDate.now(HOTEL_ZONE));
     }
 
     private String normalize(String value) {

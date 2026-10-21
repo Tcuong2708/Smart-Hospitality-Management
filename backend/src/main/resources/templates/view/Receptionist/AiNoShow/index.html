@@ -84,6 +84,7 @@
                         <th class="text-center text-uppercase small text-white fw-bold">Mức rủi ro</th>
                         <th class="text-center text-uppercase small text-white fw-bold">Xác suất No-show</th>
                         <th class="text-center text-uppercase small text-white fw-bold">Tự động hủy lúc</th>
+                        <th class="text-center text-uppercase small text-white fw-bold">Xử lý</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -98,28 +99,44 @@
                                 <div class="small text-muted" th:text="${item.order.status}"></div>
                             </td>
                             <td class="text-center">
-                                <span class="risk-badge" 
+                                <span class="risk-badge" th:if="${item.order.riskAnalysisStatus == 'SUCCESS'}"
                                       th:classappend="${item.order.noShowRiskLevel == 'Cao' ? 'risk-high' : (item.order.noShowRiskLevel == 'Trung bình' ? 'risk-medium' : 'risk-low')}"
                                       th:text="${item.order.noShowRiskLevel}">
                                 </span>
+                                <span class="badge bg-secondary" th:unless="${item.order.riskAnalysisStatus == 'SUCCESS'}"
+                                      th:text="${item.order.riskAnalysisStatus == 'FAILED' ? 'AI lỗi' : 'Chờ phân tích'}"></span>
                             </td>
                             <td style="min-width: 150px;">
                                 <div class="d-flex justify-content-between align-items-center mb-1">
-                                    <span class="fw-bold" th:text="${item.order.noShowRiskPercentage + '%'}"></span>
+                                    <span class="fw-bold" th:text="${item.order.noShowRiskPercentage != null ? item.order.noShowRiskPercentage + '%' : '--'}"></span>
                                     <i th:if="${item.order.noShowRiskPercentage > 70}" class="bi bi-exclamation-triangle-fill text-danger"></i>
                                 </div>
                                 <div class="percentage-bar">
                                     <div class="percentage-fill" 
-                                         th:style="'width: ' + ${item.order.noShowRiskPercentage} + '%; background-color: ' + ${item.order.noShowRiskPercentage > 70 ? '#dc3545' : (item.order.noShowRiskPercentage > 30 ? '#fd7e14' : '#198754')}"></div>
+                                         th:style="'width: ' + ${item.order.noShowRiskPercentage != null ? item.order.noShowRiskPercentage : 0} + '%; background-color: ' + ${item.order.noShowRiskPercentage != null and item.order.noShowRiskPercentage > 70 ? '#dc3545' : (item.order.noShowRiskPercentage != null and item.order.noShowRiskPercentage > 30 ? '#fd7e14' : '#198754')}"></div>
                                 </div>
                             </td>
                             <td class="text-center fw-bold text-danger">
                                 <i class="bi bi-clock-history me-1"></i>
-                                <span th:text="${#dates.format(item.order.autoCancelTime, 'HH:mm - dd/MM/yyyy')}"></span>
+                                <span th:if="${item.order.lateArrivalApproved}" class="badge bg-success">Đã duyệt nhận trễ</span>
+                                <span th:unless="${item.order.lateArrivalApproved}"
+                                      th:text="${item.order.autoCancelTime != null ? #dates.format(item.order.autoCancelTime, 'HH:mm - dd/MM/yyyy') : '--'}"></span>
+                            </td>
+                            <td class="text-center" style="min-width:220px">
+                                <form th:if="${item.order.riskAnalysisStatus != 'SUCCESS'}" th:action="@{/receptionist/ai-no-show/retry}" method="post" class="mb-2">
+                                    <input type="hidden" name="bookingId" th:value="${item.order.id}">
+                                    <button class="btn btn-sm btn-outline-danger" type="submit">Phân tích lại</button>
+                                </form>
+                                <form th:unless="${item.order.lateArrivalApproved}" th:action="@{/receptionist/ai-no-show/late-arrival}" method="post" class="d-flex gap-1">
+                                    <input type="hidden" name="bookingId" th:value="${item.order.id}">
+                                    <input class="form-control form-control-sm" name="reason" required placeholder="Lý do nhận trễ">
+                                    <button class="btn btn-sm btn-outline-success text-nowrap" type="submit">Duyệt nhận trễ</button>
+                                </form>
+                                <div class="small text-muted mt-1" th:if="${item.riskAlert != null}" th:text="${item.riskAlert.reason}"></div>
                             </td>
                         </tr>
                         <tr th:if="${#lists.isEmpty(bookings)}">
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-check-circle fs-1 d-block mb-3 text-success"></i>
                                 Tuyệt vời! Hiện tại không có phiếu đặt phòng nào đang chờ nhận.
                             </td>

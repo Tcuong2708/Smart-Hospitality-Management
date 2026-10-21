@@ -47,10 +47,18 @@ class PrinterService {
       c1 = c1.substring(0, w1 - 1) + " ";
     }
     
-    String c2 = col2.padLeft(w2);
+    String c2 = _padCenter(col2, w2);
     String c3 = col3.padLeft(w3);
     
     return "$c1 $c2 $c3";
+  }
+
+  String _padCenter(String value, int width) {
+    if (value.length >= width) return value.substring(0, width);
+    final remaining = width - value.length;
+    final left = remaining ~/ 2;
+    final right = remaining - left;
+    return value.padLeft(value.length + left).padRight(value.length + left + right);
   }
 
   Future<void> printReceipt({

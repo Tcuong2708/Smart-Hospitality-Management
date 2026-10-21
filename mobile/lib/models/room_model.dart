@@ -1,4 +1,3 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class RoomModel {
@@ -9,8 +8,7 @@ class RoomModel {
   final String imageUrl;
   final String detail;
   final int availableCount;
-
-
+  final int maxOccupancy;
 
   RoomModel({
     required this.maPhong,
@@ -20,9 +18,8 @@ class RoomModel {
     required this.imageUrl,
     required this.detail,
     this.availableCount = 0,
+    this.maxOccupancy = 1,
   });
-
-
 
   factory RoomModel.fromJson(Map<String, dynamic> json) {
     String rawImg = (json['imageUrl'] ?? json['ImageUrl'] ?? "").toString();
@@ -39,12 +36,18 @@ class RoomModel {
 
     return RoomModel(
       maPhong: json['id'] ?? json['Id'] ?? json['ID'] ?? 0,
-      tenPhong: (json['name'] ?? json['Name'] ?? json['tenPhong'] ?? "N/A").toString(),
+      tenPhong: (json['name'] ?? json['Name'] ?? json['tenPhong'] ?? "N/A")
+          .toString(),
       maTrangThai: json['maTrangThai'] ?? json['MaTrangThai'] ?? 1,
       price: (json['price'] ?? json['Price'] ?? 0.0).toDouble(),
       imageUrl: processedImg,
       detail: json['detail'] ?? json['Detail'] ?? "",
       availableCount: json['availableCount'] ?? json['AvailableCount'] ?? 0,
+      maxOccupancy:
+          int.tryParse(
+            (json['maxOccupancy'] ?? json['MaxOccupancy'] ?? 1).toString(),
+          ) ??
+          1,
     );
   }
 }

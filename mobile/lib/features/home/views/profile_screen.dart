@@ -4,12 +4,10 @@ import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
 import 'package:may_hotel_app/services/language_service.dart';
 import '../../auth/views/login_screen.dart';
-import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../profile/views/personal_info_screen.dart';
 import '../../profile/views/settings_screen.dart';
 import '../../profile/views/help_center_screen.dart';
-import '../../../../main.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -37,7 +35,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (!mounted) return;
     setState(() => _isLoading = true);
     try {
-      final res = await _apiProvider.getUserProfile(widget.username);
+      final userId = AuthStateService().currentAuth.userId;
+      if (userId == null) {
+        setState(() => _isLoading = false);
+        return;
+      }
+      final res = await _apiProvider.getUserProfile(userId);
       if (mounted) {
         setState(() {
           _userProfile = res;
@@ -50,10 +53,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  void _showCustomSnackBar(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: color),
+  Future<void> _openPersonalInfo() async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PersonalInfoScreen(username: widget.username),
+      ),
     );
+    if (changed == true) await _fetchUserProfileLive();
+  }
+
+  void _showCustomSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
   }
 
   void _handleCheckUpdate(BuildContext context) {
@@ -75,7 +88,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           children: [
             Text("${lang.translate('current_version')}: v2.0.1"),
             const SizedBox(height: 8),
-            Text(lang.translate('latest_version'), style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+            Text(
+              lang.translate('latest_version'),
+              style: const TextStyle(
+                color: Colors.green,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
           ],
         ),
         actions: [
@@ -102,11 +121,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         final authState = AuthStateService().currentAuth;
         final bool isLoggedIn = authState.isLoggedIn;
 
-        String hoTenHienThi = isLoggedIn 
-            ? (_userProfile?['hoTen']?.toString() ?? authState.username) 
+        String hoTenHienThi = isLoggedIn
+            ? (_userProfile?['hoTen']?.toString() ?? authState.username)
             : lang.translate('not_logged_in');
-        String emailHienThi = isLoggedIn 
-            ? (_userProfile?['email']?.toString() ?? "${widget.username}@mayhotel.com") 
+        String emailHienThi = isLoggedIn
+            ? (_userProfile?['email']?.toString() ?? "")
             : lang.translate('tap_to_login');
 
         return Scaffold(
@@ -117,20 +136,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
             toolbarHeight: 0,
             systemOverlayStyle: SystemUiOverlayStyle(
               statusBarColor: Colors.transparent,
-              statusBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
-              statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
+              statusBarIconBrightness: isDarkMode
+                  ? Brightness.light
+                  : Brightness.dark,
+              statusBarBrightness: isDarkMode
+                  ? Brightness.dark
+                  : Brightness.light,
               systemNavigationBarColor: Colors.transparent,
-              systemNavigationBarIconBrightness: isDarkMode ? Brightness.light : Brightness.dark,
+              systemNavigationBarIconBrightness: isDarkMode
+                  ? Brightness.light
+                  : Brightness.dark,
               systemNavigationBarContrastEnforced: false,
             ),
           ),
           body: (_isLoading && isLoggedIn)
-              ? Center(child: CircularProgressIndicator(color: colorScheme.primary))
+              ? Center(
+                  child: CircularProgressIndicator(color: colorScheme.primary),
+                )
               : Column(
                   children: [
                     SizedBox(height: Responsive.height(context) * 0.04),
                     GestureDetector(
-                      onTap: isLoggedIn ? null : () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen())),
+                      onTap: isLoggedIn
+                          ? null
+                          : () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginScreen(),
+                              ),
+                            ),
                       child: Column(
                         children: [
                           Center(
@@ -143,14 +177,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     width: 100,
                                     height: 100,
                                     fit: BoxFit.cover,
-                                    color: isLoggedIn ? null : Colors.grey.withValues(alpha: 0.5),
-                                    colorBlendMode: isLoggedIn ? null : BlendMode.saturation,
-                                    errorBuilder: (context, error, stackTrace) => Container(
-                                      width: 100,
-                                      height: 100,
-                                      color: isDarkMode ? const Color(0xFF1A222D) : Colors.grey[200],
-                                      child: Icon(Icons.person, color: isDarkMode ? goldAccent : Colors.grey),
-                                    ),
+                                    color: isLoggedIn
+                                        ? null
+                                        : Colors.grey.withValues(alpha: 0.5),
+                                    colorBlendMode: isLoggedIn
+                                        ? null
+                                        : BlendMode.saturation,
+                                    errorBuilder:
+                                        (context, error, stackTrace) =>
+                                            Container(
+                                              width: 100,
+                                              height: 100,
+                                              color: isDarkMode
+                                                  ? const Color(0xFF1A222D)
+                                                  : Colors.grey[200],
+                                              child: Icon(
+                                                Icons.person,
+                                                color: isDarkMode
+                                                    ? goldAccent
+                                                    : Colors.grey,
+                                              ),
+                                            ),
                                   ),
                                 ),
                                 if (isLoggedIn)
@@ -159,8 +206,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     right: 0,
                                     child: Container(
                                       padding: const EdgeInsets.all(5),
-                                      decoration: const BoxDecoration(color: goldAccent, shape: BoxShape.circle),
-                                      child: const Icon(Icons.camera_alt, color: navyPrimary, size: 16),
+                                      decoration: const BoxDecoration(
+                                        color: goldAccent,
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: const Icon(
+                                        Icons.camera_alt,
+                                        color: navyPrimary,
+                                        size: 16,
+                                      ),
                                     ),
                                   ),
                               ],
@@ -168,19 +222,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                           SizedBox(height: Responsive.sp(context, 15)),
                           Text(
-                            hoTenHienThi, 
+                            hoTenHienThi,
                             style: TextStyle(
-                              fontSize: 22, 
-                              fontWeight: FontWeight.bold, 
-                              color: !isLoggedIn ? Colors.grey : (isDarkMode ? goldAccent : textColor)
-                            )
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: !isLoggedIn
+                                  ? Colors.grey
+                                  : (isDarkMode ? goldAccent : textColor),
+                            ),
                           ),
                           Text(
-                            emailHienThi, 
+                            emailHienThi,
                             style: TextStyle(
-                              color: !isLoggedIn ? colorScheme.primary : (isDarkMode ? Colors.white60 : textColor.withValues(alpha: 0.6)),
-                              fontWeight: !isLoggedIn ? FontWeight.bold : FontWeight.normal,
-                            )
+                              color: !isLoggedIn
+                                  ? colorScheme.primary
+                                  : (isDarkMode
+                                        ? Colors.white60
+                                        : textColor.withValues(alpha: 0.6)),
+                              fontWeight: !isLoggedIn
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
                           ),
                         ],
                       ),
@@ -188,25 +250,68 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     SizedBox(height: Responsive.sp(context, 30)),
                     Expanded(
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: Responsive.sp(context, 20)),
+                        padding: EdgeInsets.symmetric(
+                          horizontal: Responsive.sp(context, 20),
+                        ),
                         decoration: BoxDecoration(
-                          color: isDarkMode ? const Color(0xFF1A222D) : Colors.white,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(35)),
+                          color: isDarkMode
+                              ? const Color(0xFF1A222D)
+                              : Colors.white,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(35),
+                          ),
                           boxShadow: [
-                            if (!isDarkMode) BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 20, offset: const Offset(0, -5)),
+                            if (!isDarkMode)
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 20,
+                                offset: const Offset(0, -5),
+                              ),
                           ],
                         ),
                         child: ListView(
                           physics: const BouncingScrollPhysics(),
                           children: [
                             if (isLoggedIn)
-                              _buildProfileItem(context, Icons.person_outline, lang.translate('personal_info'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => PersonalInfoScreen(username: widget.username)))),
-                            
-                            _buildProfileItem(context, Icons.settings_outlined, lang.translate('settings'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsScreen(username: widget.username)))),
-                            
-                            _buildProfileItem(context, Icons.system_update_alt_rounded, lang.translate('check_update'), onTap: () => _handleCheckUpdate(context)),
-                            
-                            _buildProfileItem(context, Icons.help_outline, lang.translate('help'), onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const HelpCenterScreen()))),
+                              _buildProfileItem(
+                                context,
+                                Icons.person_outline,
+                                lang.translate('personal_info'),
+                                onTap: _openPersonalInfo,
+                              ),
+
+                            _buildProfileItem(
+                              context,
+                              Icons.settings_outlined,
+                              lang.translate('settings'),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      SettingsScreen(username: widget.username),
+                                ),
+                              ),
+                            ),
+
+                            _buildProfileItem(
+                              context,
+                              Icons.system_update_alt_rounded,
+                              lang.translate('check_update'),
+                              onTap: () => _handleCheckUpdate(context),
+                            ),
+
+                            _buildProfileItem(
+                              context,
+                              Icons.help_outline,
+                              lang.translate('help'),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) =>
+                                      const HelpCenterScreen(),
+                                ),
+                              ),
+                            ),
                             const Divider(),
                             if (isLoggedIn)
                               _buildProfileItem(
@@ -216,7 +321,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 color: Colors.red,
                                 onTap: () {
                                   AuthStateService().logout();
-                                  _showCustomSnackBar(lang.translate('logged_out_msg'), Colors.blue);
+                                  _showCustomSnackBar(
+                                    lang.translate('logged_out_msg'),
+                                    Colors.blue,
+                                  );
                                 },
                               )
                             else
@@ -225,20 +333,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Icons.login,
                                 lang.translate('login_now'),
                                 color: colorScheme.primary,
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => const LoginScreen())),
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const LoginScreen(),
+                                  ),
+                                ),
                               ),
                           ],
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
         );
-      }
+      },
     );
   }
 
-  Widget _buildProfileItem(BuildContext context, IconData icon, String title, {Color? color, VoidCallback? onTap}) {
+  Widget _buildProfileItem(
+    BuildContext context,
+    IconData icon,
+    String title, {
+    Color? color,
+    VoidCallback? onTap,
+  }) {
     final colorScheme = Theme.of(context).colorScheme;
     final bool isDark = Theme.of(context).brightness == Brightness.dark;
     final Color textColor = colorScheme.onSurface;
@@ -246,9 +365,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Material(
       color: Colors.transparent,
       child: ListTile(
-        leading: Icon(icon, color: color ?? (isDark ? goldAccent : navyPrimary)),
-        title: Text(title, style: TextStyle(color: color ?? textColor, fontWeight: FontWeight.w500, fontSize: Responsive.sp(context, 16))),
-        trailing: Icon(Icons.arrow_forward_ios, size: 16, color: isDark ? Colors.white30 : textColor.withValues(alpha: 0.3)),
+        leading: Icon(
+          icon,
+          color: color ?? (isDark ? goldAccent : navyPrimary),
+        ),
+        title: Text(
+          title,
+          style: TextStyle(
+            color: color ?? textColor,
+            fontWeight: FontWeight.w500,
+            fontSize: Responsive.sp(context, 16),
+          ),
+        ),
+        trailing: Icon(
+          Icons.arrow_forward_ios,
+          size: 16,
+          color: isDark ? Colors.white30 : textColor.withValues(alpha: 0.3),
+        ),
         onTap: onTap,
       ),
     );

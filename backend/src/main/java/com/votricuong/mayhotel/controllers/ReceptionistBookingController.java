@@ -47,6 +47,7 @@ public class ReceptionistBookingController extends BaseController {
     private final InvoiceRepository invoiceRepository;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final BookingAvailabilityService bookingAvailabilityService;
+    private final com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService;
 
     public ReceptionistBookingController(RoomRepository roomRepository,
                                          RoomTypeRepository roomTypeRepository,
@@ -55,7 +56,8 @@ public class ReceptionistBookingController extends BaseController {
                                          BookingDetailRepository bookingDetailRepository,
                                          InvoiceRepository invoiceRepository,
                                          SequenceGeneratorService sequenceGeneratorService,
-                                         BookingAvailabilityService bookingAvailabilityService) {
+                                         BookingAvailabilityService bookingAvailabilityService,
+                                         com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.customerRepository = customerRepository;
@@ -64,6 +66,7 @@ public class ReceptionistBookingController extends BaseController {
         this.invoiceRepository = invoiceRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.bookingAvailabilityService = bookingAvailabilityService;
+        this.noShowPredictionService = noShowPredictionService;
     }
 
     @GetMapping
@@ -137,9 +140,9 @@ public class ReceptionistBookingController extends BaseController {
             RedirectAttributes ra) {
 
         try {
-            if (!ngayTra.isAfter(ngayNhan)) {
-                throw new IllegalArgumentException("Ngày trả phòng phải sau ngày nhận phòng");
-            }
+            guestName = com.votricuong.mayhotel.utils.InputValidator.requiredText(guestName, "Họ và tên", 100);
+            phone = com.votricuong.mayhotel.utils.InputValidator.phone(phone);
+            com.votricuong.mayhotel.utils.InputValidator.stay(ngayNhan, ngayTra);
 
             Date expectedIn = Date.from(ngayNhan.atStartOfDay(ZoneOffset.UTC).toInstant());
             Date expectedOut = Date.from(ngayTra.atStartOfDay(ZoneOffset.UTC).toInstant());
@@ -184,6 +187,8 @@ public class ReceptionistBookingController extends BaseController {
             // Luôn đặt trạng thái là Pending để chuyển sang quy trình Làm thủ tục nhận phòng (Check-in - UC05)
             // Lễ tân sẽ cập nhật trạng thái phòng thực tế tại giao diện Check-in
             order.setStatus("Pending");
+            order.setBookingSource("RECEPTION");
+            order.setRiskAnalysisStatus("PENDING");
             order.setAutoCancelTime(calculateAutoCancelTime(order));
             bookingOrderRepository.save(order);
 
@@ -217,6 +222,7 @@ public class ReceptionistBookingController extends BaseController {
             invoice.setIsPaid(false);
             invoice.setSurcharge(0.0);
             invoiceRepository.save(invoice);
+            noShowPredictionService.analyzeAndSave(order.getId());
 
             ra.addFlashAttribute("success", "Tạo đơn đặt phòng thành công cho khách " + guestName);
 

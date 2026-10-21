@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface ServiceTicketRepository extends MongoRepository<ServiceTicket, Long> {
     List<ServiceTicket> findByBookingId(Long bookingId);
+    boolean existsByServiceId(Long serviceId);
 }

@@ -71,7 +71,13 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
     super.dispose();
   }
 
-  void _navigateToBooking(String title, String price, String image, int id) {
+  void _navigateToBooking(
+    String title,
+    String price,
+    String image,
+    int id,
+    int maxOccupancy,
+  ) {
     final authState = AuthStateService().currentAuth;
     final lang = LanguageService();
 
@@ -94,6 +100,9 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
           roomPrice: price,
           imageUrl: image,
           maPhong: id,
+          initialDateRange: _selectedDateRange,
+          initialGuestCount: _adults + _children,
+          maxGuestCount: maxOccupancy,
         ),
       ),
     );
@@ -438,6 +447,10 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                             room['price'].toString(),
                             processedImg,
                             room['id'],
+                            int.tryParse(
+                                  room['maxOccupancy']?.toString() ?? '',
+                                ) ??
+                                (_adults + _children),
                           );
                         },
                       );

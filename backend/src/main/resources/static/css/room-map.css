@@ -49,6 +49,7 @@ body {
 .status-occupied { border-left: 8px solid #DC3545; } /* Red - Occupied */
 .status-dirty { border-left: 8px solid #FFC107; }    /* Yellow - Needs cleaning */
 .status-reserved { border-left: 8px solid #0D6EFD; } /* Blue - Reserved */
+.status-maintenance { border-left: 8px solid #6C757D; } /* Gray - Maintenance */
 
 .room-status-label {
     border-radius: 6px;

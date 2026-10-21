@@ -32,6 +32,45 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   bool _isNfcScanned = false;
   int _currentGuestIndex = 0;
   int _verifiedGuestCount = 0;
+  late int _totalGuests;
+  bool _allGuestsVerified = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _totalGuests = widget.totalGuests.clamp(1, 20).toInt();
+    _loadVerificationStatus();
+  }
+
+  Future<void> _loadVerificationStatus() async {
+    if (widget.bookingId <= 0) return;
+    final status = await HotelApiProvider().getCheckInVerificationStatus(
+      widget.bookingId,
+    );
+    if (!mounted || status == null) return;
+
+    final required =
+        int.tryParse(status['requiredGuestCount']?.toString() ?? '') ??
+        _totalGuests;
+    final verified =
+        int.tryParse(status['verifiedGuestCount']?.toString() ?? '') ?? 0;
+    final total = required.clamp(1, 20).toInt();
+    final completed = status['isFaceVerified'] == true || verified >= total;
+
+    setState(() {
+      _totalGuests = total;
+      _verifiedGuestCount = verified.clamp(0, total).toInt();
+      _allGuestsVerified = completed;
+      _currentGuestIndex = completed
+          ? total - 1
+          : _verifiedGuestCount.clamp(0, total - 1).toInt();
+      _statusMessage = completed
+          ? "Đã xác thực đủ $_verifiedGuestCount/$_totalGuests khách. Vui lòng chờ lễ tân gán phòng..."
+          : _verifiedGuestCount > 0
+          ? "Đã xác thực $_verifiedGuestCount/$_totalGuests khách. Tiếp tục xác thực khách ${_currentGuestIndex + 1}."
+          : "1. Vui lòng chụp Khuôn mặt (Selfie) trước.";
+    });
+  }
 
   Future<void> _takePicture(bool isCccd) async {
     try {
@@ -144,16 +183,21 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
 
       if (res != null) {
         final allGuestsVerified = res['allGuestsVerified'] == true;
+        final requiredCount =
+            int.tryParse(res['requiredGuestCount']?.toString() ?? '') ??
+            _totalGuests;
         final verifiedCount =
             int.tryParse(res['verifiedGuestCount']?.toString() ?? '') ??
             (_currentGuestIndex + 1);
         setState(() {
           _isProcessing = false;
+          _totalGuests = requiredCount.clamp(1, 20).toInt();
           _verifiedGuestCount = verifiedCount;
+          _allGuestsVerified = allGuestsVerified;
           _nfcAccessCode = res['nfcAccessCode'];
           if (allGuestsVerified) {
             _statusMessage =
-                "Đã xác thực đủ $_verifiedGuestCount/${widget.totalGuests} khách. Vui lòng chờ lễ tân gán phòng...";
+                "Đã xác thực đủ $_verifiedGuestCount/$_totalGuests khách. Vui lòng chờ lễ tân gán phòng...";
           } else {
             _currentGuestIndex = verifiedCount;
             _cccdFront = null;
@@ -161,7 +205,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             _nfcData = null;
             _isNfcScanned = false;
             _statusMessage =
-                "Đã xác thực $verifiedCount/${widget.totalGuests} khách. Tiếp tục chụp khuôn mặt cho khách ${_currentGuestIndex + 1}.";
+                "Đã xác thực $verifiedCount/$_totalGuests khách. Tiếp tục chụp khuôn mặt cho khách ${_currentGuestIndex + 1}.";
           }
         });
 
@@ -224,7 +268,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              "Khách ${_currentGuestIndex + 1}/${widget.totalGuests} • Đã xác thực $_verifiedGuestCount/${widget.totalGuests}",
+              "Khách ${_allGuestsVerified ? _totalGuests : _currentGuestIndex + 1}/$_totalGuests • Đã xác thực $_verifiedGuestCount/$_totalGuests",
               style: TextStyle(
                 color: colorScheme.primary,
                 fontWeight: FontWeight.w600,
@@ -235,19 +279,21 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: _nfcAccessCode != null
+                color: _allGuestsVerified || _nfcAccessCode != null
                     ? Colors.green.withOpacity(0.1)
                     : Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _nfcAccessCode != null ? Colors.green : Colors.blue,
+                  color: _allGuestsVerified || _nfcAccessCode != null
+                      ? Colors.green
+                      : Colors.blue,
                 ),
               ),
               child: Text(
                 _statusMessage,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: _nfcAccessCode != null
+                  color: _allGuestsVerified || _nfcAccessCode != null
                       ? Colors.green[700]
                       : Colors.blue[700],
                   fontWeight: FontWeight.bold,
@@ -256,7 +302,15 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             ),
             const SizedBox(height: 30),
 
-            if (_nfcAccessCode == null) ...[
+            if (_allGuestsVerified && _nfcAccessCode == null) ...[
+              const Icon(Icons.verified_user, size: 90, color: Colors.green),
+              const SizedBox(height: 16),
+              const Text(
+                "Tất cả khách đã hoàn tất xác thực. Lễ tân sẽ tiếp tục gán phòng trên hệ thống web.",
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+            ] else if (_nfcAccessCode == null) ...[
               // BƯỚC 1: SELFIE
               _buildPhotoBox(
                 label: "Bước 1: Ảnh Selfie Khuôn Mặt",

@@ -41,7 +41,7 @@ public class AccountProfileController extends BaseController {
         setPageTitle(model, "Hồ sơ tài khoản");
         setExtraCSS(model, "view/Account/profile :: extra_css");
         model.addAttribute("user", profile);
-        return render(model, "view/Account/profile");
+        return "view/Account/profile";
     }
 
     @PostMapping("/update-profile")

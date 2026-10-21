@@ -38,223 +38,364 @@ class _AdminUserScreenState extends State<AdminUserScreen> {
       setState(() => isLoading = false);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi kết nối API: $e"),
-              backgroundColor: Colors.red),
+          SnackBar(
+            content: Text("Lỗi kết nối API: $e"),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
   }
 
   // HÀM HIỂN THỊ DIALOG (ĐÃ ĐỒNG BỘ DARK MODE)
+  Future<void> _toggleStatus(UserModel user) async {
+    final success = await apiProvider.toggleUserStatus(user.idTaiKhoan);
+    if (!mounted) return;
+    if (success) {
+      await _fetchUsers();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể đổi trạng thái tài khoản.')),
+      );
+    }
+  }
+
+  Future<void> _deleteUser(UserModel user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Xác nhận xóa tài khoản'),
+        content: Text(
+          'Xóa tài khoản @${user.tenDangNhap}? Nếu tài khoản đã liên kết hồ sơ, backend sẽ yêu cầu khóa thay vì xóa.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final success = await apiProvider.deleteUser(user.idTaiKhoan);
+    if (!mounted) return;
+    if (success) {
+      await _fetchUsers();
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Không thể xóa. Hãy khóa tài khoản nếu đã có dữ liệu liên kết.',
+          ),
+        ),
+      );
+    }
+  }
+
+  void _showAccountActions(UserModel user) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.edit_outlined),
+              title: const Text('Cập nhật'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showUserDialog(user: user);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                user.trangThai ? Icons.lock_outline : Icons.lock_open,
+              ),
+              title: Text(
+                user.trangThai ? 'Khóa tài khoản' : 'Mở khóa tài khoản',
+              ),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _toggleStatus(user);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline, color: Colors.red),
+              title: const Text('Xóa tài khoản'),
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _deleteUser(user);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   void _showUserDialog({UserModel? user}) {
     final isEdit = user != null;
     final nameController = TextEditingController(
-        text: isEdit ? user.hoTen : "");
+      text: isEdit ? user.hoTen : "",
+    );
     final phoneController = TextEditingController(text: isEdit ? user.sdt : "");
     final emailController = TextEditingController(
-        text: isEdit ? user.email : "");
+      text: isEdit ? user.email : "",
+    );
     final addressController = TextEditingController(
-        text: isEdit ? user.diaChi : "");
+      text: isEdit ? user.diaChi : "",
+    );
     final countryController = TextEditingController(
-        text: isEdit ? user.quocTich : "Việt Nam");
+      text: isEdit ? user.quocTich : "Việt Nam",
+    );
     final userController = TextEditingController(
-        text: isEdit ? user.tenDangNhap : "");
+      text: isEdit ? user.tenDangNhap : "",
+    );
     final passController = TextEditingController(
-        text: isEdit ? user.matKhau : "");
+      text: isEdit ? user.matKhau : "",
+    );
 
     bool currentStatus = isEdit ? user.trangThai : true;
+    int selectedRoleId = isEdit ? user.roleId : 5;
 
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) =>
-          StatefulBuilder(
-            builder: (context, setDialogState) {
-              // 🌟 KIỂM TRA CHẾ ĐỘ TỐI NỘI BỘ DIALOG
-              final bool isDark = Theme
-                  .of(context)
-                  .brightness == Brightness.dark;
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          // 🌟 KIỂM TRA CHẾ ĐỘ TỐI NỘI BỘ DIALOG
+          final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-              return AlertDialog(
-                backgroundColor: isDark ? const Color(0xFF1E2530) : Colors
-                    .white,
-                // Nền tối Carbon cao cấp
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                title: Text(
-                  isEdit ? "Cập nhật khách hàng" : "Thêm khách hàng mới",
-                  style: TextStyle(
-                      color: isDark ? goldAccent : navyPrimary,
-                      // Chế độ tối chữ tiêu đề sẽ chuyển sang màu Gold rực rỡ
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18
+          return AlertDialog(
+            backgroundColor: isDark ? const Color(0xFF1E2530) : Colors.white,
+            // Nền tối Carbon cao cấp
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            title: Text(
+              isEdit ? "Cập nhật khách hàng" : "Thêm khách hàng mới",
+              style: TextStyle(
+                color: isDark ? goldAccent : navyPrimary,
+                // Chế độ tối chữ tiêu đề sẽ chuyển sang màu Gold rực rỡ
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: nameController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Họ tên *",
+                      border: const OutlineInputBorder(),
+                    ),
                   ),
-                ),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 8),
-                      TextField(
-                        controller: nameController,
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black),
-                        decoration: InputDecoration(labelText: "Họ tên *",
-                            border: const OutlineInputBorder()),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: phoneController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Số điện thoại",
+                      border: const OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.phone,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: emailController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Địa chỉ Email",
+                      border: const OutlineInputBorder(),
+                    ),
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: addressController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Địa chỉ thường trú",
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: countryController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Quốc tịch",
+                      border: const OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: userController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Tên đăng nhập *",
+                      border: const OutlineInputBorder(),
+                    ),
+                    enabled: !isEdit,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: passController,
+                    style: TextStyle(
+                      color: isDark ? Colors.white : Colors.black,
+                    ),
+                    decoration: InputDecoration(
+                      labelText: "Mật khẩu *",
+                      border: const OutlineInputBorder(),
+                    ),
+                    obscureText: true,
+                  ),
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<int>(
+                    initialValue: selectedRoleId,
+                    decoration: const InputDecoration(
+                      labelText: "Vai trò *",
+                      border: OutlineInputBorder(),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 1, child: Text('Quản trị viên')),
+                      DropdownMenuItem(value: 2, child: Text('Quản lý')),
+                      DropdownMenuItem(value: 3, child: Text('Lễ tân')),
+                      DropdownMenuItem(value: 4, child: Text('Buồng phòng')),
+                      DropdownMenuItem(value: 5, child: Text('Khách hàng')),
+                      DropdownMenuItem(
+                        value: 6,
+                        child: Text('Nhân viên dịch vụ'),
                       ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: phoneController,
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black),
-                        decoration: InputDecoration(labelText: "Số điện thoại",
-                            border: const OutlineInputBorder()),
-                        keyboardType: TextInputType.phone,
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: emailController,
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black),
-                        decoration: InputDecoration(labelText: "Địa chỉ Email",
-                            border: const OutlineInputBorder()),
-                        keyboardType: TextInputType.emailAddress,
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: addressController,
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black),
-                        decoration: InputDecoration(
-                            labelText: "Địa chỉ thường trú",
-                            border: const OutlineInputBorder()),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: countryController,
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black),
-                        decoration: InputDecoration(labelText: "Quốc tịch",
-                            border: const OutlineInputBorder()),
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: userController,
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black),
-                        decoration: InputDecoration(
-                            labelText: "Tên đăng nhập *",
-                            border: const OutlineInputBorder()),
-                        enabled: !isEdit,
-                      ),
-                      const SizedBox(height: 12),
-                      TextField(
-                        controller: passController,
-                        style: TextStyle(
-                            color: isDark ? Colors.white : Colors.black),
-                        decoration: InputDecoration(labelText: "Mật khẩu *",
-                            border: const OutlineInputBorder()),
-                        obscureText: true,
-                      ),
-                      if (isEdit) ...[
-                        const SizedBox(height: 8),
-                        SwitchListTile(
-                          title: Text(
-                              "Trạng thái tài khoản",
-                              style: TextStyle(fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white70 : Colors
-                                      .black87)
-                          ),
-                          value: currentStatus,
-                          activeColor: goldAccent,
-                          onChanged: (val) {
-                            setDialogState(() => currentStatus = val);
-                          },
-                        ),
-                      ]
+                      DropdownMenuItem(value: 7, child: Text('Kế toán')),
                     ],
+                    onChanged: (value) {
+                      if (value != null)
+                        setDialogState(() => selectedRoleId = value);
+                    },
+                  ),
+                  if (isEdit) ...[
+                    const SizedBox(height: 8),
+                    SwitchListTile(
+                      title: Text(
+                        "Trạng thái tài khoản",
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white70 : Colors.black87,
+                        ),
+                      ),
+                      value: currentStatus,
+                      activeColor: goldAccent,
+                      onChanged: (val) {
+                        setDialogState(() => currentStatus = val);
+                      },
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text("Hủy", style: TextStyle(color: Colors.grey)),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: isDark ? goldAccent : navyPrimary,
+                  // Đảo nút: Tối nút vàng, Sáng nút xanh
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text(
-                        "Hủy", style: TextStyle(color: Colors.grey)),
-                  ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isDark ? goldAccent : navyPrimary,
-                      // Đảo nút: Tối nút vàng, Sáng nút xanh
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
-                    ),
-                    onPressed: () async {
-                      if (nameController.text
-                          .trim()
-                          .isEmpty ||
-                          userController.text
-                              .trim()
-                              .isEmpty ||
-                          (!isEdit && passController.text
-                              .trim()
-                              .isEmpty)) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text(
-                              "Vui lòng điền đầy đủ các thông tin bắt buộc (*)!"),
-                              backgroundColor: Colors.orange),
-                        );
-                        return;
-                      }
+                onPressed: () async {
+                  if (nameController.text.trim().isEmpty ||
+                      userController.text.trim().isEmpty ||
+                      (!isEdit && passController.text.trim().isEmpty)) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          "Vui lòng điền đầy đủ các thông tin bắt buộc (*)!",
+                        ),
+                        backgroundColor: Colors.orange,
+                      ),
+                    );
+                    return;
+                  }
 
-                      final newUser = UserModel(
-                        idTaiKhoan: isEdit ? user.idTaiKhoan : 0,
-                        hoTen: nameController.text.trim(),
-                        sdt: phoneController.text.trim(),
-                        email: emailController.text.trim(),
-                        diaChi: addressController.text.trim(),
-                        quocTich: countryController.text.trim(),
-                        tenDangNhap: userController.text.trim(),
-                        matKhau: passController.text.trim(),
-                        trangThai: currentStatus,
-                      );
+                  final newUser = UserModel(
+                    idTaiKhoan: isEdit ? user.idTaiKhoan : 0,
+                    hoTen: nameController.text.trim(),
+                    sdt: phoneController.text.trim(),
+                    email: emailController.text.trim(),
+                    diaChi: addressController.text.trim(),
+                    quocTich: countryController.text.trim(),
+                    tenDangNhap: userController.text.trim(),
+                    matKhau: passController.text.trim(),
+                    trangThai: currentStatus,
+                    roleId: selectedRoleId,
+                  );
 
-                      bool success = await apiProvider.saveUser(
-                          newUser, isEdit: isEdit);
-                      if (success && mounted) {
-                        Navigator.pop(context);
-                        _fetchUsers();
-                      }
-                    },
-                    child: Text(
-                        "Lưu",
-                        style: TextStyle(
-                            color: isDark ? navyPrimary : goldAccent,
-                            fontWeight: FontWeight.bold)
-                    ),
+                  bool success = await apiProvider.saveUser(
+                    newUser,
+                    isEdit: isEdit,
+                  );
+                  if (success && mounted) {
+                    Navigator.pop(context);
+                    _fetchUsers();
+                  }
+                },
+                child: Text(
+                  "Lưu",
+                  style: TextStyle(
+                    color: isDark ? navyPrimary : goldAccent,
+                    fontWeight: FontWeight.bold,
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final bool isDark = Theme
-        .of(context)
-        .brightness == Brightness.dark;
+    final bool isDark = Theme.of(context).brightness == Brightness.dark;
 
-    final Color dynamicScaffoldBg = isDark ? AppColors.primaryDark : AppColors
-        .background;
-    final Color dynamicCardBg = isDark ? const Color(0xFF242424) : AppColors
-        .cardBg;
-    final Color dynamicAppBarBg = isDark ? const Color(0xFF111111) : AppColors
-        .primary;
+    final Color dynamicScaffoldBg = isDark
+        ? AppColors.primaryDark
+        : AppColors.background;
+    final Color dynamicCardBg = isDark
+        ? const Color(0xFF242424)
+        : AppColors.cardBg;
+    final Color dynamicAppBarBg = isDark
+        ? const Color(0xFF111111)
+        : AppColors.primary;
     final Color dynamicTextColor = isDark ? Colors.white : AppColors.primary;
-    final Color dynamicSubTextColor = isDark ? Colors.white60 : AppColors
-        .textSub;
+    final Color dynamicSubTextColor = isDark
+        ? Colors.white60
+        : AppColors.textSub;
 
     return Scaffold(
       backgroundColor: dynamicScaffoldBg,
@@ -265,91 +406,108 @@ class _AdminUserScreenState extends State<AdminUserScreen> {
           "Quản lý Người dùng",
           style: TextStyle(
             fontWeight: FontWeight.bold,
-            color: AppColors
-                .accentGold,
+            color: AppColors.accentGold,
           ),
         ),
         actions: [
           IconButton(
             onPressed: _fetchUsers,
             icon: const Icon(Icons.refresh, color: AppColors.accentGold),
-          )
+          ),
         ],
       ),
       body: isLoading
-          ? const Center(child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentGold)))
+          ? const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppColors.accentGold),
+              ),
+            )
           : users.isEmpty
-          ? Center(child: Text("Hệ thống chưa ghi nhận khách hàng nào.",
-          style: TextStyle(color: dynamicTextColor)))
+          ? Center(
+              child: Text(
+                "Hệ thống chưa ghi nhận khách hàng nào.",
+                style: TextStyle(color: dynamicTextColor),
+              ),
+            )
           : ListView.builder(
-        itemCount: users.length,
-        itemBuilder: (context, index) {
-          final u = users[index];
-          return Card(
-            color: dynamicCardBg,
-            // Nền Card tự động co giãn theo Light/Dark Mode
-            margin: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10)),
-            child: ListTile(
-              leading: CircleAvatar(
-                backgroundColor: isDark ? AppColors.accentGold : AppColors
-                    .primary,
-                child: Text(
-                  u.hoTen.isNotEmpty ? u.hoTen[0].toUpperCase() : "?",
-                  style: TextStyle(
-                      color: isDark ? AppColors.primary : Colors.white,
-                      fontWeight: FontWeight.bold
+              itemCount: users.length,
+              itemBuilder: (context, index) {
+                final u = users[index];
+                return Card(
+                  color: dynamicCardBg,
+                  // Nền Card tự động co giãn theo Light/Dark Mode
+                  margin: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 6,
                   ),
-                ),
-              ),
-              title: Text(
-                u.hoTen,
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? AppColors.accentGold : AppColors
-                      .primary, // Ngày Đen, Đêm Vàng cực sang
-                ),
-              ),
-              subtitle: Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  "Username: ${u.tenDangNhap} \nSĐT: ${u.sdt.isNotEmpty
-                      ? u.sdt
-                      : 'Chưa cập nhật'} | QG: ${u.quocTich}",
-                  style: TextStyle(color: dynamicSubTextColor),
-                ),
-              ),
-              isThreeLine: true,
-              trailing: Container(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: u.trangThai ? Colors.green.withOpacity(0.15) : Colors
-                      .red.withOpacity(0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  u.trangThai ? "Hoạt động" : "Bị khóa",
-                  style: TextStyle(
-                      color: u.trangThai ? Colors.greenAccent : Colors
-                          .redAccent,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                ),
-              ),
-              onTap: () => _showUserDialog(user: u),
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: isDark
+                          ? AppColors.accentGold
+                          : AppColors.primary,
+                      child: Text(
+                        u.hoTen.isNotEmpty ? u.hoTen[0].toUpperCase() : "?",
+                        style: TextStyle(
+                          color: isDark ? AppColors.primary : Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    title: Text(
+                      u.hoTen,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: isDark
+                            ? AppColors.accentGold
+                            : AppColors.primary, // Ngày Đen, Đêm Vàng cực sang
+                      ),
+                    ),
+                    subtitle: Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        "Username: ${u.tenDangNhap} \nSĐT: ${u.sdt.isNotEmpty ? u.sdt : 'Chưa cập nhật'} | QG: ${u.quocTich}",
+                        style: TextStyle(color: dynamicSubTextColor),
+                      ),
+                    ),
+                    isThreeLine: true,
+                    trailing: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: u.trangThai
+                            ? Colors.green.withOpacity(0.15)
+                            : Colors.red.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        u.trangThai ? "Hoạt động" : "Bị khóa",
+                        style: TextStyle(
+                          color: u.trangThai
+                              ? Colors.greenAccent
+                              : Colors.redAccent,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    onTap: () => _showAccountActions(u),
+                    onLongPress: () => _showAccountActions(u),
+                  ),
+                );
+              },
             ),
-          );
-        },
-      ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: isDark ? AppColors.accentGold : AppColors.primary,
         onPressed: () => _showUserDialog(),
-        child: Icon(Icons.person_add_alt_1,
-            color: isDark ? AppColors.primary : Colors.white),
+        child: Icon(
+          Icons.person_add_alt_1,
+          color: isDark ? AppColors.primary : Colors.white,
+        ),
       ),
     );
   }

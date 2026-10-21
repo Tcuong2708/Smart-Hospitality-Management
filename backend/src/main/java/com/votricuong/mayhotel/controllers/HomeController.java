@@ -1,15 +1,34 @@
 package com.votricuong.mayhotel.controllers;
 
+import com.votricuong.mayhotel.documents.BookingDetail;
+import com.votricuong.mayhotel.documents.Customer;
+import com.votricuong.mayhotel.documents.Promotion;
+import com.votricuong.mayhotel.documents.Review;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.RoomType;
+import com.votricuong.mayhotel.documents.Service;
+import com.votricuong.mayhotel.documents.User;
+import com.votricuong.mayhotel.repositories.BookingDetailRepository;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
+import com.votricuong.mayhotel.repositories.PromotionRepository;
+import com.votricuong.mayhotel.repositories.ReviewRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
-import lombok.Builder;
+import com.votricuong.mayhotel.repositories.RoomTypeRepository;
+import com.votricuong.mayhotel.repositories.ServiceRepository;
+import jakarta.servlet.http.HttpSession;
 import lombok.Data;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 
+import java.io.Serializable;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -18,19 +37,32 @@ import java.util.stream.Collectors;
 public class HomeController extends BaseController {
 
     private final RoomRepository roomRepository;
-    private final com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository;
-    private final com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final BookingDetailRepository bookingDetailRepository;
+    private final ServiceRepository serviceRepository;
+    private final ReviewRepository reviewRepository;
+    private final CustomerRepository customerRepository;
+    private final PromotionRepository promotionRepository;
 
-    public HomeController(RoomRepository roomRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository) {
+    public HomeController(RoomRepository roomRepository,
+            RoomTypeRepository roomTypeRepository,
+            BookingDetailRepository bookingDetailRepository,
+            ServiceRepository serviceRepository,
+            ReviewRepository reviewRepository,
+            CustomerRepository customerRepository,
+            PromotionRepository promotionRepository) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.bookingDetailRepository = bookingDetailRepository;
+        this.serviceRepository = serviceRepository;
+        this.reviewRepository = reviewRepository;
+        this.customerRepository = customerRepository;
+        this.promotionRepository = promotionRepository;
     }
 
-    // DTO for Thymeleaf backwards compatibility
     @Data
-    @Builder
-    public static class RoomTypeDTO implements java.io.Serializable {
+    public static class RoomTypeDTO implements Serializable {
+        // Field cũ
         private Long maLoai;
         private String name;
         private Integer soNguoi;
@@ -38,122 +70,245 @@ public class HomeController extends BaseController {
         private List<Room> phongs;
         private List<Room> phongsTrong;
         private String imageUrl;
+
+        // Field mới
+        private Long maPhong;
+        private String soPhong;
+        private String tenLoaiPhong;
+        private String hinhAnhHienThi;
+        private String moTa;
+        private Integer sucChua;
+        private Integer dienTich;
+        private Double giaPhong;
+        private String trangThai;
+        private String viewDirection;
+        private String locationZone;
+
+        public RoomTypeDTO() {
+            this.phongs = new ArrayList<>();
+            this.phongsTrong = new ArrayList<>();
+        }
     }
 
+    // ================================================================
+    // TRANG CHỦ
+    // ================================================================
     @GetMapping("/")
-    public String index(Model model, jakarta.servlet.http.HttpSession session) {
-        com.votricuong.mayhotel.documents.User user = (com.votricuong.mayhotel.documents.User) session.getAttribute("user");
+    public String index(Model model, HttpSession session) {
+        User user = (User) session.getAttribute("user");
         if (user != null && user.getRoleId() != null) {
             long roleId = user.getRoleId();
-            if (roleId == 1L) return "redirect:/admin/users";
-            if (roleId == 2L) return "redirect:/manager/rooms";
-            if (roleId == 3L) return "redirect:/receptionist/room-map";
-            if (roleId == 7L) return "redirect:/accountant/dashboard";
+            if (roleId == 1L)
+                return "redirect:/admin/users";
+            if (roleId == 2L)
+                return "redirect:/manager/rooms";
+            if (roleId == 3L)
+                return "redirect:/receptionist/room-map";
+            if (roleId == 7L)
+                return "redirect:/admin/statistical";
         }
 
+        // ── 1. PHÒNG NỔI BẬT ──
         List<Room> allRooms = roomRepository.findAll();
-
-        // Group rooms by RoomType ID
-        Map<Long, List<Room>> roomsByType = allRooms.stream()
-                .filter(r -> r.getRoomTypeId() != null)
-                .collect(Collectors.groupingBy(Room::getRoomTypeId));
-
-        java.util.Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
+        Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
 
-        List<RoomTypeDTO> loaiPhongs = roomsByType.entrySet().stream().map(entry -> {
-            RoomType type = typeMap.get(entry.getKey());
-            String typeName = (type != null && type.getName() != null) ? type.getName() : "Phòng tiêu chuẩn";
-            Integer soNguoi = (type != null && type.getMaxOccupancy() != null) ? type.getMaxOccupancy() : Integer.valueOf(2);
-            
-            List<Room> phongs = entry.getValue();
-            // Gán ảnh mặc định từ loại phòng cho từng phòng nếu phòng chưa có ảnh
-            phongs.forEach(room -> {
-                if (room.getImageUrl() == null && type != null) {
-                    room.setImageUrl(type.getImageUrl());
-                }
-            });
-
-            List<Room> phongsTrong = phongs.stream()
-                    .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()) || "Còn phòng".equalsIgnoreCase(r.getStatus()))
-                    .collect(Collectors.toList());
-
-            return RoomTypeDTO.builder()
-                    .maLoai(entry.getKey())
-                    .name(typeName)
-                    .soNguoi(soNguoi)
-                    .price(phongs.isEmpty() ? 0.0 : phongs.get(0).getPrice())
-                    .phongs(phongs)
-                    .phongsTrong(phongsTrong)
-                    .imageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png")
-                    .build();
-        }).collect(Collectors.toList());
-
-        // Lấy toàn bộ chi tiết đặt phòng để tính số lượt đặt
-        List<com.votricuong.mayhotel.documents.BookingDetail> allDetails = bookingDetailRepository.findAll();
-        
-        // Đếm số lượt đặt cho từng phòng (roomId -> count)
+        List<BookingDetail> allDetails = bookingDetailRepository.findAll();
         Map<Long, Long> roomBookingCounts = allDetails.stream()
                 .filter(d -> d.getRoomId() != null)
-                .collect(Collectors.groupingBy(com.votricuong.mayhotel.documents.BookingDetail::getRoomId, Collectors.counting()));
-                
-        // Tính tổng số lượt đặt cho từng loại phòng (roomTypeId -> count)
-        Map<Long, Long> typeBookingCounts = allRooms.stream()
-                .filter(r -> r.getRoomTypeId() != null && roomBookingCounts.containsKey(r.getId()))
-                .collect(Collectors.groupingBy(Room::getRoomTypeId, Collectors.summingLong(r -> roomBookingCounts.get(r.getId()))));
+                .collect(Collectors.groupingBy(BookingDetail::getRoomId, Collectors.counting()));
 
-        // Sắp xếp các loại phòng theo số lượng booking lịch sử (nhiều người đặt nhất lên đầu)
-        loaiPhongs.sort((a, b) -> {
-            long countA = typeBookingCounts.getOrDefault(a.getMaLoai(), 0L);
-            long countB = typeBookingCounts.getOrDefault(b.getMaLoai(), 0L);
-            
-            // Nếu số lượt đặt bằng nhau, ưu tiên loại phòng ít phòng trống hơn (hot hơn hiện tại)
-            if (countA == countB) {
-                int bookedA = a.getPhongs().size() - a.getPhongsTrong().size();
-                int bookedB = b.getPhongs().size() - b.getPhongsTrong().size();
-                return Integer.compare(bookedB, bookedA);
-            }
-            
-            return Long.compare(countB, countA); // Giảm dần
+        List<RoomTypeDTO> danhSach = allRooms.stream()
+                .filter(r -> r.getRoomTypeId() != null)
+                .map(r -> toDTO(r, typeMap.get(r.getRoomTypeId())))
+                .collect(Collectors.toList());
+
+        danhSach.sort((a, b) -> {
+            long cA = roomBookingCounts.getOrDefault(a.getMaPhong(), 0L);
+            long cB = roomBookingCounts.getOrDefault(b.getMaPhong(), 0L);
+            if (cA != cB)
+                return Long.compare(cB, cA);
+            return Double.compare(
+                    b.getGiaPhong() != null ? b.getGiaPhong() : 0,
+                    a.getGiaPhong() != null ? a.getGiaPhong() : 0);
         });
 
-        // Chỉ lấy tối đa 4 loại phòng nổi bật nhất để show trang chủ cho đẹp
-        List<RoomTypeDTO> featuredRooms = loaiPhongs.stream().limit(4).collect(Collectors.toList());
+        List<RoomTypeDTO> phongNoiBat = danhSach.stream().limit(6).collect(Collectors.toList());
+        model.addAttribute("phongNoiBat", phongNoiBat);
 
-        model.addAttribute("listLoaiPhong", featuredRooms); 
-        setExtraCSS(model, "view/Home/index :: extra_css");
-        setExtraJS(model, "view/Home/index :: extra_js");
-        return render(model, "view/Home/index");
+        // ── 2. LOẠI PHÒNG ──
+        model.addAttribute("loaiPhong", roomTypeRepository.findAll());
+
+        // ── 3. DỊCH VỤ ──
+        model.addAttribute("dichVuNoiBat", serviceRepository.findAll());
+
+        // ── 4. REVIEWS ──
+        Map<Long, String> customerNames = customerRepository.findAll().stream()
+                .collect(Collectors.toMap(
+                        Customer::getId,
+                        c -> c.getFullName() != null ? c.getFullName() : "Khách hàng",
+                        (a, b) -> a));
+
+        List<Map<String, Object>> danhGiaNoiBat = reviewRepository.findAll().stream()
+                .filter(rv -> rv.getStatus() == null || "Hiện".equalsIgnoreCase(rv.getStatus()))
+                .sorted(Comparator.comparing(
+                        Review::getReviewDate,
+                        Comparator.nullsLast(Comparator.reverseOrder())))
+                .limit(6)
+                .map(rv -> {
+                    Map<String, Object> m = new HashMap<>();
+                    m.put("tenKhachHang", customerNames.getOrDefault(rv.getCustomerId(), "Khách hàng"));
+                    m.put("soSao", rv.getRating() != null ? rv.getRating() : 5);
+                    m.put("binhLuan", rv.getContent() != null ? rv.getContent() : "");
+                    m.put("ngayDanhGia", rv.getReviewDate());
+                    return m;
+                })
+                .collect(Collectors.toList());
+        model.addAttribute("danhGiaNoiBat", danhGiaNoiBat);
+
+        // ── 5. FLASH SALE (promotion đang chạy) ──
+        Date now = new Date();
+        Promotion flashSale = promotionRepository.findAll().stream()
+                .filter(p -> p.getStartDate() != null && p.getEndDate() != null)
+                .filter(p -> !now.before(p.getStartDate()) && !now.after(p.getEndDate()))
+                .max(Comparator.comparing(Promotion::getDiscountPercent,
+                        Comparator.nullsLast(Comparator.naturalOrder())))
+                .orElse(null);
+
+        // Nếu không có promotion active → lấy promotion sắp diễn ra
+        if (flashSale == null) {
+            flashSale = promotionRepository.findAll().stream()
+                    .filter(p -> p.getEndDate() != null && p.getEndDate().after(now))
+                    .min(Comparator.comparing(Promotion::getStartDate,
+                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .orElse(null);
+        }
+
+        // Nếu vẫn null → lấy promotion bất kỳ (demo)
+        if (flashSale == null) {
+            flashSale = promotionRepository.findAll().stream()
+                    .max(Comparator.comparing(Promotion::getDiscountPercent,
+                            Comparator.nullsLast(Comparator.naturalOrder())))
+                    .orElse(null);
+        }
+
+        model.addAttribute("flashSale", flashSale);
+
+        // Đếm số phòng Trống (để hiển thị "chỉ còn X phòng")
+        long soPhongTrong = allRooms.stream()
+                .filter(r -> isVacant(r.getStatus()))
+                .count();
+        model.addAttribute("soPhongTrong", soPhongTrong);
+
+        // Giây còn lại của flash sale
+        if (flashSale != null && flashSale.getEndDate() != null) {
+            long diff = flashSale.getEndDate().getTime() - now.getTime();
+            model.addAttribute("flashSaleSeconds", Math.max(diff / 1000, 0));
+        } else {
+            model.addAttribute("flashSaleSeconds", 0);
+        }
+
+        return "view/home/index";
     }
 
+    // ================================================================
+    // INFO
+    // ================================================================
     @GetMapping("/info")
     public String info(Model model) {
-        setPageTitle(model, "Thông tin khách sạn");
-        setExtraCSS(model, "view/Home/info :: extra_css");
-        setExtraJS(model, "view/Home/info :: extra_js");
-        return render(model, "view/Home/info");
+        model.addAttribute("pageTitle", "Thông tin khách sạn");
+        return "view/home/info";
     }
 
+    // ================================================================
+    // DETAIL
+    // ================================================================
     @GetMapping("/home/detail/{id}")
     public String detail(@PathVariable("id") Long id, Model model) {
         Room room = roomRepository.findById(id).orElse(null);
-        if (room == null) {
+        if (room == null)
             return "redirect:/";
+
+        if (room.getRoomTypeId() != null) {
+            RoomType type = roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
+            room.setRoomType(type);
+            if ((room.getImageUrl() == null || room.getImageUrl().isBlank()) && type != null) {
+                room.setImageUrl(type.getImageUrl());
+            }
         }
+
         model.addAttribute("phong", room);
-        
-        boolean isVacant = "Vacant".equalsIgnoreCase(room.getStatus());
-        model.addAttribute("conPhong", isVacant);
-        
+        model.addAttribute("conPhong", isVacant(room.getStatus()));
         model.addAttribute("pageTitle", "Chi tiết phòng " + room.getName());
-        return render(model, "view/Home/detail");
+        return "view/home/detail";
     }
 
+    // ================================================================
+    // REVIEW
+    // ================================================================
     @GetMapping("/review")
     public String review(Model model) {
-        setPageTitle(model, "Đánh giá từ khách hàng");
-        setExtraCSS(model, "view/Home/review :: extra_css");
-        setExtraJS(model, "view/Home/review :: extra_js");
-        return render(model, "view/Home/review");
+        model.addAttribute("pageTitle", "Đánh giá từ khách hàng");
+        return "view/home/review";
+    }
+
+    // ================================================================
+    // HELPERS
+    // ================================================================
+    private RoomTypeDTO toDTO(Room r, RoomType t) {
+        RoomTypeDTO dto = new RoomTypeDTO();
+        dto.setMaPhong(r.getId());
+        dto.setSoPhong(r.getName());
+
+        String typeName = (t != null && t.getName() != null) ? t.getName() : "Phòng";
+        dto.setTenLoaiPhong(typeName);
+
+        String img = r.getImageUrl();
+        if (img == null || img.isBlank()) {
+            img = (t != null && t.getImageUrl() != null) ? t.getImageUrl() : "default.jpg";
+        }
+        dto.setHinhAnhHienThi(img);
+
+        dto.setSucChua(t != null && t.getMaxOccupancy() != null ? t.getMaxOccupancy() : 2);
+        dto.setDienTich(null);
+        dto.setGiaPhong(r.getPrice() != null ? r.getPrice() : 0.0);
+        dto.setTrangThai(isVacant(r.getStatus()) ? "Còn phòng" : "Hết phòng");
+        dto.setViewDirection(r.getViewDirection());
+        dto.setLocationZone(r.getLocationZone());
+        dto.setMoTa(buildMoTa(r, t));
+
+        dto.setMaLoai(r.getRoomTypeId());
+        dto.setName(typeName);
+        dto.setSoNguoi(dto.getSucChua());
+        dto.setPrice(dto.getGiaPhong());
+        dto.setImageUrl(img);
+        dto.setPhongs(new ArrayList<>(List.of(r)));
+        if (isVacant(r.getStatus())) {
+            dto.setPhongsTrong(new ArrayList<>(List.of(r)));
+        }
+        return dto;
+    }
+
+    private boolean isVacant(String status) {
+        if (status == null)
+            return false;
+        String s = status.trim();
+        return "Vacant".equalsIgnoreCase(s)
+                || "Còn phòng".equalsIgnoreCase(s)
+                || "Trống".equalsIgnoreCase(s);
+    }
+
+    private String buildMoTa(Room r, RoomType t) {
+        StringBuilder sb = new StringBuilder();
+        if (t != null && t.getName() != null)
+            sb.append(t.getName());
+        if (r.getViewDirection() != null && !r.getViewDirection().isBlank()) {
+            if (sb.length() > 0)
+                sb.append(" — ");
+            sb.append(r.getViewDirection());
+        }
+        if (sb.length() == 0)
+            return "Phòng tiện nghi, phù hợp lưu trú ngắn và dài ngày.";
+        return sb.append(". Phòng tiện nghi, đầy đủ tiện ích.").toString();
     }
 }

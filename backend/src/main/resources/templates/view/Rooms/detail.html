@@ -1,158 +1,312 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAY HOTEL - Chi Tiết Phòng</title>
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="detail.css">
+    <title>Chi tiết phòng</title>
+</head>
 
-  <!-- CÁC FILE CSS ĐƯỢC CHÈN SẴN ĐỂ TRÁNH FOUC (FLASH OF UNSTYLED CONTENT) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="../../style.css" />
-  <th:block th:fragment="extra_css">
-  <link rel="stylesheet" th:href="@{/css/Rooms/detail.css}" />
-  <style>
-    .navbar-nav .nav-link.active-menu {
-      font-weight: 700 !important;
-      color: #d4af37 !important; /* Màu vàng Gold */
-      background-color: rgba(212, 175, 55, 0.1); /* Nền mờ */
-      border-radius: 8px; /* Bo tròn góc */
-      padding: 8px 16px !important; /* Tạo khoảng trống xung quanh chữ */
-      transition: 0.3s all ease-in-out;
-    }
-  </style>
+<body>
+    <section layout:fragment="content">
 
-</th:block>`n</head>
-<body>`n<div th:fragment="body_content">
+        <!-- ══════════ TÍNH TRƯỚC ĐƯỜNG DẪN ẢNH + TRẠNG THÁI ══════════ -->
+        <div class="mh-detail-page" th:with="imgPath=${(room.imageUrl != null and !room.imageUrl.isBlank()) ? room.imageUrl : 'default.jpg'},
+                     conTrong=${room.status != null and (
+                         room.status.equalsIgnoreCase('Trống') or
+                         room.status.equalsIgnoreCase('Vacant') or
+                         room.status.equalsIgnoreCase('Còn phòng') or
+                         room.status.equalsIgnoreCase('Phòng trống'))}">
+            <div class="container">
 
-    <div class="container py-5">
-        
-        <!-- Khối nội dung chính -->
-        <div id="room-detail-content">
-            <div class="row g-5">
-                <!-- Cột hình ảnh -->
-                <div class="col-md-6">
-                    <img loading="lazy" id="room-image" th:src="@{'/images/' + ${!#strings.isEmpty(phong.imageUrl) ? phong.imageUrl : 'a1.jpg'}}" class="w-100 rounded shadow-sm" style="object-fit: cover; max-height: 450px;" alt="Hình ảnh phòng">
+                <!-- ══════════ BREADCRUMB ══════════ -->
+                <nav class="mh-detail-breadcrumb">
+                    <a th:href="@{/}">Trang chủ</a>
+                    <i class="fa-solid fa-chevron-right"></i>
+                    <a th:href="@{/rooms}">Phòng nghỉ</a>
+                    <i class="fa-solid fa-chevron-right"></i>
+                    <span th:text="${(room.roomType != null ? room.roomType.name : 'Phòng') + ' – ' + room.name}">
+                        Deluxe – P701</span>
+                </nav>
+
+                <!-- ══════════ GALLERY ══════════ -->
+                <div class="mh-detail-gallery">
+                    <div class="mh-detail-gallery-main">
+                        <img id="mainImage" th:src="@{'/images/rooms/' + ${imgPath}}" th:alt="${room.name}">
+                        <span class="mh-detail-status" th:classappend="${conTrong} ? 'is-available' : 'is-busy'"
+                            th:text="${conTrong} ? 'Còn phòng' : 'Đã có khách'">Trống</span>
+                        <button type="button" class="mh-detail-gallery-heart" aria-label="Yêu thích">
+                            <i class="fa-regular fa-heart"></i>
+                        </button>
+                    </div>
+
+                    <div class="mh-detail-gallery-side">
+                        <img th:src="@{'/images/rooms/' + ${imgPath}}" class="mh-gallery-thumb" alt="">
+                        <img th:src="@{'/images/rooms/' + ${imgPath}}" class="mh-gallery-thumb" alt="">
+                    </div>
                 </div>
 
-                <!-- Cột thông tin -->
-                <div class="col-md-6">
-                    <nav aria-label="breadcrumb">
-                        <ol class="breadcrumb small mb-2">
-                            <li class="breadcrumb-item"><a th:href="@{/}" class="text-decoration-none text-muted">Trang chủ</a></li>
-                            <li class="breadcrumb-item"><a th:href="@{/rooms}" class="text-decoration-none text-muted">Phòng nghỉ</a></li>
-                            <li class="breadcrumb-item active fw-bold" aria-current="page" th:text="${phong.roomType != null ? phong.roomType.name : 'Chi tiết phòng'}">...</li>
-                        </ol>
-                    </nav>
-
-                    <h1 class="fw-bold text-navy mb-2" id="room-name" th:text="${phong.roomType != null ? phong.roomType.name : 'Phòng Tiêu Chuẩn'}">...</h1>
-
-                    <div class="d-flex align-items-center mb-3">
-                        <span class="fs-4 fw-bold text-gold me-2" id="room-price" th:text="${#numbers.formatDecimal(phong.price, 0, 'COMMA', 0, 'POINT')}">0</span>
-                        <span class="text-muted me-3">VNĐ / đêm</span>
-                        <span id="room-status-badge" class="badge bg-success" th:if="${phong.status == 'Vacant' or phong.status == 'Còn phòng'}">Còn phòng</span>
-                        <span id="room-status-badge" class="badge bg-danger" th:unless="${phong.status == 'Vacant' or phong.status == 'Còn phòng'}">Đã đặt</span>
+                <!-- ══════════ HEADER ══════════ -->
+                <header class="mh-detail-header">
+                    <div class="mh-detail-header-main">
+                        <h1 th:text="${(room.roomType != null ? room.roomType.name : 'Phòng') + ' – ' + room.name}">
+                            Deluxe – P701</h1>
+                        <p class="mh-detail-header-meta">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <span>May Hotel</span>
+                            <span>·</span>
+                            <span>Xem trên bản đồ</span>
+                        </p>
                     </div>
 
-                    <div class="info-box bg-light py-2 px-3 rounded-2 shadow-sm mb-4">
-                        <div class="mb-2 border-bottom pb-2">
-                            <i class="bi bi-bookmark-fill text-gold me-2"></i>
-                            <strong>Loại phòng:</strong>
-                            <span id="room-category" th:text="${phong.roomType != null ? phong.roomType.name : 'Tiêu chuẩn'}">...</span>
-                        </div>
-                        <div><i class="bi bi-geo-alt-fill text-danger me-2"></i><strong>Vị trí:</strong> Tầng cao, View thoáng</div>
-                    </div>
-
-                    <p class="text-muted small mb-4" id="room-short-desc" style="text-align: justify;" th:text="${phong.detail != null ? phong.detail : 'Phòng sang trọng, đầy đủ tiện nghi dành cho khách lưu trú.'}">...</p>
-
-                    <hr class="text-muted">
-
-                    <!-- Form Đặt Phòng -->
-                    <form id="booking-form" class="row align-items-end mb-4 bg-light p-3 rounded-3 shadow-sm border border-light-subtle" th:action="@{/booking/create}" method="get">
-                        <input type="hidden" id="room_id" name="roomId" th:value="${phong.id}" />
-                        <div class="col-4">
-                            <label class="form-label small text-muted fw-bold mb-1">SỐ ĐÊM NGHỈ</label>
-                            <div class="input-group">
-                                <button class="btn btn-outline-secondary" type="button" id="btn-minus" onclick="if(document.getElementById('soLuong').value > 1) document.getElementById('soLuong').value--; updatePrice();">-</button>
-                                <input type="number" id="soLuong" name="soDem" class="form-control text-center fw-bold text-navy" value="1" min="1" onchange="updatePrice()">
-                                <button class="btn btn-outline-secondary" type="button" id="btn-plus" onclick="document.getElementById('soLuong').value++; updatePrice();">+</button>
+                    <div class="mh-detail-header-rating">
+                        <th:block th:if="${roomRating != null}">
+                            <div>
+                                <strong th:text="${roomRating.label}">Rất tốt</strong>
+                                <span th:text="${roomRating.count + ' đánh giá'}">12 đánh giá</span>
                             </div>
-                        </div>
-                        <div class="col-4">
-                            <label class="form-label small text-muted fw-bold mb-1">TẠM TÍNH</label>
-                            <div class="fs-5 fw-bold text-gold mt-1"><span id="tamTinh" th:text="${#numbers.formatDecimal(phong.price, 0, 'COMMA', 0, 'POINT')}">0</span> đ</div>
-                            <input type="hidden" id="basePrice" th:value="${phong.price}" />
-                        </div>
-                        <div class="col-4">
-                            <button type="submit" id="btn-submit-booking" class="btn btn-gold w-100 py-2 fw-bold rounded-pill shadow-sm">
-                                <i class="bi bi-bag-check-fill me-1"></i>ĐẶT NGAY
-                            </button>
-                        </div>
-                        <script>
-                            function updatePrice() {
-                                let soDem = document.getElementById('soLuong').value;
-                                let basePrice = document.getElementById('basePrice').value;
-                                let total = soDem * basePrice;
-                                document.getElementById('tamTinh').innerText = new Intl.NumberFormat('vi-VN').format(total);
-                            }
-                        </script>
-                    </form>
-
-                    <div class="d-flex text-center justify-content-between px-4 mt-4 border-top pt-4">
-                        <div><i class="bi bi-wifi amenity-icon d-block mb-1 text-primary"></i><small class="text-muted fw-bold">Wifi Free</small></div>
-                        <div><i class="bi bi-tv amenity-icon d-block mb-1 text-dark"></i><small class="text-muted fw-bold">Smart TV</small></div>
-                        <div><i class="bi bi-cup-hot amenity-icon d-block mb-1 text-warning"></i><small class="text-muted fw-bold">Ăn sáng</small></div>
-                        <div><i class="bi bi-snow amenity-icon d-block mb-1 text-info"></i><small class="text-muted fw-bold">Máy lạnh</small></div>
+                            <b th:text="${roomRating.scoreText}">8,5</b>
+                        </th:block>
+                        <th:block th:if="${roomRating == null}">
+                            <div>
+                                <strong>Chưa có đánh giá</strong>
+                                <span>Hãy là người đầu tiên</span>
+                            </div>
+                        </th:block>
                     </div>
-                </div>
-            </div>
+                </header>
 
-            <div class="row mt-5 pt-3">
-                <div class="col-12">
-                    <ul class="nav nav-tabs border-bottom-0" id="myTab" role="tablist">
-                        <li class="nav-item">
-                            <button class="nav-link active fw-bold" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc" type="button" role="tab">Mô tả chi tiết</button>
-                        </li>
-                        <li class="nav-item">
-                            <button class="nav-link fw-bold" id="policy-tab" data-bs-toggle="tab" data-bs-target="#policy" type="button" role="tab">Chính sách & Quy định</button>
-                        </li>
-                    </ul>
-                    <div class="tab-content tab-content-box bg-white shadow-sm" id="myTabContent">
-                        <div class="tab-pane fade show active text-muted p-3" id="desc" role="tabpanel">
-                            <p id="room-detail-text" style="line-height: 1.8; text-align: justify;" th:text="${phong.detail != null ? phong.detail : 'Phòng sang trọng với thiết kế tinh tế.'}"></p>
-                            <p id="room-note-text" class="fst-italic border-start border-3 border-warning ps-3">Được hoàn hủy miễn phí trước 2 ngày.</p>
+                <!-- ══════════ LAYOUT ══════════ -->
+                <div class="mh-detail-layout">
+
+                    <!-- ═══ MAIN ═══ -->
+                    <main class="mh-detail-main">
+
+                        <!-- Đặc điểm nổi bật -->
+                        <section class="mh-detail-card">
+                            <h2><i class="fa-solid fa-star"></i> Đặc điểm nổi bật</h2>
+                            <div class="mh-detail-facts">
+                                <div>
+                                    <i class="fa-solid fa-user-group"></i>
+                                    <strong>Sức chứa</strong>
+                                    <span
+                                        th:text="${(room.roomType != null and room.roomType.maxOccupancy != null ? room.roomType.maxOccupancy : 2) + ' khách'}">2
+                                        khách</span>
+                                </div>
+                                <div>
+                                    <i class="fa-solid fa-mountain-sun"></i>
+                                    <strong>Hướng view</strong>
+                                    <span
+                                        th:text="${room.viewDirection != null and !room.viewDirection.isBlank() ? room.viewDirection : 'Đang cập nhật'}">Hướng
+                                        phố</span>
+                                </div>
+                                <div>
+                                    <i class="fa-solid fa-location-crosshairs"></i>
+                                    <strong>Vị trí</strong>
+                                    <span
+                                        th:text="${room.locationZone != null and !room.locationZone.isBlank() ? room.locationZone : 'Đang cập nhật'}">Cánh
+                                        trái</span>
+                                </div>
+                                <div>
+                                    <i class="fa-solid fa-bed"></i>
+                                    <strong>Giường phụ</strong>
+                                    <span
+                                        th:text="${room.maxExtraBeds != null ? room.maxExtraBeds + ' giường' : 'Không có'}">0
+                                        giường</span>
+                                </div>
+                            </div>
+                        </section>
+
+                        <!-- Mô tả -->
+                        <section class="mh-detail-card">
+                            <h2><i class="fa-solid fa-book-open"></i> Mô tả phòng</h2>
+                            <p
+                                th:text="${room.detail != null and !room.detail.isBlank() ? room.detail :
+                                     (room.note != null and !room.note.isBlank() ? room.note :
+                                      'Phòng nghỉ tiện nghi, đầy đủ trang thiết bị, không gian ấm cúng mang đến trải nghiệm thoải mái cho quý khách.')}">
+                                Mô tả phòng...</p>
+                        </section>
+
+                        <!-- Tiện nghi -->
+                        <section class="mh-detail-card">
+                            <h2><i class="fa-solid fa-bell-concierge"></i> Tiện nghi</h2>
+                            <div class="mh-detail-amenities">
+                                <span><i class="fa-solid fa-wifi"></i> Wi-Fi miễn phí tốc độ cao</span>
+                                <span><i class="fa-solid fa-snowflake"></i> Điều hòa nhiệt độ</span>
+                                <span><i class="fa-solid fa-tv"></i> Smart TV 55"</span>
+                                <span><i class="fa-solid fa-mug-hot"></i> Ấm đun nước &amp; trà, cà phê</span>
+                                <span><i class="fa-solid fa-bath"></i> Bồn tắm &amp; vòi sen</span>
+                                <span><i class="fa-solid fa-vault"></i> Két an toàn</span>
+                                <span><i class="fa-solid fa-broom"></i> Dọn phòng hàng ngày</span>
+                                <span><i class="fa-solid fa-bell"></i> Dịch vụ phòng 24/7</span>
+                            </div>
+                        </section>
+
+                        <!-- Chính sách -->
+                        <section class="mh-detail-card">
+                            <h2><i class="fa-solid fa-scroll"></i> Chính sách &amp; Quy định</h2>
+                            <div class="mh-detail-policy">
+                                <div><strong>Nhận phòng</strong><span>Từ 14:00</span></div>
+                                <div><strong>Trả phòng</strong><span>Trước 12:00 trưa hôm sau</span></div>
+                                <div><strong>Trẻ em</strong><span>Dưới 6 tuổi miễn phí khi ngủ chung giường</span></div>
+                                <div><strong>Hủy phòng</strong><span>Miễn phí trước 24 giờ — sau đó tính 1 đêm</span>
+                                </div>
+                                <div><strong>Vật nuôi</strong><span>Không cho phép mang vật nuôi</span></div>
+                            </div>
+                        </section>
+
+                        <!-- Đánh giá -->
+                        <section class="mh-detail-card">
+                            <h2><i class="fa-solid fa-comments"></i> Đánh giá khách hàng</h2>
+
+                            <div class="mh-detail-reviews-empty" th:if="${#lists.isEmpty(roomReviews)}">
+                                <i class="fa-solid fa-comment-slash"></i>
+                                <p>Chưa có đánh giá nào. Hãy là người đầu tiên chia sẻ trải nghiệm!</p>
+                            </div>
+
+                            <div class="mh-review-item" th:each="rv : ${roomReviews}"
+                                style="padding:14px 0;border-bottom:1px solid #eee">
+                                <div style="display:flex;justify-content:space-between;gap:8px">
+                                    <strong th:text="${rv.name}">Khách hàng</strong>
+                                    <small th:text="${rv.date}">01/01/2026</small>
+                                </div>
+                                <div style="color:#f5a623" th:text="${'★'.repeat(rv.stars) + '☆'.repeat(5 - rv.stars)}">
+                                    ★★★★★</div>
+                                <p th:if="${!#strings.isEmpty(rv.text)}" th:text="${rv.text}" style="margin:6px 0 0">
+                                    Nhận xét</p>
+                                <p th:if="${!#strings.isEmpty(rv.reply)}" style="margin:6px 0 0;color:#6b7280"
+                                    th:text="${'May Hotel phản hồi: ' + rv.reply}"></p>
+                            </div>
+
+                            <!-- Khách đã ở loại phòng này và chưa đánh giá -->
+                            <div th:if="${reviewableBookingId != null}" class="mh-review-form">
+                                <h3>Viết đánh giá của bạn</h3>
+                                <form th:action="@{/review/create}" method="post">
+                                    <input type="hidden" name="bookingId" th:value="${reviewableBookingId}">
+                                    <input type="hidden" name="returnRoomId" th:value="${room.id}">
+                                    <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}"
+                                        th:value="${_csrf.token}">
+                                    <label>Số sao</label>
+                                    <div class="mh-star-picker">
+                                        <input type="radio" name="rating" id="s5" value="5" required><label for="s5"><i
+                                                class="fa-solid fa-star"></i></label>
+                                        <input type="radio" name="rating" id="s4" value="4"><label for="s4"><i
+                                                class="fa-solid fa-star"></i></label>
+                                        <input type="radio" name="rating" id="s3" value="3"><label for="s3"><i
+                                                class="fa-solid fa-star"></i></label>
+                                        <input type="radio" name="rating" id="s2" value="2"><label for="s2"><i
+                                                class="fa-solid fa-star"></i></label>
+                                        <input type="radio" name="rating" id="s1" value="1"><label for="s1"><i
+                                                class="fa-solid fa-star"></i></label>
+                                    </div>
+                                    <label for="reviewContent">Nhận xét</label>
+                                    <textarea id="reviewContent" name="content" rows="4" maxlength="1000"
+                                        placeholder="Chia sẻ cảm nhận của bạn về phòng nghỉ..."></textarea>
+                                    <button type="submit" class="mh-review-form-submit">Gửi đánh giá</button>
+                                </form>
+                            </div>
+
+                            <div th:if="${session.user != null and reviewableBookingId == null}"
+                                class="mh-review-login">
+                                <p>Bạn có thể đánh giá sau khi đã lưu trú và trả phòng loại phòng này.</p>
+                            </div>
+
+                            <div th:if="${session.user == null}" class="mh-review-login">
+                                <p>Vui lòng <a th:href="@{/account/login}">đăng nhập</a> để viết đánh giá.</p>
+                            </div>
+                        </section>
+
+                    </main>
+
+                    <!-- ═══ SIDEBAR ═══ -->
+                    <aside class="mh-detail-sidebar">
+
+                        <div class="mh-detail-book-card" th:classappend="${!conTrong} ? 'is-busy'">
+
+                            <span class="mh-detail-book-tag" th:classappend="${!conTrong} ? 'is-warning'"
+                                th:text="${conTrong} ? 'Giá tốt nhất' : 'Tạm không khả dụng'">Giá tốt nhất</span>
+
+                            <!-- Banner cảnh báo khi phòng đã có khách -->
+                            <div class="mh-detail-book-alert" th:if="${!conTrong}">
+                                <i class="fa-solid fa-circle-info"></i>
+                                <div>
+                                    <strong>Phòng đang được sử dụng</strong>
+                                    <span>Vui lòng chọn phòng khác cùng hạng hoặc liên hệ lễ tân để được hỗ trợ.</span>
+                                </div>
+                            </div>
+
+                            <div class="mh-detail-book-price">
+                                <strong
+                                    th:text="${'VND ' + #numbers.formatDecimal(room.price, 0, 'COMMA', 0, 'POINT')}">VND
+                                    320.000</strong>
+                                <em>/ đêm — đã bao gồm thuế &amp; phí</em>
+                            </div>
+
+                            <!-- Features cho phòng trống -->
+                            <div class="mh-detail-book-features" th:if="${conTrong}">
+                                <span><i class="fa-solid fa-circle-check"></i> Hủy miễn phí 24h</span>
+                                <span><i class="fa-solid fa-circle-check"></i> Không cần thẻ tín dụng</span>
+                                <span><i class="fa-solid fa-circle-check"></i> Xác nhận tức thì</span>
+                            </div>
+
+                            <!-- Thông tin thay thế khi phòng đã có khách -->
+                            <div class="mh-detail-book-features" th:unless="${conTrong}">
+                                <span>
+                                    <i class="fa-solid fa-bed"></i>
+                                    Loại phòng:
+                                    <strong th:text="${room.roomType != null ? room.roomType.name : 'Tiêu chuẩn'}">Tiêu
+                                        chuẩn</strong>
+                                </span>
+                                <span>
+                                    <i class="fa-solid fa-user-group"></i>
+                                    Sức chứa:
+                                    <strong
+                                        th:text="${(room.roomType != null and room.roomType.maxOccupancy != null ? room.roomType.maxOccupancy : 2) + ' khách'}">2
+                                        khách</strong>
+                                </span>
+                                <span>
+                                    <i class="fa-solid fa-mountain-sun"></i>
+                                    <strong
+                                        th:text="${room.viewDirection != null and !room.viewDirection.isBlank() ? room.viewDirection : 'View đang cập nhật'}">View</strong>
+                                </span>
+                            </div>
+
+                            <!-- Nút đặt — chỉ hiện khi phòng trống -->
+                            <a th:if="${conTrong}" th:href="@{/booking/book(maLoai=${room.roomTypeId})}"
+                                class="mh-detail-book-btn">
+                                <i class="fa-solid fa-calendar-check"></i> Đặt phòng ngay
+                            </a>
+
+                            <!-- Nút xám — không bấm được khi phòng đã có khách -->
+                            <a th:unless="${conTrong}" class="mh-detail-book-btn is-disabled" aria-disabled="true"
+                                onclick="return false;">
+                                <i class="fa-solid fa-ban"></i> Phòng đã có khách
+                            </a>
+
+                            <!-- Nút phụ — tìm phòng khác cùng hạng -->
+                            <a th:unless="${conTrong}" th:href="@{/rooms(roomTypeId=${room.roomTypeId})}"
+                                class="mh-detail-book-alt">
+                                <i class="fa-solid fa-magnifying-glass"></i> Tìm phòng khác cùng hạng
+                            </a>
                         </div>
-                        <div class="tab-pane fade text-muted p-3" id="policy" role="tabpanel">
-                            <ul class="lh-lg">
-                                <li><strong>Giờ nhận phòng:</strong> 14:00 | <strong>Giờ trả phòng:</strong> 12:00 trưa hôm sau.</li>
-                                <li>Trẻ em dưới 6 tuổi được miễn phí (Ngủ chung giường với người lớn).</li>
-                                <li id="max-extra-bed">Số giường phụ tối đa: <strong th:text="${phong.roomType != null ? phong.roomType.maxOccupancy : '2'}">0</strong> người</li>
-                                <li>Hủy phòng trước 3 ngày: Hoàn tiền 100%.</li>
-                                <li>Không mang vật nuôi vào khu vực lưu trú.</li>
-                            </ul>
+
+                        <div class="mh-detail-contact-card">
+                            <h3>Cần hỗ trợ?</h3>
+                            <p>Liên hệ lễ tân 24/7 để được tư vấn trực tiếp.</p>
+                            <a href="tel:18009327" class="mh-detail-contact-line">
+                                <i class="fa-solid fa-phone"></i>
+                                <span>1800 9327</span>
+                            </a>
+                            <a href="mailto:MayHotel.hotel@gmail.com" class="mh-detail-contact-line">
+                                <i class="fa-solid fa-envelope"></i>
+                                <span>MayHotel.hotel@gmail.com</span>
+                            </a>
                         </div>
-                    </div>
+                    </aside>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Bootstrap 5 JS Bundle (dùng cho Tab) -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- Custom JS -->
-    <script src="detail.js"></script>
-<script src="../../layout.js"></script>
-<script src="../../app.js"></script>
-</div>`n</body>
-</th:block>`n</html>
+    </section>
+</body>
 
-
+</html>

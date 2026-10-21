@@ -8,6 +8,7 @@ class UserModel {
   final String diaChi;
   final String quocTich;
   final bool trangThai;
+  final int roleId;
 
   UserModel({
     required this.idTaiKhoan,
@@ -19,33 +20,50 @@ class UserModel {
     required this.diaChi,
     required this.quocTich,
     required this.trangThai,
+    this.roleId = 5,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      idTaiKhoan: json['IdTaiKhoan'] ?? json['idTaiKhoan'] ?? 0,
-      tenDangNhap: json['TenDangNhap'] ?? json['tenDangNhap'] ?? '',
-      matKhau: json['MatKhau'] ?? json['matKhau'] ?? '',
-      hoTen: json['HoTen'] ?? json['hoTen'] ?? '',
-      sdt: json['SDT'] ?? json['sdt'] ?? '',
-      email: json['Email'] ?? json['email'] ?? '',
-      diaChi: json['DiaChi'] ?? json['diaChi'] ?? '',
-      quocTich: json['QuocTich'] ?? json['quocTich'] ?? '',
-      trangThai: json['TrangThai'] ?? json['trangThai'] ?? true,
+      idTaiKhoan: json['id'] ?? json['IdTaiKhoan'] ?? json['idTaiKhoan'] ?? 0,
+      tenDangNhap:
+          json['username'] ?? json['TenDangNhap'] ?? json['tenDangNhap'] ?? '',
+      matKhau: '',
+      hoTen: json['fullName'] ?? json['HoTen'] ?? json['hoTen'] ?? '',
+      sdt: json['phone'] ?? json['SDT'] ?? json['sdt'] ?? '',
+      email: json['email'] ?? json['Email'] ?? '',
+      diaChi: json['address'] ?? json['DiaChi'] ?? json['diaChi'] ?? '',
+      quocTich:
+          json['nationality'] ?? json['QuocTich'] ?? json['quocTich'] ?? '',
+      trangThai: _isActive(
+        json['status'] ?? json['TrangThai'] ?? json['trangThai'],
+      ),
+      roleId: int.tryParse((json['roleId'] ?? 5).toString()) ?? 5,
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      "IdTaiKhoan": idTaiKhoan,
-      "TenDangNhap": tenDangNhap,
-      "MatKhau": matKhau,
-      "HoTen": hoTen,
-      "SDT": sdt,
-      "Email": email,
-      "DiaChi": diaChi,
-      "QuocTich": quocTich,
-      "TrangThai": trangThai,
+      "id": idTaiKhoan,
+      "username": tenDangNhap,
+      if (matKhau.isNotEmpty) "password": matKhau,
+      "fullName": hoTen,
+      "phone": sdt,
+      "email": email,
+      "address": diaChi,
+      "nationality": quocTich,
+      "status": trangThai ? "Hoạt động" : "Bị khóa",
+      "roleId": roleId,
     };
+  }
+
+  static bool _isActive(dynamic value) {
+    if (value is bool) return value;
+    final normalized = value?.toString().trim().toLowerCase();
+    return normalized == null ||
+        normalized.isEmpty ||
+        normalized == 'hoạt động' ||
+        normalized == 'active' ||
+        normalized == 'true';
   }
 }

@@ -21,16 +21,19 @@ public class ProfileService {
     private final CustomerRepository customerRepository;
     private final LoyalCustomerRepository loyalCustomerRepository;
     private final RoleRepository roleRepository;
+    private final SequenceGeneratorService sequenceGeneratorService;
 
     public ProfileService(
             UserRepository userRepository,
             CustomerRepository customerRepository,
             LoyalCustomerRepository loyalCustomerRepository,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            SequenceGeneratorService sequenceGeneratorService) {
         this.userRepository = userRepository;
         this.customerRepository = customerRepository;
         this.loyalCustomerRepository = loyalCustomerRepository;
         this.roleRepository = roleRepository;
+        this.sequenceGeneratorService = sequenceGeneratorService;
     }
 
     public Optional<ProfileResponse> findProfile(Long userId) {
@@ -43,6 +46,15 @@ public class ProfileService {
         validate(request);
 
         if (request.getFullName() != null) user.setFullName(normalize(request.getFullName()));
+        if (request.getEmail() != null) {
+            String email = normalize(request.getEmail()).toLowerCase();
+            userRepository.findFirstByEmail(email)
+                    .filter(other -> !userId.equals(other.getId()))
+                    .ifPresent(other -> {
+                        throw new IllegalArgumentException("Email đã được sử dụng.");
+                    });
+            user.setEmail(email);
+        }
         if (request.getPhone() != null) {
             String phone = normalize(request.getPhone());
             userRepository.findFirstByPhone(phone)
@@ -54,13 +66,19 @@ public class ProfileService {
         }
         if (request.getNationality() != null) user.setNationality(normalize(request.getNationality()));
         if (request.getAddress() != null) user.setAddress(normalize(request.getAddress()));
+        if (request.getGender() != null) user.setGender(normalize(request.getGender()));
 
         User savedUser = userRepository.save(user);
-        Customer customer = findCustomer(userId).orElseGet(() -> Customer.builder().userId(userId).build());
+        Customer customer = findCustomer(userId).orElseGet(() -> Customer.builder()
+                .id(sequenceGeneratorService.generateSequence("customers_sequence"))
+                .userId(userId)
+                .build());
         if (request.getFullName() != null) customer.setFullName(normalize(request.getFullName()));
+        if (request.getEmail() != null) customer.setEmail(normalize(request.getEmail()).toLowerCase());
         if (request.getPhone() != null) customer.setPhone(normalize(request.getPhone()));
         if (request.getNationality() != null) customer.setNationality(normalize(request.getNationality()));
         if (request.getAddress() != null) customer.setAddress(normalize(request.getAddress()));
+        if (request.getGender() != null) customer.setGender(normalize(request.getGender()));
         customerRepository.save(customer);
 
         return toResponse(savedUser, Optional.of(customer));
@@ -91,9 +109,11 @@ public class ProfileService {
                 .idTaiKhoan(user.getId())
                 .tenDangNhap(user.getUsername())
                 .hoTen(fullName)
+                .email(firstNonBlank(user.getEmail(), customer == null ? null : customer.getEmail()))
                 .soDienThoai(phone)
                 .quocTich(nationality)
                 .diaChi(firstNonBlank(user.getAddress(), customer == null ? null : customer.getAddress()))
+                .gender(firstNonBlank(user.getGender(), customer == null ? null : customer.getGender()))
                 .roleID(user.getRoleId())
                 .roleName(role.map(Role::getRoleName).orElse(user.getRole()))
                 .displayTier(tier)
@@ -104,6 +124,10 @@ public class ProfileService {
     private void validate(ProfileUpdateRequest request) {
         if (request.getFullName() != null && !StringUtils.hasText(request.getFullName())) {
             throw new IllegalArgumentException("Họ và tên không được để trống.");
+        }
+        if (request.getEmail() != null
+                && !request.getEmail().trim().matches("^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$")) {
+            throw new IllegalArgumentException("Email không hợp lệ.");
         }
         if (request.getPhone() != null && !request.getPhone().trim().matches("^[0-9+() .-]{7,20}$")) {
             throw new IllegalArgumentException("Số điện thoại không hợp lệ.");
@@ -116,6 +140,9 @@ public class ProfileService {
         }
         if (request.getAddress() != null && request.getAddress().trim().length() > 255) {
             throw new IllegalArgumentException("Địa chỉ vượt quá độ dài cho phép.");
+        }
+        if (request.getGender() != null && request.getGender().trim().length() > 30) {
+            throw new IllegalArgumentException("Giới tính vượt quá độ dài cho phép.");
         }
     }
 

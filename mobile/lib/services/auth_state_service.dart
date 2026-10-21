@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'hotel_api_client.dart';
 
 class AuthState {
   final String role;
@@ -7,7 +8,7 @@ class AuthState {
   final bool isLoggedIn;
 
   AuthState({
-    this.role = 'customer',
+    this.role = 'guest',
     this.username = 'Guest',
     this.userId,
     this.isLoggedIn = false,
@@ -34,6 +35,7 @@ class AuthStateService extends ChangeNotifier {
   }
 
   void logout() {
+    HotelApiClient.instance.clearAccessToken();
     _currentAuth = AuthState(); // Reset to Guest
     notifyListeners();
   }

@@ -38,6 +38,30 @@ public class BookingOrder {
     
     private String notes;
 
+    @Field("booking_source")
+    private String bookingSource;
+
+    @Field("risk_analysis_status")
+    private String riskAnalysisStatus;
+
+    @Field("late_arrival_approved")
+    private Boolean lateArrivalApproved;
+
+    @Field("late_arrival_reason")
+    private String lateArrivalReason;
+
+    @Field("late_arrival_at")
+    private Date lateArrivalAt;
+
+    @Field("late_arrival_approved_by")
+    private Long lateArrivalApprovedBy;
+
+    @Field("cancellation_reason")
+    private String cancellationReason;
+
+    @Field("cancelled_at")
+    private Date cancelledAt;
+
     // Các trường phục vụ UC10 - Trí tuệ nhân tạo dự đoán No-show
     @Field("no_show_risk_level")
     private String noShowRiskLevel; // Thấp, Trung bình, Cao

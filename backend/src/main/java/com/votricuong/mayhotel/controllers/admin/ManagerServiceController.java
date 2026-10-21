@@ -25,6 +25,9 @@ public class ManagerServiceController extends BaseController {
     @Autowired
     private SequenceGeneratorService sequenceGenerator;
 
+    @Autowired
+    private com.votricuong.mayhotel.repositories.ServiceTicketRepository serviceTicketRepository;
+
     @GetMapping("/services")
     public String servicesIndex(Model model) {
         setPageTitle(model, "Quản Lý Dịch Vụ - Manager");
@@ -43,16 +46,35 @@ public class ManagerServiceController extends BaseController {
 
     @PostMapping("/services/create")
     public String storeService(Service service, RedirectAttributes redirect) {
-        service.setId(sequenceGenerator.generateSequence("services_sequence"));
-        serviceRepository.save(service);
-        redirect.addFlashAttribute("success", "Thêm dịch vụ thành công!");
+        try {
+            service.setName(com.votricuong.mayhotel.utils.InputValidator.requiredText(
+                    service.getName(), "Tên dịch vụ", 100));
+            service.setUnit(com.votricuong.mayhotel.utils.InputValidator.requiredText(
+                    service.getUnit(), "Đơn vị tính", 30));
+            service.setPrice(com.votricuong.mayhotel.utils.InputValidator.positiveMoney(
+                    service.getPrice(), "Giá dịch vụ"));
+            if (serviceRepository.findAll().stream().anyMatch(item -> item.getName() != null
+                    && item.getName().equalsIgnoreCase(service.getName()))) {
+                throw new IllegalArgumentException("Tên dịch vụ đã tồn tại");
+            }
+            service.setId(sequenceGenerator.generateSequence("services_sequence"));
+            serviceRepository.save(service);
+            redirect.addFlashAttribute("success", "Thêm dịch vụ thành công!");
+        } catch (IllegalArgumentException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/manager/services";
     }
 
     @GetMapping("/services/delete/{id}")
     public String deleteService(@PathVariable Long id, RedirectAttributes redirect) {
-        serviceRepository.deleteById(id);
-        redirect.addFlashAttribute("success", "Xóa dịch vụ thành công!");
+        if (!serviceRepository.existsById(id)) redirect.addFlashAttribute("error", "Không tìm thấy dịch vụ.");
+        else if (serviceTicketRepository.existsByServiceId(id))
+            redirect.addFlashAttribute("error", "Không thể xóa dịch vụ đã phát sinh giao dịch.");
+        else {
+            serviceRepository.deleteById(id);
+            redirect.addFlashAttribute("success", "Xóa dịch vụ thành công!");
+        }
         return "redirect:/manager/services";
     }
 }

@@ -1,80 +1,87 @@
 <!DOCTYPE html>
-<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout" layout:decorate="~{layout/layout}">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
 <head>
     <title>Xác thực OTP - MAY HOTEL</title>
 </head>
+
 <body>
 
-<th:block th:fragment="extra_css">
-    <style>
-        .card-verify { border-radius: 15px; overflow: hidden; }
-        .bg-navy { background-color: #001f3f; color: white; }
-        .btn-verify { background-color: #d4af37; color: white; border-radius: 8px; }
-        .btn-verify:hover { background-color: #b5952f; color: white; }
-        .otp-input { letter-spacing: 5px; font-size: 1.5rem; text-align: center; }
-    </style>
-</th:block>
+    <th:block layout:fragment="additional-css">
+        <link rel="stylesheet" th:href="@{/css/auth.css}" />
+    </th:block>
 
-<div th:fragment="body_content">
-    <div class="login-wrapper py-5 bg-light">
-        <div class="container">
-            <div class="row justify-content-center">
-                <div class="col-md-8 col-lg-5">
-                    <div class="card card-verify shadow-lg border-0">
+    <div layout:fragment="content">
 
-                        <div class="card-header text-center py-4 bg-navy">
-                            <h2 class="fw-bold mb-0">Xác Thực Mã OTP</h2>
-                            <p class="mb-0 small opacity-75">Bảo mật tài khoản của bạn</p>
-                        </div>
+        <section class="mh-auth mh-auth--narrow">
+            <aside class="mh-auth-visual">
+                <div class="mh-auth-visual-overlay"></div>
+                <div class="mh-auth-visual-content">
+                    <div class="mh-auth-ornament">✦ ❦ ✦</div>
+                    <h2>Xác thực<br>danh tính</h2>
+                    <div class="mh-auth-rule"></div>
+                    <p>Một mã 6 chữ số đã được gửi tới email của bạn. Vui lòng nhập để hoàn tất đăng ký.</p>
+                </div>
+            </aside>
 
-                        <div class="card-body p-4 p-md-5 text-center">
+            <div class="mh-auth-form-wrap">
+                <div class="mh-auth-form-inner">
 
-                            <div th:if="${error != null}" class="alert alert-danger text-center mb-4 shadow-sm">
-                                <i class="bi bi-exclamation-circle-fill me-2"></i>
-                                <span th:text="${error}"></span>
-                            </div>
-                            <div th:if="${success != null}" class="alert alert-success text-center mb-4 shadow-sm">
-                                <i class="bi bi-check-circle-fill me-2"></i>
-                                <span th:text="${success}"></span>
-                            </div>
+                    <a th:href="@{/}" class="mh-auth-logo">
+                        <img th:src="@{/images/logo-web.png}" alt="MAY HOTEL">
+                    </a>
 
-                            <p class="text-muted mb-4">
-                                Một mã số gồm 6 chữ số đã được gửi đến email <br>
-                                <strong class="text-dark" th:text="${email}">email@example.com</strong>
-                            </p>
+                    <header class="mh-auth-header">
+                        <span class="mh-auth-eyebrow">Xác thực OTP</span>
+                        <h1>Nhập mã xác thực</h1>
+                        <p>
+                            Mã đã được gửi tới
+                            <strong th:text="${email}">email@example.com</strong>
+                        </p>
+                    </header>
 
-                            <form th:action="@{/account/verify-otp}" method="post">
-                                <input type="hidden" name="email" th:value="${email}" />
-                                
-                                <div class="mb-4">
-                                    <input type="text" name="otp" class="form-control form-control-lg otp-input fw-bold" placeholder="• • • • • •" required maxlength="6" pattern="\d{6}" title="Vui lòng nhập đúng 6 chữ số" autofocus />
-                                </div>
-
-                                <button type="submit" class="btn btn-verify w-100 py-3 fw-bold shadow-sm">
-                                    <i class="bi bi-shield-check me-2"></i> XÁC NHẬN
-                                </button>
-                            </form>
-
-                            <div class="mt-4">
-                                <p class="small text-muted mb-1">Chưa nhận được mã?</p>
-                                <a href="#" class="small fw-bold text-decoration-none" style="color: #d4af37;">Gửi lại mã OTP</a>
-                                <div class="mt-3">
-                                    <a th:href="@{/account/register}" class="small text-muted text-decoration-none">
-                                        <i class="bi bi-arrow-left me-1"></i> Trở về đăng ký
-                                    </a>
-                                </div>
-                            </div>
-
-                        </div>
+                    <div th:if="${error != null}" class="mh-auth-alert error">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span th:text="${error}"></span>
                     </div>
+                    <div th:if="${success != null}" class="mh-auth-alert success">
+                        <i class="fa-solid fa-circle-check"></i>
+                        <span th:text="${success}"></span>
+                    </div>
+
+                    <form th:action="@{/account/verify-otp}" method="post" class="mh-auth-form">
+                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}" />
+                        <input type="hidden" name="email" th:value="${email}" />
+
+                        <div class="mh-field">
+                            <label for="otp">Mã OTP (6 chữ số)</label>
+                            <div class="mh-field-input">
+                                <i class="fa-solid fa-key"></i>
+                                <input id="otp" type="text" name="otp" required maxlength="6" pattern="\d{6}"
+                                    autocomplete="one-time-code" inputmode="numeric" placeholder="• • • • • •"
+                                    class="mh-input-otp" />
+                            </div>
+                        </div>
+
+                        <button type="submit" class="mh-auth-submit">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            Xác nhận
+                        </button>
+                    </form>
+
+                    <p class="mh-auth-back">
+                        <a th:href="@{/account/register}">
+                            <i class="fa-solid fa-arrow-left"></i> Quay lại đăng ký
+                        </a>
+                    </p>
                 </div>
             </div>
-        </div>
-    </div>
-</div>
+        </section>
 
-<th:block th:fragment="extra_js">
-</th:block>
+    </div>
 
 </body>
+
 </html>

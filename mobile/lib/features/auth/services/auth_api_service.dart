@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import '../../../services/hotel_api_client.dart';
+import '../models/app_role.dart';
 
 class AuthApiService {
   final Dio _dio = HotelApiClient.instance.dio;
@@ -11,28 +12,26 @@ class AuthApiService {
     try {
       final response = await _dio.post(
         "/api/v1/mobile/auth/login",
-        data: {
-          "TenDangNhap": username,
-          "MatKhau": password,
-        },
+        data: {"TenDangNhap": username, "MatKhau": password},
       );
 
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
+        final accessToken = data['accessToken']?.toString();
+        if (accessToken != null && accessToken.isNotEmpty) {
+          await HotelApiClient.instance.setAccessToken(accessToken);
+        } else {
+          await HotelApiClient.instance.clearAccessToken();
+        }
         // Map RoleID thành chuỗi vai trò tương ứng trong Flutter App
         // RoleID = 1: admin, 2: staff, 3: customer
-        int roleId = data['role'] ?? 3;
-        String roleStr = 'customer';
-        if (roleId == 1) {
-          roleStr = 'admin';
-        } else if (roleId == 2) {
-          roleStr = 'staff';
-        }
+        final roleStr = _mapRole(data);
 
         return {
           "id": data['id'],
           "name": data['name'] ?? username,
           "role": roleStr,
+          "accessToken": accessToken,
         };
       }
       return null;
@@ -47,9 +46,7 @@ class AuthApiService {
     try {
       final response = await _dio.post(
         "/api/v1/mobile/auth/forgot-password",
-        queryParameters: {
-          "email": email,
-        },
+        queryParameters: {"email": email},
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -57,16 +54,17 @@ class AuthApiService {
       rethrow;
     }
   }
+
   /// 3. Xác thực OTP & Đặt lại mật khẩu mới
-  Future<bool> resetPassword(String email, String otpCode, String newPassword) async {
+  Future<bool> resetPassword(
+    String email,
+    String otpCode,
+    String newPassword,
+  ) async {
     try {
       final response = await _dio.post(
         "/api/v1/mobile/auth/reset-password",
-        data: {
-          "Email": email,
-          "OTPCode": otpCode,
-          "NewPassword": newPassword,
-        },
+        data: {"Email": email, "OTPCode": otpCode, "NewPassword": newPassword},
       );
       return response.statusCode == 200;
     } catch (e) {
@@ -150,14 +148,14 @@ class AuthApiService {
     }
   }
 
-
   /// 7. Hủy và xóa tài khoản vĩnh viễn khỏi SQL Server (Danger Zone)
   Future<bool> deleteAccount(String username) async {
     try {
       final response = await _dio.delete(
         "/api/auth/delete-account",
         queryParameters: {
-          "username": username, // Truyền tham số qua URL trùng khớp với C# Web API
+          "username":
+              username, // Truyền tham số qua URL trùng khớp với C# Web API
         },
       );
 
@@ -181,15 +179,19 @@ class AuthApiService {
 
       if (response.statusCode == 200 && response.data != null) {
         final data = response.data;
-        int roleId = data['role'] ?? 3;
-        String roleStr = 'customer';
-        if (roleId == 1) roleStr = 'admin';
-        if (roleId == 2) roleStr = 'staff';
+        final accessToken = data['accessToken']?.toString();
+        if (accessToken != null && accessToken.isNotEmpty) {
+          await HotelApiClient.instance.setAccessToken(accessToken);
+        } else {
+          await HotelApiClient.instance.clearAccessToken();
+        }
+        final roleStr = _mapRole(data);
 
         return {
           "id": data['id'],
           "name": data['name'],
           "role": roleStr,
+          "accessToken": accessToken,
         };
       }
       return null;
@@ -199,4 +201,10 @@ class AuthApiService {
     }
   }
 
+  String _mapRole(dynamic data) {
+    return AppRole.fromApi(
+      roleCode: data['roleCode'],
+      roleId: data['roleId'] ?? data['role'],
+    ).storageValue;
+  }
 }

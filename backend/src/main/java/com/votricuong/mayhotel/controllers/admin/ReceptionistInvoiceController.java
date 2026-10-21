@@ -40,6 +40,8 @@ public class ReceptionistInvoiceController extends BaseController {
     private final BookingOrderRepository bookingOrderRepository;
     private final BookingDetailRepository bookingDetailRepository;
     private final SequenceGeneratorService sequenceGeneratorService;
+    private final com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService;
+    private final com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
     public ReceptionistInvoiceController(InvoiceRepository invoiceRepository,
@@ -47,13 +49,17 @@ public class ReceptionistInvoiceController extends BaseController {
                                          CustomerRepository customerRepository,
                                          BookingOrderRepository bookingOrderRepository,
                                          BookingDetailRepository bookingDetailRepository,
-                                         SequenceGeneratorService sequenceGeneratorService) {
+                                         SequenceGeneratorService sequenceGeneratorService,
+                                         com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService,
+                                         com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService) {
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
         this.customerRepository = customerRepository;
         this.bookingOrderRepository = bookingOrderRepository;
         this.bookingDetailRepository = bookingDetailRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
+        this.bookingAvailabilityService = bookingAvailabilityService;
+        this.noShowPredictionService = noShowPredictionService;
     }
 
     @Data
@@ -204,21 +210,27 @@ public class ReceptionistInvoiceController extends BaseController {
                                 @RequestParam(value = "note", required = false) String note,
                                 RedirectAttributes redirectAttributes) {
         try {
+            guestName = com.votricuong.mayhotel.utils.InputValidator.requiredText(guestName, "Họ và tên", 100);
+            phone = com.votricuong.mayhotel.utils.InputValidator.phone(phone);
+            note = com.votricuong.mayhotel.utils.InputValidator.optionalText(note, "Ghi chú", 500);
+            com.votricuong.mayhotel.utils.InputValidator.stay(checkInDate, checkOutDate);
+            if (roomId == null) throw new IllegalArgumentException("Vui lòng chọn phòng");
+            Room selectedRoom = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new IllegalArgumentException("Phòng không tồn tại"));
+
             Long nextId = sequenceGeneratorService.generateSequence(Invoice.SEQUENCE_NAME);
             
             Date checkIn = Date.from(checkInDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
             Date checkOut = Date.from(checkOutDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
 
-            long numNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
-            if (numNights <= 0) numNights = 1;
-
-            Double pricePerNight = 500000.0;
-            if (roomId != null) {
-                Optional<Room> roomOpt = roomRepository.findById(roomId);
-                if (roomOpt.isPresent() && roomOpt.get().getPrice() != null) {
-                    pricePerNight = roomOpt.get().getPrice();
-                }
+            bookingAvailabilityService.validateStay(checkIn, checkOut);
+            if (!bookingAvailabilityService.isRoomAvailable(roomId, checkIn, checkOut)) {
+                throw new IllegalArgumentException("Phòng đã được đặt trong khoảng thời gian này");
             }
+            long numNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
+
+            Double pricePerNight = com.votricuong.mayhotel.utils.InputValidator.positiveMoney(
+                    selectedRoom.getPrice(), "Giá phòng");
 
             Double totalAmount = pricePerNight * numNights;
 
@@ -241,18 +253,37 @@ public class ReceptionistInvoiceController extends BaseController {
 
             // Ghi nhận BookingOrder tương ứng
             Long nextBookingId = sequenceGeneratorService.generateSequence("booking_orders");
+            Customer customer = customerRepository.findByPhone(phone).stream().findFirst().orElse(null);
+            if (customer == null) {
+                customer = new Customer();
+                customer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
+                customer.setFullName(guestName);
+                customer.setPhone(phone);
+                customerRepository.save(customer);
+            }
             BookingOrder booking = BookingOrder.builder()
                     .id(nextBookingId)
+                    .customerId(customer.getId())
                     .bookingDate(new Date())
                     .expectedIn(checkIn)
                     .expectedOut(checkOut)
                     .status("Reserved")
-                    .noShowRiskLevel("Thấp")
+                    .bookingSource("RECEPTION")
+                    .riskAnalysisStatus("PENDING")
                     .build();
             bookingOrderRepository.save(booking);
 
+            BookingDetail detail = BookingDetail.builder()
+                    .id(sequenceGeneratorService.generateSequence("booking_details_sequence"))
+                    .bookingId(nextBookingId)
+                    .roomId(roomId)
+                    .unitPrice(pricePerNight)
+                    .build();
+            bookingDetailRepository.save(detail);
+
             invoice.setBookingId(nextBookingId);
             invoiceRepository.save(invoice);
+            noShowPredictionService.analyzeAndSave(nextBookingId);
 
             redirectAttributes.addFlashAttribute("success", "Tạo thành công Hóa đơn #" + nextId + " cho khách " + guestName);
         } catch (Exception e) {

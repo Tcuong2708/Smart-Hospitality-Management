@@ -4,8 +4,11 @@ import 'package:dio/dio.dart';
 import 'package:dio/io.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 class HotelApiClient {
+  static const String _tokenKey = 'mobile_access_token';
+
   HotelApiClient._() {
     final baseUrl = dotenv.env['BASE_URL']?.trim();
     if (baseUrl == null || baseUrl.isEmpty) {
@@ -36,8 +39,12 @@ class HotelApiClient {
 
     _dio.interceptors.add(
       InterceptorsWrapper(
-        onRequest: (options, handler) {
+        onRequest: (options, handler) async {
           options.extra['requestStartedAt'] = DateTime.now();
+          _accessToken ??= await _secureStorage.read(key: _tokenKey);
+          if (_accessToken != null && _accessToken!.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $_accessToken';
+          }
           handler.next(options);
         },
         onResponse: (response, handler) {
@@ -61,8 +68,20 @@ class HotelApiClient {
   static final HotelApiClient instance = HotelApiClient._();
 
   late final Dio _dio;
+  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  String? _accessToken;
 
   Dio get dio => _dio;
+
+  Future<void> setAccessToken(String token) async {
+    _accessToken = token;
+    await _secureStorage.write(key: _tokenKey, value: token);
+  }
+
+  Future<void> clearAccessToken() async {
+    _accessToken = null;
+    await _secureStorage.delete(key: _tokenKey);
+  }
 
   void _logDuration(
     RequestOptions options,

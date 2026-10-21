@@ -1,109 +1,391 @@
 <!DOCTYPE html>
-<html lang="vi">
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{layout/main}">
+
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MAY HOTEL - Câu Chuyện Thương Hiệu</title>
-<th:block th:fragment="extra_css">
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Main Style (Toàn cục) -->
-    <link rel="stylesheet" th:href="@{/style.css}">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" th:href="@{/css/info.css}">
-</th:block>
+  <title>Giới thiệu - MAY HOTEL</title>
 </head>
+
 <body>
-<div th:fragment="body_content">
+  <section layout:fragment="content">
 
-  <!-- Phần Header -->
-  <div style="position: relative; overflow: hidden;">
-    <img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/2a/c8/e0/0d/indochine-palace.jpg?w=1400&h=-1&s=1"
-         class="main-image-header"
-         alt="MAY HOTEL" />
-    <div class="header-overlay">
-      <h1 class="header-title">MAY HOTEL</h1>
-      <p class="header-subtitle">Nơi Khởi Nguồn Của Mọi Hành Trình Hoàn Hảo</p>
-    </div>
-  </div>
+    <!-- ══════════ HERO CLASSIC ══════════ -->
+    <section class="mh-story-hero">
+      <div class="container">
+        <div class="mh-story-hero-grid">
 
-  <div class="container" style="margin-top: -80px; position: relative; z-index: 10;">
-    <div class="section-card" id="about">
-      <h2 class="section-title">Câu Chuyện Thương Hiệu</h2>
-      <div class="row align-items-center">
-        <div class="col-lg-6 mb-5 mb-lg-0">
-          <div class="story-text pe-lg-4">
+          <div class="mh-story-hero-text">
+            <div class="mh-ornament">✦ ❦ ✦</div>
+            <span class="mh-story-eyebrow">Câu chuyện thương hiệu</span>
+            <h1>Khởi nguồn từ<br><em>sự tận tâm</em></h1>
+            <div class="mh-story-rule"></div>
             <p>
-              <span class="drop-cap">L</span>
-              <b>MAY HOTEL</b> được xây dựng với khát vọng mang đến một trải nghiệm nghỉ dưỡng vượt trội...
+              Hành trình kiến tạo một chuẩn mực lưu trú mới, nơi mỗi chi tiết đều được
+              chăm chút để mang đến trải nghiệm hoàn hảo nhất.
             </p>
-            <p>Triết lý của chúng tôi: <i class="text-navy fw-bold">"Đánh thức mọi giác quan, nâng tầm trải nghiệm"</i>.</p>
+            <div class="mh-story-sign">
+              <span class="mh-story-sign-line"></span>
+              <span class="mh-story-sign-text">Đội ngũ MAY HOTEL</span>
+            </div>
           </div>
+
+          <div class="mh-story-hero-visual">
+            <div class="mh-frame-double">
+              <img th:src="@{/images/gallery/gallery5.jpg}" alt="Không gian MAY HOTEL">
+            </div>
+            <div class="mh-story-seal">
+              <span>Since</span>
+              <strong>2015</strong>
+            </div>
+          </div>
+
         </div>
-        <div class="col-lg-6 text-center">
-          <div style="padding: 10px; border: 1px solid #d4af37; display: inline-block;">
-            <img src="https://dynamic-media-cdn.tripadvisor.com/media/photo-o/15/89/41/96/indochine-palace.jpg?w=1400&h=-1&s=1"
-                 class="img-fluid"
-                 alt="Sảnh khách sạn" />
+      </div>
+    </section>
+
+    <!-- ══════════ KHỐI CÂU CHUYỆN ══════════ -->
+    <section class="mh-story-block">
+      <div class="container">
+        <div class="mh-story-block-grid">
+
+          <div class="mh-story-block-image">
+            <div class="mh-frame-simple">
+              <img th:src="@{/images/gallery/gallery1.jpg}" alt="Sảnh khách sạn">
+            </div>
+          </div>
+
+          <div class="mh-story-block-text">
+            <div class="mh-ornament-left">✦ ✦ ✦</div>
+            <span class="mh-story-eyebrow">Chúng tôi là ai</span>
+            <h2>Định nghĩa lại<br>sự sang trọng</h2>
+            <div class="mh-story-rule"></div>
+            <p>
+              <span class="mh-drop-cap">M</span>AY HOTEL được sinh ra với khát vọng mang đến
+              một trải nghiệm nghỉ dưỡng vượt lên trên những tiêu chuẩn thông thường.
+              Chúng tôi tin rằng sự sang trọng thực sự không chỉ nằm ở vật chất, mà còn ở
+              cảm xúc và sự kết nối.
+            </p>
+            <p>
+              Từ những ngày đầu tiên, chúng tôi đã theo đuổi một triết lý:
+              <em>"Đánh thức mọi giác quan, nâng tầm trải nghiệm"</em>.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ DẢI SỐ LIỆU ══════════ -->
+    <section class="mh-numbers-band">
+      <div class="container">
+        <div class="mh-numbers-grid">
+          <div class="mh-number-item">
+            <strong>5<span class="mh-number-star">✦</span></strong>
+            <span>Tiêu chuẩn dịch vụ</span>
+          </div>
+          <div class="mh-number-divider"></div>
+          <div class="mh-number-item">
+            <strong>10+</strong>
+            <span>Năm kinh nghiệm</span>
+          </div>
+          <div class="mh-number-divider"></div>
+          <div class="mh-number-item">
+            <strong>50K+</strong>
+            <span>Lượt khách hài lòng</span>
+          </div>
+          <div class="mh-number-divider"></div>
+          <div class="mh-number-item">
+            <strong>98%</strong>
+            <span>Tỷ lệ quay lại</span>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="section-card">
-      <h2 class="section-title">Hành Trình Kiến Tạo Giá Trị</h2>
-      <div class="row">
-        <div class="col-lg-5 d-none d-lg-flex align-items-center justify-content-center">
-          <div style="position: relative;">
-            <div style="position: absolute; top: -10px; left: -10px; width: 100%; height: 100%; border: 2px solid #d4af37; border-radius: 50%;"></div>
-            <img src="https://visithue.vn/Medias/Nam2023/Thang5/khach-san-indochine-palace-hue.jpg"
-                 class="img-fluid rounded-circle shadow"
-                 style="width: 350px; height: 350px; object-fit: cover; border: 10px solid white; position: relative; z-index: 1;"
-                 alt="Hành trình" />
-          </div>
+    <!-- ══════════ TRIẾT LÝ — Số La Mã ══════════ -->
+    <section class="mh-philosophy">
+      <div class="container">
+        <div class="mh-philosophy-head">
+          <div class="mh-ornament">✦ ❦ ✦</div>
+          <span class="mh-story-eyebrow">Ba trụ cột</span>
+          <h2>Triết lý phục vụ</h2>
+          <p>Ba giá trị cốt lõi định hình nên mọi trải nghiệm tại MAY HOTEL.</p>
         </div>
-        <div class="col-lg-7">
-          <div class="story-text ps-lg-5 pt-4">
-            <div class="timeline-item">
-              <div class="timeline-title">1. Khởi Dựng Tầm Nhìn Đẳng Cấp</div>
-              <p class="text-muted">Ý tưởng về MAY HOTEL ra đời từ mong muốn tạo ra một không gian lưu trú sang trọng...</p>
+
+        <div class="mh-philosophy-rows">
+
+          <div class="mh-philosophy-row">
+            <div class="mh-philosophy-numeral">
+              <span>I</span>
+            </div>
+            <div class="mh-philosophy-body">
+              <h3>Tinh tế trong từng chi tiết</h3>
+              <p>
+                Không gian được thiết kế tỉ mỉ, kết hợp hài hòa giữa nét cổ điển và sự
+                hiện đại, tạo nên bầu không khí ấm cúng và đẳng cấp.
+              </p>
+            </div>
+          </div>
+
+          <div class="mh-philosophy-row">
+            <div class="mh-philosophy-numeral">
+              <span>II</span>
+            </div>
+            <div class="mh-philosophy-body">
+              <h3>Tận tâm từ trái tim</h3>
+              <p>
+                Đội ngũ nhân viên được đào tạo bài bản, luôn lắng nghe và thấu hiểu,
+                mang đến sự chăm sóc chu đáo như đón tiếp người thân trong gia đình.
+              </p>
+            </div>
+          </div>
+
+          <div class="mh-philosophy-row">
+            <div class="mh-philosophy-numeral">
+              <span>III</span>
+            </div>
+            <div class="mh-philosophy-body">
+              <h3>Bền vững và trách nhiệm</h3>
+              <p>
+                Cam kết vận hành theo hướng thân thiện với môi trường, góp phần gìn giữ
+                vẻ đẹp của thành phố và cộng đồng địa phương.
+              </p>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ TIMELINE ANIMATED ══════════ -->
+    <section class="mh-journey">
+      <div class="container">
+        <div class="mh-philosophy-head">
+          <div class="mh-ornament">✦ ❦ ✦</div>
+          <span class="mh-story-eyebrow">Dòng thời gian</span>
+          <h2>Hành trình kiến tạo</h2>
+          <p>Những cột mốc quan trọng trên chặng đường xây dựng thương hiệu.</p>
+        </div>
+
+        <div class="mh-timeline" id="mhTimeline">
+          <div class="mh-timeline-track">
+            <div class="mh-timeline-progress" id="mhTimelineProgress"></div>
+          </div>
+
+          <div class="mh-timeline-entry" data-year="2015">
+            <div class="mh-timeline-dot"></div>
+            <div class="mh-timeline-card">
+              <span class="mh-timeline-year">2015</span>
+              <h3>Khởi dựng tầm nhìn</h3>
+              <p>Ý tưởng về một khách sạn mang đậm dấu ấn cá nhân, nơi sự sang trọng được đo bằng trải nghiệm chứ không
+                chỉ bằng vật chất, bắt đầu hình thành.</p>
+            </div>
+          </div>
+
+          <div class="mh-timeline-entry" data-year="2018">
+            <div class="mh-timeline-dot"></div>
+            <div class="mh-timeline-card">
+              <span class="mh-timeline-year">2018</span>
+              <h3>Khai trương cơ sở đầu tiên</h3>
+              <p>MAY HOTEL chính thức mở cửa tại trung tâm thành phố, nhanh chóng trở thành điểm đến được yêu thích nhờ
+                dịch vụ tận tâm và không gian tinh tế.</p>
+            </div>
+          </div>
+
+          <div class="mh-timeline-entry" data-year="2021">
+            <div class="mh-timeline-dot"></div>
+            <div class="mh-timeline-card">
+              <span class="mh-timeline-year">2021</span>
+              <h3>Mở rộng hệ thống</h3>
+              <p>Chi nhánh thứ hai được thành lập, đánh dấu bước phát triển mạnh mẽ, khẳng định vị thế của MAY HOTEL
+                trên bản đồ du lịch.</p>
+            </div>
+          </div>
+
+          <div class="mh-timeline-entry" data-year="2025">
+            <div class="mh-timeline-dot"></div>
+            <div class="mh-timeline-card">
+              <span class="mh-timeline-year">2025</span>
+              <h3>Vươn tầm chuẩn mực</h3>
+              <p>Liên tục cải tiến và nâng cấp dịch vụ, MAY HOTEL hướng tới mục tiêu trở thành biểu tượng của sự hiếu
+                khách và sang trọng.</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </section>
 
-    <div class="section-card" id="gallery">
-      <h2 class="section-title">Không Gian Sang Trọng</h2>
-      <div class="row g-4">
-        <div class="col-md-4">
-          <img src="https://visithue.vn/Medias/Nam2023/Thang5/huetourism-khach-san-indochine-palace-hue-1.jpg"
-               class="img-fluid gallery-img w-100 h-100 object-fit-cover" style="min-height: 250px;" alt="Không gian 1" />
+    <!-- ══════════ GALLERY MASONRY + LIGHTBOX ══════════ -->
+    <section class="mh-gallery">
+      <div class="container">
+        <div class="mh-philosophy-head">
+          <div class="mh-ornament">✦ ❦ ✦</div>
+          <span class="mh-story-eyebrow">Bộ sưu tập</span>
+          <h2>Không gian sang trọng</h2>
+          <p>Một vài khoảnh khắc tại MAY HOTEL.</p>
         </div>
-        <div class="col-md-4">
-          <img src="https://visithue.vn/Medias/Nam2023/Thang5/huetourism-khach-san-indochine-palace-hue-4.jpg"
-               class="img-fluid gallery-img w-100 h-100 object-fit-cover" style="min-height: 250px;" alt="Không gian 2" />
+
+        <div class="mh-gallery-masonry" id="mhGallery">
+
+          <!-- Ảnh 1 -->
+          <a class="mh-gallery-item mh-gallery-item--tall" th:href="@{/images/gallery/gallery1.jpg}">
+            <img th:src="@{/images/gallery/gallery1.jpg}" alt="Không gian 1">
+            <span class="mh-gallery-zoom"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
+          </a>
+
+          <!-- Ảnh 2 -->
+          <a class="mh-gallery-item" th:href="@{/images/gallery/gallery2.jpg}">
+            <img th:src="@{/images/gallery/gallery2.jpg}" alt="Không gian 2">
+            <span class="mh-gallery-zoom"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
+          </a>
+
+          <!-- Ảnh 3 -->
+          <a class="mh-gallery-item" th:href="@{/images/gallery/gallery3.jpg}">
+            <img th:src="@{/images/gallery/gallery3.jpg}" alt="Không gian 3">
+            <span class="mh-gallery-zoom"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
+          </a>
+
+          <!-- Ảnh 4 -->
+          <a class="mh-gallery-item mh-gallery-item--wide" th:href="@{/images/gallery/gallery4.jpg}">
+            <img th:src="@{/images/gallery/gallery4.jpg}" alt="Không gian 4">
+            <span class="mh-gallery-zoom"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
+          </a>
+
+          <!-- Ảnh 5 -->
+          <a class="mh-gallery-item" th:href="@{/images/gallery/gallery5.jpg}">
+            <img th:src="@{/images/gallery/gallery5.jpg}" alt="Không gian 5">
+            <span class="mh-gallery-zoom"><i class="fa-solid fa-magnifying-glass-plus"></i></span>
+          </a>
         </div>
-        <div class="col-md-4">
-          <img src="https://visithue.vn/Medias/Nam2023/Thang5/huetourism-khach-san-indochine-palace-hue-5.jpg"
-               class="img-fluid gallery-img w-100 h-100 object-fit-cover" style="min-height: 250px;" alt="Không gian 3" />
-        </div>
+
+        <p class="mh-gallery-quote">"Chạm vào giấc mơ ngọt dịu giữa không gian thanh lịch."</p>
       </div>
-      <h4 class="text-center quote-footer mt-4">
-        "Chạm vào giấc mơ ngọt dịu giữa không gian thanh lịch."
-      </h4>
+    </section>
+
+    <!-- ══════════ LIGHTBOX ══════════ -->
+    <div class="mh-lightbox" id="mhLightbox" aria-hidden="true">
+      <button class="mh-lightbox-close" id="mhLbClose" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+      <button class="mh-lightbox-nav mh-lightbox-prev" id="mhLbPrev" aria-label="Trước"><i
+          class="fa-solid fa-chevron-left"></i></button>
+      <img class="mh-lightbox-img" id="mhLbImg" src="" alt="">
+      <button class="mh-lightbox-nav mh-lightbox-next" id="mhLbNext" aria-label="Sau"><i
+          class="fa-solid fa-chevron-right"></i></button>
+      <span class="mh-lightbox-counter" id="mhLbCounter"></span>
     </div>
-  </div>
 
-<th:block th:fragment="extra_js">
-  <!-- Custom JS -->
-</th:block>
-</div>
+  </section>
+
+  <th:block layout:fragment="additional-scripts">
+    <script>
+      /* ══════════ TIMELINE SCROLL ANIMATION ══════════ */
+      (function initTimeline() {
+        const timeline = document.getElementById('mhTimeline');
+        const progress = document.getElementById('mhTimelineProgress');
+        if (!timeline || !progress) return;
+
+        const entries = timeline.querySelectorAll('.mh-timeline-entry');
+
+        // Fade-in từng entry khi vào viewport
+        const io = new IntersectionObserver((list) => {
+          list.forEach(entry => {
+            if (entry.isIntersecting) {
+              entry.target.classList.add('is-visible');
+            }
+          });
+        }, { threshold: 0.25, rootMargin: '0px 0px -80px 0px' });
+
+        entries.forEach(e => io.observe(e));
+
+        // Line fill theo scroll
+        function updateProgress() {
+          const rect = timeline.getBoundingClientRect();
+          const winH = window.innerHeight;
+          // Tính % line đã cuộn qua
+          const total = rect.height;
+          const scrolled = Math.min(Math.max(winH * 0.6 - rect.top, 0), total);
+          const percent = (scrolled / total) * 100;
+          progress.style.height = percent + '%';
+        }
+
+        let raf = null;
+        window.addEventListener('scroll', () => {
+          if (raf) return;
+          raf = requestAnimationFrame(() => {
+            updateProgress();
+            raf = null;
+          });
+        }, { passive: true });
+
+        updateProgress();
+      })();
+
+      /* ══════════ GALLERY LIGHTBOX ══════════ */
+      (function initLightbox() {
+        const gallery = document.getElementById('mhGallery');
+        const box = document.getElementById('mhLightbox');
+        const imgEl = document.getElementById('mhLbImg');
+        const counter = document.getElementById('mhLbCounter');
+        if (!gallery || !box) return;
+
+        const items = [...gallery.querySelectorAll('.mh-gallery-item')];
+        let index = 0;
+
+        const open = (i) => {
+          index = i;
+          render();
+          box.classList.add('is-open');
+          box.setAttribute('aria-hidden', 'false');
+          document.body.style.overflow = 'hidden';
+        };
+
+        const close = () => {
+          box.classList.remove('is-open');
+          box.setAttribute('aria-hidden', 'true');
+          document.body.style.overflow = '';
+        };
+
+        const render = () => {
+          const link = items[index].getAttribute('href');
+          imgEl.src = link;
+          counter.textContent = (index + 1) + ' / ' + items.length;
+        };
+
+        const prev = () => {
+          index = (index - 1 + items.length) % items.length;
+          render();
+        };
+
+        const next = () => {
+          index = (index + 1) % items.length;
+          render();
+        };
+
+        items.forEach((a, i) => {
+          a.addEventListener('click', (e) => {
+            e.preventDefault();
+            open(i);
+          });
+        });
+
+        document.getElementById('mhLbClose').addEventListener('click', close);
+        document.getElementById('mhLbPrev').addEventListener('click', prev);
+        document.getElementById('mhLbNext').addEventListener('click', next);
+
+        // Click vùng tối để đóng
+        box.addEventListener('click', (e) => {
+          if (e.target === box) close();
+        });
+
+        // Phím tắt
+        document.addEventListener('keydown', (e) => {
+          if (!box.classList.contains('is-open')) return;
+          if (e.key === 'Escape') close();
+          if (e.key === 'ArrowLeft') prev();
+          if (e.key === 'ArrowRight') next();
+        });
+      })();
+    </script>
+  </th:block>
 </body>
+
 </html>
-
-

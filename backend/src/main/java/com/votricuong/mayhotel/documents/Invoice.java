@@ -65,4 +65,16 @@ public class Invoice {
 
     @org.springframework.data.mongodb.core.mapping.Field("points_discount")
     private Double pointsDiscount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("penalty_rate")
+    private Double penaltyRate;
+
+    @org.springframework.data.mongodb.core.mapping.Field("penalty_amount")
+    private Double penaltyAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("refund_amount")
+    private Double refundAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("cancellation_type")
+    private String cancellationType;
 }

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${pageTitle} ?: 'Thanh toán — MAY HOTEL'">Thanh toán</title>
+    <th:block layout:fragment="additional-css">
+        <link rel="stylesheet" th:href="@{/css/booking.css}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    </th:block>
+</head>
+
+<body>
+    <section layout:fragment="content">
+        <div class="mh-container">
+
+            <!-- Stepper -->
+            <div class="mh-stepper">
+                <div class="mh-step done">
+                    <span class="mh-step-num"><i class="fa-solid fa-check"></i></span>
+                    <strong>Chọn phòng</strong>
+                </div>
+                <div class="mh-step-line done"></div>
+                <div class="mh-step done">
+                    <span class="mh-step-num"><i class="fa-solid fa-check"></i></span>
+                    <strong>Thông tin</strong>
+                </div>
+                <div class="mh-step-line done"></div>
+                <div class="mh-step active">
+                    <span class="mh-step-num">3</span>
+                    <strong>Thanh toán</strong>
+                </div>
+            </div>
+
+            <div class="mh-payment">
+                <div class="mh-payment-layout">
+
+                    <!-- LEFT -->
+                    <div class="mh-checkout-main">
+
+                        <!-- Hóa đơn -->
+                        <div class="mh-card mh-card-pad">
+                            <div class="mh-invoice-head">
+                                <div>
+                                    <h2>
+                                        <span th:text="'Hóa đơn #' + ${invoice.id}">Hóa đơn</span>
+                                    </h2>
+                                    <p>Vui lòng kiểm tra thông tin trước khi thanh toán</p>
+                                </div>
+                                <span class="mh-invoice-badge unpaid" th:unless="${invoice.isPaid == true}">
+                                    <i class="fa-solid fa-clock"></i> Chờ thanh toán
+                                </span>
+                                <span class="mh-invoice-badge paid" th:if="${invoice.isPaid == true}">
+                                    <i class="fa-solid fa-circle-check"></i> Đã thanh toán
+                                </span>
+                            </div>
+
+                            <div class="mh-info-grid">
+                                <div class="mh-info-box">
+                                    <i class="fa-solid fa-receipt"></i>
+                                    <span>Mã hóa đơn</span>
+                                    <strong th:text="${invoice.id}">1</strong>
+                                </div>
+                                <div class="mh-info-box">
+                                    <i class="fa-solid fa-money-bill-wave"></i>
+                                    <span>Tổng tiền</span>
+                                    <strong
+                                        th:text="${#numbers.formatDecimal(invoice.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                        đ</strong>
+                                </div>
+                                <div class="mh-info-box">
+                                    <i class="fa-solid fa-shield-halved"></i>
+                                    <span>Bảo mật</span>
+                                    <strong>SSL 256-bit</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Thanh toán qua VNPay — chỉ hiện khi chưa thanh toán -->
+                        <div class="mh-card mh-card-pad" th:unless="${invoice.isPaid == true}">
+
+                            <div class="mh-card-head">
+                                <i class="fa-solid fa-credit-card"></i>
+                                <h3>Thanh toán trực tuyến</h3>
+                            </div>
+
+                            <div class="mh-qr-info">
+                                <h3>Thanh toán an toàn qua VNPay</h3>
+                                <p>Bạn sẽ được chuyển sang cổng VNPay để quét mã QR, dùng thẻ ATM nội địa hoặc
+                                    Visa/Mastercard. Sau khi thanh toán xong, hệ thống tự xác nhận và đưa bạn quay lại.
+                                </p>
+
+                                <div class="mh-qr-amount">
+                                    <span>Số tiền cần thanh toán</span>
+                                    <strong
+                                        th:text="${#numbers.formatDecimal(invoice.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                        đ</strong>
+                                </div>
+
+                                <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
+                                    <form th:action="@{/booking/complete-online-payment}" method="post" style="flex:1;">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                            th:value="${_csrf.token}" />
+                                        <input type="hidden" name="maHD" th:value="${invoice.id}" />
+                                        <button type="submit" class="mh-btn mh-btn-gold mh-btn-block"
+                                            style="width:100%;text-align:center;">
+                                            <i class="fa-solid fa-qrcode"></i>
+                                            Đã thanh toán (Mô phỏng)
+                                        </button>
+                                    </form>
+                                    <!-- Trả tại khách sạn: phòng đã được giữ, chỉ cần sang trang xác nhận -->
+                                    <a th:href="@{/booking/success}" class="mh-btn mh-btn-outline mh-btn-block"
+                                        style="flex:1;text-align:center;">
+                                        <i class="fa-solid fa-building-columns"></i>
+                                        Trả tại khách sạn
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- RIGHT: Sidebar -->
+                    <aside>
+                        <div class="mh-summary-card">
+                            <div
+                                style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;">
+                                <span style="font-size:13px;color:var(--success);font-weight:700;">
+                                    <i class="fa-solid fa-lock"></i> Thanh toán an toàn
+                                </span>
+                                <i class="fa-solid fa-shield-halved" style="color:var(--success);"></i>
+                            </div>
+
+                            <div
+                                style="background:linear-gradient(135deg,var(--navy),var(--navy-soft));color:var(--white);border-radius:14px;padding:20px;text-align:center;margin-bottom:18px;">
+                                <span style="font-size:12.5px;opacity:.75;display:block;margin-bottom:6px;">Tổng cần
+                                    thanh toán</span>
+                                <strong
+                                    style="font-family:var(--font-heading);font-size:28px;color:var(--gold);display:block;"
+                                    th:text="${#numbers.formatDecimal(invoice.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                    đ</strong>
+                            </div>
+
+                            <div class="mh-summary-section">
+                                <div class="mh-summary-line">
+                                    <span>Mã hóa đơn</span>
+                                    <strong th:text="${invoice.id}">1</strong>
+                                </div>
+                                <div class="mh-summary-line" th:if="${invoice.bookingId != null}">
+                                    <span>Mã đơn đặt phòng</span>
+                                    <strong th:text="${invoice.bookingId}">1</strong>
+                                </div>
+                                <div class="mh-summary-line">
+                                    <span>Phí xử lý</span>
+                                    <strong style="color:var(--success);">Miễn phí</strong>
+                                </div>
+                            </div>
+
+                            <div
+                                style="background:#eafaf1;border:1px solid #c7eadb;border-radius:12px;padding:14px;margin-top:16px;display:flex;gap:10px;">
+                                <i class="fa-solid fa-shield-halved" style="color:var(--success);margin-top:3px;"></i>
+                                <div>
+                                    <strong
+                                        style="display:block;font-size:13px;color:var(--success);margin-bottom:3px;">Giao
+                                        dịch được bảo vệ</strong>
+                                    <span style="font-size:12px;color:#276b50;line-height:1.5;">MAY HOTEL không lưu
+                                        thông tin thẻ của bạn</span>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                </div>
+            </div>
+        </div>
+    </section>
+
+</body>
+
+</html>

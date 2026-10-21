@@ -32,6 +32,9 @@ public class ManagerRoomController extends BaseController {
     @Autowired
     private SequenceGeneratorService sequenceGenerator;
 
+    @Autowired
+    private com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository;
+
     @GetMapping("/rooms")
     public String roomsIndex(Model model) {
         setPageTitle(model, "Quản Lý Phòng - Manager");
@@ -63,16 +66,27 @@ public class ManagerRoomController extends BaseController {
 
     @PostMapping("/rooms/create")
     public String storeRoom(Room room, RedirectAttributes redirect) {
-        room.setId(sequenceGenerator.generateSequence("rooms_sequence"));
-        roomRepository.save(room);
-        redirect.addFlashAttribute("success", "Thêm phòng thành công!");
+        try {
+            validateRoom(room, null);
+            room.setId(sequenceGenerator.generateSequence("rooms_sequence"));
+            roomRepository.save(room);
+            redirect.addFlashAttribute("success", "Thêm phòng thành công!");
+        } catch (IllegalArgumentException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/manager/rooms";
     }
 
     @GetMapping("/rooms/delete/{id}")
     public String deleteRoom(@PathVariable Long id, RedirectAttributes redirect) {
-        roomRepository.deleteById(id);
-        redirect.addFlashAttribute("success", "Xóa phòng thành công!");
+        Room room = roomRepository.findById(id).orElse(null);
+        if (room == null) redirect.addFlashAttribute("error", "Không tìm thấy phòng.");
+        else if (bookingDetailRepository.existsByRoomId(id))
+            redirect.addFlashAttribute("error", "Không thể xóa phòng đã phát sinh đặt phòng; hãy chuyển sang trạng thái bảo trì.");
+        else {
+            roomRepository.deleteById(id);
+            redirect.addFlashAttribute("success", "Xóa phòng thành công!");
+        }
         return "redirect:/manager/rooms";
     }
 
@@ -81,6 +95,12 @@ public class ManagerRoomController extends BaseController {
         if (room.getId() != null) {
             Room existing = roomRepository.findById(room.getId()).orElse(null);
             if (existing != null) {
+                try {
+                    validateRoom(room, room.getId());
+                } catch (IllegalArgumentException ex) {
+                    redirect.addFlashAttribute("error", ex.getMessage());
+                    return "redirect:/manager/rooms";
+                }
                 // Update fields
                 existing.setName(room.getName());
                 existing.setPrice(room.getPrice());
@@ -108,5 +128,22 @@ public class ManagerRoomController extends BaseController {
         }
         model.addAttribute("room", room);
         return render(model, "view/Admin/Room/details");
+    }
+
+    private void validateRoom(Room room, Long excludedId) {
+        room.setName(com.votricuong.mayhotel.utils.InputValidator.requiredText(room.getName(), "Tên phòng", 50));
+        room.setPrice(com.votricuong.mayhotel.utils.InputValidator.positiveMoney(room.getPrice(), "Giá phòng"));
+        room.setDetail(com.votricuong.mayhotel.utils.InputValidator.optionalText(room.getDetail(), "Mô tả phòng", 1000));
+        room.setNote(com.votricuong.mayhotel.utils.InputValidator.optionalText(room.getNote(), "Ghi chú phòng", 500));
+        com.votricuong.mayhotel.utils.InputValidator.range(
+                room.getMaxExtraBeds() == null ? 0 : room.getMaxExtraBeds(), "Số giường phụ", 0, 10);
+        if (room.getRoomTypeId() == null || !roomTypeRepository.existsById(room.getRoomTypeId())) {
+            throw new IllegalArgumentException("Loại phòng không tồn tại");
+        }
+        if (roomRepository.findAll().stream().anyMatch(existing -> existing.getId() != null
+                && !existing.getId().equals(excludedId) && existing.getName() != null
+                && existing.getName().equalsIgnoreCase(room.getName()))) {
+            throw new IllegalArgumentException("Tên phòng đã tồn tại");
+        }
     }
 }

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
+
+<head>
+    <meta charset="UTF-8">
+    <title layout:title-pattern="$LAYOUT_TITLE - $CONTENT_TITLE">MAY HOTEL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- CSRF meta — null-safe: chỉ render khi Spring Security đã bật CSRF -->
+    <meta th:if="${_csrf != null}" name="_csrf" th:content="${_csrf.token}" />
+    <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}" />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" th:href="@{/css/styles.css}">
+    <th:block layout:fragment="additional-css"></th:block>
+</head>
+
+<body>
+
+    <!-- ── Top ticker ── -->
+    <div class="top-ticker">
+        <div class="ticker-track">
+            <span><i class="fa-solid fa-bolt"></i> Ưu đãi hôm nay — tiết kiệm đến 20% cho khách đặt sớm</span>
+            <span><i class="fa-solid fa-wand-magic-sparkles"></i> Phòng sạch đẹp, tiện nghi đầy đủ, hỗ trợ 24/7</span>
+            <span><i class="fa-solid fa-umbrella-beach"></i> Trải nghiệm lưu trú đẳng cấp tại May Hotel</span>
+            <span><i class="fa-solid fa-bell-concierge"></i> Lễ tân thân thiện — thanh toán tiện lợi</span>
+        </div>
+    </div>
+
+    <!-- ── Header ── -->
+    <header class="mh-header" id="siteHeader">
+        <div class="mh-header-inner">
+            <a th:href="@{/}" class="mh-logo" aria-label="MAY HOTEL">
+                <img th:src="@{/images/logo-web.png}" alt="MAY HOTEL">
+            </a>
+
+            <nav class="mh-nav" aria-label="Menu chính">
+                <a th:href="@{/}"><i class="fa-solid fa-house"></i> Trang chủ</a>
+                <a th:href="@{/rooms}"><i class="fa-solid fa-bed"></i> Phòng nghỉ</a>
+                <a th:href="@{/#services}"><i class="fa-solid fa-bell-concierge"></i> Dịch vụ</a>
+                <a th:href="@{/info}"><i class="fa-solid fa-circle-info"></i> Giới thiệu</a>
+            </nav>
+
+            <div class="mh-header-actions">
+                <a th:href="@{/info}" class="mh-help" aria-label="Liên hệ" title="Liên hệ hỗ trợ">
+                    <i class="fa-solid fa-question"></i>
+                </a>
+
+                <div class="mh-auth-actions" th:if="${session.user == null}">
+                    <a th:href="@{/account/login}" class="btn-login">Đăng nhập</a>
+                    <a th:href="@{/account/register}" class="btn-register">Đăng ký</a>
+                </div>
+
+                <div class="account-menu" th:if="${session.user != null}">
+                    <button type="button" class="account-trigger">
+                        <i class="fa-solid fa-circle-user"></i>
+                        <span th:text="${session.user.fullName ?: session.user.username}">Tài khoản</span>
+                        <i class="fa-solid fa-chevron-down"></i>
+                    </button>
+                    <div class="account-dropdown">
+                        <a th:href="@{/account/profile}"><i class="fa-solid fa-user"></i> Hồ sơ cá nhân</a>
+                        <a th:href="@{/booking/history}"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt
+                            phòng</a>
+                        <a th:href="@{/account/points}"><i class="fa-solid fa-star"></i> Điểm thưởng</a>
+                        <a href="#" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
+                            <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── Main ── -->
+    <main>
+        <div id="mhToastContainer" class="mh-toast-container">
+            <div th:if="${error}" class="mh-toast toast-error">
+                <i class="fa-solid fa-circle-xmark"></i>
+                <span th:text="${error}" class="mh-toast-text"></span>
+            </div>
+            <div th:if="${success}" class="mh-toast toast-success">
+                <i class="fa-solid fa-circle-check"></i>
+                <span th:text="${success}" class="mh-toast-text"></span>
+            </div>
+        </div>
+
+        <th:block layout:fragment="content"></th:block>
+    </main>
+
+    <!-- ── Mobile bottom nav ── -->
+    <nav class="mobile-bottom-nav" aria-label="Điều hướng nhanh">
+        <a th:href="@{/}" class="active"><i class="fa-solid fa-house"></i><span>Trang chủ</span></a>
+        <a th:href="@{/rooms}"><i class="fa-solid fa-magnifying-glass"></i><span>Tìm phòng</span></a>
+        <a th:href="${session.user == null ? '/account/login' : '/booking/history'}">
+            <i class="fa-solid fa-user"></i><span>Tài khoản</span>
+        </a>
+        <button type="submit" form="logoutForm" th:if="${session.user != null}" class="mobile-logout-btn">
+            <i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span>
+        </button>
+    </nav>
+
+    <!-- ── Footer ── -->
+    <footer class="mh-footer">
+        <div class="mh-footer-inner">
+            <div class="footer-grid-pro">
+                <div class="footer-col footer-brand">
+                    <img th:src="@{/images/logo-web.png}" alt="MAY HOTEL">
+                    <p class="footer-tagline">Trọn vẹn trải nghiệm — lưu trú an tâm.</p>
+                    <div class="footer-socials">
+                        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
+                        <a href="#"><i class="fa-brands fa-instagram"></i></a>
+                        <a href="#"><i class="fa-brands fa-tiktok"></i></a>
+                    </div>
+                </div>
+                <div class="footer-col">
+                    <h4>Hỗ trợ khách hàng</h4>
+                    <a th:href="@{/info}">Trung tâm trợ giúp</a>
+                    <a th:href="@{/booking/history}">Quản lý đơn đặt phòng</a>
+                    <a th:href="@{/info}">Chính sách hoàn tiền</a>
+                    <a th:href="@{/info}">Câu hỏi thường gặp</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Chính sách</h4>
+                    <a href="#">Điều khoản sử dụng</a>
+                    <a href="#">Chính sách bảo mật</a>
+                    <a href="#">Quy chế hoạt động</a>
+                    <a href="#">Quy định an toàn</a>
+                </div>
+                <div class="footer-col">
+                    <h4>Về May Hotel</h4>
+                    <a th:href="@{/info}">Giới thiệu khách sạn</a>
+                    <a th:href="@{/info}">Tin tức &amp; sự kiện</a>
+                    <a th:href="@{/info}">Cơ hội nghề nghiệp</a>
+                    <a th:href="@{/info}">Hợp tác phát triển</a>
+                </div>
+                <div class="footer-col footer-newsletter">
+                    <h4>Đăng ký nhận tin</h4>
+                    <p>Cập nhật ưu đãi độc quyền và tin tức du lịch mới nhất.</p>
+                    <form class="newsletter-form" action="#" method="post">
+                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}" />
+                        <input type="email" name="email" placeholder="Email của bạn" required>
+                        <button type="submit"><i class="fa-solid fa-paper-plane"></i></button>
+                    </form>
+                    <div class="payment-partners">
+                        <span>VISA</span><span>Mastercard</span><span>MoMo</span><span>VNPAY</span>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom footer-bottom-pro">
+                <span>© 2026 MAY HOTEL. Mang đến cho bạn những kỳ nghỉ trọn vẹn.</span>
+                <span>Hotline: 1800 9327 · Email: MayHotel.hotel@gmail.com</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- ── Chatbot ── -->
+    <div id="chat-circle" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
+        <i class="fa-solid fa-comments"></i>
+    </div>
+    <div class="chat-box" id="chat-box" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
+        <div class="chat-box-header">
+            <div><i class="fa-solid fa-robot me-2"></i><span>May Hotel Assistant</span></div>
+            <span id="chat-box-close" style="cursor:pointer"><i class="fa-solid fa-xmark"></i></span>
+        </div>
+        <div class="chat-box-body" id="chat-logs">
+            <div class="msg-bot">Xin chào! Tôi có thể giúp gì cho bạn hôm nay? 💛</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chat-input" placeholder="Nhập tin nhắn..." autocomplete="off" />
+            <button id="chat-submit" class="btn-send"><i class="fa-solid fa-paper-plane"></i></button>
+        </div>
+    </div>
+
+    <form id="logoutForm" th:action="@{/account/logout}" method="get" style="display:none">
+        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
+    </form>
+
+    <script>
+        window.CHAT_API_URL = window.location.origin + '/api/v1/ai/chat';
+    </script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script th:src="@{/js/main.js}"></script>
+    <th:block layout:fragment="additional-scripts"></th:block>
+</body>
+
+</html>

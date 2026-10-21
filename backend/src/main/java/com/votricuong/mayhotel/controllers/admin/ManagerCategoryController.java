@@ -61,16 +61,36 @@ public class ManagerCategoryController extends BaseController {
 
     @PostMapping("/categories/create")
     public String storeCategory(RoomType category, RedirectAttributes redirect) {
-        category.setId(sequenceGenerator.generateSequence("room_types_sequence"));
-        roomTypeRepository.save(category);
-        redirect.addFlashAttribute("success", "Thêm loại phòng thành công!");
+        try {
+            category.setName(com.votricuong.mayhotel.utils.InputValidator.requiredText(
+                    category.getName(), "Tên loại phòng", 100));
+            category.setMaxOccupancy(com.votricuong.mayhotel.utils.InputValidator.range(
+                    category.getMaxOccupancy(), "Sức chứa", 1, 20));
+            if (category.getQuantity() != null) {
+                com.votricuong.mayhotel.utils.InputValidator.range(category.getQuantity(), "Số lượng phòng", 0, 10000);
+            }
+            if (roomTypeRepository.findAll().stream().anyMatch(item -> item.getName() != null
+                    && item.getName().equalsIgnoreCase(category.getName()))) {
+                throw new IllegalArgumentException("Tên loại phòng đã tồn tại");
+            }
+            category.setId(sequenceGenerator.generateSequence("room_types_sequence"));
+            roomTypeRepository.save(category);
+            redirect.addFlashAttribute("success", "Thêm loại phòng thành công!");
+        } catch (IllegalArgumentException ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
         return "redirect:/manager/categories";
     }
 
     @GetMapping("/categories/delete/{id}")
     public String deleteCategory(@PathVariable Long id, RedirectAttributes redirect) {
-        roomTypeRepository.deleteById(id);
-        redirect.addFlashAttribute("success", "Xóa loại phòng thành công!");
+        if (!roomTypeRepository.existsById(id)) redirect.addFlashAttribute("error", "Không tìm thấy loại phòng.");
+        else if (!roomRepository.findByRoomTypeId(id).isEmpty())
+            redirect.addFlashAttribute("error", "Không thể xóa loại phòng đang được sử dụng bởi phòng.");
+        else {
+            roomTypeRepository.deleteById(id);
+            redirect.addFlashAttribute("success", "Xóa loại phòng thành công!");
+        }
         return "redirect:/manager/categories";
     }
 }

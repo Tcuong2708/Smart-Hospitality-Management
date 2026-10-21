@@ -1,26 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:may_hotel_app/main.dart';
-import 'package:may_hotel_app/features/checkin/views/room_map_screen.dart';
-import 'package:may_hotel_app/features/services/views/service_management_screen.dart';
+import 'package:may_hotel_app/features/services/views/service_staff_screen.dart';
+import 'package:may_hotel_app/features/housekeeping/views/housekeeping_room_map_screen.dart';
+import 'package:may_hotel_app/features/auth/models/app_role.dart';
+import 'package:may_hotel_app/features/management/views/admin_backup_screen.dart';
+import 'package:may_hotel_app/features/management/views/manager_catalog_screen.dart';
+import 'package:may_hotel_app/features/management/views/summary_dashboard_screen.dart';
 // Import thêm trang Sơ đồ phòng của Cường vào đây
 import 'package:may_hotel_app/features/checkin/views/room_map_screen.dart';
-import 'package:may_hotel_app/features/reception/views/cccd_checkin_screen.dart';
-import 'package:may_hotel_app/features/reception/views/receipt_printer_screen.dart';
 import '../../../core/constants/app_colors.dart';
-import '../../admin/views/admin_management_screen.dart';
-import '../../admin/views/admin_room_screen.dart';
 import '../../admin/views/admin_user_screen.dart';
 import 'booked_rooms_screen.dart';
 import '../../checkin/views/check_in_screen.dart';
 import 'home_screen.dart';
-import 'booking_screen.dart';
 import 'search_room_screen.dart';
 import '../../chat/views/chat_screen.dart';
 import 'profile_screen.dart';
-import '../../admin/views/admin_statistics_screen.dart';
+import 'unsupported_role_screen.dart';
 
-import 'package:may_hotel_app/services/auth_state_service.dart';
 import 'package:may_hotel_app/services/language_service.dart';
 
 class NavItem {
@@ -60,37 +58,60 @@ class _MainScreenState extends State<MainScreen> {
   void _initializeMenu() {
     final lang = LanguageService();
 
-    if (widget.role == 'admin') {
-      _navItems = [
+    final role = AppRole.fromStorage(widget.role);
+    _navItems = switch (role) {
+      AppRole.admin => [
         NavItem(
-          icon: Icons.analytics_outlined,
-          label: lang.translate('statistics'),
-          screen: AdminStatisticsScreen(),
+          icon: Icons.dashboard_outlined,
+          label: 'Tổng quan',
+          screen: const AdminSystemDashboardScreen(),
         ),
         NavItem(
-          icon: Icons.meeting_room_outlined,
-          label: lang.translate('rooms'),
-          screen: AdminRoomScreen(),
-        ),
-        NavItem(
-          icon: Icons.admin_panel_settings,
-          label: lang.translate('admin'),
-          screen: AdminManagementScreen(),
+          icon: Icons.manage_accounts_outlined,
+          label: 'Tài khoản',
+          screen: const AdminUserScreen(),
           isBig: true,
         ),
         NavItem(
-          icon: Icons.people_alt_outlined,
-          label: lang.translate('personnel'),
-          screen: const AdminUserScreen(),
+          icon: Icons.backup_outlined,
+          label: 'Sao lưu',
+          screen: const AdminBackupScreen(),
         ),
         NavItem(
           icon: Icons.person_outline,
           label: lang.translate('profile'),
           screen: ProfileScreen(username: widget.username),
         ),
-      ];
-    } else if (widget.role == 'staff') {
-      _navItems = [
+      ],
+      AppRole.manager => [
+        NavItem(
+          icon: Icons.dashboard_outlined,
+          label: 'Tổng quan',
+          screen: const ManagerDashboardScreen(),
+        ),
+        NavItem(
+          icon: Icons.category_outlined,
+          label: 'Danh mục',
+          screen: const ManagerCatalogScreen(),
+        ),
+        NavItem(
+          icon: Icons.analytics_outlined,
+          label: 'Thống kê',
+          screen: const ManagerDashboardScreen(revenueFocus: true),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.badge_outlined,
+          label: 'Nhân sự',
+          screen: const ManagerStaffScreen(),
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('profile'),
+          screen: ProfileScreen(username: widget.username),
+        ),
+      ],
+      AppRole.receptionist => [
         NavItem(
           icon: Icons.grid_view_rounded,
           label: lang.translate('map'),
@@ -100,26 +121,41 @@ class _MainScreenState extends State<MainScreen> {
           icon: Icons.checklist_rtl_rounded,
           label: 'Check-in',
           screen: CheckInScreen(),
-        ),
-        NavItem(
-          icon: Icons.nfc_rounded,
-          label: 'Quét CCCD',
-          screen: const CccdCheckinScreen(),
           isBig: true,
-        ),
-        NavItem(
-          icon: Icons.print_rounded,
-          label: 'In Hóa Đơn',
-          screen: const ReceiptPrinterScreen(),
         ),
         NavItem(
           icon: Icons.person_outline,
           label: lang.translate('profile'),
           screen: ProfileScreen(username: widget.username),
         ),
-      ];
-    } else {
-      _navItems = [
+      ],
+      AppRole.housekeeper => [
+        NavItem(
+          icon: Icons.cleaning_services_outlined,
+          label: 'Buồng phòng',
+          screen: const HousekeepingRoomMapScreen(),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('profile'),
+          screen: ProfileScreen(username: widget.username),
+        ),
+      ],
+      AppRole.serviceStaff => [
+        NavItem(
+          icon: Icons.room_service_outlined,
+          label: 'Dịch vụ',
+          screen: const ServiceStaffScreen(),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('profile'),
+          screen: ProfileScreen(username: widget.username),
+        ),
+      ],
+      AppRole.customer || AppRole.guest => [
         NavItem(
           icon: Icons.home_max_rounded,
           label: lang.translate('home'),
@@ -146,8 +182,21 @@ class _MainScreenState extends State<MainScreen> {
           label: lang.translate('me'),
           screen: ProfileScreen(username: widget.username),
         ),
-      ];
-    }
+      ],
+      AppRole.accountant || AppRole.unsupported => [
+        NavItem(
+          icon: Icons.lock_person_outlined,
+          label: 'Phân quyền',
+          screen: UnsupportedRoleScreen(role: widget.role),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('profile'),
+          screen: ProfileScreen(username: widget.username),
+        ),
+      ],
+    };
   }
 
   void _onItemTapped(int index) {

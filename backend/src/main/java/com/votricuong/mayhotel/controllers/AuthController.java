@@ -40,7 +40,7 @@ public class AuthController extends BaseController {
             session.removeAttribute("error");
         }
         
-        return render(model, "view/Account/login");
+        return "view/Account/login";
     }
 
     /**
@@ -68,7 +68,7 @@ public class AuthController extends BaseController {
                 } else if (user.getRoleId() == 3L) {
                     return "redirect:/receptionist/room-map";
                 } else if (user.getRoleId() == 7L) {
-                    return "redirect:/accountant/dashboard"; // Hoặc route tương ứng của kế toán
+                    return "redirect:/admin/statistical";
                 }
             }
             return "redirect:/"; // Trở về trang chủ
@@ -86,7 +86,7 @@ public class AuthController extends BaseController {
         setPageTitle(model, "Đăng ký tài khoản");
         setExtraCSS(model, "view/Account/register :: extra_css");
         setExtraJS(model, "view/Account/register :: extra_js");
-        return render(model, "view/Account/register");
+        return "view/Account/register";
     }
 
     /**
@@ -137,7 +137,7 @@ public class AuthController extends BaseController {
     public String showVerifyOtpForm(@RequestParam("email") String email, Model model) {
         setPageTitle(model, "Xác thực OTP");
         model.addAttribute("email", email);
-        return render(model, "view/Account/verify_register_otp");
+        return "view/Account/verify_register_otp";
     }
 
     /**
@@ -173,8 +173,12 @@ public class AuthController extends BaseController {
                     return "{\"success\": true, \"redirect\": \"/admin/users\"}";
                 } else if (user.getRoleId() == 2L) {
                     return "{\"success\": true, \"redirect\": \"/manager/rooms\"}";
-                } else if (user.getRoleId() == 3L || user.getRoleId() == 4L) {
+                } else if (user.getRoleId() == 3L) {
                     return "{\"success\": true, \"redirect\": \"/receptionist/room-map\"}";
+                } else if (user.getRoleId() == 4L || user.getRoleId() == 6L) {
+                    return "{\"success\": false, \"message\": \"Tài khoản này chỉ được phép đăng nhập trên Mobile\"}";
+                } else if (user.getRoleId() == 7L) {
+                    return "{\"success\": true, \"redirect\": \"/admin/statistical\"}";
                 }
             }
             return "{\"success\": true, \"redirect\": \"/\"}";

@@ -81,7 +81,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     if (_selectedFilter == 'ACTIVE') {
       return _bookedRooms.where((item) {
         String st = item['trangThai']?.toString() ?? '';
-        return st == 'Đã nhận phòng' || st == 'Occupied' || st == 'In Use';
+        return _isActiveStayStatus(st);
       }).toList();
     } else if (_selectedFilter == 'RESERVED') {
       return _bookedRooms.where((item) {
@@ -104,11 +104,22 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     try {
       return _bookedRooms.firstWhere((item) {
         String st = item['trangThai']?.toString() ?? '';
-        return st == 'Đã nhận phòng' || st == 'Occupied' || st == 'In Use';
+        return _isActiveStayStatus(st);
       });
     } catch (e) {
       return null;
     }
+  }
+
+  bool _isActiveStayStatus(String status) {
+    final normalized = status.trim().toLowerCase();
+    return const {
+      'đã nhận phòng',
+      'occupied',
+      'in use',
+      'đang ở',
+      'đang lưu trú',
+    }.contains(normalized);
   }
 
   @override
@@ -606,10 +617,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     double tongTien = double.tryParse(item['tongTien']?.toString() ?? '0') ?? 0;
     String trangThai = item['trangThai']?.toString() ?? 'Chờ xác nhận';
     final bool isFaceVerified = item['isFaceVerified'] == true;
-    if (isFaceVerified &&
-        trangThai != 'Đã nhận phòng' &&
-        trangThai != 'Occupied' &&
-        trangThai != 'In Use') {
+    if (isFaceVerified && !_isActiveStayStatus(trangThai)) {
       trangThai = 'Đã xác thực - chờ lễ tân gán phòng';
     }
 
@@ -623,7 +631,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
         color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: (trangThai == "Đã nhận phòng" || trangThai == "Occupied")
+          color: _isActiveStayStatus(trangThai)
               ? Colors.blue.withOpacity(0.5)
               : Colors.transparent,
           width: 1.5,
@@ -761,9 +769,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
           style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
         ),
       );
-    } else if (trangThai == "Đã nhận phòng" ||
-        trangThai == "Occupied" ||
-        trangThai == "In Use") {
+    } else if (_isActiveStayStatus(trangThai)) {
       return Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -924,9 +930,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     Color textColor;
     String displayStatus = status;
 
-    if (status == 'Đã nhận phòng' ||
-        status == 'Occupied' ||
-        status == 'In Use') {
+    if (_isActiveStayStatus(status)) {
       cardColor = Colors.blue.withOpacity(0.15);
       textColor = isDarkMode ? Colors.lightBlueAccent : Colors.blue.shade700;
       displayStatus = "Đang ở";

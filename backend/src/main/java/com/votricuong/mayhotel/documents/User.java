@@ -32,6 +32,8 @@ public class User implements java.io.Serializable {
     private String address;
 
     private String nationality;
+
+    private String gender;
     
     @Field("status")
     private String status;
@@ -50,6 +52,8 @@ public class User implements java.io.Serializable {
         if (roleId == 3L) return "RECEPTIONIST";
         if (roleId == 4L) return "HOUSEKEEPER";
         if (roleId == 5L) return "CUSTOMER";
+        if (roleId == 6L) return "SERVICE_STAFF";
+        if (roleId == 7L) return "ACCOUNTANT";
         return "CUSTOMER";
     }
 

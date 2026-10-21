@@ -202,7 +202,7 @@ class _ReceiptPrinterScreenState extends State<ReceiptPrinterScreen> {
                         Row(
                           children: const [
                             Expanded(flex: 3, child: Text("Tên DV", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black))),
-                            Expanded(flex: 1, child: Text("SL", style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black))),
+                            Expanded(flex: 1, child: Text("SL", textAlign: TextAlign.center, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black))),
                             Expanded(flex: 2, child: Text("T.Tiền", textAlign: TextAlign.right, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black))),
                           ],
                         ),
@@ -213,7 +213,7 @@ class _ReceiptPrinterScreenState extends State<ReceiptPrinterScreen> {
                             child: Row(
                               children: [
                                 Expanded(flex: 3, child: Text(item['name'], style: const TextStyle(fontSize: 16, color: Colors.black))),
-                                Expanded(flex: 1, child: Text(item['qty'].toString(), style: const TextStyle(fontSize: 16, color: Colors.black))),
+                                Expanded(flex: 1, child: Text(item['qty'].toString(), textAlign: TextAlign.center, style: const TextStyle(fontSize: 16, color: Colors.black))),
                                 Expanded(flex: 2, child: Text(item['totalPrice'].toString(), textAlign: TextAlign.right, style: const TextStyle(fontSize: 16, color: Colors.black))),
                               ],
                             ),

@@ -34,6 +34,10 @@ public class BookingController extends BaseController {
     private final InvoiceRepository invoiceRepository;
     private final com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository;
     private final com.votricuong.mayhotel.services.LoyaltyService loyaltyService;
+    private final com.votricuong.mayhotel.services.ReviewService reviewService;
+    private final com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService;
+    private final com.votricuong.mayhotel.services.BookingCancellationService bookingCancellationService;
+    private final com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService;
 
     public BookingController(RoomRepository roomRepository, 
                              ServiceRepository serviceRepository, 
@@ -44,7 +48,11 @@ public class BookingController extends BaseController {
                              com.votricuong.mayhotel.services.SequenceGeneratorService sequenceGeneratorService,
                              InvoiceRepository invoiceRepository,
                              com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository,
-                             com.votricuong.mayhotel.services.LoyaltyService loyaltyService) {
+                             com.votricuong.mayhotel.services.LoyaltyService loyaltyService,
+                             com.votricuong.mayhotel.services.ReviewService reviewService,
+                             com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService,
+                             com.votricuong.mayhotel.services.BookingCancellationService bookingCancellationService,
+                             com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.bookingOrderRepository = bookingOrderRepository;
@@ -55,6 +63,10 @@ public class BookingController extends BaseController {
         this.invoiceRepository = invoiceRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.loyaltyService = loyaltyService;
+        this.reviewService = reviewService;
+        this.noShowPredictionService = noShowPredictionService;
+        this.bookingCancellationService = bookingCancellationService;
+        this.bookingAvailabilityService = bookingAvailabilityService;
     }
 
     // 1. SELECT SERVICES (Redirect to checkout with services)
@@ -83,14 +95,7 @@ public class BookingController extends BaseController {
         HomeController.RoomTypeDTO loai = allRooms.stream()
             .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
             .findFirst()
-            .map(r -> HomeController.RoomTypeDTO.builder()
-                    .maLoai(r.getRoomTypeId())
-                    .name(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn")
-                    .soNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2)
-                    .price(r.getPrice())
-                    .phongs(allRooms.stream().filter(rr -> r.getRoomTypeId().equals(rr.getRoomTypeId())).collect(Collectors.toList()))
-                    .imageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png")
-                    .build())
+            .map(r -> toBookingRoomType(r, type, allRooms))
             .orElse(null);
 
         if (loai == null) {
@@ -116,7 +121,7 @@ public class BookingController extends BaseController {
         model.addAttribute("soPhongTrong", phongTrong);
 
         setExtraCSS(model, "view/Booking/booking :: extra_css");
-        return render(model, "view/Booking/booking");
+        return "view/Booking/booking";
     }
 
     // 3. XỬ LÝ NHẤN "ĐẶT NGAY" -> ĐẨY SANG CHECKOUT
@@ -149,14 +154,7 @@ public class BookingController extends BaseController {
         HomeController.RoomTypeDTO loai = allRooms.stream()
             .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
             .findFirst()
-            .map(r -> HomeController.RoomTypeDTO.builder()
-                    .maLoai(r.getRoomTypeId())
-                    .name(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn")
-                    .soNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2)
-                    .price(r.getPrice())
-                    .phongs(allRooms.stream().filter(rr -> r.getRoomTypeId().equals(rr.getRoomTypeId())).collect(Collectors.toList()))
-                    .imageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png")
-                    .build())
+            .map(r -> toBookingRoomType(r, type, allRooms))
             .orElse(null);
 
         if (loai != null) {
@@ -219,14 +217,7 @@ public class BookingController extends BaseController {
         HomeController.RoomTypeDTO loai = allRooms.stream()
             .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
             .findFirst()
-            .map(r -> HomeController.RoomTypeDTO.builder()
-                    .maLoai(r.getRoomTypeId())
-                    .name(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn")
-                    .soNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2)
-                    .price(r.getPrice())
-                    .phongs(allRooms.stream().filter(rr -> maLoai.equals(rr.getRoomTypeId())).collect(Collectors.toList()))
-                    .imageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png")
-                    .build())
+            .map(r -> toBookingRoomType(r, type, allRooms))
             .orElse(null);
 
         if (loai != null) {
@@ -313,7 +304,7 @@ public class BookingController extends BaseController {
         model.addAttribute("availablePoints", availablePoints);
 
         setExtraCSS(model, "view/Booking/checkout :: extra_css");
-        return render(model, "view/Booking/checkout");
+        return "view/Booking/checkout";
     }
 
     private Long parseRoomTypeId(String value) {
@@ -348,12 +339,21 @@ public class BookingController extends BaseController {
             return "redirect:/";
         }
 
-        // Cập nhật ngày nhận/trả từ form Checkout
-        if (ngayNhan != null && ngayTra != null && ngayTra.isAfter(ngayNhan)) {
-            currentBooking.setNgayNhan(ngayNhan);
-            currentBooking.setNgayTra(ngayTra);
-        } else if (ngayNhan != null && ngayTra != null && !ngayTra.isAfter(ngayNhan)) {
-            redirectAttributes.addFlashAttribute("error", "Ngày trả phòng phải sau ngày nhận phòng!");
+        try {
+            if (ngayNhan != null || ngayTra != null) {
+                com.votricuong.mayhotel.utils.InputValidator.stay(ngayNhan, ngayTra);
+                currentBooking.setNgayNhan(ngayNhan);
+                currentBooking.setNgayTra(ngayTra);
+            }
+            com.votricuong.mayhotel.utils.InputValidator.stay(currentBooking.getNgayNhan(), currentBooking.getNgayTra());
+            guestName = com.votricuong.mayhotel.utils.InputValidator.requiredText(guestName, "Họ và tên", 100);
+            phone = com.votricuong.mayhotel.utils.InputValidator.phone(phone);
+            ghiChu = com.votricuong.mayhotel.utils.InputValidator.optionalText(ghiChu, "Ghi chú", 500);
+            phuongThucThanhToan = com.votricuong.mayhotel.utils.InputValidator.oneOf(
+                    phuongThucThanhToan, "Phương thức thanh toán", java.util.Set.of("COD", "ONLINE"));
+            com.votricuong.mayhotel.utils.InputValidator.range(currentBooking.getSoLuong(), "Số lượng phòng", 1, 10);
+        } catch (IllegalArgumentException ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
             return "redirect:/booking/checkout";
         }
 
@@ -379,13 +379,10 @@ public class BookingController extends BaseController {
             Long maLoai = currentBooking.getLoaiPhong().getMaLoai();
             int soLuongDat = currentBooking.getSoLuong();
 
-            List<Room> danhSachPhongTrong = roomRepository.findAll().stream()
-                    .filter(p -> p.getRoomTypeId() != null && p.getRoomTypeId().equals(maLoai) && 
-                           ("Vacant".equalsIgnoreCase(p.getStatus()) || 
-                            "Còn phòng".equalsIgnoreCase(p.getStatus()) || 
-                            "Trống".equalsIgnoreCase(p.getStatus()) || 
-                            "Phòng trống".equalsIgnoreCase(p.getStatus())))
-                    .collect(Collectors.toList());
+            Date requestedIn = Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant());
+            Date requestedOut = Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant());
+            List<Room> danhSachPhongTrong = bookingAvailabilityService.findAvailableRooms(
+                    maLoai, requestedIn, requestedOut);
 
             if (danhSachPhongTrong.size() < soLuongDat) {
                 redirectAttributes.addFlashAttribute("error", "Ngày bạn chọn đã hết phòng! Vui lòng đổi ngày khác.");
@@ -445,6 +442,8 @@ public class BookingController extends BaseController {
             bookingOrder.setExpectedIn(Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             bookingOrder.setExpectedOut(Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             bookingOrder.setStatus("Pending");
+            bookingOrder.setBookingSource("WEB");
+            bookingOrder.setRiskAnalysisStatus("PENDING");
             
             String noteStr = (ghiChu != null) ? ghiChu.trim() : "";
             bookingOrder.setNotes(noteStr);
@@ -477,6 +476,7 @@ public class BookingController extends BaseController {
                 st.setBookingId(savedBookingOrder.getId());
                 st.setServiceId(s.getId());
                 st.setQuantity(1);
+                st.setStatus("PENDING");
                 // st.setPrice(s.getPrice());
                 // st.setOrderDate(new Date());
                 // st.setStatus("Delivered");
@@ -515,11 +515,13 @@ public class BookingController extends BaseController {
             invoice.setRedeemedPoints(redeemedPoints);
             invoice.setPointsDiscount(pointsDiscount);
             invoiceRepository.save(invoice);
+            noShowPredictionService.analyzeAndSave(savedBookingOrder.getId());
 
             if ("ONLINE".equalsIgnoreCase(phuongThucThanhToan)) {
                 return "redirect:/booking/payment-gate?id=" + generatedMaHD;
             } else {
                 redirectAttributes.addFlashAttribute("success", "Đặt phòng thành công! Quý khách vui lòng thanh toán trực tiếp tại quầy lễ tân.");
+                redirectAttributes.addFlashAttribute("successBookingId", savedBookingOrder.getId());
                 return "redirect:/booking/success";
             }
 
@@ -540,7 +542,7 @@ public class BookingController extends BaseController {
 
         setPageTitle(model, "Cổng thanh toán trực tuyến - MAY HOTEL");
         model.addAttribute("invoice", invoiceOpt.get());
-        return render(model, "view/Booking/payment_gate");
+        return "view/Booking/payment";
     }
 
     // 7. COMPLETE PAYMENT
@@ -567,8 +569,48 @@ public class BookingController extends BaseController {
     @GetMapping("/success")
     public String success(Model model) {
         setPageTitle(model, "Đặt phòng thành công");
-        setExtraCSS(model, "view/Booking/success :: extra_css");
-        return render(model, "view/Booking/success");
+
+        Object rawId = model.asMap().get("successBookingId");
+        Long bookingId = null;
+        if (rawId instanceof Number) {
+            bookingId = ((Number) rawId).longValue();
+        } else if (rawId != null) {
+            try {
+                bookingId = Long.parseLong(rawId.toString());
+            } catch (NumberFormatException ignored) {
+                // The success page still has a safe fallback without order details.
+            }
+        }
+
+        if (bookingId != null) {
+            final Long resolvedBookingId = bookingId;
+            bookingOrderRepository.findById(resolvedBookingId).ifPresent(order -> {
+                model.addAttribute("order", order);
+                model.addAttribute("maDatPhong", order.getId());
+
+                List<Invoice> invoices = invoiceRepository.findByBookingId(resolvedBookingId);
+                model.addAttribute("hoaDon", invoices != null && !invoices.isEmpty() ? invoices.get(0) : null);
+
+                List<com.votricuong.mayhotel.documents.BookingDetail> details =
+                        bookingDetailRepository.findByBookingId(resolvedBookingId);
+                if (details != null) {
+                    details.stream().filter(detail -> detail.getRoomId() != null).findFirst().ifPresent(detail ->
+                        roomRepository.findById(detail.getRoomId()).ifPresent(room -> {
+                            model.addAttribute("phong", room);
+                            if (room.getRoomTypeId() != null) {
+                                roomTypeRepository.findById(room.getRoomTypeId())
+                                        .ifPresent(type -> model.addAttribute("loaiPhong", type));
+                            }
+                        })
+                    );
+                }
+
+                model.addAttribute("soDem", calculateNights(order));
+                customerRepository.findById(order.getCustomerId())
+                        .ifPresent(customer -> model.addAttribute("customer", customer));
+            });
+        }
+        return "view/Booking/success";
     }
 
     // 9. HISTORY
@@ -615,11 +657,37 @@ public class BookingController extends BaseController {
             }
         }
 
+        Map<Long, Room> phongMap = new HashMap<>();
+        Map<Long, Invoice> hoaDonMap = new HashMap<>();
+        Map<Long, Long> soDemMap = new HashMap<>();
+        Map<Long, String> reviewStateMap = new HashMap<>();
+
+        for (com.votricuong.mayhotel.documents.BookingOrder order : historyList) {
+            List<com.votricuong.mayhotel.documents.BookingDetail> details =
+                    bookingDetailRepository.findByBookingId(order.getId());
+            if (details != null) {
+                details.stream().filter(detail -> detail.getRoomId() != null).findFirst().ifPresent(detail ->
+                        roomRepository.findById(detail.getRoomId())
+                                .ifPresent(room -> phongMap.put(order.getId(), room)));
+            }
+            List<Invoice> invoices = invoiceRepository.findByBookingId(order.getId());
+            if (invoices != null && !invoices.isEmpty()) {
+                hoaDonMap.put(order.getId(), invoices.get(0));
+            }
+            soDemMap.put(order.getId(), calculateNights(order));
+            reviewStateMap.put(order.getId(), reviewService.reviewState(order));
+        }
+
         model.addAttribute("historyList", historyList);
+        model.addAttribute("dsDatPhong", historyList);
+        model.addAttribute("phongMap", phongMap);
+        model.addAttribute("hoaDonMap", hoaDonMap);
+        model.addAttribute("soDemMap", soDemMap);
+        model.addAttribute("reviewStateMap", reviewStateMap);
         
         setPageTitle(model, "Lịch sử đặt phòng");
         setExtraCSS(model, "view/Booking/history :: extra_css");
-        return render(model, "view/Booking/history");
+        return "view/Booking/history";
     }
 
     // 10. HISTORY DETAIL
@@ -643,19 +711,28 @@ public class BookingController extends BaseController {
         List<com.votricuong.mayhotel.documents.ServiceTicket> services = serviceTicketRepository.findByBookingId(id);
 
         setPageTitle(model, "Chi tiết đơn đặt phòng #" + order.getId());
-        model.addAttribute("hoaDon", order); // Keep the attribute name "hoaDon" for frontend compatibility if needed
-        model.addAttribute("order", order); // Required for historydetail.html
+        List<Invoice> invoices = invoiceRepository.findByBookingId(id);
+        Invoice invoice = invoices != null && !invoices.isEmpty() ? invoices.get(0) : null;
+
+        model.addAttribute("hoaDon", invoice != null ? invoice : order);
+        model.addAttribute("order", order);
+        model.addAttribute("soDem", calculateNights(order));
         customerRepository.findById(order.getCustomerId()).ifPresent(c -> model.addAttribute("customer", c));
         model.addAttribute("bookingDetails", details);
         model.addAttribute("serviceTickets", services);
+        model.addAttribute("reviewState", reviewService.reviewState(order));
+        model.addAttribute("myReview", reviewService.findReview(order.getId()).orElse(null));
 
         setExtraCSS(model, "view/Booking/historydetail :: extra_css");
-        return render(model, "view/Booking/historydetail");
+        return "view/Booking/historydetail";
     }
 
     // 11. CANCEL BOOKING (UC03)
     @PostMapping("/cancel/{id}")
-    public String cancelBooking(@PathVariable("id") Long id, RedirectAttributes ra) {
+    public String cancelBooking(@PathVariable("id") Long id,
+                                @RequestParam(value = "lyDoHuy", required = false) String reason,
+                                HttpSession session,
+                                RedirectAttributes ra) {
         Optional<com.votricuong.mayhotel.documents.BookingOrder> orderOpt = bookingOrderRepository.findById(id);
         if (orderOpt.isEmpty()) {
             ra.addFlashAttribute("error", "Không tìm thấy đơn đặt phòng mã số này!");
@@ -663,42 +740,47 @@ public class BookingController extends BaseController {
         }
 
         com.votricuong.mayhotel.documents.BookingOrder order = orderOpt.get();
-        
-        // Theo UC03: Hủy được nếu phiếu đang chờ nhận phòng
-        if ("Đã nhận phòng".equalsIgnoreCase(order.getStatus()) || "Đã hủy".equalsIgnoreCase(order.getStatus()) || "Hủy do khách không đến".equalsIgnoreCase(order.getStatus())) {
-            ra.addFlashAttribute("error", "Không thể hủy đơn đặt phòng đang ở trạng thái này.");
-            return "redirect:/booking/history/detail?id=" + id;
+        User user = (User) session.getAttribute("user");
+        boolean ownsBooking = user != null && customerRepository.findById(order.getCustomerId())
+                .map(customer -> user.getId().equals(customer.getUserId()))
+                .orElse(false);
+        if (!ownsBooking) {
+            ra.addFlashAttribute("error", "Bạn không có quyền hủy phiếu đặt phòng này.");
+            return "redirect:/booking/history";
         }
-
-        // Đổi trạng thái
-        order.setStatus("Đã hủy");
-        bookingOrderRepository.save(order);
-
-        // Hủy Hóa đơn tương ứng (UC03 mở rộng)
-        List<com.votricuong.mayhotel.documents.Invoice> invoices = invoiceRepository.findByBookingId(id);
-        if (invoices != null) {
-            for (com.votricuong.mayhotel.documents.Invoice inv : invoices) {
-                inv.setInvoiceStatus("Cancelled");
-                invoiceRepository.save(inv);
-            }
+        try {
+            bookingCancellationService.cancel(id,
+                    com.votricuong.mayhotel.services.BookingCancellationService.CancellationType.CUSTOMER,
+                    reason);
+            ra.addFlashAttribute("success", "Hủy đặt phòng thành công. Chi tiết phí phạt và hoàn tiền đã được cập nhật trên hóa đơn.");
+        } catch (IllegalStateException ex) {
+            ra.addFlashAttribute("error", ex.getMessage());
         }
-
-        // Nhả phòng trống về kho
-        List<com.votricuong.mayhotel.documents.BookingDetail> details = bookingDetailRepository.findByBookingId(id);
-        for (com.votricuong.mayhotel.documents.BookingDetail bd : details) {
-            if (bd.getRoomId() != null) {
-                roomRepository.findById(bd.getRoomId()).ifPresent(room -> {
-                    if ("Reserved".equalsIgnoreCase(room.getStatus())
-                            || "Đã đặt".equalsIgnoreCase(room.getStatus())) {
-                        room.setStatus("Trống");
-                        room.setNote("");
-                        roomRepository.save(room);
-                    }
-                });
-            }
-        }
-
-        ra.addFlashAttribute("success", "Hủy đặt phòng thành công!");
         return "redirect:/booking/history/detail?id=" + id;
+    }
+
+    private long calculateNights(com.votricuong.mayhotel.documents.BookingOrder order) {
+        if (order.getExpectedIn() == null || order.getExpectedOut() == null) {
+            return 0L;
+        }
+        long nights = (order.getExpectedOut().getTime() - order.getExpectedIn().getTime())
+                / (1000L * 60 * 60 * 24);
+        return Math.max(nights, 0L);
+    }
+
+    private HomeController.RoomTypeDTO toBookingRoomType(
+            Room sample,
+            com.votricuong.mayhotel.documents.RoomType type,
+            List<Room> allRooms) {
+        HomeController.RoomTypeDTO dto = new HomeController.RoomTypeDTO();
+        dto.setMaLoai(sample.getRoomTypeId());
+        dto.setName(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn");
+        dto.setSoNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2);
+        dto.setPrice(sample.getPrice());
+        dto.setPhongs(allRooms.stream()
+                .filter(room -> sample.getRoomTypeId().equals(room.getRoomTypeId()))
+                .collect(Collectors.toList()));
+        dto.setImageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png");
+        return dto;
     }
 }

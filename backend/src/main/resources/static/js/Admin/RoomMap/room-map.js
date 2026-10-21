@@ -40,7 +40,63 @@ document.addEventListener('DOMContentLoaded', () => {
     initFilters();
     initModalListeners();
     fetchRoomMap(mockRooms);
+    initRealtimeRoomMap();
 });
+
+function normalizeLiveRoom(room) {
+    const roomLabel = (room.label || room.name || '').toString().replace(/\D/g, '') || String(room.id);
+    return {
+        ...room,
+        label: roomLabel,
+        floor: Math.floor(parseInt(roomLabel, 10) / 100),
+        capacity: room.sucChua || room.capacity || 2,
+        view: room.view || 'Hướng Thành Phố'
+    };
+}
+
+function initRealtimeRoomMap() {
+    if (!window.roomMapIsToday || typeof EventSource === 'undefined') return;
+
+    const routePrefix = window.location.pathname.startsWith('/admin/') ? '/admin' : '/receptionist';
+    let refreshTimer = null;
+    let fallbackTimer = null;
+    let errorCount = 0;
+
+    const refreshData = async () => {
+        try {
+            const selectedDate = window.roomMapSelectedDate || '';
+            const response = await fetch(`${routePrefix}/room-map/data?date=${encodeURIComponent(selectedDate)}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            mockRooms = data.map(normalizeLiveRoom);
+            applyFilters();
+        } catch (error) {
+            console.warn('Không thể làm mới sơ đồ phòng:', error);
+        }
+    };
+
+    const scheduleRefresh = () => {
+        window.clearTimeout(refreshTimer);
+        refreshTimer = window.setTimeout(refreshData, 150);
+    };
+
+    const source = new EventSource(`${routePrefix}/room-map/events`);
+    source.addEventListener('connected', () => { errorCount = 0; });
+    source.addEventListener('room-status-changed', scheduleRefresh);
+    source.onerror = () => {
+        errorCount += 1;
+        if (errorCount >= 3 && !fallbackTimer) {
+            fallbackTimer = window.setInterval(refreshData, 15000);
+        }
+    };
+
+    window.addEventListener('beforeunload', () => {
+        source.close();
+        if (fallbackTimer) window.clearInterval(fallbackTimer);
+    }, { once: true });
+}
 
 function initFilters() {
     const filterFloorDropdown = document.getElementById('filterFloorDropdown');
@@ -67,7 +123,8 @@ function initFilters() {
             { val: 1, label: 'Trống' },
             { val: 2, label: 'Đang lưu trú' },
             { val: 3, label: 'Chờ dọn dẹp (Check-out)' },
-            { val: 4, label: 'Đã đặt' }
+            { val: 4, label: 'Đã đặt' },
+            { val: 5, label: 'Đang bảo trì' }
         ];
         filterStatusDropdown.innerHTML = statuses.map((st, idx) => `
             <li>
@@ -201,6 +258,15 @@ function fetchRoomMap(roomsToRender) {
                         <i class="bi bi-calendar-check me-1"></i>Đã đặt tại ngày chọn
                     </div>
                 `;
+            } else if (room.maTrangThai === 5) { // Bảo trì
+                statusClass = 'status-maintenance';
+                const note = room.statusNote ? `<div class="small text-muted mt-1">${escapeHtml(room.statusNote)}</div>` : '';
+                actionHtml = `
+                    <div class="room-status-label bg-secondary-subtle text-secondary border border-secondary-subtle">
+                        <i class="bi bi-tools me-1"></i>Đang bảo trì
+                    </div>
+                    ${note}
+                `;
             } else { // Chờ dọn dẹp
                 statusClass = 'status-dirty';
                 actionHtml = `
@@ -252,6 +318,7 @@ function fetchRoomMap(roomsToRender) {
             const rLabel = btnTarget.dataset.label || rId;
             const rType = btnTarget.dataset.type;
             currentTransferRoomPrice = parseInt(btnTarget.dataset.price) || 0;
+            document.getElementById('transfer-old-room-id').value = rId;
 
             document.getElementById('current-room-id').textContent = `Phòng ${rLabel}`;
             document.getElementById('current-room-type').textContent = rType;
@@ -263,9 +330,10 @@ function fetchRoomMap(roomsToRender) {
             // Đổ danh sách phòng trống
             const newRoomSelect = document.getElementById('new-room-select');
             newRoomSelect.innerHTML = '<option value="">-- Danh sách phòng trống --</option>';
-            mockRooms.filter(r => r.maTrangThai === 1).forEach(r => {
+            mockRooms.filter(r => r.maTrangThai === 1 && String(r.id) !== String(rId)).forEach(r => {
                 const opt = document.createElement('option');
-                opt.value = r.price;
+                opt.value = r.id;
+                opt.dataset.price = r.price;
                 opt.textContent = `Phòng ${r.label} (${r.maLoai}) - ${formatMoney(r.price)}`;
                 newRoomSelect.appendChild(opt);
             });
@@ -294,7 +362,8 @@ function initModalListeners() {
 
     // Bắt sự kiện chọn phòng mới để tính tiền chênh lệch
     newRoomSelect.addEventListener('change', (e) => {
-        const newPrice = parseInt(e.target.value) || 0;
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        const newPrice = parseInt(selectedOption?.dataset.price) || 0;
         if(newPrice === 0) {
             newPriceDisp.textContent = '0 đ';
             diffDisp.textContent = '0 đ';
@@ -316,12 +385,21 @@ function initModalListeners() {
         }
     });
 
-    document.getElementById('btn-confirm-transfer').addEventListener('click', () => {
+    document.getElementById('transfer-room-form').addEventListener('submit', (event) => {
         if(!newRoomSelect.value) {
+            event.preventDefault();
             alert('Vui lòng chọn phòng mới!');
             return;
         }
-        if (transferModalInstance) transferModalInstance.hide();
-        alert('Đã thực hiện chuyển phòng thành công. Hệ thống đã lưu lại giao dịch và chênh lệch!');
+        if (transferReason.value === 'Lý do khác' && !document.getElementById('other-reason').value.trim()) {
+            event.preventDefault();
+            alert('Vui lòng nhập lý do đổi phòng!');
+        }
     });
+}
+
+function escapeHtml(value) {
+    const element = document.createElement('div');
+    element.textContent = value == null ? '' : String(value);
+    return element.innerHTML;
 }

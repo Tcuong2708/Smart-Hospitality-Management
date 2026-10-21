@@ -2,165 +2,180 @@ package com.votricuong.mayhotel.controllers;
 
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.RoomType;
+import com.votricuong.mayhotel.dto.RatingSnapshot;
+import com.votricuong.mayhotel.services.ReviewService;
 import com.votricuong.mayhotel.repositories.RoomRepository;
+import com.votricuong.mayhotel.repositories.RoomTypeRepository;
+import com.votricuong.mayhotel.documents.User;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Controller
 public class RoomController extends BaseController {
 
     private final RoomRepository roomRepository;
-    private final com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository;
+    private final RoomTypeRepository roomTypeRepository;
+    private final ReviewService reviewService;
 
-    public RoomController(RoomRepository roomRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository) {
+    public RoomController(RoomRepository roomRepository, RoomTypeRepository roomTypeRepository,
+            ReviewService reviewService) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
+        this.reviewService = reviewService;
     }
 
-    @GetMapping({"/rooms", "/rooms/all"})
+    // ================================================================
+    // ROOM LIST — GET /rooms
+    // ================================================================
+    @GetMapping({ "/rooms", "/rooms/all" })
     public String listRooms(
-            @RequestParam(value = "maLoai", required = false) Long maLoai,
-            @RequestParam(value = "priceRange", defaultValue = "") String priceRange,
-            @RequestParam(value = "searchString", defaultValue = "") String searchString,
-            @RequestParam(value = "adults", required = false) Integer adults,
-            @RequestParam(value = "children", required = false) Integer children,
+            @RequestParam(value = "keyword", required = false) String keyword,
+            @RequestParam(value = "roomTypeId", required = false) Long roomTypeId,
+            @RequestParam(value = "checkin", required = false) String checkin,
+            @RequestParam(value = "checkout", required = false) String checkout,
+            @RequestParam(value = "guests", required = false) Integer guests,
+            @RequestParam(value = "priceRange", required = false, defaultValue = "all") String priceRange,
+            @RequestParam(value = "sortBy", required = false, defaultValue = "default") String sortBy,
             Model model) {
 
-        setPageTitle(model, "Danh sách phòng nghỉ");
-        setExtraCSS(model, "view/Rooms/list :: extra_css");
-
-        // Fetch all rooms from MongoDB first (for MVP we filter in memory, 
-        // in production we should write a custom @Query in RoomRepository)
+        // 1. Fetch
         List<Room> allRooms = roomRepository.findAll();
-
-        // 1. Filter by search string (name)
-        if (searchString != null && !searchString.trim().isEmpty()) {
-            String lowerSearch = searchString.toLowerCase();
-            allRooms = allRooms.stream()
-                    .filter(r -> r.getName() != null && r.getName().toLowerCase().contains(lowerSearch))
-                    .collect(Collectors.toList());
-        }
-
-        // 2. Filter by roomType id (maLoai)
-        if (maLoai != null) {
-            allRooms = allRooms.stream()
-                    .filter(r -> maLoai.equals(r.getRoomTypeId()))
-                    .collect(Collectors.toList());
-        }
-
-        // 3. Filter by price range
-        if (priceRange.equals("lt500")) {
-            allRooms = allRooms.stream().filter(r -> r.getPrice() <= 500000).collect(Collectors.toList());
-        } else if (priceRange.equals("500-1000")) {
-            allRooms = allRooms.stream().filter(r -> r.getPrice() > 500000 && r.getPrice() <= 1000000).collect(Collectors.toList());
-        } else if (priceRange.equals("gt2000")) {
-            allRooms = allRooms.stream().filter(r -> r.getPrice() > 2000000).collect(Collectors.toList());
-        }
-
-        // Nhóm các phòng theo Loại phòng (RoomType) thay vì show lẻ tẻ từng phòng
-        java.util.Map<Long, List<Room>> roomsByType = allRooms.stream()
-                .filter(r -> r.getRoomTypeId() != null)
-                .collect(Collectors.groupingBy(Room::getRoomTypeId));
-
-        java.util.Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
+        Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
 
-        List<com.votricuong.mayhotel.controllers.HomeController.RoomTypeDTO> loaiPhongs = roomsByType.entrySet().stream().map(entry -> {
-            RoomType type = typeMap.get(entry.getKey());
-            String typeName = (type != null && type.getName() != null) ? type.getName() : "Phòng tiêu chuẩn";
-            Integer soNguoi = (type != null && type.getMaxOccupancy() != null) ? type.getMaxOccupancy() : Integer.valueOf(2);
-            
-            List<Room> phongs = entry.getValue();
-            // Gán ảnh mặc định từ loại phòng cho từng phòng nếu phòng chưa có ảnh
-            phongs.forEach(room -> {
-                if (room.getImageUrl() == null && type != null) {
-                    room.setImageUrl(type.getImageUrl());
-                }
-            });
+        List<Room> filtered = new ArrayList<>(allRooms);
 
-            List<Room> phongsTrong = phongs.stream()
-                    .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()) || "Còn phòng".equalsIgnoreCase(r.getStatus()))
+        // 2a. keyword — search room name + room type name
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            String kw = keyword.trim().toLowerCase();
+            filtered = filtered.stream()
+                    .filter(r -> {
+                        RoomType t = r.getRoomTypeId() != null ? typeMap.get(r.getRoomTypeId()) : null;
+                        String typeName = (t != null && t.getName() != null) ? t.getName().toLowerCase() : "";
+                        String roomName = (r.getName() != null) ? r.getName().toLowerCase() : "";
+                        return roomName.contains(kw) || typeName.contains(kw);
+                    })
                     .collect(Collectors.toList());
+        }
 
-            return com.votricuong.mayhotel.controllers.HomeController.RoomTypeDTO.builder()
-                    .maLoai(entry.getKey())
-                    .name(typeName)
-                    .soNguoi(soNguoi)
-                    .price(phongs.isEmpty() ? 0.0 : phongs.get(0).getPrice())
-                    .phongs(phongs)
-                    .phongsTrong(phongsTrong)
-                    .imageUrl(type != null && type.getImageUrl() != null && !type.getImageUrl().isEmpty() ? type.getImageUrl() : "a1.jpg")
-                    .build();
-        }).collect(Collectors.toList());
+        // 2b. room type
+        if (roomTypeId != null) {
+            filtered = filtered.stream()
+                    .filter(r -> roomTypeId.equals(r.getRoomTypeId()))
+                    .collect(Collectors.toList());
+        }
 
-        // Lọc theo sức chứa (số người) nếu có truyền tham số adults và children
-        if (adults != null || children != null) {
-            int totalPeople = (adults != null ? adults : 0) + (children != null ? children : 0);
-            if (totalPeople > 0) {
-                loaiPhongs = loaiPhongs.stream()
-                        .filter(lp -> lp.getSoNguoi() != null && lp.getSoNguoi() >= totalPeople)
-                        .collect(Collectors.toList());
+        // 2c. price range
+        if ("under-500".equals(priceRange)) {
+            filtered = filtered.stream()
+                    .filter(r -> r.getPrice() != null && r.getPrice() < 500_000)
+                    .collect(Collectors.toList());
+        } else if ("500-1000".equals(priceRange)) {
+            filtered = filtered.stream()
+                    .filter(r -> r.getPrice() != null && r.getPrice() >= 500_000 && r.getPrice() <= 1_000_000)
+                    .collect(Collectors.toList());
+        } else if ("over-1000".equals(priceRange)) {
+            filtered = filtered.stream()
+                    .filter(r -> r.getPrice() != null && r.getPrice() > 1_000_000)
+                    .collect(Collectors.toList());
+        }
+
+        // 2d. guests — dùng maxOccupancy từ RoomType
+        if (guests != null && guests > 0) {
+            filtered = filtered.stream()
+                    .filter(r -> {
+                        RoomType t = r.getRoomTypeId() != null ? typeMap.get(r.getRoomTypeId()) : null;
+                        int max = (t != null && t.getMaxOccupancy() != null) ? t.getMaxOccupancy() : 2;
+                        return max >= guests;
+                    })
+                    .collect(Collectors.toList());
+        }
+
+        // 3. Sort
+        RatingSnapshot snap = reviewService.snapshot();
+        switch (sortBy) {
+            case "priceAsc":
+                filtered.sort(Comparator.comparing(r -> r.getPrice() == null ? 0.0 : r.getPrice()));
+                break;
+            case "priceDesc":
+                filtered.sort((a, b) -> Double.compare(
+                        b.getPrice() == null ? 0.0 : b.getPrice(),
+                        a.getPrice() == null ? 0.0 : a.getPrice()));
+                break;
+            default:
+                // "Lựa chọn hàng đầu": loại phòng điểm (Bayesian) cao xếp trước; sort ổn định
+                // nên bằng điểm thì giữ thứ tự cũ
+                filtered.sort((a, b) -> Double.compare(
+                        snap.rankOfType(b.getRoomTypeId()),
+                        snap.rankOfType(a.getRoomTypeId())));
+        }
+
+        // 4. Attach RoomType + fallback ảnh
+        for (Room r : filtered) {
+            RoomType t = (r.getRoomTypeId() != null) ? typeMap.get(r.getRoomTypeId()) : null;
+            if (t != null) {
+                r.setRoomType(t);
+                if (r.getImageUrl() == null || r.getImageUrl().isBlank()) {
+                    r.setImageUrl(t.getImageUrl());
+                }
             }
         }
 
-        model.addAttribute("listPhong", loaiPhongs);
+        // 5. Model
+        model.addAttribute("rooms", filtered);
+        model.addAttribute("roomTypes", roomTypeRepository.findAll());
+        model.addAttribute("ratingMap", snap.getByRoomType());
 
-        // Get unique room types for the sidebar
-        List<RoomType> uniqueRoomTypes = roomTypeRepository.findAll();
-        model.addAttribute("listLoai", uniqueRoomTypes); 
+        model.addAttribute("keyword", keyword);
+        model.addAttribute("roomTypeId", roomTypeId);
+        model.addAttribute("checkin", checkin);
+        model.addAttribute("checkout", checkout);
+        model.addAttribute("guests", guests);
 
-        // Keep filter state
-        model.addAttribute("currentMaLoai", maLoai);
-        model.addAttribute("currentPriceRange", priceRange);
-        model.addAttribute("searchString", searchString);
-
-        return render(model, "view/Rooms/list");
+        setPageTitle(model, "Danh sách phòng nghỉ");
+        return "view/rooms/list";
     }
 
-    @GetMapping("/rooms/detail/{roomTypeId}")
-    public String roomDetailByType(@PathVariable("roomTypeId") Long roomTypeId, Model model) {
-        // Tìm tất cả phòng thuộc loại phòng này
-        List<Room> roomsOfType = roomRepository.findAll().stream()
-                .filter(r -> roomTypeId.equals(r.getRoomTypeId()))
-                .collect(Collectors.toList());
+    // ================================================================
+    // ROOM DETAIL — GET /rooms/detail/{id}
+    // ================================================================
+    @GetMapping("/rooms/detail/{id}")
+    public String roomDetail(@PathVariable("id") Long id, Model model, HttpSession session) {
 
-        if (roomsOfType.isEmpty()) {
+        Room room = roomRepository.findById(id).orElse(null);
+        if (room == null) {
             return "redirect:/rooms";
         }
 
-        // Ưu tiên chọn 1 phòng còn trống để hiển thị (để khách có thể click Đặt Ngay)
-        Room room = roomsOfType.stream()
-                .filter(r -> "Vacant".equalsIgnoreCase(r.getStatus()) || "Còn phòng".equalsIgnoreCase(r.getStatus()))
-                .findFirst()
-                .orElse(roomsOfType.get(0)); // Nếu không còn phòng trống thì lấy đại 1 phòng để show thông tin
-
-        if (room != null) {
-            // Nạp thông tin loại phòng và hình ảnh từ bảng room_types
-            com.votricuong.mayhotel.documents.RoomType type = null;
-            if (room.getRoomTypeId() != null) {
-                type = roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
-                if (type != null) {
-                    room.setRoomType(type);
-                    if (room.getImageUrl() == null) {
-                        room.setImageUrl(type.getImageUrl());
-                    }
-                }
+        // Attach RoomType
+        if (room.getRoomTypeId() != null) {
+            RoomType type = roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
+            room.setRoomType(type);
+            if ((room.getImageUrl() == null || room.getImageUrl().isBlank()) && type != null) {
+                room.setImageUrl(type.getImageUrl());
             }
-
-            String titleName = (type != null && type.getName() != null) ? type.getName() : "Phòng Tiêu Chuẩn";
-            setPageTitle(model, "Chi tiết " + titleName);
-            setExtraCSS(model, "view/Rooms/detail :: extra_css");
-            setExtraJS(model, "view/Rooms/detail :: extra_js");
-            
-            model.addAttribute("phong", room);
-            return render(model, "view/Rooms/detail");
         }
-        return "redirect:/rooms";
+
+        model.addAttribute("room", room);
+        model.addAttribute("images", new ArrayList<>());
+        model.addAttribute("reviews", new ArrayList<>());
+        model.addAttribute("roomRating", reviewService.snapshot().getByRoomType().get(room.getRoomTypeId()));
+        model.addAttribute("roomReviews", reviewService.reviewsForRoomType(room.getRoomTypeId(), 10));
+        // Khách đã ở loại phòng này và chưa đánh giá -> id đơn để form đánh giá gửi lên
+        model.addAttribute("reviewableBookingId",
+                reviewService.findReviewableBookingId((User) session.getAttribute("user"), room.getRoomTypeId()));
+
+        setPageTitle(model, "Chi tiết " + room.getName());
+        return "view/rooms/detail";
     }
 }

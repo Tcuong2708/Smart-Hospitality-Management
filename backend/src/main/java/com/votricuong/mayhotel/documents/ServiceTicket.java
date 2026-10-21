@@ -8,6 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.util.Date;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -27,4 +29,17 @@ public class ServiceTicket {
     private Integer quantity;
     
     private Double price;
+
+    /**
+     * Mã nhóm dùng để gom tất cả dịch vụ được khách xác nhận trong cùng một lần
+     * đặt. Nhân viên dịch vụ dựa vào mã này để xử lý và in chung một phiếu.
+     */
+    @Field("request_group_id")
+    private String requestGroupId;
+
+    @Field("ordered_at")
+    private Date orderedAt;
+
+    /** Trạng thái xử lý trên ứng dụng nhân viên dịch vụ. */
+    private String status;
 }

@@ -1,14 +1,9 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import 'package:screenshot/screenshot.dart';
-import 'package:blue_thermal_printer/blue_thermal_printer.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:image/image.dart' as img;
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 
 class ServiceOrderScreen extends StatefulWidget {
   final int bookingId;
-  const ServiceOrderScreen({Key? key, required this.bookingId}) : super(key: key);
+  const ServiceOrderScreen({super.key, required this.bookingId});
 
   @override
   State<ServiceOrderScreen> createState() => _ServiceOrderScreenState();
@@ -16,22 +11,16 @@ class ServiceOrderScreen extends StatefulWidget {
 
 class _ServiceOrderScreenState extends State<ServiceOrderScreen> {
   final HotelApiProvider _apiProvider = HotelApiProvider();
-  final ScreenshotController _screenshotController = ScreenshotController();
-  final BlueThermalPrinter _bluetooth = BlueThermalPrinter.instance;
 
   List<dynamic> _services = [];
+  final Map<int, Map<String, dynamic>> _cart = {};
   bool _isLoading = true;
-  
-  // Trạng thái Bluetooth
-  List<BluetoothDevice> _devices = [];
-  BluetoothDevice? _selectedDevice;
-  bool _isConnected = false;
+  bool _isSubmittingOrder = false;
 
   @override
   void initState() {
     super.initState();
     _fetchServices();
-    _initPrinter();
   }
 
   Future<void> _fetchServices() async {
@@ -44,48 +33,10 @@ class _ServiceOrderScreenState extends State<ServiceOrderScreen> {
     }
   }
 
-  Future<void> _initPrinter() async {
-    await [Permission.bluetoothScan, Permission.bluetoothConnect, Permission.location].request();
-    try {
-      List<BluetoothDevice> devices = await _bluetooth.getBondedDevices();
-      if (mounted) {
-        setState(() {
-          _devices = devices;
-          try {
-            _selectedDevice = _devices.firstWhere((d) => (d.name ?? '').toUpperCase().contains('RPP'));
-          } catch (e) {
-            // Không tìm thấy RPP mặc định
-          }
-        });
-      }
-    } catch (e) {
-      debugPrint("Lỗi quét Bluetooth: $e");
-    }
-  }
-
-  void _connectPrinter() async {
-    if (_selectedDevice == null) return;
-    bool? isConnected = await _bluetooth.isConnected;
-    if (isConnected != true) {
-      try {
-        await _bluetooth.connect(_selectedDevice!);
-        setState(() => _isConnected = true);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Kết nối máy in thành công!'), backgroundColor: Colors.green));
-      } catch (e) {
-        setState(() => _isConnected = false);
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Lỗi kết nối máy in!'), backgroundColor: Colors.red));
-      }
-    }
-  }
-
-  void _disconnectPrinter() async {
-    await _bluetooth.disconnect();
-    setState(() => _isConnected = false);
-  }
-
-  // Luồng: Chọn Dịch vụ -> Điền SL -> Gọi API -> Nhận Mock Hóa đơn -> Chụp Screenshot -> Xem trước bản in -> In
+  // Khách chỉ gửi yêu cầu; quyền xem trước và in thuộc nhân viên dịch vụ.
   void _orderService(dynamic service) {
-    int qty = 1;
+    final int serviceId = int.tryParse(service['id']?.toString() ?? '') ?? 0;
+    int qty = (_cart[serviceId]?['quantity'] as int?) ?? 1;
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -97,178 +48,221 @@ class _ServiceOrderScreenState extends State<ServiceOrderScreen> {
               children: [
                 IconButton(
                   icon: const Icon(Icons.remove_circle_outline),
-                  onPressed: () { if (qty > 1) setDialogState(() => qty--); },
+                  onPressed: () {
+                    if (qty > 1) setDialogState(() => qty--);
+                  },
                 ),
-                Text("$qty", style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                Text(
+                  "$qty",
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
                 IconButton(
                   icon: const Icon(Icons.add_circle_outline),
-                  onPressed: () { setDialogState(() => qty++); },
+                  onPressed: () {
+                    setDialogState(() => qty++);
+                  },
                 ),
               ],
             ),
             actions: [
-              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text("Hủy")),
+              if (_cart.containsKey(serviceId))
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    setState(() => _cart.remove(serviceId));
+                  },
+                  child: const Text("Xóa khỏi giỏ"),
+                ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text("Hủy"),
+              ),
               ElevatedButton(
                 onPressed: () async {
                   Navigator.pop(ctx);
-                  _processOrder(service, qty);
+                  if (serviceId <= 0) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text("Dịch vụ không hợp lệ")),
+                    );
+                    return;
+                  }
+                  setState(() {
+                    _cart[serviceId] = {
+                      'serviceId': serviceId,
+                      'name': service['name']?.toString() ?? 'Dịch vụ',
+                      'price':
+                          double.tryParse(
+                            service['price']?.toString() ?? '0',
+                          ) ??
+                          0.0,
+                      'quantity': qty,
+                    };
+                  });
                 },
-                child: const Text("Xác nhận Đặt"),
+                child: const Text("Thêm vào giỏ"),
               ),
             ],
           );
-        }
+        },
       ),
     );
   }
 
-  Future<void> _processOrder(dynamic service, int quantity) async {
+  int get _cartQuantity => _cart.values.fold<int>(
+    0,
+    (total, item) => total + ((item['quantity'] as int?) ?? 0),
+  );
+
+  double get _cartTotal => _cart.values.fold<double>(
+    0,
+    (total, item) =>
+        total +
+        ((item['price'] as num?)?.toDouble() ?? 0.0) *
+            ((item['quantity'] as int?) ?? 0),
+  );
+
+  Future<void> _processOrder() async {
+    if (_cart.isEmpty || _isSubmittingOrder) return;
+    setState(() => _isSubmittingOrder = true);
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => const Center(child: CircularProgressIndicator()),
     );
 
-    // 1. Gọi API lưu dịch vụ & nhận về thông tin hóa đơn
-    final receiptData = await _apiProvider.orderMobileService(widget.bookingId, service['id'], quantity);
-    
+    final requestItems = _cart.values
+        .map(
+          (item) => <String, dynamic>{
+            'serviceId': item['serviceId'],
+            'quantity': item['quantity'],
+          },
+        )
+        .toList();
+
+    Map<String, dynamic>? receiptData;
+    String? orderError;
+    try {
+      receiptData = await _apiProvider.orderMobileServices(
+        widget.bookingId,
+        requestItems,
+      );
+    } catch (error) {
+      orderError = error.toString();
+    }
+
     if (!mounted) return;
-    Navigator.pop(context); // Đóng loading
+    Navigator.pop(context);
+    setState(() => _isSubmittingOrder = false);
 
     if (receiptData == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Lỗi khi đặt dịch vụ!")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(orderError ?? "Lỗi khi đặt các dịch vụ!"),
+          backgroundColor: Colors.red,
+        ),
+      );
       return;
     }
 
-    // 2. Tạo UI Hóa Đơn 58mm (Không hiển thị ra màn hình, chỉ để chụp)
-    Widget receiptWidget = _build58mmReceipt(receiptData);
-
-    // 3. Chụp ảnh Hóa Đơn
-    showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
-    try {
-      Uint8List imageBytes = await _screenshotController.captureFromWidget(
-        receiptWidget,
-        delay: const Duration(milliseconds: 100),
-        pixelRatio: 1.0,
-      );
-      if (mounted) Navigator.pop(context); // Đóng chụp
-
-      // 4. Mở cửa sổ Xem Trước Bản In (Kế thừa từ file máy in bạn gửi)
-      _showPrintPreview(imageBytes);
-    } catch (e) {
-      if (mounted) Navigator.pop(context);
-      debugPrint("Lỗi chụp hóa đơn: $e");
-    }
-  }
-
-  // 📝 THIẾT KẾ GIAO DIỆN HÓA ĐƠN 58MM CỰC KỲ CHI TIẾT
-  Widget _build58mmReceipt(Map<String, dynamic> data) {
-    return Material(
-      color: Colors.white,
-      child: Container(
-        width: 384, // Chuẩn độ phân giải bề ngang máy in 58mm (48mm = 384 dots)
-        color: Colors.white,
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.center,
+    setState(_cart.clear);
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 24, 24, 8),
+        contentPadding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
+        title: const Row(
           children: [
-            Text(data['hotelName'] ?? "MAY HOTEL", style: const TextStyle(color: Colors.black, fontSize: 24, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 5),
-            Text(data['address'] ?? "Tây Thạnh, TP.HCM", style: const TextStyle(color: Colors.black, fontSize: 16)),
-            Text("Hotline: ${data['hotline'] ?? '0123456789'}", style: const TextStyle(color: Colors.black, fontSize: 16)),
-            const SizedBox(height: 10),
-            const Text("--------------------------------", style: TextStyle(color: Colors.black, fontSize: 20)),
-            const SizedBox(height: 10),
-            Text(data['title'] ?? "HÓA ĐƠN DỊCH VỤ", style: const TextStyle(color: Colors.black, fontSize: 22, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 15),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: const [
-                Text("Tên Dịch Vụ", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
-                Text("SL", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
-                Text("Thành Tiền", style: TextStyle(color: Colors.black, fontSize: 16, fontWeight: FontWeight.bold)),
-              ],
+            CircleAvatar(
+              backgroundColor: Color(0xFFE8F5E9),
+              child: Icon(Icons.check_rounded, color: Color(0xFF1B8D57)),
             ),
-            const SizedBox(height: 5),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(child: Text(data['serviceName'] ?? "", style: const TextStyle(color: Colors.black, fontSize: 18))),
-                Text("${data['quantity']}", style: const TextStyle(color: Colors.black, fontSize: 18)),
-                const SizedBox(width: 20),
-                Text("${data['totalPrice']}", style: const TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 15),
-            const Text("--------------------------------", style: TextStyle(color: Colors.black, fontSize: 20)),
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text("TỔNG CỘNG:", style: TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
-                Text("${data['totalPrice']} VNĐ", style: const TextStyle(color: Colors.black, fontSize: 20, fontWeight: FontWeight.bold)),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Text(data['message'] ?? "Xin cảm ơn quý khách!", style: const TextStyle(color: Colors.black, fontSize: 16, fontStyle: FontStyle.italic)),
-            const SizedBox(height: 30),
+            SizedBox(width: 12),
+            Expanded(child: Text('Đã gửi yêu cầu')),
           ],
         ),
-      ),
-    );
-  }
-
-  // 🖨️ XEM TRƯỚC VÀ IN
-  void _showPrintPreview(Uint8List imageBytes) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Xem trước Hóa đơn', style: TextStyle(fontWeight: FontWeight.bold)),
-        contentPadding: const EdgeInsets.all(16),
-        content: SingleChildScrollView(
-          child: Container(
-            decoration: BoxDecoration(border: Border.all(color: Colors.grey.shade400)),
-            child: Image.memory(imageBytes),
-          ),
+        content: const Text(
+          'Yêu cầu dịch vụ đã được chuyển đến quầy dịch vụ. '
+          'Nhân viên sẽ tiếp nhận, xử lý và in hóa đơn nhiệt tại quầy.',
+          style: TextStyle(fontSize: 16, height: 1.45),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Đóng', style: TextStyle(color: Colors.grey))),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _printImage(imageBytes);
-            },
-            icon: const Icon(Icons.print),
-            label: const Text('IN NGAY'),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green, foregroundColor: Colors.white),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Đã hiểu'),
           ),
         ],
       ),
     );
   }
 
-  void _printImage(Uint8List imageBytes) async {
-    if (!_isConnected) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Vui lòng kết nối máy in Bluetooth trước!')));
-      return;
+  String _formatMoney(dynamic value) {
+    final String digits = ((value as num?)?.round() ?? 0).toString();
+    final buffer = StringBuffer();
+    for (int i = 0; i < digits.length; i++) {
+      if (i > 0 && (digits.length - i) % 3 == 0) buffer.write('.');
+      buffer.write(digits[i]);
     }
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Đang làm nét ảnh và in...')));
+    return buffer.toString();
+  }
 
-    img.Image? decodedImage = img.decodeImage(imageBytes);
-    if (decodedImage != null) {
-      // Xử lý đen trắng cho sắc nét máy in nhiệt
-      for (var pixel in decodedImage) {
-        num luminance = pixel.r * 0.299 + pixel.g * 0.587 + pixel.b * 0.114;
-        if (luminance > 200) {
-          pixel.setRgb(255, 255, 255);
-        } else {
-          pixel.setRgb(0, 0, 0);
-        }
-      }
-      imageBytes = img.encodePng(decodedImage);
-    }
-    _bluetooth.printImageBytes(imageBytes);
+  Widget _buildCartBar(ColorScheme colorScheme) {
+    if (_cart.isEmpty) return const SizedBox.shrink();
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        decoration: BoxDecoration(
+          color: colorScheme.surface,
+          boxShadow: const [
+            BoxShadow(
+              color: Colors.black12,
+              blurRadius: 8,
+              offset: Offset(0, -2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            IconButton(
+              tooltip: 'Xóa giỏ dịch vụ',
+              onPressed: _isSubmittingOrder
+                  ? null
+                  : () => setState(_cart.clear),
+              icon: const Icon(Icons.delete_outline),
+            ),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${_cart.length} dịch vụ • $_cartQuantity sản phẩm',
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '${_formatMoney(_cartTotal)} VNĐ',
+                    style: TextStyle(
+                      color: colorScheme.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: _isSubmittingOrder ? null : _processOrder,
+              icon: const Icon(Icons.receipt_long),
+              label: const Text('Xác nhận'),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -284,52 +278,64 @@ class _ServiceOrderScreenState extends State<ServiceOrderScreen> {
         foregroundColor: colorScheme.onSurface,
         elevation: 0.5,
       ),
+      bottomNavigationBar: _buildCartBar(colorScheme),
       body: Column(
         children: [
-          // KHỐI KẾT NỐI MÁY IN BLUETOOTH
           Container(
-            color: colorScheme.surfaceVariant.withOpacity(0.3),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Row(
+            margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF8DF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE2BD35)),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: DropdownButton<BluetoothDevice>(
-                    isExpanded: true,
-                    hint: const Text('Chọn máy in hóa đơn...'),
-                    value: _selectedDevice,
-                    items: _devices.map((e) => DropdownMenuItem(value: e, child: Text(e.name ?? 'Unknown'))).toList(),
-                    onChanged: (device) => setState(() => _selectedDevice = device),
-                  ),
+                Icon(
+                  Icons.notifications_active_outlined,
+                  color: Color(0xFFB38A00),
                 ),
-                const SizedBox(width: 10),
-                ElevatedButton(
-                  onPressed: _isConnected ? _disconnectPrinter : _connectPrinter,
-                  style: ElevatedButton.styleFrom(backgroundColor: _isConnected ? Colors.red : Colors.green),
-                  child: Text(_isConnected ? 'Ngắt In' : 'Kết nối', style: const TextStyle(color: Colors.white)),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Sau khi xác nhận, yêu cầu sẽ được gửi trực tiếp đến quầy dịch vụ. '
+                    'Nhân viên phụ trách sẽ tiếp nhận và in hóa đơn nhiệt.',
+                    style: TextStyle(height: 1.35, color: Color(0xFF594600)),
+                  ),
                 ),
               ],
             ),
           ),
-          
+
           // DANH SÁCH DỊCH VỤ
           Expanded(
             child: _isLoading
                 ? const Center(child: CircularProgressIndicator())
                 : GridView.builder(
                     padding: const EdgeInsets.all(16),
-                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: 2,
-                      childAspectRatio: 0.85,
-                      crossAxisSpacing: 15,
-                      mainAxisSpacing: 15,
-                    ),
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: 2,
+                          childAspectRatio: 0.78,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 15,
+                        ),
                     itemCount: _services.length,
                     itemBuilder: (context, index) {
                       final srv = _services[index];
-                      double price = double.tryParse(srv['price']?.toString() ?? '0') ?? 0.0;
-                      
+                      double price =
+                          double.tryParse(srv['price']?.toString() ?? '0') ??
+                          0.0;
+                      final serviceId =
+                          int.tryParse(srv['id']?.toString() ?? '') ?? 0;
+                      final selectedQuantity =
+                          (_cart[serviceId]?['quantity'] as int?) ?? 0;
+
                       return Card(
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15),
+                        ),
                         elevation: 3,
                         child: InkWell(
                           borderRadius: BorderRadius.circular(15),
@@ -339,10 +345,16 @@ class _ServiceOrderScreenState extends State<ServiceOrderScreen> {
                             children: [
                               Expanded(
                                 child: ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
+                                  borderRadius: const BorderRadius.vertical(
+                                    top: Radius.circular(15),
+                                  ),
                                   child: Container(
-                                    color: Colors.blue.withOpacity(0.1),
-                                    child: const Icon(Icons.room_service, size: 50, color: Colors.blue),
+                                    color: Colors.blue.withValues(alpha: 0.1),
+                                    child: const Icon(
+                                      Icons.room_service,
+                                      size: 50,
+                                      color: Colors.blue,
+                                    ),
                                   ),
                                 ),
                               ),
@@ -353,15 +365,31 @@ class _ServiceOrderScreenState extends State<ServiceOrderScreen> {
                                   children: [
                                     Text(
                                       srv['name'] ?? "Dịch vụ",
-                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                     ),
                                     const SizedBox(height: 5),
                                     Text(
                                       "${price.toStringAsFixed(0)} VNĐ",
-                                      style: TextStyle(color: colorScheme.primary, fontWeight: FontWeight.bold),
+                                      style: TextStyle(
+                                        color: colorScheme.primary,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
+                                    if (selectedQuantity > 0) ...[
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Đã chọn: $selectedQuantity',
+                                        style: const TextStyle(
+                                          color: Colors.green,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
