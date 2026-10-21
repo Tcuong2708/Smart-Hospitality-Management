@@ -356,8 +356,10 @@ class HotelApiProvider {
   Future<Map<String, dynamic>?> submitCheckInAI(
     int bookingId,
     String cccdData,
-    int guestIndex,
-  ) async {
+    int guestIndex, {
+    required bool faceMatched,
+    required double faceSimilarity,
+  }) async {
     try {
       final response = await _dio.post(
         "/api/v1/mobile/booking/checkin",
@@ -365,6 +367,8 @@ class HotelApiProvider {
           "bookingId": bookingId,
           "cccdData": cccdData,
           "guestIndex": guestIndex,
+          "faceMatched": faceMatched,
+          "faceSimilarity": faceSimilarity,
         },
       );
       if (response.statusCode == 200) {
@@ -787,7 +791,7 @@ class HotelApiProvider {
   // 🌟 🌟 🌟 ĐÃ CHUYỂN ĐỔI SANG DIO: PHÂN HỆ THANH TOÁN (PAYMENT) 🌟 🌟 🌟
   // =========================================================================
 
-  Future<bool> confirmPayment(
+  Future<Map<String, dynamic>?> confirmPayment(
     int bookingId,
     double totalAmount,
     int paymentMethodId,
@@ -806,10 +810,16 @@ class HotelApiProvider {
       );
       print('confirmPayment response từ Java: ${res.data}');
 
-      return res.statusCode == 200;
+      if (res.statusCode == 200 && res.data is Map) {
+        final envelope = Map<String, dynamic>.from(res.data as Map);
+        return Map<String, dynamic>.from(
+          envelope['data'] as Map? ?? const <String, dynamic>{},
+        );
+      }
+      return null;
     } catch (e) {
       _handleError("Confirm payment error", e);
-      return false;
+      return null;
     }
   }
 

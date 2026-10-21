@@ -64,6 +64,27 @@ class BookingAvailabilityServiceTests {
     }
 
     @Test
+    void keepsTheAssignedRoomWhenCheckingAvailabilityForTheSameBooking() {
+        Room assignedRoom = room(1L, 10L, "Vacant");
+        Room blockedByAnotherBooking = room(2L, 10L, "Vacant");
+        BookingOrder current = order(101L, "Reserved", "2026-10-11T00:00:00Z", "2026-10-13T00:00:00Z");
+        BookingOrder other = order(102L, "Reserved", "2026-10-11T00:00:00Z", "2026-10-13T00:00:00Z");
+
+        when(roomRepository.findAll()).thenReturn(List.of(assignedRoom, blockedByAnotherBooking));
+        when(bookingOrderRepository.findAll()).thenReturn(List.of(current, other));
+        when(bookingDetailRepository.findByBookingId(101L)).thenReturn(List.of(detail(1L)));
+        when(bookingDetailRepository.findByBookingId(102L)).thenReturn(List.of(detail(2L)));
+
+        List<Room> available = service.findAvailableRoomsExcludingBooking(
+                10L,
+                date("2026-10-11T00:00:00Z"),
+                date("2026-10-13T00:00:00Z"),
+                101L);
+
+        assertThat(available).extracting(Room::getId).containsExactly(1L);
+    }
+
+    @Test
     void rejectsAnInvalidStayRange() {
         Date sameDay = date("2026-10-10T00:00:00Z");
 

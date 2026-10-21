@@ -23,6 +23,7 @@ import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.services.BookingAvailabilityService;
 import com.votricuong.mayhotel.services.BookingCancellationService;
 import com.votricuong.mayhotel.services.LoyaltyService;
+import com.votricuong.mayhotel.services.NoShowPredictionService;
 import com.votricuong.mayhotel.services.MobileTokenService;
 import com.votricuong.mayhotel.services.RoomStatusService;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
@@ -85,6 +86,7 @@ public class MobileOperationsApiController {
     private final RoomStatusService roomStatusService;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final LoyaltyService loyaltyService;
+    private final NoShowPredictionService noShowPredictionService;
 
     public MobileOperationsApiController(
             MobileTokenService tokenService,
@@ -101,7 +103,8 @@ public class MobileOperationsApiController {
             BookingAvailabilityService availabilityService,
             RoomStatusService roomStatusService,
             SequenceGeneratorService sequenceGeneratorService,
-            LoyaltyService loyaltyService) {
+            LoyaltyService loyaltyService,
+            NoShowPredictionService noShowPredictionService) {
         this.tokenService = tokenService;
         this.bookingOrderRepository = bookingOrderRepository;
         this.bookingDetailRepository = bookingDetailRepository;
@@ -117,6 +120,7 @@ public class MobileOperationsApiController {
         this.roomStatusService = roomStatusService;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.loyaltyService = loyaltyService;
+        this.noShowPredictionService = noShowPredictionService;
     }
 
     @GetMapping("/customer/loyalty")
@@ -226,6 +230,133 @@ public class MobileOperationsApiController {
         });
     }
 
+    @GetMapping("/reception/room-types")
+    public ResponseEntity<?> receptionRoomTypes(
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return roleAction(authorization, Set.of(3L), claims -> ok(
+                "Tải loại phòng thành công",
+                roomTypeRepository.findAll().stream().map(type -> Map.of(
+                        "id", type.getId(),
+                        "name", type.getName() == null ? "Loại phòng #" + type.getId() : type.getName(),
+                        "maxOccupancy", type.getMaxOccupancy() == null ? 1 : type.getMaxOccupancy()
+                )).toList()));
+    }
+
+    @GetMapping("/reception/available-rooms")
+    public ResponseEntity<?> receptionAvailableRooms(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam Long roomTypeId,
+            @RequestParam String checkIn,
+            @RequestParam String checkOut) {
+        return roleAction(authorization, Set.of(3L), claims -> {
+            Date from = date(checkIn, true);
+            Date to = date(checkOut, true);
+            List<Map<String, Object>> rooms = availabilityService.findAvailableRooms(roomTypeId, from, to).stream()
+                    .filter(room -> RoomStatus.fromStored(room.getStatus()) == RoomStatus.VACANT)
+                    .map(this::roomDto)
+                    .toList();
+            return ok("Tải phòng trống thành công", rooms);
+        });
+    }
+
+    @PostMapping("/reception/direct-bookings")
+    public synchronized ResponseEntity<?> createDirectBooking(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> payload) {
+        return roleAction(authorization, Set.of(3L), claims -> {
+            String guestName = InputValidator.requiredText(string(payload.get("guestName")), "Họ tên", 100);
+            String phone = InputValidator.phone(string(payload.get("phone")));
+            String note = InputValidator.optionalText(string(payload.get("note")), "Ghi chú", 500);
+            Long roomId = longValue(payload.get("roomId"), "Mã phòng");
+            int guestCount = intValue(payload.get("guestCount"), "Số khách");
+            if (guestCount < 1 || guestCount > 20) {
+                throw new IllegalArgumentException("Số khách phải từ 1 đến 20");
+            }
+            Date from = date(string(payload.get("checkIn")), true);
+            Date to = date(string(payload.get("checkOut")), true);
+            availabilityService.validateStay(from, to);
+
+            Room room = roomRepository.findById(roomId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phòng"));
+            RoomType roomType = roomTypeRepository.findById(room.getRoomTypeId())
+                    .orElseThrow(() -> new IllegalStateException("Phòng chưa có loại phòng hợp lệ"));
+            int capacity = roomType.getMaxOccupancy() == null ? 1 : roomType.getMaxOccupancy();
+            if (guestCount > capacity) {
+                throw new IllegalArgumentException("Số khách vượt sức chứa tối đa " + capacity + " người");
+            }
+            if (RoomStatus.fromStored(room.getStatus()) != RoomStatus.VACANT
+                    || !availabilityService.isRoomAvailable(roomId, from, to)) {
+                throw new IllegalStateException("Phòng không còn trống trong thời gian đã chọn");
+            }
+
+            Customer customer = customerRepository.findByPhone(phone).stream().findFirst().orElse(null);
+            if (customer == null) {
+                customer = Customer.builder()
+                        .id(sequenceGeneratorService.generateSequence("customers_sequence"))
+                        .fullName(guestName)
+                        .phone(phone)
+                        .build();
+            } else {
+                customer.setFullName(guestName);
+            }
+            customerRepository.save(customer);
+
+            long nights = java.time.temporal.ChronoUnit.DAYS.between(
+                    from.toInstant().atZone(ZoneId.systemDefault()).toLocalDate(),
+                    to.toInstant().atZone(ZoneId.systemDefault()).toLocalDate());
+            double unitPrice = InputValidator.positiveMoney(room.getPrice(), "Giá phòng");
+            long bookingId = sequenceGeneratorService.generateSequence("booking_orders_sequence");
+            BookingOrder order = BookingOrder.builder()
+                    .id(bookingId)
+                    .customerId(customer.getId())
+                    .bookingDate(new Date())
+                    .expectedIn(from)
+                    .expectedOut(to)
+                    .status("Reserved")
+                    .notes(note)
+                    .bookingSource("RECEPTION_MOBILE")
+                    .riskAnalysisStatus("PENDING")
+                    .guestCount(guestCount)
+                    .verifiedGuestCount(0)
+                    .isFaceVerified(false)
+                    .guestVerifications(new ArrayList<>())
+                    .build();
+            bookingOrderRepository.save(order);
+
+            BookingDetail detail = BookingDetail.builder()
+                    .id(sequenceGeneratorService.generateSequence("booking_details_sequence"))
+                    .bookingId(bookingId)
+                    .roomId(roomId)
+                    .unitPrice(unitPrice)
+                    .build();
+            bookingDetailRepository.save(detail);
+
+            Invoice invoice = Invoice.builder()
+                    .id(sequenceGeneratorService.generateSequence("invoices_sequence"))
+                    .bookingId(bookingId)
+                    .staffId(claims.userId())
+                    .userId(customer.getUserId())
+                    .createdAt(new Date())
+                    .totalAmount(unitPrice * nights)
+                    .payMethod("PAY_AT_HOTEL")
+                    .invoiceStatus("Reserved")
+                    .guestName(guestName)
+                    .phone(phone)
+                    .roomId(roomId)
+                    .checkInDate(from)
+                    .checkOutDate(to)
+                    .isPaid(false)
+                    .surcharge(0D)
+                    .note(note)
+                    .build();
+            invoiceRepository.save(invoice);
+            noShowPredictionService.analyzeAndSave(bookingId);
+            return ok("Đặt phòng trực tiếp thành công", Map.of(
+                    "booking", bookingDto(order),
+                    "invoice", invoiceDto(invoice)));
+        });
+    }
+
     @GetMapping("/reception/bookings/{bookingId}/available-rooms")
     public ResponseEntity<?> availableRooms(
             @PathVariable Long bookingId,
@@ -235,11 +366,35 @@ public class MobileOperationsApiController {
             Long requiredType = bookedRoomType(bookingId);
             if (requiredType == null) throw new IllegalStateException("Phiếu chưa xác định loại phòng đã đặt");
             List<Map<String, Object>> rooms = availabilityService
-                    .findAvailableRooms(requiredType, order.getExpectedIn(), order.getExpectedOut()).stream()
+                    .findAvailableRoomsExcludingBooking(
+                            requiredType, order.getExpectedIn(), order.getExpectedOut(), bookingId).stream()
                     .filter(room -> RoomStatus.fromStored(room.getStatus()) == RoomStatus.VACANT)
                     .map(this::roomDto)
                     .toList();
             return ok("Tải phòng phù hợp thành công", rooms);
+        });
+    }
+
+    @GetMapping("/reception/bookings/{bookingId}/change-room-options")
+    public ResponseEntity<?> changeRoomOptions(
+            @PathVariable Long bookingId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        return roleAction(authorization, Set.of(3L), claims -> {
+            BookingOrder order = requiredBooking(bookingId);
+            if (!hasStatus(order, CHECKED_IN)) {
+                throw new IllegalStateException("Chỉ đổi phòng cho khách đang lưu trú");
+            }
+            Date from = new Date();
+            Date to = order.getExpectedOut();
+            if (to == null || !to.after(from)) {
+                to = Date.from(from.toInstant().plus(java.time.Duration.ofDays(1)));
+            }
+            List<Map<String, Object>> rooms = availabilityService
+                    .findAvailableRoomsExcludingBooking(null, from, to, bookingId).stream()
+                    .filter(room -> RoomStatus.fromStored(room.getStatus()) == RoomStatus.VACANT)
+                    .map(this::roomDto)
+                    .toList();
+            return ok("Tải phòng có thể đổi thành công", rooms);
         });
     }
 
@@ -269,8 +424,8 @@ public class MobileOperationsApiController {
             if (RoomStatus.fromStored(room.getStatus()) != RoomStatus.VACANT) {
                 throw new IllegalStateException("Phòng không còn ở trạng thái trống");
             }
-            boolean available = availabilityService.findAvailableRooms(
-                            requiredType, order.getExpectedIn(), order.getExpectedOut()).stream()
+            boolean available = availabilityService.findAvailableRoomsExcludingBooking(
+                            requiredType, order.getExpectedIn(), order.getExpectedOut(), bookingId).stream()
                     .anyMatch(candidate -> roomId.equals(candidate.getId()));
             if (!available) throw new IllegalStateException("Phòng vừa được đặt, vui lòng chọn phòng khác");
 
@@ -286,6 +441,87 @@ public class MobileOperationsApiController {
             order.setAutoCancelTime(null);
             bookingOrderRepository.save(order);
             return ok("Duyệt nhận phòng thành công", bookingDto(order));
+        });
+    }
+
+    @PostMapping("/reception/bookings/{bookingId}/manual-verification")
+    public synchronized ResponseEntity<?> manualVerification(
+            @PathVariable Long bookingId,
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> payload) {
+        return roleAction(authorization, Set.of(3L), claims -> {
+            BookingOrder order = requiredBooking(bookingId);
+            if (!isPending(order)) throw new IllegalStateException("Phiếu không còn chờ nhận phòng");
+            int guestCount = effectiveGuestCount(order);
+            int guestIndex = intValue(payload.get("guestIndex"), "Vị trí khách");
+            if (guestIndex < 0 || guestIndex >= guestCount) {
+                throw new IllegalArgumentException("Vị trí khách xác thực không hợp lệ");
+            }
+            String fullName = InputValidator.requiredText(string(payload.get("fullName")), "Họ tên", 100);
+            String documentNumber = InputValidator.requiredText(
+                    string(payload.get("documentNumber")), "Số hộ chiếu/giấy tờ", 30);
+            if (!documentNumber.matches("[A-Za-z0-9.-]{4,30}")) {
+                throw new IllegalArgumentException("Số giấy tờ chỉ gồm 4-30 chữ, số, dấu chấm hoặc gạch ngang");
+            }
+            String nationality = InputValidator.requiredText(
+                    string(payload.get("nationality")), "Quốc tịch", 60);
+            String reason = InputValidator.requiredText(
+                    string(payload.get("reason")), "Lý do xác thực thủ công", 300);
+            Date dob = null;
+            String dobRaw = string(payload.get("dob"));
+            if (dobRaw != null && !dobRaw.isBlank()) {
+                LocalDate birthDate = LocalDate.parse(dobRaw);
+                if (birthDate.isAfter(LocalDate.now())) {
+                    throw new IllegalArgumentException("Ngày sinh không được ở tương lai");
+                }
+                dob = Date.from(birthDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+            }
+
+            List<Map<String, Object>> verifications = order.getGuestVerifications() == null
+                    ? new ArrayList<>() : new ArrayList<>(order.getGuestVerifications());
+            boolean duplicate = verifications.stream().anyMatch(item ->
+                    !Objects.equals(asInteger(item.get("guestIndex")), guestIndex)
+                            && documentNumber.equalsIgnoreCase(string(item.get("documentNumber"))));
+            if (duplicate) throw new IllegalArgumentException("Giấy tờ đã dùng cho một khách khác");
+
+            Map<String, Object> verification = new LinkedHashMap<>();
+            verification.put("guestIndex", guestIndex);
+            verification.put("fullName", fullName);
+            verification.put("documentNumber", documentNumber);
+            verification.put("nationality", nationality);
+            if (dob != null) verification.put("dob", dob);
+            verification.put("reason", reason);
+            verification.put("method", "MANUAL_EXCEPTION");
+            verification.put("verifiedAt", new Date());
+            verification.put("verifiedBy", claims.userId());
+            verifications.removeIf(item -> Objects.equals(asInteger(item.get("guestIndex")), guestIndex));
+            verifications.add(verification);
+
+            int verifiedCount = (int) verifications.stream()
+                    .map(item -> asInteger(item.get("guestIndex")))
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .count();
+            order.setGuestVerifications(verifications);
+            order.setVerifiedGuestCount(verifiedCount);
+            order.setIsFaceVerified(verifiedCount >= guestCount);
+            order.setIdentityVerificationMethod("MANUAL_EXCEPTION");
+            order.setIdentityVerificationReason(reason);
+            order.setIdentityVerifiedAt(new Date());
+            bookingOrderRepository.save(order);
+
+            Date verifiedDob = dob;
+            if (guestIndex == 0) {
+                customerRepository.findById(order.getCustomerId()).ifPresent(customer -> {
+                    customer.setFullName(fullName);
+                    customer.setCccd(documentNumber);
+                    customer.setNationality(nationality);
+                    customer.setQuocTich(nationality);
+                    if (verifiedDob != null) customer.setDob(verifiedDob);
+                    customerRepository.save(customer);
+                });
+            }
+            return ok("Đã ghi nhận xác thực thủ công", bookingDto(order));
         });
     }
 
@@ -399,6 +635,16 @@ public class MobileOperationsApiController {
             Room oldRoom = roomRepository.findById(detail.getRoomId())
                     .orElseThrow(() -> new IllegalStateException("Không tìm thấy phòng hiện tại"));
             if (oldRoom.getId().equals(newRoomId)) throw new IllegalArgumentException("Phòng mới phải khác phòng hiện tại");
+
+            Date now = new Date();
+            Date availabilityEnd = order.getExpectedOut();
+            if (availabilityEnd == null || !availabilityEnd.after(now)) {
+                availabilityEnd = Date.from(now.toInstant().plus(java.time.Duration.ofDays(1)));
+            }
+            boolean available = availabilityService.findAvailableRoomsExcludingBooking(
+                            null, now, availabilityEnd, bookingId).stream()
+                    .anyMatch(room -> Objects.equals(room.getId(), newRoomId));
+            if (!available) throw new IllegalStateException("Phòng mới đã được đặt trong thời gian còn lại");
 
             double difference = value(newRoom.getPrice()) - value(oldRoom.getPrice());
             Invoice invoice = firstInvoice(bookingId)
@@ -781,6 +1027,16 @@ public class MobileOperationsApiController {
             return Integer.parseInt(string(value));
         } catch (NumberFormatException ex) {
             throw new IllegalArgumentException(label + " không hợp lệ");
+        }
+    }
+
+    private Integer asInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.valueOf(value.toString());
+        } catch (NumberFormatException exception) {
+            return null;
         }
     }
 

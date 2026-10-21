@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../../core/utils/responsive.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
@@ -22,6 +23,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   int? _selectedMethodId;
   bool _isProcessing = false;
 
+  bool get _onlinePaymentEnabled =>
+      dotenv.env['PAYMENT_GATEWAY_ENABLED']?.toLowerCase() == 'true';
+
   // Hàm xử lý khi nhấn nút Xác nhận thanh toán
   void _handlePayment() async {
     if (_selectedMethodId == null) {
@@ -32,31 +36,63 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
       );
       return;
     }
+    if (_selectedMethodId != 8 && !_onlinePaymentEnabled) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Cổng thanh toán trực tuyến chưa cấu hình callback xác nhận. Vui lòng chọn thanh toán tại khách sạn.',
+          ),
+        ),
+      );
+      return;
+    }
 
     setState(() => _isProcessing = true);
 
-    bool success = false;
+    Map<String, dynamic>? result;
     try {
       // Liên thông gọi API kết toán sang Backend C#
-      success = await _apiProvider.confirmPayment(
+      result = await _apiProvider.confirmPayment(
         widget.bookingId,
         widget.totalAmount,
         _selectedMethodId!,
       );
     } catch (_) {
-      success = false;
+      result = null;
     }
 
     if (!mounted) return;
     setState(() => _isProcessing = false);
 
-    if (success) {
-      _showSuccessDialog(payAtHotel: _selectedMethodId == 8);
+    if (result != null) {
+      if (result['status'] == 'PAYMENT_PENDING') {
+        _showPendingPaymentDialog();
+      } else {
+        _showSuccessDialog(payAtHotel: _selectedMethodId == 8);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Lỗi kết nối Server. Vui lòng thử lại!")),
       );
     }
+  }
+
+  void _showPendingPaymentDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Đang chờ xác nhận thanh toán'),
+        content: const Text(
+          'Yêu cầu đã được tạo nhưng chưa được xem là đã thanh toán. Đơn chỉ được xác nhận sau khi backend nhận callback hợp lệ từ cổng thanh toán.',
+        ),
+        actions: [
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Đã hiểu'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -80,6 +116,16 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                if (!_onlinePaymentEnabled)
+                  const Card(
+                    color: Color(0xFFFFF3CD),
+                    child: Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text(
+                        'Thanh toán online tạm khóa để tránh ghi nhận thanh toán giả khi chưa có callback từ cổng thanh toán.',
+                      ),
+                    ),
+                  ),
                 _buildSectionTitle(context, "Thẻ tín dụng / Ghi nợ"),
                 _buildPaymentCard(
                   context,
@@ -232,8 +278,9 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   // Hàm helper giữ nguyên logic xử lý Icon/Image của Cường
   Widget _buildLeadingIcon(dynamic leading, Color brandColor) {
     if (leading is IconData) return Icon(leading, color: brandColor, size: 30);
-    if (leading is String && leading.startsWith('http'))
+    if (leading is String && leading.startsWith('http')) {
       return Image.network(leading, width: 30, height: 30, fit: BoxFit.contain);
+    }
     return Icon(Icons.account_balance_wallet, color: brandColor, size: 30);
   }
 

@@ -4,12 +4,14 @@ import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.documents.Service;
 import com.votricuong.mayhotel.documents.ServiceTicket;
+import com.votricuong.mayhotel.documents.Customer;
 import com.votricuong.mayhotel.dto.ApiResponse;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.repositories.ServiceRepository;
 import com.votricuong.mayhotel.repositories.ServiceTicketRepository;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
 import com.votricuong.mayhotel.services.MobileTokenService;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +36,7 @@ class MobileApiControllerTests {
     private ServiceTicketRepository serviceTicketRepository;
     private SequenceGeneratorService sequenceGeneratorService;
     private MobileTokenService mobileTokenService;
+    private CustomerRepository customerRepository;
     private MobileApiController controller;
 
     @BeforeEach
@@ -44,12 +47,17 @@ class MobileApiControllerTests {
         serviceTicketRepository = mock(ServiceTicketRepository.class);
         sequenceGeneratorService = mock(SequenceGeneratorService.class);
         mobileTokenService = mock(MobileTokenService.class);
+        customerRepository = mock(CustomerRepository.class);
         BookingDetailRepository bookingDetailRepository = mock(BookingDetailRepository.class);
         controller = new MobileApiController(
                 null, serviceRepository, invoiceRepository, null, null, null, null,
                 bookingOrderRepository, bookingDetailRepository,
-                serviceTicketRepository, null, sequenceGeneratorService, null, null, null, mobileTokenService, null);
+                serviceTicketRepository, customerRepository, sequenceGeneratorService, null, null, null, mobileTokenService, null, null);
         when(bookingDetailRepository.findByBookingId(88L)).thenReturn(Collections.emptyList());
+        when(mobileTokenService.verifyAuthorization("Bearer customer"))
+                .thenReturn(new MobileTokenService.Claims(5L, 5L, "CUSTOMER", Long.MAX_VALUE));
+        when(customerRepository.findByUserId(5L))
+                .thenReturn(List.of(Customer.builder().id(77L).userId(5L).build()));
     }
 
     @Test
@@ -66,16 +74,19 @@ class MobileApiControllerTests {
     void onlyCompletesVerificationAfterEveryGuestIsVerified() {
         BookingOrder booking = BookingOrder.builder()
                 .id(88L)
+                .customerId(77L)
                 .guestCount(2)
                 .verifiedGuestCount(0)
                 .isFaceVerified(false)
                 .build();
         when(bookingOrderRepository.findById(88L)).thenReturn(Optional.of(booking));
 
-        ResponseEntity<ApiResponse<Map<String, Object>>> first = controller.checkinAIAndNFC(Map.of(
+        ResponseEntity<ApiResponse<Map<String, Object>>> first = controller.checkinAIAndNFC("Bearer customer", Map.of(
                 "bookingId", 88,
                 "guestIndex", 0,
-                "cccdData", "CCCD-A"));
+                "cccdData", "CCCD-A",
+                "faceMatched", true,
+                "faceSimilarity", 98.5));
 
         assertThat(first.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(first.getBody().getData())
@@ -84,10 +95,12 @@ class MobileApiControllerTests {
                 .containsEntry("allGuestsVerified", false);
         assertThat(booking.getIsFaceVerified()).isFalse();
 
-        ResponseEntity<ApiResponse<Map<String, Object>>> second = controller.checkinAIAndNFC(Map.of(
+        ResponseEntity<ApiResponse<Map<String, Object>>> second = controller.checkinAIAndNFC("Bearer customer", Map.of(
                 "bookingId", 88,
                 "guestIndex", 1,
-                "cccdData", "CCCD-B"));
+                "cccdData", "CCCD-B",
+                "faceMatched", true,
+                "faceSimilarity", 97.2));
 
         assertThat(second.getStatusCode().is2xxSuccessful()).isTrue();
         assertThat(second.getBody().getData())
@@ -100,13 +113,15 @@ class MobileApiControllerTests {
 
     @Test
     void rejectsUsingTheSameIdentityForAnotherGuest() {
-        BookingOrder booking = BookingOrder.builder().id(88L).guestCount(2).build();
+        BookingOrder booking = BookingOrder.builder().id(88L).customerId(77L).guestCount(2).build();
         when(bookingOrderRepository.findById(88L)).thenReturn(Optional.of(booking));
 
-        controller.checkinAIAndNFC(Map.of(
-                "bookingId", 88, "guestIndex", 0, "cccdData", "SAME-CCCD"));
-        ResponseEntity<ApiResponse<Map<String, Object>>> duplicate = controller.checkinAIAndNFC(Map.of(
-                "bookingId", 88, "guestIndex", 1, "cccdData", "SAME-CCCD"));
+        controller.checkinAIAndNFC("Bearer customer", Map.of(
+                "bookingId", 88, "guestIndex", 0, "cccdData", "SAME-CCCD",
+                "faceMatched", true, "faceSimilarity", 98.0));
+        ResponseEntity<ApiResponse<Map<String, Object>>> duplicate = controller.checkinAIAndNFC("Bearer customer", Map.of(
+                "bookingId", 88, "guestIndex", 1, "cccdData", "SAME-CCCD",
+                "faceMatched", true, "faceSimilarity", 98.0));
 
         assertThat(duplicate.getStatusCode().is4xxClientError()).isTrue();
         assertThat(duplicate.getBody().getMessage()).contains("đã được dùng");
@@ -115,9 +130,33 @@ class MobileApiControllerTests {
     }
 
     @Test
+    void rejectsCheckInWhenFaceMatchDoesNotReachTheThreshold() {
+        BookingOrder booking = BookingOrder.builder()
+                .id(88L)
+                .customerId(77L)
+                .guestCount(1)
+                .build();
+        when(bookingOrderRepository.findById(88L)).thenReturn(Optional.of(booking));
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.checkinAIAndNFC(
+                "Bearer customer",
+                Map.of(
+                        "bookingId", 88,
+                        "guestIndex", 0,
+                        "cccdData", "CCCD-A",
+                        "faceMatched", false,
+                        "faceSimilarity", 42.0));
+
+        assertThat(response.getStatusCode().is4xxClientError()).isTrue();
+        assertThat(response.getBody().getMessage()).contains("60%");
+        assertThat(booking.getVerifiedGuestCount()).isNull();
+    }
+
+    @Test
     void storesMultipleServicesAndUpdatesOneInvoiceOnce() {
         BookingOrder booking = BookingOrder.builder()
                 .id(88L)
+                .customerId(77L)
                 .status("Đang ở")
                 .build();
         Invoice invoice = Invoice.builder()
@@ -135,7 +174,7 @@ class MobileApiControllerTests {
         when(sequenceGeneratorService.generateSequence("service_tickets_sequence"))
                 .thenReturn(101L, 102L);
 
-        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.orderServiceBatch(Map.of(
+        ResponseEntity<ApiResponse<Map<String, Object>>> response = controller.orderServiceBatch("Bearer customer", Map.of(
                 "bookingId", 88,
                 "items", List.of(
                         Map.of("serviceId", 1, "quantity", 1),

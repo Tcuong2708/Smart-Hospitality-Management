@@ -45,10 +45,51 @@ class MobileOperationsApi {
     query: {'view': active ? 'active' : 'pending'},
   );
 
-  Future<List<Map<String, dynamic>>> getAvailableRooms(int bookingId) =>
-      _getList(
-        '/api/v1/mobile/operations/reception/bookings/$bookingId/available-rooms',
-      );
+  Future<List<Map<String, dynamic>>> getReceptionRoomTypes() =>
+      _getList('/api/v1/mobile/operations/reception/room-types');
+
+  Future<List<Map<String, dynamic>>> getReceptionAvailableRooms({
+    required int roomTypeId,
+    required DateTime checkIn,
+    required DateTime checkOut,
+  }) => _getList(
+    '/api/v1/mobile/operations/reception/available-rooms',
+    query: {
+      'roomTypeId': roomTypeId,
+      'checkIn': _date(checkIn),
+      'checkOut': _date(checkOut),
+    },
+  );
+
+  Future<Map<String, dynamic>> createDirectBooking({
+    required String guestName,
+    required String phone,
+    required int roomId,
+    required DateTime checkIn,
+    required DateTime checkOut,
+    required int guestCount,
+    String? note,
+  }) => _postMap('/api/v1/mobile/operations/reception/direct-bookings', {
+    'guestName': guestName,
+    'phone': phone,
+    'roomId': roomId,
+    'checkIn': _date(checkIn),
+    'checkOut': _date(checkOut),
+    'guestCount': guestCount,
+    'note': note,
+  });
+
+  Future<List<Map<String, dynamic>>> getAvailableRooms(
+    int bookingId,
+  ) => _getList(
+    '/api/v1/mobile/operations/reception/bookings/$bookingId/available-rooms',
+  );
+
+  Future<List<Map<String, dynamic>>> getChangeRoomOptions(
+    int bookingId,
+  ) => _getList(
+    '/api/v1/mobile/operations/reception/bookings/$bookingId/change-room-options',
+  );
 
   Future<void> assignRoom(int bookingId, int roomId) async {
     await _dio.post(
@@ -56,6 +97,26 @@ class MobileOperationsApi {
       data: {'roomId': roomId},
     );
   }
+
+  Future<Map<String, dynamic>> submitManualVerification(
+    int bookingId, {
+    required int guestIndex,
+    required String fullName,
+    required String documentNumber,
+    required String nationality,
+    DateTime? dob,
+    required String reason,
+  }) => _postMap(
+    '/api/v1/mobile/operations/reception/bookings/$bookingId/manual-verification',
+    {
+      'guestIndex': guestIndex,
+      'fullName': fullName,
+      'documentNumber': documentNumber,
+      'nationality': nationality,
+      'dob': _date(dob),
+      'reason': reason,
+    },
+  );
 
   Future<void> checkout(
     int bookingId, {
@@ -96,9 +157,8 @@ class MobileOperationsApi {
     {'amountReceived': amountReceived, 'earnPoints': earnPoints},
   );
 
-  Future<List<Map<String, dynamic>>> getNoShowBookings() => _getList(
-    '/api/v1/mobile/operations/reception/no-show',
-  );
+  Future<List<Map<String, dynamic>>> getNoShowBookings() =>
+      _getList('/api/v1/mobile/operations/reception/no-show');
 
   Future<void> approveLateArrival(int bookingId, String reason) async {
     await _dio.patch(
@@ -122,7 +182,9 @@ class MobileOperationsApi {
       options: Options(responseType: ResponseType.bytes),
     );
     final suffix = DateTime.now().millisecondsSinceEpoch;
-    final file = File('${Directory.systemTemp.path}/may-hotel-revenue-$suffix.csv');
+    final file = File(
+      '${Directory.systemTemp.path}/may-hotel-revenue-$suffix.csv',
+    );
     await file.writeAsBytes(response.data ?? const <int>[]);
     return file;
   }

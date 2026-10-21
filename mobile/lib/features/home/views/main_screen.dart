@@ -7,12 +7,13 @@ import 'package:may_hotel_app/features/auth/models/app_role.dart';
 import 'package:may_hotel_app/features/management/views/admin_backup_screen.dart';
 import 'package:may_hotel_app/features/management/views/manager_catalog_screen.dart';
 import 'package:may_hotel_app/features/management/views/summary_dashboard_screen.dart';
+import 'package:may_hotel_app/features/operations/views/accounting_report_screen.dart';
+import 'package:may_hotel_app/features/operations/views/reception_operations_screen.dart';
 // Import thêm trang Sơ đồ phòng của Cường vào đây
 import 'package:may_hotel_app/features/checkin/views/room_map_screen.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../admin/views/admin_user_screen.dart';
 import 'booked_rooms_screen.dart';
-import '../../checkin/views/check_in_screen.dart';
 import 'home_screen.dart';
 import 'search_room_screen.dart';
 import '../../chat/views/chat_screen.dart';
@@ -97,7 +98,7 @@ class _MainScreenState extends State<MainScreen> {
         NavItem(
           icon: Icons.analytics_outlined,
           label: 'Thống kê',
-          screen: const ManagerDashboardScreen(revenueFocus: true),
+          screen: const AccountingReportScreen(),
           isBig: true,
         ),
         NavItem(
@@ -120,7 +121,7 @@ class _MainScreenState extends State<MainScreen> {
         NavItem(
           icon: Icons.checklist_rtl_rounded,
           label: 'Check-in',
-          screen: CheckInScreen(),
+          screen: const ReceptionOperationsScreen(),
           isBig: true,
         ),
         NavItem(
@@ -183,7 +184,20 @@ class _MainScreenState extends State<MainScreen> {
           screen: ProfileScreen(username: widget.username),
         ),
       ],
-      AppRole.accountant || AppRole.unsupported => [
+      AppRole.accountant => [
+        NavItem(
+          icon: Icons.analytics_outlined,
+          label: 'Doanh thu',
+          screen: const AccountingReportScreen(),
+          isBig: true,
+        ),
+        NavItem(
+          icon: Icons.person_outline,
+          label: lang.translate('profile'),
+          screen: ProfileScreen(username: widget.username),
+        ),
+      ],
+      AppRole.unsupported => [
         NavItem(
           icon: Icons.lock_person_outlined,
           label: 'Phân quyền',

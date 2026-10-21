@@ -161,14 +161,37 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         return;
       }
 
-      String aiResultStr = "XÁC THỰC AI KHỚP KHOẢNG 98.5%";
+      String aiResultStr;
       final faceVer = aiRes['face_verification'];
-      if (faceVer != null && faceVer is Map) {
-        final matchRate = faceVer['similarity'] ?? 98.5;
-        aiResultStr = "KHỚP KHUÔN MẶT AI: $matchRate%";
-      } else {
-        aiResultStr = "KHÔNG DÙNG FACEMATCH, CHỈ CÓ OCR";
+      if (faceVer is! Map) {
+        setState(() {
+          _isProcessing = false;
+          _statusMessage =
+              "AI chưa trả về kết quả so khớp khuôn mặt. Vui lòng thử lại.";
+        });
+        return;
       }
+
+      final faceMatched =
+          faceVer['verified'] == true ||
+          faceVer['matched'] == true ||
+          faceVer['is_match'] == true;
+      final rawSimilarity = faceVer['similarity'];
+      final rawDistance = faceVer['distance'];
+      final similarity = rawSimilarity is num
+          ? rawSimilarity.toDouble()
+          : rawDistance is num
+          ? ((1 - rawDistance.toDouble()) * 100).clamp(0, 100).toDouble()
+          : 0.0;
+      if (!faceMatched || similarity < 60) {
+        setState(() {
+          _isProcessing = false;
+          _statusMessage =
+              "Khuôn mặt không khớp CCCD (${similarity.toStringAsFixed(1)}%). Vui lòng chụp lại.";
+        });
+        return;
+      }
+      aiResultStr = "KHỚP KHUÔN MẶT AI: ${similarity.toStringAsFixed(1)}%";
 
       setState(() {
         _statusMessage = "AI xác thực thành công! Đang đồng bộ với lễ tân...";
@@ -179,6 +202,8 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         widget.bookingId,
         "$aiResultStr | NFC: ${_nfcData ?? ''}",
         _currentGuestIndex,
+        faceMatched: faceMatched,
+        faceSimilarity: similarity,
       );
 
       if (res != null) {

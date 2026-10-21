@@ -57,8 +57,9 @@ public class MobileApiController {
     private final com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService;
     private final com.votricuong.mayhotel.services.MobileTokenService mobileTokenService;
     private final com.votricuong.mayhotel.services.RoomStatusService roomStatusService;
+    private final com.votricuong.mayhotel.services.AuthService authService;
 
-    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService, com.votricuong.mayhotel.services.MobileTokenService mobileTokenService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService) {
+    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService, com.votricuong.mayhotel.services.MobileTokenService mobileTokenService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService, com.votricuong.mayhotel.services.AuthService authService) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.invoiceRepository = invoiceRepository;
@@ -76,6 +77,7 @@ public class MobileApiController {
         this.noShowPredictionService = noShowPredictionService;
         this.mobileTokenService = mobileTokenService;
         this.roomStatusService = roomStatusService;
+        this.authService = authService;
     }
 
     private String hashPassword(String password) {
@@ -134,16 +136,27 @@ public class MobileApiController {
 
     @PostMapping("/auth/google-login")
     public ResponseEntity<Map<String, Object>> googleLogin(@RequestBody Map<String, String> payload) {
-        String idToken = payload.get("IdToken");
-        // Simplified Google login (without full Firebase validation for now, relying on email from Flutter)
-        // Usually, the app sends the email as well for quick mock integration, or we mock success.
-        Map<String, Object> data = new HashMap<>();
-        data.put("id", System.currentTimeMillis());
-        data.put("name", "Google User");
-        data.put("role", 3);
-        data.put("roleId", 5);
-        data.put("roleCode", "CUSTOMER");
-        return ResponseEntity.ok(data);
+        try {
+            String idToken = payload.get("IdToken");
+            if (idToken == null || idToken.isBlank()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Thiếu Google ID token"));
+            }
+            User user = authService.verifyGoogleToken(idToken);
+            long roleId = user.getRoleId() == null ? 5L : user.getRoleId();
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", user.getId());
+            data.put("name", user.getFullName());
+            data.put("role", roleId == 1L ? 1 : roleId == 3L ? 2 : 3);
+            data.put("roleId", roleId);
+            data.put("roleCode", user.getRole());
+            data.put("accessToken", mobileTokenService.issue(user));
+            data.put("expiresIn", com.votricuong.mayhotel.services.MobileTokenService.EXPIRES_IN_SECONDS);
+            return ResponseEntity.ok(data);
+        } catch (Exception exception) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", exception.getMessage() == null
+                            ? "Xác thực Google thất bại" : exception.getMessage()));
+        }
     }
 
     @PostMapping("/auth/send-otp")
@@ -343,9 +356,16 @@ public class MobileApiController {
     // ==========================================
 
     @PostMapping("/booking/add")
-    public synchronized ResponseEntity<ApiResponse<Map<String, Object>>> addBooking(@RequestBody Map<String, Object> payload) {
+    public synchronized ResponseEntity<ApiResponse<Map<String, Object>>> addBooking(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> payload) {
         try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
             Long userId = requiredLong(payload, "userId");
+            if (claims.userId() != userId) {
+                throw new SecurityException("Không được đặt phòng thay cho tài khoản khác");
+            }
             Long roomTypeId = requiredLong(payload, "roomTypeId");
             String ngayNhanStr = requiredString(payload, "ngayNhan");
             String ngayTraStr = requiredString(payload, "ngayTra");
@@ -464,14 +484,23 @@ public class MobileApiController {
             resp.put("status", order.getStatus());
             
             return ResponseEntity.ok(ApiResponse.success("Đặt phòng thành công", resp));
+        } catch (SecurityException e) {
+            return securityError(e);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
 
     @GetMapping("/booking/history")
-    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getHistory(@RequestParam("userId") Long userId) {
+    public ResponseEntity<ApiResponse<List<Map<String, Object>>>> getHistory(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam("userId") Long userId) {
         try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
+            if (claims.userId() != userId) {
+                throw new SecurityException("Không được xem lịch sử đặt phòng của tài khoản khác");
+            }
             List<Customer> customers = customerRepository.findByUserId(userId);
             if (customers.isEmpty()) {
                 return ResponseEntity.ok(ApiResponse.success("Trống", new ArrayList<>()));
@@ -521,14 +550,23 @@ public class MobileApiController {
                 data.add(map);
             }
             return ResponseEntity.ok(ApiResponse.success("Thành công", data));
+        } catch (SecurityException e) {
+            return securityError(e);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
     
     @GetMapping("/booking/active")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveBooking(@RequestParam("userId") Long userId) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getActiveBooking(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestParam("userId") Long userId) {
         try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
+            if (claims.userId() != userId) {
+                throw new SecurityException("Không được xem kỳ lưu trú của tài khoản khác");
+            }
             List<Customer> customers = customerRepository.findByUserId(userId);
             if (customers.isEmpty()) {
                 return ResponseEntity.ok(ApiResponse.success("Không có phòng đang ở", Map.of("hasActiveBooking", false, "canOrderService", false)));
@@ -560,6 +598,8 @@ public class MobileApiController {
             }
 
             return ResponseEntity.ok(ApiResponse.success("Lấy thông tin nhận phòng thành công", data));
+        } catch (SecurityException e) {
+            return securityError(e);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -567,16 +607,26 @@ public class MobileApiController {
 
     @PostMapping("/booking/checkin")
     public synchronized ResponseEntity<ApiResponse<Map<String, Object>>> checkinAIAndNFC(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestBody Map<String, Object> payload) {
         try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
             Long bookingId = Long.valueOf(payload.get("bookingId").toString());
-            String cccdData = (String) payload.getOrDefault("cccdData", "AI_VERIFIED"); 
+            String cccdData = com.votricuong.mayhotel.utils.InputValidator.requiredText(
+                    String.valueOf(payload.getOrDefault("cccdData", "")), "Dữ liệu CCCD/NFC", 4000);
+            boolean faceMatched = Boolean.TRUE.equals(payload.get("faceMatched"));
+            double faceSimilarity = optionalDouble(payload, "faceSimilarity", 0D);
+            if (!faceMatched || faceSimilarity < 60D) {
+                throw new IllegalArgumentException("Khuôn mặt chưa được AI xác thực đạt ngưỡng 60%");
+            }
             int guestIndex = optionalNonNegativeInt(payload, "guestIndex", 0);
             
             Optional<BookingOrder> orderOpt = bookingOrderRepository.findById(bookingId);
             if (orderOpt.isEmpty()) return ResponseEntity.badRequest().body(ApiResponse.error("Không tìm thấy đơn đặt phòng"));
             
             BookingOrder order = orderOpt.get();
+            assertOwnedBooking(claims, order);
             int requiredGuestCount = effectiveGuestCount(order);
             if (guestIndex >= requiredGuestCount) {
                 return ResponseEntity.badRequest().body(ApiResponse.error(
@@ -599,6 +649,7 @@ public class MobileApiController {
             verification.put("guestIndex", guestIndex);
             verification.put("cccdData", cccdData);
             verification.put("method", "MOBILE_AI_NFC");
+            verification.put("faceSimilarity", faceSimilarity);
             verification.put("verifiedAt", new Date());
             verifications.removeIf(item -> Objects.equals(asInteger(item.get("guestIndex")), guestIndex));
             verifications.add(verification);
@@ -644,14 +695,19 @@ public class MobileApiController {
             resp.put("cccdParsed", cccdData);
             
             return ResponseEntity.ok(ApiResponse.success("Xác thực thành công. Vui lòng chờ lễ tân hoàn tất nhận phòng.", resp));
+        } catch (SecurityException e) {
+            return securityError(e);
         } catch(Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
     }
     
     @PostMapping("/booking/checkout")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> checkout(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> checkout(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> payload) {
         try {
+            requireRole(authorization, Set.of(3L));
             Long bookingId = Long.valueOf(payload.get("bookingId").toString());
             Optional<BookingOrder> orderOpt = bookingOrderRepository.findById(bookingId);
             if (orderOpt.isEmpty()) return ResponseEntity.badRequest().body(ApiResponse.error("Không tìm thấy đơn đặt phòng"));
@@ -681,6 +737,8 @@ public class MobileApiController {
                 });
             
             return ResponseEntity.ok(ApiResponse.success("Trả phòng thành công. Quyền đặt dịch vụ đã được khóa.", Map.of("bookingId", bookingId, "canOrderService", false)));
+        } catch (SecurityException e) {
+            return securityError(e);
         } catch(Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -691,8 +749,12 @@ public class MobileApiController {
     // ==========================================
     
     @PostMapping("/services/order")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> orderServices(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> orderServices(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> payload) {
         try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
             Long bookingId = Long.valueOf(payload.get("bookingId").toString());
             Long serviceId = Long.valueOf(payload.get("serviceId").toString());
             Object quantityValue = payload.getOrDefault("quantity", 1);
@@ -710,6 +772,7 @@ public class MobileApiController {
             }
 
             BookingOrder order = orderOpt.get();
+            assertOwnedBooking(claims, order);
             String st = order.getStatus();
 
             // Kiểm tra chỉ cho phép gọi dịch vụ khi đã Check-In và chưa Check-Out
@@ -766,6 +829,8 @@ public class MobileApiController {
             receipt.put("message", "Cảm ơn quý khách đã sử dụng dịch vụ!");
             
             return ResponseEntity.ok(ApiResponse.success("Đặt dịch vụ thành công", receipt));
+        } catch (SecurityException e) {
+            return securityError(e);
         } catch(Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
@@ -773,8 +838,11 @@ public class MobileApiController {
 
     @PostMapping("/services/order-batch")
     public ResponseEntity<ApiResponse<Map<String, Object>>> orderServiceBatch(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestBody Map<String, Object> payload) {
         try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
             Long bookingId = requiredLong(payload, "bookingId");
             Object rawItems = payload.get("items");
             if (!(rawItems instanceof List<?> items) || items.isEmpty()) {
@@ -808,6 +876,7 @@ public class MobileApiController {
 
             BookingOrder order = bookingOrderRepository.findById(bookingId)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy thông tin đơn đặt phòng"));
+            assertOwnedBooking(claims, order);
             String bookingStatus = order.getStatus();
             boolean isCheckedIn = isCheckedInStatus(bookingStatus);
             if (!isCheckedIn) {
@@ -883,6 +952,8 @@ public class MobileApiController {
 
             return ResponseEntity.ok(ApiResponse.success(
                     "Đặt nhiều dịch vụ thành công trên cùng hóa đơn", receipt));
+        } catch (SecurityException ex) {
+            return securityError(ex);
         } catch (ArithmeticException ex) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Tổng số lượng dịch vụ vượt giới hạn"));
         } catch (Exception ex) {
@@ -891,8 +962,12 @@ public class MobileApiController {
     }
 
     @PostMapping("/booking/confirm-payment")
-    public ResponseEntity<ApiResponse<Map<String, Object>>> confirmPayment(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<ApiResponse<Map<String, Object>>> confirmPayment(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @RequestBody Map<String, Object> payload) {
         try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
             Long bookingId = requiredLong(payload, "bookingId");
             Long paymentMethodId = requiredLong(payload, "paymentMethodId");
             Optional<Invoice> invoiceOpt = invoiceRepository.findByBookingId(bookingId).stream().findFirst();
@@ -901,30 +976,32 @@ public class MobileApiController {
             }
             BookingOrder order = bookingOrderRepository.findById(bookingId)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng"));
+            assertOwnedBooking(claims, order);
 
             Invoice invoice = invoiceOpt.get();
             boolean payAtHotel = paymentMethodId == 8L;
             invoice.setPayMethod(resolvePaymentMethod(paymentMethodId));
-            invoice.setIsPaid(!payAtHotel);
-            // Trạng thái Reserved là đầu vào của màn hình nhận phòng; trạng thái thanh toán nằm ở isPaid.
-            invoice.setInvoiceStatus("Reserved");
+            invoice.setIsPaid(false);
+            invoice.setInvoiceStatus(payAtHotel ? "Reserved" : "Payment Pending");
             invoiceRepository.save(invoice);
 
-            order.setStatus(payAtHotel ? "Chờ nhận phòng" : "Đã xác nhận cọc");
+            order.setStatus(payAtHotel ? "Chờ nhận phòng" : "Chờ xác nhận thanh toán");
             bookingOrderRepository.save(order);
 
-            int earnedPoints = payAtHotel ? 0 : loyaltyService.awardPointsForPaidInvoice(invoice);
+            int earnedPoints = 0;
 
             Map<String, Object> result = new HashMap<>();
             result.put("bookingId", bookingId);
-            result.put("status", payAtHotel ? "PAY_AT_HOTEL" : "PAID");
+            result.put("status", payAtHotel ? "PAY_AT_HOTEL" : "PAYMENT_PENDING");
             result.put("bookingStatus", order.getStatus());
             result.put("totalAmount", invoice.getTotalAmount() != null ? invoice.getTotalAmount() : 0.0);
             result.put("earnedPoints", earnedPoints);
             String message = payAtHotel
                     ? "Đã ghi nhận thanh toán tại quầy khi nhận phòng"
-                    : "Thanh toán thành công";
+                    : "Đã tạo yêu cầu thanh toán; chỉ ghi nhận đã thanh toán sau callback của cổng thanh toán";
             return ResponseEntity.ok(ApiResponse.success(message, result));
+        } catch (SecurityException e) {
+            return securityError(e);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("Lỗi xác nhận thanh toán: " + e.getMessage()));
         }
@@ -1041,6 +1118,34 @@ public class MobileApiController {
         }
     }
 
+    private com.votricuong.mayhotel.services.MobileTokenService.Claims requireRole(
+            String authorization, Set<Long> allowedRoleIds) {
+        com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                mobileTokenService.verifyAuthorization(authorization);
+        if (!allowedRoleIds.contains(claims.roleId())) {
+            throw new SecurityException("Tài khoản không có quyền thực hiện chức năng này");
+        }
+        return claims;
+    }
+
+    private void assertOwnedBooking(
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims,
+            BookingOrder order) {
+        boolean owned = customerRepository.findByUserId(claims.userId()).stream()
+                .map(Customer::getId)
+                .anyMatch(id -> Objects.equals(id, order.getCustomerId()));
+        if (!owned) {
+            throw new SecurityException("Không được truy cập đơn đặt phòng của khách hàng khác");
+        }
+    }
+
+    private <T> ResponseEntity<ApiResponse<T>> securityError(SecurityException exception) {
+        String message = exception.getMessage() == null ? "Không được phép truy cập" : exception.getMessage();
+        boolean tokenError = message.toLowerCase(Locale.ROOT).contains("token");
+        return ResponseEntity.status(tokenError ? HttpStatus.UNAUTHORIZED : HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(message));
+    }
+
     private int effectiveGuestCount(BookingOrder order) {
         return order.getGuestCount() == null || order.getGuestCount() < 1 ? 1 : order.getGuestCount();
     }
@@ -1065,6 +1170,18 @@ public class MobileApiController {
             return value;
         } catch (NumberFormatException e) {
             throw new IllegalArgumentException(field + " phải là số nguyên");
+        }
+    }
+
+    private double optionalDouble(Map<String, Object> payload, String field, double defaultValue) {
+        Object raw = payload.get(field);
+        if (raw == null || raw.toString().isBlank()) return defaultValue;
+        try {
+            double value = Double.parseDouble(raw.toString());
+            if (!Double.isFinite(value)) throw new NumberFormatException();
+            return value;
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException(field + " phải là số hợp lệ");
         }
     }
 

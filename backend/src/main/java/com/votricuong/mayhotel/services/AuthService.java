@@ -2,6 +2,9 @@ package com.votricuong.mayhotel.services;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseToken;
+import com.google.auth.oauth2.GoogleCredentials;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
 import com.votricuong.mayhotel.documents.OtpCode;
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.enums.Role;
@@ -158,6 +161,7 @@ public class AuthService {
      */
     public User verifyGoogleToken(String idToken) throws Exception {
         try {
+            initializeFirebaseIfNeeded();
             // Xác thực token bằng Firebase Admin SDK
             FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
             String email = decodedToken.getEmail();
@@ -173,7 +177,7 @@ public class AuthService {
                 newUser.setId(sequenceGeneratorService.generateSequence("users_sequence"));
                 newUser.setEmail(email);
                 newUser.setUsername(email);
-                newUser.setRoleId(3L);
+                newUser.setRoleId(5L);
                 newUser.setStatus("Hoạt động");
                 
                 // Mật khẩu ngẫu nhiên cho account Google (Hoặc để trống tùy quy tắc bảo mật)
@@ -193,5 +197,13 @@ public class AuthService {
         } catch (Exception e) {
             throw new Exception("Xác thực Google thất bại: " + e.getMessage());
         }
+    }
+
+    private synchronized void initializeFirebaseIfNeeded() throws Exception {
+        if (!FirebaseApp.getApps().isEmpty()) return;
+        FirebaseOptions options = FirebaseOptions.builder()
+                .setCredentials(GoogleCredentials.getApplicationDefault())
+                .build();
+        FirebaseApp.initializeApp(options);
     }
 }

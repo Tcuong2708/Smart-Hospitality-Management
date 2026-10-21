@@ -4,6 +4,7 @@ import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
 import '../../../core/utils/responsive.dart';
 import '../../checkin/views/mobile_self_checkin_screen.dart';
+import '../../operations/services/mobile_operations_api.dart';
 import '../../services/views/service_order_screen.dart';
 
 class BookedRoomsScreen extends StatefulWidget {
@@ -119,6 +120,15 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
       'in use',
       'đang ở',
       'đang lưu trú',
+    }.contains(normalized);
+  }
+
+  bool _isCompletedStayStatus(String status) {
+    final normalized = status.trim().toLowerCase();
+    return const {
+      'đã trả phòng',
+      'completed',
+      'checked-out',
     }.contains(normalized);
   }
 
@@ -741,145 +751,211 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
         trangThai == "Pending" ||
         trangThai == "Chờ nhận phòng" ||
         trangThai == "Đã xác thực - chờ lễ tân gán phòng") {
-      return ElevatedButton(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: colorScheme.primary,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-          minimumSize: const Size(0, 32),
-        ),
-        onPressed: () async {
-          final result = await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => MobileSelfCheckinScreen(
-                bookingId: bookingId,
-                roomName: item['tenPhong']?.toString() ?? 'Phòng của bạn',
-                totalGuests:
-                    int.tryParse(item['guestCount']?.toString() ?? '1') ?? 1,
-              ),
-            ),
-          );
-          if (result == true) {
-            _fetchBookingHistory();
-          }
-        },
-        child: const Text(
-          "Nhận phòng",
-          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-        ),
-      );
-    } else if (_isActiveStayStatus(trangThai)) {
-      return Row(
-        mainAxisSize: MainAxisSize.min,
+      return Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        alignment: WrapAlignment.end,
         children: [
-          ElevatedButton.icon(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.amber.shade700,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
-              minimumSize: const Size(0, 32),
-            ),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) =>
-                      ServiceOrderScreen(bookingId: bookingId),
-                ),
-              );
-            },
-            icon: const Icon(Icons.room_service, size: 14),
-            label: const Text(
-              "Dịch vụ",
-              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-            ),
-          ),
-          const SizedBox(width: 6),
           OutlinedButton(
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+              padding: const EdgeInsets.symmetric(horizontal: 10),
               minimumSize: const Size(0, 32),
               side: const BorderSide(color: Colors.redAccent),
             ),
-            onPressed: () => _confirmCheckOut(item),
+            onPressed: () => _confirmCancellation(item),
             child: const Text(
-              "Trả phòng",
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.redAccent,
-                fontWeight: FontWeight.bold,
-              ),
+              'Hủy phòng',
+              style: TextStyle(fontSize: 11, color: Colors.redAccent),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              minimumSize: const Size(0, 32),
+            ),
+            onPressed: () async {
+              final result = await Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MobileSelfCheckinScreen(
+                    bookingId: bookingId,
+                    roomName: item['tenPhong']?.toString() ?? 'Phòng của bạn',
+                    totalGuests:
+                        int.tryParse(item['guestCount']?.toString() ?? '1') ??
+                        1,
+                  ),
+                ),
+              );
+              if (result == true) _fetchBookingHistory();
+            },
+            child: const Text(
+              'Nhận phòng',
+              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
         ],
+      );
+    } else if (_isActiveStayStatus(trangThai)) {
+      return ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amber.shade700,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          minimumSize: const Size(0, 32),
+        ),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ServiceOrderScreen(bookingId: bookingId),
+          ),
+        ),
+        icon: const Icon(Icons.room_service, size: 14),
+        label: const Text(
+          'Dịch vụ',
+          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+        ),
+      );
+    } else if (_isCompletedStayStatus(trangThai)) {
+      return OutlinedButton.icon(
+        style: OutlinedButton.styleFrom(minimumSize: const Size(0, 32)),
+        onPressed: () => _showReviewDialog(item),
+        icon: const Icon(Icons.star_outline, size: 16),
+        label: const Text('Đánh giá', style: TextStyle(fontSize: 11)),
       );
     }
     return const SizedBox.shrink();
   }
 
-  // Dialog xác nhận trả phòng
-  void _confirmCheckOut(dynamic item) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Xác nhận trả phòng"),
-        content: Text(
-          "Bạn có chắc chắn muốn trả phòng ${item['tenPhong']} không?\nSau khi trả phòng, quyền đặt dịch vụ sẽ tự động khóa.",
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text("Hủy"),
+  Future<void> _confirmCancellation(dynamic item) async {
+    final bookingId = int.tryParse(item['bookingId']?.toString() ?? '') ?? 0;
+    try {
+      final preview = await MobileOperationsApi().previewCancellation(
+        bookingId,
+      );
+      if (!mounted) return;
+      final penalty = (preview['penaltyRate'] as num?)?.toDouble() ?? 0;
+      final reason = TextEditingController();
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) => AlertDialog(
+          title: const Text('Xác nhận hủy đặt phòng'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Mức phí hủy áp dụng: ${penalty.toStringAsFixed(0)}%.'),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reason,
+                maxLength: 300,
+                decoration: const InputDecoration(
+                  labelText: 'Lý do hủy (không bắt buộc)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            onPressed: () async {
-              final nav = Navigator.of(context);
-              final messenger = ScaffoldMessenger.of(context);
-              nav.pop(); // Close confirm dialog
-
-              showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) =>
-                    const Center(child: CircularProgressIndicator()),
-              );
-
-              final bookingId =
-                  int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
-              final success = await HotelApiProvider().submitCheckOut(
-                bookingId,
-              );
-
-              if (mounted) {
-                nav.pop(); // Close loading dialog
-                if (success) {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        "Trả phòng thành công! Quyền đặt dịch vụ đã được khóa.",
-                      ),
-                      backgroundColor: Colors.green,
-                    ),
-                  );
-                  _fetchBookingHistory();
-                } else {
-                  messenger.showSnackBar(
-                    const SnackBar(
-                      content: Text("Lỗi khi trả phòng. Vui lòng thử lại."),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text(
-              "Xác nhận",
-              style: TextStyle(color: Colors.white),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Quay lại'),
             ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Xác nhận hủy'),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true) return;
+      await MobileOperationsApi().cancelBooking(
+        bookingId,
+        reason: reason.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Hủy đặt phòng thành công.')),
+      );
+      _fetchBookingHistory();
+    } catch (error) {
+      if (!mounted) return;
+      _showOperationError(error);
+    }
+  }
+
+  Future<void> _showReviewDialog(dynamic item) async {
+    final bookingId = int.tryParse(item['bookingId']?.toString() ?? '') ?? 0;
+    var rating = 5;
+    final content = TextEditingController();
+    final submitted = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('Đánh giá kỳ lưu trú'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(
+                  5,
+                  (index) => IconButton(
+                    onPressed: () => setDialogState(() => rating = index + 1),
+                    icon: Icon(
+                      index < rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber.shade700,
+                    ),
+                  ),
+                ),
+              ),
+              TextField(
+                controller: content,
+                maxLength: 1000,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Nhận xét (không bắt buộc)',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
           ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext, false),
+              child: const Text('Đóng'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(dialogContext, true),
+              child: const Text('Gửi đánh giá'),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (submitted != true) return;
+    try {
+      await MobileOperationsApi().submitReview(
+        bookingId,
+        rating: rating,
+        content: content.text.trim(),
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cảm ơn bạn đã gửi đánh giá.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      _showOperationError(error);
+    }
+  }
+
+  void _showOperationError(Object error) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Không thể thực hiện: $error'),
+        backgroundColor: Colors.redAccent,
       ),
     );
   }

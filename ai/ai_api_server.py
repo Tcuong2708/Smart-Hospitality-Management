@@ -34,6 +34,7 @@ from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from PIL import Image
+from starlette.concurrency import run_in_threadpool
 
 from ultralytics import YOLO
 from vietocr.tool.predictor import Predictor
@@ -85,7 +86,18 @@ class ChatRequest(BaseModel):
 class NoShowPredictionRequest(BaseModel):
     data: dict
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://vocuong_mayhotel_db:Tricuongadmin@cluster0.unq6xcf.mongodb.net/MayHotelDB?retryWrites=true&w=majority&appName=Cluster0")
+
+def decode_uploaded_image(raw_bytes, field_name):
+    if not raw_bytes:
+        raise HTTPException(status_code=400, detail=f"{field_name} không được để trống")
+    if len(raw_bytes) > 10 * 1024 * 1024:
+        raise HTTPException(status_code=413, detail=f"{field_name} vượt quá 10 MB")
+    image = cv2.imdecode(np.frombuffer(raw_bytes, dtype=np.uint8), cv2.IMREAD_COLOR)
+    if image is None:
+        raise HTTPException(status_code=400, detail=f"{field_name} không phải ảnh hợp lệ")
+    return image
+
+MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017/MayHotelDB")
 
 def get_db_connection():
     return MongoClient(MONGO_URI)["MayHotelDB"]
@@ -426,6 +438,55 @@ def handle_structured_booking(user_id, msg):
 
     booking_sessions[user_id] = {"step": "ask_dates"}
     return handle_structured_booking(user_id, "bắt đầu")
+
+@app.post("/api/v1/ai/verify-cccd")
+async def verify_cccd(
+    cccd_image: UploadFile = File(...),
+    selfie_image: UploadFile = File(...),
+):
+    """So khớp khuôn mặt trên CCCD với ảnh selfie; không tự ghi dữ liệu đặt phòng."""
+    allowed_types = {"image/jpeg", "image/jpg", "image/png", "image/webp"}
+    if cccd_image.content_type not in allowed_types or selfie_image.content_type not in allowed_types:
+        raise HTTPException(status_code=415, detail="Chỉ chấp nhận ảnh JPEG, PNG hoặc WebP")
+
+    cccd_frame = decode_uploaded_image(await cccd_image.read(), "Ảnh CCCD")
+    selfie_frame = decode_uploaded_image(await selfie_image.read(), "Ảnh selfie")
+
+    try:
+        result = await run_in_threadpool(
+            lambda: DeepFace.verify(
+                img1_path=cccd_frame,
+                img2_path=selfie_frame,
+                model_name=os.getenv("FACE_MODEL", "Facenet512"),
+                detector_backend=os.getenv("FACE_DETECTOR", "opencv"),
+                distance_metric="cosine",
+                enforce_detection=True,
+                align=True,
+            )
+        )
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=422,
+            detail="Không phát hiện rõ khuôn mặt trên ảnh CCCD hoặc ảnh selfie",
+        ) from exc
+    except Exception as exc:
+        raise HTTPException(status_code=503, detail=f"Không thể chạy mô hình FaceMatch: {exc}") from exc
+
+    distance = float(result.get("distance", 1.0))
+    threshold = float(result.get("threshold", 0.0))
+    similarity = round(max(0.0, min(100.0, (1.0 - distance) * 100.0)), 2)
+    verified = bool(result.get("verified", False))
+    return {
+        "status": "success",
+        "face_verification": {
+            "verified": verified,
+            "similarity": similarity,
+            "distance": round(distance, 6),
+            "threshold": threshold,
+            "model": result.get("model", os.getenv("FACE_MODEL", "Facenet512")),
+        },
+    }
+
 
 @app.post("/api/v1/ai/predict-noshow")
 async def predict_noshow(request: NoShowPredictionRequest):
