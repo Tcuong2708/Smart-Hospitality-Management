@@ -7,6 +7,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import org.springframework.web.util.UriUtils;
+
+import java.nio.charset.StandardCharsets;
 
 @Controller
 @RequestMapping("/account")
@@ -154,6 +157,47 @@ public class AuthController extends BaseController {
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
             return "redirect:/account/verify-otp?email=" + email;
+        }
+    }
+
+    @GetMapping("/find_account")
+    public String showFindAccount() {
+        return "view/Account/find_account";
+    }
+
+    @PostMapping("/find_account")
+    public String sendPasswordResetCode(@RequestParam("keyword") String keyword,
+                                        RedirectAttributes redirectAttributes) {
+        try {
+            String identifier = authService.sendPasswordResetOtp(keyword);
+            redirectAttributes.addFlashAttribute("success", "Mã xác thực đã được gửi đến email của tài khoản.");
+            return "redirect:/account/verify_otp?keyword="
+                    + UriUtils.encode(identifier, StandardCharsets.UTF_8);
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/account/find_account";
+        }
+    }
+
+    @GetMapping("/verify_otp")
+    public String showPasswordReset(@RequestParam("keyword") String keyword, Model model) {
+        model.addAttribute("keyword", keyword);
+        return "view/Account/verify_otp";
+    }
+
+    @PostMapping("/verify_otp")
+    public String resetPassword(@RequestParam("keyword") String keyword,
+                                @RequestParam("otp") String otp,
+                                @RequestParam("newpassword") String newPassword,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            authService.resetPassword(keyword, otp, newPassword);
+            redirectAttributes.addFlashAttribute("success", "Đổi mật khẩu thành công. Vui lòng đăng nhập.");
+            return "redirect:/account/login";
+        } catch (Exception ex) {
+            redirectAttributes.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/account/verify_otp?keyword="
+                    + UriUtils.encode(keyword, StandardCharsets.UTF_8);
         }
     }
 

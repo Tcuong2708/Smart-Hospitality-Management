@@ -19,7 +19,7 @@ class AccountModel {
     required this.soDienThoai,
     required this.diaChi,
     required this.quocTich,
-    this.roleID = 3,
+    this.roleID = 5,
     this.trangThai = true,
   });
 
@@ -33,7 +33,7 @@ class AccountModel {
       soDienThoai: json['SoDienThoai'] ?? '',
       diaChi: json['DiaChi'] ?? '',
       quocTich: json['QuocTich'] ?? '',
-      roleID: json['RoleID'] ?? 3,
+      roleID: json['RoleID'] ?? 5,
       trangThai: json['TrangThai'] ?? true,
     );
   }

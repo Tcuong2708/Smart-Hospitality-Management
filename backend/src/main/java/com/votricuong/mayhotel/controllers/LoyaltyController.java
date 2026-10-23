@@ -1,8 +1,6 @@
 package com.votricuong.mayhotel.controllers;
 
-import com.votricuong.mayhotel.documents.LoyalCustomer;
 import com.votricuong.mayhotel.documents.LoyaltyPolicy;
-import com.votricuong.mayhotel.repositories.LoyalCustomerRepository;
 import com.votricuong.mayhotel.repositories.LoyaltyPolicyRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -11,8 +9,12 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+import jakarta.servlet.http.HttpSession;
+import com.votricuong.mayhotel.documents.User;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
 
 @Controller
 @RequestMapping("/manager/loyalty")
@@ -27,23 +29,31 @@ public class LoyaltyController extends BaseController {
     }
 
     @GetMapping
-    public String index(Model model) {
+    public String index(@RequestParam(value = "q", required = false) String query,
+                        Model model, HttpSession session) {
+        if (!isManager(session)) {
+            return "redirect:/account/login?error=forbidden";
+        }
         // Lấy cấu hình (mặc định id="singleton")
-        LoyaltyPolicy policy = loyaltyPolicyRepository.findById("singleton").orElse(
-                LoyaltyPolicy.builder()
-                        .id("singleton")
-                        .moneyPerPoint(100000.0)
-                        .silverThreshold(100)
-                        .goldThreshold(500)
-                        .platinumThreshold(2000)
-                        .build()
-        );
+        LoyaltyPolicy policy = loyaltyPolicyRepository.findById("singleton")
+                .orElseGet(LoyaltyPolicy::defaultPolicy);
+        if (policy.usesLegacyThresholds()) {
+            policy.upgradeLegacyThresholds();
+            loyaltyPolicyRepository.save(policy);
+        }
 
-        List<com.votricuong.mayhotel.documents.Customer> customers = customerRepository.findAll();
+        String normalizedQuery = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        List<com.votricuong.mayhotel.documents.Customer> customers = customerRepository.findAll().stream()
+                .filter(customer -> normalizedQuery.isEmpty()
+                        || (customer.getFullName() != null
+                            && customer.getFullName().toLowerCase(Locale.ROOT).contains(normalizedQuery))
+                        || (customer.getPhone() != null && customer.getPhone().contains(normalizedQuery)))
+                .collect(Collectors.toList());
 
         setPageTitle(model, "Quản lý Chính sách Tích điểm");
         model.addAttribute("policy", policy);
         model.addAttribute("customers", customers);
+        model.addAttribute("customerQuery", query == null ? "" : query);
 
         return render(model, "view/Manager/loyalty/index");
     }
@@ -53,8 +63,18 @@ public class LoyaltyController extends BaseController {
                                @RequestParam("silverThreshold") Integer silverThreshold,
                                @RequestParam("goldThreshold") Integer goldThreshold,
                                @RequestParam("platinumThreshold") Integer platinumThreshold,
+                               HttpSession session,
                                RedirectAttributes ra) {
+        if (!isManager(session)) {
+            return "redirect:/account/login?error=forbidden";
+        }
         try {
+            if (moneyPerPoint == null || moneyPerPoint <= 0
+                    || silverThreshold == null || goldThreshold == null || platinumThreshold == null
+                    || silverThreshold < 0 || silverThreshold >= goldThreshold
+                    || goldThreshold >= platinumThreshold) {
+                throw new IllegalArgumentException("Tỷ lệ và các mốc hạng phải hợp lệ, tăng dần.");
+            }
             LoyaltyPolicy policy = loyaltyPolicyRepository.findById("singleton").orElse(new LoyaltyPolicy());
             policy.setId("singleton");
             policy.setMoneyPerPoint(moneyPerPoint);
@@ -89,5 +109,11 @@ public class LoyaltyController extends BaseController {
         }
 
         return "redirect:/manager/loyalty";
+    }
+
+    private boolean isManager(HttpSession session) {
+        Object value = session.getAttribute("user");
+        if (!(value instanceof User user)) return false;
+        return Long.valueOf(1L).equals(user.getRoleId()) || Long.valueOf(2L).equals(user.getRoleId());
     }
 }

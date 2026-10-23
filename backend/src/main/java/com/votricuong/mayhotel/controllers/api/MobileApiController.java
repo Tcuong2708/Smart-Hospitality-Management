@@ -161,9 +161,13 @@ public class MobileApiController {
 
     @PostMapping("/auth/send-otp")
     public ResponseEntity<Map<String, Object>> sendOtp(@RequestBody Map<String, String> payload) {
-        String email = payload.get("Email");
-        if (email != null) {
-            String otp = String.format("%06d", new Random().nextInt(999999));
+        try {
+            String email = com.votricuong.mayhotel.utils.InputValidator.email(payload.get("Email"), true);
+            if (userRepository.findFirstByEmail(email).isPresent()) {
+                return ResponseEntity.badRequest().body(Map.of("message", "Email đã được sử dụng."));
+            }
+            otpCodeRepository.deleteByIdentifier(email);
+            String otp = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
             OtpCode otpCode = new OtpCode();
             otpCode.setIdentifier(email);
             otpCode.setCode(otp);
@@ -171,8 +175,10 @@ public class MobileApiController {
             otpCodeRepository.save(otpCode);
             emailService.sendOtpEmail(email, otp);
             return ResponseEntity.ok(Map.of("message", "Đã gửi OTP"));
+        } catch (Exception exception) {
+            return ResponseEntity.badRequest().body(Map.of("message",
+                    exception.getMessage() == null ? "Không thể gửi OTP" : exception.getMessage()));
         }
-        return ResponseEntity.badRequest().build();
     }
 
     @PostMapping("/auth/verify-otp")
@@ -181,10 +187,87 @@ public class MobileApiController {
         String code = payload.get("OTPCode");
         Optional<OtpCode> otpOpt = otpCodeRepository.findByIdentifierAndCode(email, code);
         // OTP in OtpCode has a TTL index based on createdAt (expires after 5 mins)
-        if (otpOpt.isPresent()) {
+        if (otpOpt.isPresent() && !isOtpExpired(otpOpt.get())) {
+            OtpCode verified = otpOpt.get();
+            verified.setVerifiedAt(new Date());
+            otpCodeRepository.save(verified);
             return ResponseEntity.ok(Map.of("message", "OTP hợp lệ"));
         }
         return ResponseEntity.badRequest().body(Map.of("message", "OTP sai hoặc hết hạn"));
+    }
+
+    @PostMapping("/auth/register")
+    public synchronized ResponseEntity<Map<String, Object>> register(@RequestBody Map<String, Object> payload) {
+        try {
+            String username = com.votricuong.mayhotel.utils.InputValidator.username(
+                    requiredString(payload, "TenDangNhap"));
+            String password = com.votricuong.mayhotel.utils.InputValidator.password(
+                    requiredString(payload, "MatKhau"));
+            String fullName = com.votricuong.mayhotel.utils.InputValidator.requiredText(
+                    requiredString(payload, "HoTen"), "Họ và tên", 100);
+            String email = com.votricuong.mayhotel.utils.InputValidator.email(
+                    requiredString(payload, "Email"), true);
+            String phone = com.votricuong.mayhotel.utils.InputValidator.phone(
+                    requiredString(payload, "SoDienThoai"));
+            String address = com.votricuong.mayhotel.utils.InputValidator.optionalText(
+                    optionalString(payload, "DiaChi"), "Địa chỉ", 250);
+            String nationality = com.votricuong.mayhotel.utils.InputValidator.optionalText(
+                    optionalString(payload, "QuocTich"), "Quốc tịch", 80);
+
+            OtpCode verifiedOtp = otpCodeRepository.findTopByIdentifierOrderByCreatedAtDesc(email)
+                    .filter(item -> item.getVerifiedAt() != null && !isOtpExpired(item))
+                    .orElseThrow(() -> new IllegalArgumentException("Vui lòng xác thực OTP trước khi đăng ký."));
+            if (userRepository.findFirstByUsername(username).isPresent()) {
+                throw new IllegalArgumentException("Tên đăng nhập đã tồn tại.");
+            }
+            if (userRepository.findFirstByEmail(email).isPresent()) {
+                throw new IllegalArgumentException("Email đã được sử dụng.");
+            }
+            if (userRepository.findFirstByPhone(phone).isPresent()) {
+                throw new IllegalArgumentException("Số điện thoại đã được sử dụng.");
+            }
+
+            User user = User.builder()
+                    .id(sequenceGeneratorService.generateSequence("users_sequence"))
+                    .username(username)
+                    .password(hashPassword(password))
+                    .email(email)
+                    .phone(phone)
+                    .fullName(fullName)
+                    .address(address)
+                    .nationality(nationality)
+                    .quocTich(nationality)
+                    .roleId(5L)
+                    .status("Active")
+                    .build();
+            User savedUser = userRepository.save(user);
+
+            Customer customer = Customer.builder()
+                    .id(sequenceGeneratorService.generateSequence("customers_sequence"))
+                    .userId(savedUser.getId())
+                    .fullName(fullName)
+                    .phone(phone)
+                    .email(email)
+                    .address(address)
+                    .quocTich(nationality)
+                    .nationality(nationality)
+                    .points(0)
+                    .build();
+            customerRepository.save(customer);
+            otpCodeRepository.delete(verifiedOtp);
+            return ResponseEntity.ok(Map.of(
+                    "message", "Đăng ký tài khoản thành công",
+                    "userId", savedUser.getId(),
+                    "roleId", 5));
+        } catch (Exception exception) {
+            return ResponseEntity.badRequest().body(Map.of("message",
+                    exception.getMessage() == null ? "Đăng ký thất bại" : exception.getMessage()));
+        }
+    }
+
+    private boolean isOtpExpired(OtpCode otpCode) {
+        return otpCode.getCreatedAt() == null
+                || otpCode.getCreatedAt().before(new Date(System.currentTimeMillis() - 300_000L));
     }
 
     // ==========================================

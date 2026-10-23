@@ -562,8 +562,9 @@ public class MobileOperationsApiController {
             invoice.setPayMethod("CASH");
             invoice.setIsPaid(true);
             invoice.setInvoiceStatus("Paid");
-            int earnedPoints = Boolean.parseBoolean(String.valueOf(payload.getOrDefault("earnPoints", false)))
-                    ? loyaltyService.awardPointsForPaidInvoice(invoice) : 0;
+            LoyaltyService.PaymentLoyaltyResult loyaltyResult = loyaltyService.finalizePaidInvoice(invoice);
+            if (!loyaltyResult.success()) throw new IllegalStateException(loyaltyResult.message());
+            int earnedPoints = loyaltyResult.earnedPoints();
             invoiceRepository.save(invoice);
             return ok("Thanh toán tiền mặt thành công", Map.of(
                     "invoice", invoiceDto(invoice),

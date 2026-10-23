@@ -259,7 +259,10 @@ class HotelApiProvider {
   Future<bool> register(Map<String, dynamic> data) async {
     try {
       debugPrint("📤 DỮ LIỆU GỬI ĐI ĐĂNG KÝ: $data");
-      final response = await _dio.post("/api/auth/register", data: data);
+      final response = await _dio.post(
+        "/api/v1/mobile/auth/register",
+        data: data,
+      );
       return response.statusCode == 200;
     } catch (e) {
       _handleError("Lỗi Đăng ký", e);
@@ -545,7 +548,7 @@ class HotelApiProvider {
   Future<bool> sendOTP(String email) async {
     try {
       final response = await _dio.post(
-        "/api/auth/send-otp",
+        "/api/v1/mobile/auth/send-otp",
         data: {"Email": email},
       );
       return response.statusCode == 200;
@@ -558,7 +561,7 @@ class HotelApiProvider {
   Future<bool> verifyOTP(String email, String code) async {
     try {
       final response = await _dio.post(
-        "/api/auth/verify-otp",
+        "/api/v1/mobile/auth/verify-otp",
         data: {"Email": email, "OTPCode": code},
       );
       return response.statusCode == 200;

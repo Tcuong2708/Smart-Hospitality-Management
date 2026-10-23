@@ -46,6 +46,18 @@ public class RoomStatusService {
                 updatedBy, true, true);
     }
 
+    public Room markOccupiedForStay(Long roomId, Long updatedBy, String note) {
+        if (roomId == null) throw new IllegalArgumentException("Phòng nhận khách không hợp lệ");
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phòng #" + roomId));
+        RoomStatus current = RoomStatus.fromStored(room.getStatus());
+        if (current != RoomStatus.VACANT && current != RoomStatus.RESERVED) {
+            throw new RoomStatusConflictException("Phòng không còn trống để nhận khách");
+        }
+        return updateAtomically(room, RoomStatus.OCCUPIED, normalizeNote(note), updatedBy,
+                false, false);
+    }
+
     public Room updateByHousekeeper(Long roomId,
                                     RoomStatus expectedStatus,
                                     RoomStatus targetStatus,

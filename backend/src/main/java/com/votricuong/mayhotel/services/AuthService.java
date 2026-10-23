@@ -15,13 +15,15 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
 import java.util.Optional;
-import java.util.Random;
 
 @Service
 public class AuthService {
+
+    private static final SecureRandom OTP_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;
     private final OtpCodeRepository otpCodeRepository;
@@ -41,8 +43,7 @@ public class AuthService {
      * Hàm sinh mã OTP ngẫu nhiên gồm 6 chữ số.
      */
     private String generateOtpCode() {
-        Random random = new Random();
-        int otp = 100000 + random.nextInt(900000);
+        int otp = 100000 + OTP_RANDOM.nextInt(900000);
         return String.valueOf(otp);
     }
 
@@ -104,8 +105,8 @@ public class AuthService {
         // Hoàn thiện thông tin User và lưu CSDL
         pendingUser.setId(sequenceGeneratorService.generateSequence("users_sequence"));
         pendingUser.setPassword(hashPassword(pendingUser.getPassword()));
-        // Note: Role is mapping to Customer (ID=3 in this project context, but we will leave null or 3)
-        pendingUser.setRoleId(3L);
+        // Tài khoản đăng ký trực tuyến luôn là khách hàng; lễ tân được quản lý riêng.
+        pendingUser.setRoleId(5L);
         pendingUser.setStatus("Hoạt động");
 
         User savedUser = userRepository.save(pendingUser);
@@ -120,6 +121,61 @@ public class AuthService {
         otpCodeRepository.delete(validOtp);
         
         return savedUser;
+    }
+
+    public String sendPasswordResetOtp(String keyword) throws Exception {
+        if (keyword == null || keyword.isBlank()) {
+            throw new Exception("Vui lòng nhập email hoặc số điện thoại.");
+        }
+        String identifier = keyword.trim();
+        Optional<User> userOptional = userRepository.findFirstByEmail(identifier);
+        if (userOptional.isEmpty()) userOptional = userRepository.findFirstByPhone(identifier);
+        User user = userOptional.orElseThrow(() -> new Exception("Không tìm thấy tài khoản phù hợp."));
+        if (user.getEmail() == null || user.getEmail().isBlank()) {
+            throw new Exception("Tài khoản chưa có email để nhận mã xác thực.");
+        }
+
+        String otp = generateOtpCode();
+        OtpCode resetCode = OtpCode.builder()
+                .identifier(identifier)
+                .code(otp)
+                .pendingUser(user)
+                .pendingCustomer(null)
+                .createdAt(new Date())
+                .build();
+        otpCodeRepository.findByIdentifier(identifier).ifPresent(otpCodeRepository::delete);
+        otpCodeRepository.save(resetCode);
+        try {
+            emailService.sendOtpEmail(user.getEmail(), otp);
+        } catch (RuntimeException ex) {
+            otpCodeRepository.delete(resetCode);
+            throw new Exception("Không thể gửi email xác thực lúc này. Vui lòng thử lại sau.");
+        }
+        return identifier;
+    }
+
+    public void resetPassword(String identifier, String otp, String newPassword) throws Exception {
+        if (identifier == null || identifier.isBlank()) {
+            throw new Exception("Thiếu thông tin tài khoản cần khôi phục.");
+        }
+        if (otp == null || !otp.matches("\\d{6}")) {
+            throw new Exception("Mã OTP phải gồm 6 chữ số.");
+        }
+        String validatedPassword;
+        try {
+            validatedPassword = com.votricuong.mayhotel.utils.InputValidator.password(newPassword);
+        } catch (IllegalArgumentException ex) {
+            throw new Exception(ex.getMessage());
+        }
+
+        OtpCode validOtp = otpCodeRepository.findByIdentifierAndCode(identifier.trim(), otp)
+                .filter(item -> item.getPendingUser() != null && item.getPendingCustomer() == null)
+                .orElseThrow(() -> new Exception("Mã OTP không hợp lệ hoặc đã hết hạn."));
+        User user = userRepository.findById(validOtp.getPendingUser().getId())
+                .orElseThrow(() -> new Exception("Tài khoản không còn tồn tại."));
+        user.setPassword(hashPassword(validatedPassword));
+        userRepository.save(user);
+        otpCodeRepository.delete(validOtp);
     }
 
     /**

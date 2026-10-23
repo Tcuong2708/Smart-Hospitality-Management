@@ -34,4 +34,7 @@ public class OtpCode {
     // Tự động xóa sau 5 phút (300 giây)
     @Indexed(expireAfterSeconds = 300)
     private Date createdAt;
+
+    // Chỉ cho phép đăng ký sau khi mã đã được xác thực thành công.
+    private Date verifiedAt;
 }

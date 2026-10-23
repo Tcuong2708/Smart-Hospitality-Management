@@ -11,4 +11,6 @@ public interface InvoiceRepository extends MongoRepository<Invoice, Long> {
     List<Invoice> findByUserId(Long userId);
     List<Invoice> findByPhone(String phone);
     List<Invoice> findByBookingId(Long bookingId);
+    List<Invoice> findByPromoIdAndUserId(Long promoId, Long userId);
+    List<Invoice> findByPromoIdAndPhone(Long promoId, String phone);
 }

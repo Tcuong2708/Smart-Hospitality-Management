@@ -308,11 +308,42 @@
                                             <strong style="color:var(--success);">Đã bao gồm</strong>
                                         </div>
 
-                                        <div class="mh-co-price-row discount"
+                                        <div class="mh-co-redeem"
                                             th:if="${currentUser != null and availablePoints != null and availablePoints > 0}">
-                                            <span><i class="fa-solid fa-gift"></i> Điểm tích lũy</span>
-                                            <strong th:text="${availablePoints} + ' điểm khả dụng'">0 điểm</strong>
+                                            <div class="mh-co-redeem-head">
+                                                <span class="mh-co-redeem-title"><i class="fa-solid fa-gift"></i>
+                                                    Đổi điểm thanh toán</span>
+                                                <span class="mh-co-redeem-avail"
+                                                    th:text="${'Bạn có ' + availablePoints + ' điểm'}">Bạn có 0 điểm</span>
+                                            </div>
+                                            <div class="mh-co-redeem-body">
+                                                <div class="mh-co-redeem-input">
+                                                    <input type="number" name="diemDoi" id="mhPointsToUse" min="0"
+                                                        th:max="${availablePoints}" value="0" inputmode="numeric"
+                                                        aria-label="Số điểm muốn dùng">
+                                                    <span>điểm</span>
+                                                    <button type="button" class="mh-co-redeem-max"
+                                                        id="mhPointsMax">Tối đa</button>
+                                                </div>
+                                                <strong class="mh-co-redeem-value" id="mhPointsDiscount">- 0 đ</strong>
+                                            </div>
+                                            <small class="mh-co-redeem-note">1 điểm = 1.000 đ · điểm dùng không vượt quá
+                                                tổng tiền.</small>
                                         </div>
+                                    </div>
+
+                                    <div class="mh-co-voucher" style="margin:16px 0;">
+                                        <label for="mhVoucher" style="display:block;font-weight:700;margin-bottom:6px;">
+                                            <i class="fa-solid fa-ticket"></i> Mã voucher
+                                        </label>
+                                        <input type="text" name="voucherCode" id="mhVoucher" maxlength="50"
+                                               autocomplete="off" placeholder="Nhập mã khuyến mãi"
+                                               style="width:100%;text-transform:uppercase;">
+                                        <small id="mhVoucherMessage" style="display:none;margin-top:6px;"></small>
+                                    </div>
+                                    <div class="mh-co-price-row discount" id="mhVoucherDiscountRow" style="display:none;">
+                                        <span>Giảm giá voucher</span>
+                                        <strong id="mhVoucherDiscount">0 đ</strong>
                                     </div>
 
                                     <!-- Total -->
@@ -369,6 +400,10 @@
                 var elNhan = $('mhSumNgayNhan'), elTra = $('mhSumNgayTra'), elSoDem = $('mhSumSoDem');
                 var elTienPhong = $('mhSumTienPhong'), elTong = $('mhSumTong'), elQrAmount = $('mhCoQrAmount');
                 var elWarn = $('mhDateWarn');
+                var pointsInput = $('mhPointsToUse'), pointsValue = $('mhPointsDiscount');
+                var voucherInput = $('mhVoucher'), voucherMessage = $('mhVoucherMessage');
+                var voucherRow = $('mhVoucherDiscountRow'), voucherValue = $('mhVoucherDiscount');
+                var voucherDiscount = 0, voucherTimer = null;
                 if (!inNhan || !inTra) return;
 
                 function parse(v) {
@@ -395,12 +430,23 @@
                     var tienPhong = (Number(window.MH_GIA_PHONG) || 0)
                         * (Number(window.MH_SO_LUONG) || 1)
                         * soDem;
-                    var tong = tienPhong + (Number(window.MH_DICH_VU) || 0);
+                    var tong = Math.max(0, tienPhong + (Number(window.MH_DICH_VU) || 0) - voucherDiscount);
+                    var points = Math.max(0, Math.floor(Number(pointsInput?.value) || 0));
+                    if (pointsInput) {
+                        var pointCap = Math.min(Number(pointsInput.max) || 0, Math.floor(tong / 1000));
+                        if (points > pointCap) {
+                            points = pointCap;
+                            pointsInput.value = pointCap;
+                        }
+                    }
+                    var pointsDiscount = Math.min(points * 1000, tong);
+                    tong = Math.max(0, tong - pointsDiscount);
 
                     if (elSoDem) elSoDem.textContent = soDem;
                     if (elTienPhong) elTienPhong.textContent = fmtTien(tienPhong);
                     if (elTong) elTong.textContent = fmtTien(tong);
                     if (elQrAmount) elQrAmount.textContent = fmtTien(tong);
+                    if (pointsValue) pointsValue.textContent = '- ' + fmtTien(pointsDiscount);
                 }
 
                 function onNhanChange() {
@@ -412,13 +458,73 @@
                         if (!b || b < minTra) inTra.value = toIso(minTra);
                     }
                     render();
+                    scheduleVoucherQuote();
+                }
+
+                async function refreshVoucherQuote() {
+                    if (!voucherInput) return;
+                    var code = voucherInput.value.trim();
+                    voucherDiscount = 0;
+                    if (voucherRow) voucherRow.style.display = 'none';
+                    if (!code) {
+                        if (voucherMessage) voucherMessage.style.display = 'none';
+                        render();
+                        return;
+                    }
+                    try {
+                        var params = new URLSearchParams({
+                            code: code,
+                            ngayNhan: inNhan.value,
+                            ngayTra: inTra.value
+                        });
+                        var response = await fetch('/booking/quote-voucher?' + params.toString(), {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        var result = await response.json();
+                        if (result.valid) {
+                            voucherDiscount = Number(result.discount) || 0;
+                            if (voucherRow) voucherRow.style.display = voucherDiscount > 0 ? 'flex' : 'none';
+                            if (voucherValue) voucherValue.textContent = '- ' + fmtTien(voucherDiscount);
+                            if (voucherMessage) {
+                                voucherMessage.textContent = result.message || 'Đã áp dụng voucher.';
+                                voucherMessage.style.color = '#198754';
+                                voucherMessage.style.display = 'block';
+                            }
+                        } else if (voucherMessage) {
+                            voucherMessage.textContent = result.message || 'Mã voucher không hợp lệ.';
+                            voucherMessage.style.color = '#c0392b';
+                            voucherMessage.style.display = 'block';
+                        }
+                    } catch (error) {
+                        if (voucherMessage) {
+                            voucherMessage.textContent = 'Không thể kiểm tra voucher lúc này.';
+                            voucherMessage.style.color = '#c0392b';
+                            voucherMessage.style.display = 'block';
+                        }
+                    }
+                    render();
+                }
+
+                function scheduleVoucherQuote() {
+                    clearTimeout(voucherTimer);
+                    voucherTimer = setTimeout(refreshVoucherQuote, 350);
                 }
 
                 inNhan.min = toIso(new Date());
                 inNhan.addEventListener('change', onNhanChange);
                 inNhan.addEventListener('input', onNhanChange);
-                inTra.addEventListener('change', render);
-                inTra.addEventListener('input', render);
+                inTra.addEventListener('change', function () { render(); scheduleVoucherQuote(); });
+                inTra.addEventListener('input', function () { render(); scheduleVoucherQuote(); });
+                if (pointsInput) pointsInput.addEventListener('input', render);
+                if (voucherInput) {
+                    voucherInput.addEventListener('input', scheduleVoucherQuote);
+                    voucherInput.addEventListener('change', refreshVoucherQuote);
+                }
+                var maxBtn = $('mhPointsMax');
+                if (maxBtn && pointsInput) maxBtn.addEventListener('click', function () {
+                    pointsInput.value = pointsInput.max || 0;
+                    render();
+                });
                 onNhanChange();
             })();
         </script>

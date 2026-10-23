@@ -135,6 +135,7 @@ public class ReceptionistBookingController extends BaseController {
             @RequestParam(value = "roomId", required = false) Long roomId,
             @RequestParam("guestName") String guestName,
             @RequestParam("phone") String phone,
+            @RequestParam(value = "guestCount", defaultValue = "1") Integer guestCount,
             @RequestParam("ngayNhan") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate ngayNhan,
             @RequestParam("ngayTra") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate ngayTra,
             RedirectAttributes ra) {
@@ -143,6 +144,7 @@ public class ReceptionistBookingController extends BaseController {
             guestName = com.votricuong.mayhotel.utils.InputValidator.requiredText(guestName, "Họ và tên", 100);
             phone = com.votricuong.mayhotel.utils.InputValidator.phone(phone);
             com.votricuong.mayhotel.utils.InputValidator.stay(ngayNhan, ngayTra);
+            com.votricuong.mayhotel.utils.InputValidator.range(guestCount, "Số khách lưu trú", 1, 100);
 
             Date expectedIn = Date.from(ngayNhan.atStartOfDay(ZoneOffset.UTC).toInstant());
             Date expectedOut = Date.from(ngayTra.atStartOfDay(ZoneOffset.UTC).toInstant());
@@ -160,6 +162,12 @@ public class ReceptionistBookingController extends BaseController {
             }
             if (!bookingAvailabilityService.isRoomAvailable(room.getId(), expectedIn, expectedOut)) {
                 throw new IllegalStateException("Phòng đã được đặt trong khoảng thời gian này, vui lòng chọn phòng khác");
+            }
+            int maxOccupancy = roomTypeRepository.findById(room.getRoomTypeId())
+                    .map(type -> type.getMaxOccupancy() == null ? 2 : type.getMaxOccupancy())
+                    .orElse(2);
+            if (guestCount > maxOccupancy) {
+                throw new IllegalArgumentException("Phòng đã chọn chỉ chứa tối đa " + maxOccupancy + " khách.");
             }
             
             // Customer
@@ -208,6 +216,7 @@ public class ReceptionistBookingController extends BaseController {
             invoice.setBookingId(order.getId());
             invoice.setGuestName(guestName);
             invoice.setPhone(phone);
+            invoice.setGuestCount(guestCount);
             invoice.setCheckInDate(order.getExpectedIn());
             invoice.setCheckOutDate(order.getExpectedOut());
             invoice.setCreatedAt(new Date());
@@ -215,6 +224,7 @@ public class ReceptionistBookingController extends BaseController {
                 invoice.setRoomId(room.getId());
                 long nights = ChronoUnit.DAYS.between(ngayNhan, ngayTra);
                 double unitPrice = room.getPrice() != null ? room.getPrice() : 0.0;
+                invoice.setGrossAmount(unitPrice * nights);
                 invoice.setTotalAmount(unitPrice * nights);
             }
             // Luôn gán Reserved để hiển thị ở danh sách chờ Check-in
