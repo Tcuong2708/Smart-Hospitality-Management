@@ -27,7 +27,6 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   File? _selfie;
   bool _isProcessing = false;
   String _statusMessage = "1. Vui lòng chụp Khuôn mặt (Selfie) trước.";
-  String? _nfcAccessCode;
   String? _nfcData; // Dữ liệu đọc từ chip NFC
   bool _isNfcScanned = false;
   int _currentGuestIndex = 0;
@@ -77,7 +76,9 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: isCccd ? CameraDevice.rear : CameraDevice.front,
-        imageQuality: 85,
+        imageQuality: isCccd ? 78 : 72,
+        maxWidth: isCccd ? 1600 : 1280,
+        maxHeight: isCccd ? 1200 : 1280,
       );
 
       if (photo != null) {
@@ -161,7 +162,6 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         return;
       }
 
-      String aiResultStr;
       final faceVer = aiRes['face_verification'];
       if (faceVer is! Map) {
         setState(() {
@@ -191,8 +191,6 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         });
         return;
       }
-      aiResultStr = "KHỚP KHUÔN MẶT AI: ${similarity.toStringAsFixed(1)}%";
-
       setState(() {
         _statusMessage = "AI xác thực thành công! Đang đồng bộ với lễ tân...";
       });
@@ -200,7 +198,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       // 2. Ghi nhận xác thực; lễ tân vẫn là nơi gán phòng và hoàn tất check-in.
       final res = await HotelApiProvider().submitCheckInAI(
         widget.bookingId,
-        "$aiResultStr | NFC: ${_nfcData ?? ''}",
+        _nfcData!.trim(),
         _currentGuestIndex,
         faceMatched: faceMatched,
         faceSimilarity: similarity,
@@ -219,7 +217,6 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
           _totalGuests = requiredCount.clamp(1, 20).toInt();
           _verifiedGuestCount = verifiedCount;
           _allGuestsVerified = allGuestsVerified;
-          _nfcAccessCode = res['nfcAccessCode'];
           if (allGuestsVerified) {
             _statusMessage =
                 "Đã xác thực đủ $_verifiedGuestCount/$_totalGuests khách. Vui lòng chờ lễ tân gán phòng...";
@@ -233,8 +230,6 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
                 "Đã xác thực $verifiedCount/$_totalGuests khách. Tiếp tục chụp khuôn mặt cho khách ${_currentGuestIndex + 1}.";
           }
         });
-
-        if (allGuestsVerified) _startNfcWriting();
       } else {
         setState(() {
           _isProcessing = false;
@@ -249,30 +244,6 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             "Không thể xác thực. Vui lòng kiểm tra lại ảnh và thử lại.";
       });
     }
-  }
-
-  void _startNfcWriting() async {
-    if (_nfcAccessCode == null) return;
-
-    // Ghi mã khóa vào thẻ NFC trắng
-    await NfcService.startCccdScanning(
-      onSuccess: (data) {
-        // Trong thực tế, bạn sẽ gọi phương thức writeNfc thay vì read,
-        // Nhưng ở đây ta mượn hàm scan để giả lập tương tác NFC.
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text("Ghi thẻ khóa NFC thành công! Mời bạn lên phòng."),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.pop(context, true); // Quay lại màn hình lịch sử và refresh
-      },
-      onError: (err) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Lỗi NFC: $err"), backgroundColor: Colors.red),
-        );
-      },
-    );
   }
 
   @override
@@ -304,21 +275,19 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             Container(
               padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: _allGuestsVerified || _nfcAccessCode != null
+                color: _allGuestsVerified
                     ? Colors.green.withOpacity(0.1)
                     : Colors.blue.withOpacity(0.1),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: _allGuestsVerified || _nfcAccessCode != null
-                      ? Colors.green
-                      : Colors.blue,
+                  color: _allGuestsVerified ? Colors.green : Colors.blue,
                 ),
               ),
               child: Text(
                 _statusMessage,
                 textAlign: TextAlign.center,
                 style: TextStyle(
-                  color: _allGuestsVerified || _nfcAccessCode != null
+                  color: _allGuestsVerified
                       ? Colors.green[700]
                       : Colors.blue[700],
                   fontWeight: FontWeight.bold,
@@ -327,7 +296,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             ),
             const SizedBox(height: 30),
 
-            if (_allGuestsVerified && _nfcAccessCode == null) ...[
+            if (_allGuestsVerified) ...[
               const Icon(Icons.verified_user, size: 90, color: Colors.green),
               const SizedBox(height: 16),
               const Text(
@@ -335,7 +304,13 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
-            ] else if (_nfcAccessCode == null) ...[
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () => Navigator.pop(context, true),
+                icon: const Icon(Icons.done_all),
+                label: const Text('Hoàn tất'),
+              ),
+            ] else ...[
               // BƯỚC 1: SELFIE
               _buildPhotoBox(
                 label: "Bước 1: Ảnh Selfie Khuôn Mặt",
@@ -411,20 +386,6 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-              ),
-            ] else ...[
-              // Giao diện hướng dẫn quẹt thẻ NFC
-              const Icon(Icons.nfc, size: 100, color: Colors.amber),
-              const SizedBox(height: 20),
-              const Text(
-                "Vui lòng áp mặt lưng điện thoại vào thẻ khóa trắng để ghi mã phòng.",
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 16),
-              ),
-              const SizedBox(height: 20),
-              OutlinedButton(
-                onPressed: _startNfcWriting,
-                child: const Text("Thử ghi lại NFC"),
               ),
             ],
           ],

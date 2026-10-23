@@ -345,6 +345,11 @@ public class MobileApiController {
                 map.put("maTrangThai", roomStatus.getMapCode());
                 map.put("status", roomStatus.name());
                 map.put("statusLabel", roomStatus.getLabel());
+                RoomType roomType = typeMap.get(r.getRoomTypeId());
+                map.put("roomType", roomType == null ? "" : roomType.getName());
+                map.put("maxOccupancy", roomType == null || roomType.getMaxOccupancy() == null
+                        ? 1 : roomType.getMaxOccupancy());
+                map.put("statusNote", r.getStatusNote() == null ? "" : r.getStatusNote());
                 
                 return map;
             }).collect(Collectors.toList());
@@ -590,17 +595,40 @@ public class MobileApiController {
             }
             Long customerId = customers.get(0).getId();
             
-            List<BookingOrder> orders = bookingOrderRepository.findAll().stream()
-                .filter(o -> customerId.equals(o.getCustomerId()))
-                .sorted(Comparator.comparing(
-                        BookingOrder::getBookingDate,
-                        Comparator.nullsLast(Comparator.reverseOrder())))
-                .collect(Collectors.toList());
+            List<BookingOrder> orders = bookingOrderRepository
+                    .findByCustomerIdOrderByBookingDateDesc(customerId);
+            List<Long> bookingIds = orders.stream().map(BookingOrder::getId).toList();
+            Map<Long, Invoice> invoicesByBooking = bookingIds.isEmpty()
+                    ? Map.of()
+                    : invoiceRepository.findByBookingIdIn(bookingIds).stream()
+                    .filter(invoice -> invoice.getBookingId() != null)
+                    .collect(Collectors.toMap(
+                            Invoice::getBookingId,
+                            invoice -> invoice,
+                            (first, ignored) -> first,
+                            LinkedHashMap::new));
+            Map<Long, BookingDetail> detailsByBooking = bookingIds.isEmpty()
+                    ? Map.of()
+                    : bookingDetailRepository.findByBookingIdIn(bookingIds).stream()
+                    .filter(detail -> detail.getBookingId() != null)
+                    .collect(Collectors.toMap(
+                            BookingDetail::getBookingId,
+                            detail -> detail,
+                            (first, ignored) -> first,
+                            LinkedHashMap::new));
+            Set<Long> roomIds = detailsByBooking.values().stream()
+                    .map(BookingDetail::getRoomId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            Map<Long, Room> roomsById = roomIds.isEmpty()
+                    ? Map.of()
+                    : roomRepository.findAllById(roomIds).stream()
+                    .collect(Collectors.toMap(Room::getId, room -> room));
                 
             List<Map<String, Object>> data = new ArrayList<>();
             for (BookingOrder o : orders) {
                 double tongTien = 0.0;
-                Optional<Invoice> invOpt = invoiceRepository.findByBookingId(o.getId()).stream().findFirst();
+                Optional<Invoice> invOpt = Optional.ofNullable(invoicesByBooking.get(o.getId()));
                 if (invOpt.isPresent() && invOpt.get().getTotalAmount() != null) {
                     tongTien = invOpt.get().getTotalAmount();
                 }
@@ -621,9 +649,9 @@ public class MobileApiController {
                 map.put("hinhAnh", "");
                 
                 // Tìm chi tiết để lấy thông tin phòng
-                List<BookingDetail> details = bookingDetailRepository.findByBookingId(o.getId());
-                if (!details.isEmpty() && details.get(0).getRoomId() != null) {
-                    roomRepository.findById(details.get(0).getRoomId()).ifPresent(r -> {
+                BookingDetail detail = detailsByBooking.get(o.getId());
+                if (detail != null && detail.getRoomId() != null) {
+                    Optional.ofNullable(roomsById.get(detail.getRoomId())).ifPresent(r -> {
                         map.put("roomId", r.getId());
                         map.put("tenPhong", r.getName());
                         map.put("hinhAnh", r.getImageUrl() != null ? r.getImageUrl() : "");
@@ -656,8 +684,8 @@ public class MobileApiController {
             }
             Long customerId = customers.get(0).getId();
             
-            Optional<BookingOrder> activeOpt = bookingOrderRepository.findAll().stream()
-                .filter(o -> customerId.equals(o.getCustomerId()))
+            Optional<BookingOrder> activeOpt = bookingOrderRepository
+                .findByCustomerIdOrderByBookingDateDesc(customerId).stream()
                 .filter(o -> isCheckedInStatus(o.getStatus()))
                 .findFirst();
                 
@@ -681,6 +709,36 @@ public class MobileApiController {
             }
 
             return ResponseEntity.ok(ApiResponse.success("Lấy thông tin nhận phòng thành công", data));
+        } catch (SecurityException e) {
+            return securityError(e);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/booking/{bookingId}/verification-status")
+    public ResponseEntity<ApiResponse<Map<String, Object>>> getVerificationStatus(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long bookingId) {
+        try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
+            BookingOrder order = bookingOrderRepository.findById(bookingId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng"));
+            assertOwnedBooking(claims, order);
+
+            int requiredGuestCount = effectiveGuestCount(order);
+            int verifiedGuestCount = Math.min(
+                    effectiveVerifiedGuestCount(order), requiredGuestCount);
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("bookingId", bookingId);
+            data.put("requiredGuestCount", requiredGuestCount);
+            data.put("verifiedGuestCount", verifiedGuestCount);
+            data.put("isFaceVerified", verifiedGuestCount >= requiredGuestCount);
+            data.put("verificationMethod", order.getIdentityVerificationMethod());
+            data.put("verifiedAt", order.getIdentityVerifiedAt());
+            data.put("bookingStatus", order.getStatus());
+            return ResponseEntity.ok(ApiResponse.success("Đã tải tiến độ xác thực", data));
         } catch (SecurityException e) {
             return securityError(e);
         } catch (Exception e) {
@@ -753,16 +811,6 @@ public class MobileApiController {
             order.setIdentityVerifiedAt(new Date());
             bookingOrderRepository.save(order);
             
-            List<BookingDetail> details = bookingDetailRepository.findByBookingId(order.getId());
-            Long roomId = null;
-            if (!details.isEmpty() && details.get(0).getRoomId() != null) {
-                roomId = details.get(0).getRoomId();
-            }
-            
-            String nfcCode = allGuestsVerified
-                    ? "MAYHOTEL-ROOM-" + (roomId != null ? roomId : "UNKNOWN") + "-" + UUID.randomUUID().toString().substring(0, 8)
-                    : null;
-            
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", bookingId);
             resp.put("status", allGuestsVerified
@@ -774,7 +822,6 @@ public class MobileApiController {
             resp.put("requiredGuestCount", requiredGuestCount);
             resp.put("allGuestsVerified", allGuestsVerified);
             resp.put("canOrderService", false);
-            if (nfcCode != null) resp.put("nfcAccessCode", nfcCode);
             resp.put("cccdParsed", cccdData);
             
             return ResponseEntity.ok(ApiResponse.success("Xác thực thành công. Vui lòng chờ lễ tân hoàn tất nhận phòng.", resp));

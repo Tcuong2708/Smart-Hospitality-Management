@@ -15,6 +15,8 @@ class HotelApiProvider {
       'mobile-${DateTime.now().microsecondsSinceEpoch}';
   static final Map<String, Future<List<dynamic>>> _inFlightSearches =
       <String, Future<List<dynamic>>>{};
+  static Dio? _aiDio;
+  static String? _aiDioBaseUrl;
 
   HotelApiProvider();
 
@@ -601,16 +603,7 @@ class HotelApiProvider {
     File selfieImage,
   ) async {
     try {
-      // Đọc AI_URL từ môi trường
-      final String aiBaseUrl =
-          dotenv.env['AI_URL'] ?? "http://135.149.8.115:5000";
-
-      Dio aiDio = Dio(
-        BaseOptions(
-          baseUrl: aiBaseUrl,
-          connectTimeout: const Duration(seconds: 30),
-        ),
-      );
+      final aiDio = _getAiDio();
 
       FormData formData = FormData.fromMap({
         "nfc_image": await MultipartFile.fromFile(
@@ -644,14 +637,7 @@ class HotelApiProvider {
     File selfieImage,
   ) async {
     try {
-      final String aiBaseUrl =
-          dotenv.env['AI_URL'] ?? "http://135.149.8.115:5000";
-      Dio aiDio = Dio(
-        BaseOptions(
-          baseUrl: aiBaseUrl,
-          connectTimeout: const Duration(seconds: 60),
-        ),
-      );
+      final aiDio = _getAiDio();
 
       FormData formData = FormData.fromMap({
         "cccd_image": await MultipartFile.fromFile(
@@ -897,16 +883,40 @@ class HotelApiProvider {
   ) async {
     try {
       final response = await _dio.get(
-        "/api/v1/reception/bookings/$bookingId/verification-status",
+        "/api/v1/mobile/booking/$bookingId/verification-status",
       );
       if (response.statusCode == 200 && response.data is Map) {
-        return Map<String, dynamic>.from(response.data as Map);
+        final payload = Map<String, dynamic>.from(response.data as Map);
+        if (payload['data'] is Map) {
+          return Map<String, dynamic>.from(payload['data'] as Map);
+        }
       }
       return null;
     } catch (e) {
       _handleError("Lỗi tải tiến độ xác thực nhận phòng", e);
       return null;
     }
+  }
+
+  Dio _getAiDio() {
+    final configured = dotenv.env['AI_URL']?.trim();
+    final baseUrl = configured == null || configured.isEmpty
+        ? 'http://135.149.8.115:5000'
+        : configured;
+    if (_aiDio == null || _aiDioBaseUrl != baseUrl) {
+      _aiDioBaseUrl = baseUrl;
+      _aiDio = Dio(
+        BaseOptions(
+          baseUrl: baseUrl,
+          connectTimeout: const Duration(seconds: 8),
+          sendTimeout: const Duration(seconds: 25),
+          receiveTimeout: const Duration(seconds: 45),
+          responseType: ResponseType.json,
+          headers: const {'Accept': 'application/json'},
+        ),
+      );
+    }
+    return _aiDio!;
   }
 }
 

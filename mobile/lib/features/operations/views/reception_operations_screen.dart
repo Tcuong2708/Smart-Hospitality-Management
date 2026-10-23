@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../services/mobile_operations_api.dart';
@@ -405,11 +407,39 @@ class _BookingList extends StatefulWidget {
 
 class _BookingListState extends State<_BookingList> {
   late Future<List<Map<String, dynamic>>> _future;
+  Timer? _verificationSyncTimer;
+  bool _syncing = false;
 
   @override
   void initState() {
     super.initState();
     _future = widget.api.getReceptionBookings(active: widget.active);
+    if (!widget.active) {
+      _verificationSyncTimer = Timer.periodic(
+        const Duration(seconds: 2),
+        (_) => _syncVerificationProgress(),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _verificationSyncTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _syncVerificationProgress() async {
+    if (_syncing || !mounted) return;
+    _syncing = true;
+    try {
+      final items = await widget.api.getReceptionBookings(active: false);
+      if (!mounted) return;
+      setState(() => _future = Future.value(items));
+    } catch (_) {
+      // Giữ dữ liệu gần nhất khi mạng chập chờn; thao tác kéo để tải lại vẫn hiển thị lỗi.
+    } finally {
+      _syncing = false;
+    }
   }
 
   @override

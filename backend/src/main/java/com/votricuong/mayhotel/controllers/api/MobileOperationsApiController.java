@@ -57,6 +57,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Mobile-only workflow API.  It intentionally does not reuse the MVC
@@ -220,11 +221,14 @@ public class MobileOperationsApiController {
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestParam(defaultValue = "pending") String view) {
         return roleAction(authorization, Set.of(3L), claims -> {
-            List<Map<String, Object>> items = bookingOrderRepository.findAll().stream()
+            List<BookingOrder> orders = bookingOrderRepository.findAll().stream()
                     .filter(order -> "active".equalsIgnoreCase(view) ? hasStatus(order, CHECKED_IN) : isPending(order))
                     .sorted(Comparator.comparing(
                             BookingOrder::getExpectedIn, Comparator.nullsLast(Comparator.naturalOrder())))
-                    .map(this::bookingDto)
+                    .toList();
+            BookingLookup lookup = loadBookingLookup(orders);
+            List<Map<String, Object>> items = orders.stream()
+                    .map(order -> bookingDto(order, lookup))
                     .toList();
             return ok("Tải danh sách lễ tân thành công", items);
         });
@@ -432,11 +436,11 @@ public class MobileOperationsApiController {
             List<BookingDetail> details = bookingDetailRepository.findByBookingId(bookingId);
             if (details.isEmpty()) throw new IllegalStateException("Phiếu không có chi tiết phòng");
             BookingDetail detail = details.get(0);
+            roomStatusService.markOccupiedForStay(
+                    roomId, claims.userId(), "Nhận phòng cho booking #" + bookingId);
             detail.setRoomId(roomId);
             detail.setActualIn(new Date());
             bookingDetailRepository.save(detail);
-            room.setStatus(RoomStatus.OCCUPIED.getLabel());
-            roomRepository.save(room);
             order.setStatus("Đã nhận phòng");
             order.setAutoCancelTime(null);
             bookingOrderRepository.save(order);
@@ -586,14 +590,19 @@ public class MobileOperationsApiController {
             double surcharge = payload == null ? 0D : optionalDouble(payload.get("surcharge"));
             if (surcharge < 0) throw new IllegalArgumentException("Phụ thu không được âm");
             if (surcharge > 0) {
-                invoice.setSurcharge(value(invoice.getSurcharge()) + surcharge);
-                invoice.setTotalAmount(value(invoice.getTotalAmount()) + surcharge);
-                invoice.setIsPaid(false);
-                invoice.setInvoiceStatus("Pending");
+                double currentSurcharge = value(invoice.getSurcharge());
+                double additionalAmount = Math.max(0D, surcharge - currentSurcharge);
+                invoice.setSurcharge(Math.max(currentSurcharge, surcharge));
+                if (additionalAmount > 0D) {
+                    invoice.setTotalAmount(value(invoice.getTotalAmount()) + additionalAmount);
+                    invoice.setIsPaid(false);
+                    invoice.setInvoiceStatus("Pending");
+                }
             }
             String damageNote = payload == null ? null : InputValidator.optionalText(
                     string(payload.get("damageNote")), "Ghi chú hư hỏng", 500);
-            if (damageNote != null && !damageNote.isBlank()) {
+            if (damageNote != null && !damageNote.isBlank()
+                    && !string(invoice.getNote()).contains("[HƯ HỎNG] " + damageNote)) {
                 invoice.setNote(append(invoice.getNote(), "[HƯ HỎNG] " + damageNote));
             }
             invoiceRepository.save(invoice);
@@ -782,6 +791,28 @@ public class MobileOperationsApiController {
         RoomType roomType = room == null || room.getRoomTypeId() == null ? null
                 : roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
         Invoice invoice = firstInvoice(order.getId()).orElse(null);
+        return bookingDto(order, customer, room, roomType, invoice);
+    }
+
+    private Map<String, Object> bookingDto(BookingOrder order, BookingLookup lookup) {
+        BookingDetail detail = lookup.detailsByBooking().get(order.getId());
+        Room room = detail == null || detail.getRoomId() == null
+                ? null : lookup.roomsById().get(detail.getRoomId());
+        RoomType roomType = room == null || room.getRoomTypeId() == null
+                ? null : lookup.roomTypesById().get(room.getRoomTypeId());
+        return bookingDto(
+                order,
+                lookup.customersById().get(order.getCustomerId()),
+                room,
+                roomType,
+                lookup.invoicesByBooking().get(order.getId()));
+    }
+
+    private Map<String, Object> bookingDto(BookingOrder order,
+                                           Customer customer,
+                                           Room room,
+                                           RoomType roomType,
+                                           Invoice invoice) {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("bookingId", order.getId());
         data.put("customerName", customer == null ? "" : customer.getFullName());
@@ -803,6 +834,63 @@ public class MobileOperationsApiController {
         data.put("lateArrivalApproved", Boolean.TRUE.equals(order.getLateArrivalApproved()));
         data.put("invoice", invoice == null ? null : invoiceDto(invoice));
         return data;
+    }
+
+    private BookingLookup loadBookingLookup(List<BookingOrder> orders) {
+        if (orders.isEmpty()) return BookingLookup.empty();
+
+        List<Long> bookingIds = orders.stream().map(BookingOrder::getId).toList();
+        Set<Long> customerIds = orders.stream()
+                .map(BookingOrder::getCustomerId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, Customer> customersById = customerIds.isEmpty() ? Map.of()
+                : customerRepository.findAllById(customerIds).stream()
+                .collect(Collectors.toMap(Customer::getId, customer -> customer));
+
+        Map<Long, BookingDetail> detailsByBooking = bookingDetailRepository
+                .findByBookingIdIn(bookingIds).stream()
+                .filter(detail -> detail.getBookingId() != null)
+                .collect(Collectors.toMap(
+                        BookingDetail::getBookingId,
+                        detail -> detail,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new));
+        Set<Long> roomIds = detailsByBooking.values().stream()
+                .map(BookingDetail::getRoomId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, Room> roomsById = roomIds.isEmpty() ? Map.of()
+                : roomRepository.findAllById(roomIds).stream()
+                .collect(Collectors.toMap(Room::getId, room -> room));
+        Set<Long> roomTypeIds = roomsById.values().stream()
+                .map(Room::getRoomTypeId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, RoomType> roomTypesById = roomTypeIds.isEmpty() ? Map.of()
+                : roomTypeRepository.findAllById(roomTypeIds).stream()
+                .collect(Collectors.toMap(RoomType::getId, roomType -> roomType));
+        Map<Long, Invoice> invoicesByBooking = invoiceRepository
+                .findByBookingIdIn(bookingIds).stream()
+                .filter(invoice -> invoice.getBookingId() != null)
+                .collect(Collectors.toMap(
+                        Invoice::getBookingId,
+                        invoice -> invoice,
+                        (first, ignored) -> first,
+                        LinkedHashMap::new));
+        return new BookingLookup(
+                customersById, detailsByBooking, roomsById, roomTypesById, invoicesByBooking);
+    }
+
+    private record BookingLookup(
+            Map<Long, Customer> customersById,
+            Map<Long, BookingDetail> detailsByBooking,
+            Map<Long, Room> roomsById,
+            Map<Long, RoomType> roomTypesById,
+            Map<Long, Invoice> invoicesByBooking) {
+        private static BookingLookup empty() {
+            return new BookingLookup(Map.of(), Map.of(), Map.of(), Map.of(), Map.of());
+        }
     }
 
     private Map<String, Object> roomDto(Room room) {

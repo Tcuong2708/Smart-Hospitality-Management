@@ -123,6 +123,15 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     }.contains(normalized);
   }
 
+  bool _isAwaitingCheckInStatus(String status) {
+    final normalized = status.trim().toLowerCase();
+    return normalized == 'reserved' ||
+        normalized == 'pending' ||
+        normalized.contains('đã xác nhận') ||
+        normalized.contains('chờ nhận phòng') ||
+        normalized.contains('đã xác thực');
+  }
+
   bool _isCompletedStayStatus(String status) {
     final normalized = status.trim().toLowerCase();
     return const {
@@ -312,15 +321,21 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                   subtitleColor: Colors.teal.shade800,
                   onTap: () {
                     final reserved = _bookedRooms.firstWhere(
-                      (item) =>
-                          (item['trangThai']?.toString() ?? '').contains(
-                            'Reserved',
-                          ) ||
-                          (item['trangThai']?.toString() ?? '').contains(
-                            'Đã xác nhận',
-                          ),
+                      (item) => _isAwaitingCheckInStatus(
+                        item['trangThai']?.toString() ?? '',
+                      ),
                       orElse: () => null,
                     );
+                    if (reserved == null) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Bạn chưa có booking đang chờ nhận phòng.',
+                          ),
+                        ),
+                      );
+                      return;
+                    }
                     final bId = reserved != null
                         ? (int.tryParse(
                                 reserved['bookingId']?.toString() ?? '0',

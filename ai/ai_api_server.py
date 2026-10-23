@@ -55,6 +55,9 @@ INTENTS_PATH = os.path.join(BASE_DIR, "intents.json")
 
 app = FastAPI(title="May Hotel AI Microservices", version="2.0")
 
+FACE_MODEL_NAME = os.getenv("FACE_MODEL", "Facenet512")
+FACE_DETECTOR_BACKEND = os.getenv("FACE_DETECTOR", "opencv")
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -64,6 +67,14 @@ app.add_middleware(
 )
 
 print("Đang khởi động và nạp các lõi AI vào bộ nhớ (Chế độ tối ưu RAM)...")
+
+# Nạp sẵn FaceMatch trước khi nhận request. DeepFace giữ model trong cache nội bộ,
+# nhờ đó lần xác thực đầu tiên trên mobile không phải chờ tải model giữa luồng check-in.
+try:
+    DeepFace.build_model(FACE_MODEL_NAME)
+    print(f"[OK] Đã nạp model FaceMatch {FACE_MODEL_NAME}")
+except Exception as exc:
+    print(f"[WARN] Chưa thể nạp sẵn model FaceMatch: {exc}")
 
 # 1. Nạp Model No-show
 rf_model = None
@@ -457,8 +468,8 @@ async def verify_cccd(
             lambda: DeepFace.verify(
                 img1_path=cccd_frame,
                 img2_path=selfie_frame,
-                model_name=os.getenv("FACE_MODEL", "Facenet512"),
-                detector_backend=os.getenv("FACE_DETECTOR", "opencv"),
+                model_name=FACE_MODEL_NAME,
+                detector_backend=FACE_DETECTOR_BACKEND,
                 distance_metric="cosine",
                 enforce_detection=True,
                 align=True,
@@ -483,7 +494,7 @@ async def verify_cccd(
             "similarity": similarity,
             "distance": round(distance, 6),
             "threshold": threshold,
-            "model": result.get("model", os.getenv("FACE_MODEL", "Facenet512")),
+            "model": result.get("model", FACE_MODEL_NAME),
         },
     }
 

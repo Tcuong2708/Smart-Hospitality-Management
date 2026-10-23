@@ -149,8 +149,7 @@ class MobileApiControllerTests {
         assertThat(second.getBody().getData())
                 .containsEntry("verifiedGuestCount", 2)
                 .containsEntry("requiredGuestCount", 2)
-                .containsEntry("allGuestsVerified", true)
-                .containsKey("nfcAccessCode");
+                .containsEntry("allGuestsVerified", true);
         assertThat(booking.getIsFaceVerified()).isTrue();
     }
 
@@ -193,6 +192,28 @@ class MobileApiControllerTests {
         assertThat(response.getStatusCode().is4xxClientError()).isTrue();
         assertThat(response.getBody().getMessage()).contains("60%");
         assertThat(booking.getVerifiedGuestCount()).isNull();
+    }
+
+    @Test
+    void returnsVerificationProgressOnlyForTheAuthenticatedCustomer() {
+        BookingOrder booking = BookingOrder.builder()
+                .id(88L)
+                .customerId(77L)
+                .guestCount(2)
+                .verifiedGuestCount(1)
+                .isFaceVerified(false)
+                .status("Reserved")
+                .build();
+        when(bookingOrderRepository.findById(88L)).thenReturn(Optional.of(booking));
+
+        ResponseEntity<ApiResponse<Map<String, Object>>> response =
+                controller.getVerificationStatus("Bearer customer", 88L);
+
+        assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
+        assertThat(response.getBody().getData())
+                .containsEntry("requiredGuestCount", 2)
+                .containsEntry("verifiedGuestCount", 1)
+                .containsEntry("isFaceVerified", false);
     }
 
     @Test
