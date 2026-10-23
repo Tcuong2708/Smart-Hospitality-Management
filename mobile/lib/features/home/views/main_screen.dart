@@ -56,6 +56,15 @@ class _MainScreenState extends State<MainScreen> {
     _initializeMenu();
   }
 
+  @override
+  void didUpdateWidget(covariant MainScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.role != widget.role) {
+      _selectedIndex = 0;
+    }
+    _initializeMenu();
+  }
+
   void _initializeMenu() {
     final lang = LanguageService();
 
@@ -211,6 +220,12 @@ class _MainScreenState extends State<MainScreen> {
         ),
       ],
     };
+
+    // Flutter can reuse this State when the authenticated role changes.
+    // Never carry an out-of-range tab index into the new role's menu.
+    if (_navItems.isEmpty || _selectedIndex >= _navItems.length) {
+      _selectedIndex = 0;
+    }
   }
 
   void _onItemTapped(int index) {

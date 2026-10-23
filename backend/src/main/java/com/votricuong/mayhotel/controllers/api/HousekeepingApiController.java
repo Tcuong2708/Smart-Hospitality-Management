@@ -19,6 +19,9 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -28,6 +31,8 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/v1/mobile/housekeeping")
 public class HousekeepingApiController {
+    private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final MobileTokenService tokenService;
@@ -52,7 +57,11 @@ public class HousekeepingApiController {
                     .sorted(Comparator.comparing(Room::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
                     .map(room -> toDto(room, types.get(room.getRoomTypeId())))
                     .toList();
-            return ResponseEntity.ok(ApiResponse.success("Lấy sơ đồ phòng thành công", rooms));
+            return ResponseEntity.ok()
+                    .header("Cache-Control", "no-store, no-cache, must-revalidate")
+                    .header("X-Hotel-Date", LocalDate.now(HOTEL_ZONE).toString())
+                    .header("X-Generated-At", ZonedDateTime.now(HOTEL_ZONE).toString())
+                    .body(ApiResponse.success("Lấy sơ đồ phòng thành công", rooms));
         });
     }
 
@@ -110,6 +119,9 @@ public class HousekeepingApiController {
         dto.put("statusNote", room.getStatusNote());
         dto.put("statusUpdatedAt", room.getStatusUpdatedAt());
         dto.put("statusUpdatedBy", room.getStatusUpdatedBy());
+        dto.put("hasCleaningOrder", roomStatusService.hasActiveHousekeepingOrder(room));
+        dto.put("cleaningRequestedAt", room.getHousekeepingOrderCreatedAt() == null
+                && status == RoomStatus.CLEANING ? room.getStatusUpdatedAt() : room.getHousekeepingOrderCreatedAt());
         return dto;
     }
 

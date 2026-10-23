@@ -42,7 +42,8 @@ public class RoomStatusService {
         }
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phòng #" + roomId));
-        return updateAtomically(room, RoomStatus.CLEANING, "Chờ nhân viên buồng phòng kiểm tra", updatedBy);
+        return updateAtomically(room, RoomStatus.CLEANING, "Chờ nhân viên buồng phòng kiểm tra",
+                updatedBy, true, true);
     }
 
     public Room updateByHousekeeper(Long roomId,
@@ -66,20 +67,37 @@ public class RoomStatusService {
         if (targetStatus == RoomStatus.MAINTENANCE && normalizedNote == null) {
             throw new IllegalArgumentException("Vui lòng nhập nội dung cần bảo trì");
         }
-        if (bookingAvailabilityService.isRoomOccupiedOn(roomId, LocalDate.now(HOTEL_ZONE))) {
-            throw new RoomStatusConflictException("Phòng vẫn có khách đang lưu trú, không thể cập nhật trạng thái");
-        }
-
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy phòng #" + roomId));
         RoomStatus actualStatus = RoomStatus.fromStored(room.getStatus());
         if (actualStatus != expectedStatus) {
             throw new RoomStatusConflictException("Trạng thái phòng đã thay đổi, vui lòng tải lại sơ đồ");
         }
-        return updateAtomically(room, targetStatus, normalizedNote, employeeId);
+        if (!hasActiveHousekeepingOrder(room)) {
+            throw new RoomStatusConflictException("Phòng chưa có lệnh dọn đang mở");
+        }
+        if (bookingAvailabilityService.isRoomOccupiedOn(roomId, LocalDate.now(HOTEL_ZONE))) {
+            throw new RoomStatusConflictException("Phòng vẫn có khách đang lưu trú, không thể cập nhật trạng thái");
+        }
+        boolean keepOrderOpen = targetStatus == RoomStatus.MAINTENANCE;
+        return updateAtomically(room, targetStatus, normalizedNote, employeeId,
+                keepOrderOpen, false);
     }
 
-    private Room updateAtomically(Room room, RoomStatus target, String note, Long updatedBy) {
+    public boolean hasActiveHousekeepingOrder(Room room) {
+        if (room == null) return false;
+        if (Boolean.TRUE.equals(room.getHousekeepingOrderActive())) return true;
+        // Backward compatibility for cleaning orders created before the flag existed.
+        return room.getHousekeepingOrderActive() == null
+                && RoomStatus.fromStored(room.getStatus()) == RoomStatus.CLEANING;
+    }
+
+    private Room updateAtomically(Room room,
+                                  RoomStatus target,
+                                  String note,
+                                  Long updatedBy,
+                                  boolean housekeepingOrderActive,
+                                  boolean createHousekeepingOrder) {
         Date updatedAt = new Date();
         Query query = Query.query(Criteria.where("_id").is(room.getId())
                 .and("status").is(room.getStatus()));
@@ -87,7 +105,14 @@ public class RoomStatusService {
                 .set("status", target.name())
                 .set("status_note", note)
                 .set("status_updated_at", updatedAt)
-                .set("status_updated_by", updatedBy);
+                .set("status_updated_by", updatedBy)
+                .set("housekeeping_order_active", housekeepingOrderActive);
+        if (createHousekeepingOrder) {
+            update.set("housekeeping_order_created_at", updatedAt)
+                    .unset("housekeeping_order_completed_at");
+        } else if (!housekeepingOrderActive) {
+            update.set("housekeeping_order_completed_at", updatedAt);
+        }
         Room updated = mongoTemplate.findAndModify(
                 query,
                 update,
@@ -109,6 +134,8 @@ public class RoomStatusService {
         event.put("statusNote", room.getStatusNote());
         event.put("updatedAt", room.getStatusUpdatedAt());
         event.put("updatedBy", room.getStatusUpdatedBy());
+        event.put("hasCleaningOrder", hasActiveHousekeepingOrder(room));
+        event.put("cleaningRequestedAt", room.getHousekeepingOrderCreatedAt());
         return event;
     }
 

@@ -6,14 +6,26 @@ import '../models/housekeeping_room.dart';
 class HousekeepingApiService {
   final Dio _dio = HotelApiClient.instance.dio;
 
-  Future<List<HousekeepingRoom>> getRooms() async {
+  Future<HousekeepingRoomSnapshot> getRooms() async {
     final response = await _dio.get('/api/v1/mobile/housekeeping/rooms');
     final rawData = response.data is Map ? response.data['data'] : null;
-    if (rawData is! List) return const [];
-    return rawData
+    final rawRooms = rawData is Map ? rawData['rooms'] : rawData;
+    final rooms = rawRooms is List ? rawRooms : const [];
+    final parsedRooms = rooms
         .whereType<Map>()
         .map((item) => HousekeepingRoom.fromJson(Map<String, dynamic>.from(item)))
         .toList();
+    final hotelDate = rawData is Map
+        ? DateTime.tryParse(rawData['hotelDate']?.toString() ?? '')
+        : DateTime.tryParse(response.headers.value('x-hotel-date') ?? '');
+    final generatedAt = rawData is Map
+        ? DateTime.tryParse(rawData['generatedAt']?.toString() ?? '')
+        : DateTime.tryParse(response.headers.value('x-generated-at') ?? '');
+    return HousekeepingRoomSnapshot(
+      rooms: parsedRooms,
+      hotelDate: hotelDate ?? DateTime.now(),
+      generatedAt: generatedAt,
+    );
   }
 
   Future<HousekeepingRoom> updateStatus({
