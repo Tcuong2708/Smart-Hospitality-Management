@@ -68,4 +68,19 @@ class RoomStatusServiceTests {
                 101L, RoomStatus.CLEANING, RoomStatus.VACANT, null, 104L))
                 .isInstanceOf(RoomStatusConflictException.class);
     }
+
+    @Test
+    void rejectsRoomWithoutAnActiveCleaningOrder() {
+        when(roomRepository.findById(101L)).thenReturn(Optional.of(
+                Room.builder()
+                        .id(101L)
+                        .status("CLEANING")
+                        .housekeepingOrderActive(false)
+                        .build()));
+
+        assertThatThrownBy(() -> service.updateByHousekeeper(
+                101L, RoomStatus.CLEANING, RoomStatus.VACANT, "Đã kiểm tra", 104L))
+                .isInstanceOf(RoomStatusConflictException.class)
+                .hasMessageContaining("lệnh dọn");
+    }
 }

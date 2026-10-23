@@ -20,7 +20,9 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Hạng thành viên'),
-        actions: [IconButton(onPressed: _reload, icon: const Icon(Icons.refresh))],
+        actions: [
+          IconButton(onPressed: _reload, icon: const Icon(Icons.refresh)),
+        ],
       ),
       body: FutureBuilder<Map<String, dynamic>>(
         future: _future,
@@ -29,7 +31,10 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen> {
             return const Center(child: CircularProgressIndicator());
           }
           if (snapshot.hasError) {
-            return _ErrorState(message: _message(snapshot.error), onRetry: _reload);
+            return _ErrorState(
+              message: _message(snapshot.error),
+              onRetry: _reload,
+            );
           }
           final data = snapshot.data ?? const <String, dynamic>{};
           final points = int.tryParse('${data['points'] ?? 0}') ?? 0;
@@ -54,24 +59,44 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.workspace_premium, color: Color(0xFFE5BC38), size: 42),
+                      const Icon(
+                        Icons.workspace_premium,
+                        color: Color(0xFFE5BC38),
+                        size: 42,
+                      ),
                       const SizedBox(height: 18),
                       Text(
                         'Hạng ${data['tier'] ?? 'Đồng'}',
-                        style: const TextStyle(color: Colors.white, fontSize: 25, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 25,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                       const SizedBox(height: 8),
-                      Text('$points điểm', style: const TextStyle(color: Color(0xFFE5BC38), fontSize: 30, fontWeight: FontWeight.w800)),
+                      Text(
+                        '$points điểm',
+                        style: const TextStyle(
+                          color: Color(0xFFE5BC38),
+                          fontSize: 30,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
                       const SizedBox(height: 6),
                       Text(
-                        next > 0 ? 'Cần thêm $next điểm để đạt hạng tiếp theo' : 'Bạn đang ở hạng cao nhất',
+                        next > 0
+                            ? 'Cần thêm $next điểm để đạt hạng tiếp theo'
+                            : 'Bạn đang ở hạng cao nhất',
                         style: const TextStyle(color: Colors.white70),
                       ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 24),
-                const Text('Lịch sử điểm', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                const Text(
+                  'Lịch sử điểm',
+                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                ),
                 const SizedBox(height: 10),
                 if (history.isEmpty)
                   const Card(
@@ -86,14 +111,22 @@ class _CustomerLoyaltyScreenState extends State<CustomerLoyaltyScreen> {
                     return Card(
                       child: ListTile(
                         leading: CircleAvatar(
-                          backgroundColor: earned ? Colors.green.shade50 : Colors.orange.shade50,
-                          child: Icon(earned ? Icons.add : Icons.remove, color: earned ? Colors.green : Colors.orange),
+                          backgroundColor: earned
+                              ? Colors.green.shade50
+                              : Colors.orange.shade50,
+                          child: Icon(
+                            earned ? Icons.add : Icons.remove,
+                            color: earned ? Colors.green : Colors.orange,
+                          ),
                         ),
                         title: Text('Hóa đơn #${item['invoiceId'] ?? ''}'),
                         subtitle: Text(_formatDate(item['occurredAt'])),
                         trailing: Text(
                           '${earned ? '+' : ''}${item['points'] ?? 0}',
-                          style: TextStyle(fontWeight: FontWeight.bold, color: earned ? Colors.green : Colors.orange),
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: earned ? Colors.green : Colors.orange,
+                          ),
                         ),
                       ),
                     );
@@ -134,7 +167,11 @@ class _ErrorState extends StatelessWidget {
           const SizedBox(height: 12),
           Text(message, textAlign: TextAlign.center),
           const SizedBox(height: 16),
-          FilledButton.icon(onPressed: onRetry, icon: const Icon(Icons.refresh), label: const Text('Thử lại')),
+          FilledButton.icon(
+            onPressed: onRetry,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Thử lại'),
+          ),
         ],
       ),
     ),

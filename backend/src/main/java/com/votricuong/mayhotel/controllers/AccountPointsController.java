@@ -2,10 +2,12 @@ package com.votricuong.mayhotel.controllers;
 
 import com.votricuong.mayhotel.documents.Customer;
 import com.votricuong.mayhotel.documents.Invoice;
+import com.votricuong.mayhotel.documents.PointTransaction;
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.repositories.CustomerRepository;
+import com.votricuong.mayhotel.repositories.PointTransactionRepository;
+import com.votricuong.mayhotel.repositories.LoyaltyPolicyRepository;
 import com.votricuong.mayhotel.repositories.InvoiceRepository;
-import com.votricuong.mayhotel.repositories.LoyalCustomerRepository;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
@@ -20,14 +22,17 @@ import java.util.*;
 public class AccountPointsController {
 
     private final CustomerRepository customerRepository;
-    private final LoyalCustomerRepository loyalCustomerRepository;
+    private final PointTransactionRepository pointTransactionRepository;
+    private final LoyaltyPolicyRepository loyaltyPolicyRepository;
     private final InvoiceRepository invoiceRepository;
 
     public AccountPointsController(CustomerRepository customerRepository,
-                                   LoyalCustomerRepository loyalCustomerRepository,
+                                   PointTransactionRepository pointTransactionRepository,
+                                   LoyaltyPolicyRepository loyaltyPolicyRepository,
                                    InvoiceRepository invoiceRepository) {
         this.customerRepository = customerRepository;
-        this.loyalCustomerRepository = loyalCustomerRepository;
+        this.pointTransactionRepository = pointTransactionRepository;
+        this.loyaltyPolicyRepository = loyaltyPolicyRepository;
         this.invoiceRepository = invoiceRepository;
     }
 
@@ -56,51 +61,67 @@ public class AccountPointsController {
 
         Customer customer = customerRepository.findFirstByUserIdOrderByIdAsc(user.getId()).orElse(null);
         int currentPoints = customer == null || customer.getPoints() == null ? 0 : customer.getPoints();
-        String tier = "Hạng Đồng";
-
-        if (customer != null && customer.getTierId() != null) {
-            tier = switch (customer.getTierId().intValue()) {
-                case 4 -> "Hạng Bạch Kim";
-                case 3 -> "Hạng Vàng";
-                case 2 -> "Hạng Bạc";
-                default -> "Hạng Đồng";
-            };
+        String tier = tierName(customer == null ? null : customer.getTierId());
+        var policy = loyaltyPolicyRepository.findById("singleton")
+                .orElseGet(com.votricuong.mayhotel.documents.LoyaltyPolicy::defaultPolicy);
+        if (policy.usesLegacyThresholds()) {
+            policy.upgradeLegacyThresholds();
+            loyaltyPolicyRepository.save(policy);
         }
-        if (customer != null) {
-            String fallbackTier = tier;
-            tier = loyalCustomerRepository.findByCustomerId(customer.getId())
-                    .map(loyal -> loyal.getTier() == null ? fallbackTier : "Hạng " + loyal.getTier())
-                    .orElse(fallbackTier);
-        }
+        int nextThreshold = nextThreshold(currentPoints, policy);
+        String nextTier = nextTier(currentPoints, policy);
 
         List<Map<String, Object>> history = new ArrayList<>();
-        for (Invoice invoice : invoiceRepository.findByUserId(user.getId())) {
-            if (invoice.getEarnedPoints() != null && invoice.getEarnedPoints() > 0) {
-                history.add(pointEntry(invoice, "EARN", invoice.getEarnedPoints(),
-                        "Tích điểm sau khi thanh toán hóa đơn"));
-            }
-            if (invoice.getRedeemedPoints() != null && invoice.getRedeemedPoints() > 0) {
-                history.add(pointEntry(invoice, "REDEEM", -invoice.getRedeemedPoints(),
-                        "Sử dụng điểm giảm " + formatMoney(invoice.getPointsDiscount())));
+        if (customer != null) {
+            for (PointTransaction transaction : pointTransactionRepository
+                    .findByCustomerIdOrderByCreatedAtDesc(customer.getId())) {
+                history.add(pointEntry(transaction));
             }
         }
-        history.sort(Comparator.comparing(
-                item -> (Date) item.get("sortDate"),
-                Comparator.nullsLast(Comparator.reverseOrder())));
-        history.forEach(item -> item.remove("sortDate"));
+        if (history.isEmpty()) {
+            for (Invoice invoice : invoiceRepository.findByUserId(user.getId())) {
+                if (invoice.getEarnedPoints() != null && invoice.getEarnedPoints() > 0) {
+                    history.add(legacyPointEntry(invoice, "EARN", invoice.getEarnedPoints(),
+                            "Tích điểm sau khi thanh toán hóa đơn"));
+                }
+                if (invoice.getRedeemedPoints() != null && invoice.getRedeemedPoints() > 0) {
+                    history.add(legacyPointEntry(invoice, "REDEEM", -invoice.getRedeemedPoints(),
+                            "Sử dụng điểm giảm giá hóa đơn"));
+                }
+            }
+            history.sort(Comparator.comparing(
+                    item -> (Date) item.get("sortDate"),
+                    Comparator.nullsLast(Comparator.reverseOrder())));
+            history.forEach(item -> item.remove("sortDate"));
+        }
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("currentPoints", currentPoints);
         data.put("membershipTier", tier);
+        data.put("nextTier", nextTier);
+        data.put("nextTierThreshold", nextThreshold);
+        data.put("pointsToNextTier", Math.max(0, nextThreshold - currentPoints));
         data.put("history", history);
         return Map.of("success", true, "data", data);
     }
 
-    private Map<String, Object> pointEntry(Invoice invoice, String type, int points, String note) {
-        Date date = invoice.getCreatedAt();
+    private Map<String, Object> pointEntry(PointTransaction transaction) {
+        Date date = transaction.getCreatedAt();
         Map<String, Object> entry = new LinkedHashMap<>();
+        entry.put("id", transaction.getReferenceId());
+        entry.put("title", transaction.getDescription());
+        entry.put("date", date == null ? "" : new SimpleDateFormat("dd/MM/yyyy").format(date));
+        entry.put("type", transaction.getType());
+        entry.put("points", transaction.getPoints());
+        entry.put("note", transaction.getDescription());
+        return entry;
+    }
+
+    private Map<String, Object> legacyPointEntry(Invoice invoice, String type, int points, String note) {
+        Map<String, Object> entry = new LinkedHashMap<>();
+        Date date = invoice.getCreatedAt();
         entry.put("id", invoice.getId() == null ? "HD" : "HD" + invoice.getId());
-        entry.put("title", "Hóa đơn đặt phòng #" + (invoice.getBookingId() == null ? "" : invoice.getBookingId()));
+        entry.put("title", note + (invoice.getId() == null ? "" : " #" + invoice.getId()));
         entry.put("date", date == null ? "" : new SimpleDateFormat("dd/MM/yyyy").format(date));
         entry.put("type", type);
         entry.put("points", points);
@@ -109,8 +130,31 @@ public class AccountPointsController {
         return entry;
     }
 
-    private String formatMoney(Double amount) {
-        if (amount == null) return "0 VNĐ";
-        return String.format(Locale.US, "%,.0f VNĐ", amount);
+    private String tierName(Long tierId) {
+        if (Long.valueOf(4L).equals(tierId)) return "Hạng Bạch Kim";
+        if (Long.valueOf(3L).equals(tierId)) return "Hạng Vàng";
+        if (Long.valueOf(2L).equals(tierId)) return "Hạng Bạc";
+        return "Hạng Đồng";
+    }
+
+    private int nextThreshold(int points, com.votricuong.mayhotel.documents.LoyaltyPolicy policy) {
+        if (policy == null) return 0;
+        int silver = policy.getSilverThreshold() == null ? 0 : policy.getSilverThreshold();
+        int gold = policy.getGoldThreshold() == null ? silver : policy.getGoldThreshold();
+        int platinum = policy.getPlatinumThreshold() == null ? gold : policy.getPlatinumThreshold();
+        if (points < silver) return silver;
+        if (points < gold) return gold;
+        return platinum;
+    }
+
+    private String nextTier(int points, com.votricuong.mayhotel.documents.LoyaltyPolicy policy) {
+        if (policy == null) return "Bạch Kim";
+        int silver = policy.getSilverThreshold() == null ? 0 : policy.getSilverThreshold();
+        int gold = policy.getGoldThreshold() == null ? silver : policy.getGoldThreshold();
+        int platinum = policy.getPlatinumThreshold() == null ? gold : policy.getPlatinumThreshold();
+        if (points < silver) return "Bạc";
+        if (points < gold) return "Vàng";
+        if (points < platinum) return "Bạch Kim";
+        return "Bạch Kim";
     }
 }

@@ -36,11 +36,8 @@ public class EmailService {
             // Bỏ comment dòng dưới để gửi email thật (Yêu cầu cấu hình properties)
             mailSender.send(message);
             
-            System.out.println("========== MÃ OTP (GỬI ĐẾN " + toEmail + ") ==========");
-            System.out.println("OTP CODE: " + otp);
-            System.out.println("======================================================");
         } catch (Exception e) {
-            System.err.println("Lỗi gửi email OTP: " + e.getMessage());
+            throw new IllegalStateException("Không thể gửi email OTP.", e);
         }
     }
 }

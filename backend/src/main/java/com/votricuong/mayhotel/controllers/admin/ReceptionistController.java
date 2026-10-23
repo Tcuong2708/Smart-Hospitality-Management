@@ -10,6 +10,7 @@ import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.services.BookingAvailabilityService;
+import com.votricuong.mayhotel.services.LoyaltyService;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.stereotype.Controller;
@@ -40,10 +41,11 @@ public class ReceptionistController extends BaseController {
     private final BookingOrderRepository bookingOrderRepository;
     private final BookingAvailabilityService bookingAvailabilityService;
     private final com.votricuong.mayhotel.services.RoomStatusService roomStatusService;
+    private final com.votricuong.mayhotel.services.RoomChangeService roomChangeService;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
     private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
-    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService) {
+    public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService, com.votricuong.mayhotel.services.RoomChangeService roomChangeService) {
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
@@ -52,6 +54,7 @@ public class ReceptionistController extends BaseController {
         this.bookingOrderRepository = bookingOrderRepository;
         this.bookingAvailabilityService = bookingAvailabilityService;
         this.roomStatusService = roomStatusService;
+        this.roomChangeService = roomChangeService;
     }
 
     @Data
@@ -344,9 +347,9 @@ public class ReceptionistController extends BaseController {
                 throw new Exception("Phòng này hiện không trống, vui lòng chọn phòng khác.");
             }
 
-            // Cập nhật trạng thái phòng -> Occupied
-            room.setStatus("Occupied");
-            roomRepository.save(room);
+            // Cập nhật qua dịch vụ trạng thái để web/mobile nhận sự kiện thời gian thực.
+            roomStatusService.markOccupiedForStay(maPhong, null,
+                    "Check-in cho đơn #" + verifiedBooking.getId());
 
             // Cập nhật hóa đơn -> In Use
             invoice.setRoomId(maPhong);
@@ -356,7 +359,10 @@ public class ReceptionistController extends BaseController {
             }
             invoiceRepository.save(invoice);
             if (Boolean.TRUE.equals(isPaidUpfront)) {
-                loyaltyService.awardPointsForPaidInvoice(invoice);
+                LoyaltyService.PaymentLoyaltyResult loyaltyResult = loyaltyService.finalizePaidInvoice(invoice);
+                if (!loyaltyResult.success()) {
+                    throw new IllegalStateException(loyaltyResult.message());
+                }
             }
 
             verifiedBooking.setStatus("Đã nhận phòng");
@@ -410,7 +416,10 @@ public class ReceptionistController extends BaseController {
             invoice.setInvoiceStatus("Completed");
             invoice.setIsPaid(true);
             invoiceRepository.save(invoice);
-            loyaltyService.awardPointsForPaidInvoice(invoice);
+            LoyaltyService.PaymentLoyaltyResult loyaltyResult = loyaltyService.finalizePaidInvoice(invoice);
+            if (!loyaltyResult.success()) {
+                throw new IllegalStateException(loyaltyResult.message());
+            }
 
             if (invoice.getBookingId() != null) {
                 bookingOrderRepository.findById(invoice.getBookingId()).ifPresent(order -> {
@@ -443,83 +452,20 @@ public class ReceptionistController extends BaseController {
                                     @RequestParam("newRoomId") Long newRoomId,
                                     @RequestParam(value = "reason", required = false) String reason,
                                     @RequestParam(value = "otherReason", required = false) String otherReason,
+                                    jakarta.servlet.http.HttpSession session,
                                     RedirectAttributes redirectAttributes) {
         try {
-            if (oldRoomId.equals(newRoomId)) {
-                throw new Exception("Phòng mới phải khác phòng hiện tại.");
-            }
-            Invoice invoice = invoiceRepository.findAll().stream()
-                    .filter(inv -> "In Use".equalsIgnoreCase(inv.getInvoiceStatus()) && oldRoomId.equals(inv.getRoomId()))
-                    .findFirst()
-                    .orElseThrow(() -> new Exception("Không tìm thấy thông tin khách đang ở phòng cũ."));
-
-            if (invoice.getBookingId() == null) {
-                throw new Exception("Hóa đơn lưu trú chưa liên kết với phiếu đặt phòng.");
-            }
-            BookingOrder booking = bookingOrderRepository.findById(invoice.getBookingId())
-                    .orElseThrow(() -> new Exception("Không tìm thấy phiếu đặt phòng đang lưu trú."));
-            if (!"Đã nhận phòng".equalsIgnoreCase(booking.getStatus())
-                    && !"Checked-in".equalsIgnoreCase(booking.getStatus())) {
-                throw new Exception("Chỉ được đổi phòng khi khách đã check-in và đang lưu trú.");
-            }
-
-            Room oldRoom = roomRepository.findById(oldRoomId).orElseThrow(() -> new Exception("Phòng cũ không tồn tại."));
-            Room newRoom = roomRepository.findById(newRoomId).orElseThrow(() -> new Exception("Phòng mới không tồn tại."));
-
-            Date now = new Date();
-            Date stayEnd = booking.getExpectedOut() != null ? booking.getExpectedOut() : invoice.getCheckOutDate();
-            if (stayEnd == null || !stayEnd.after(now)) {
-                throw new Exception("Thời gian lưu trú đã kết thúc, không thể đổi phòng.");
-            }
-            if (!bookingAvailabilityService.isRoomAvailable(newRoomId, now, stayEnd)) {
-                throw new Exception("Phòng mới không trống trong toàn bộ thời gian lưu trú còn lại.");
-            }
-
             String finalReason = "Lý do khác".equalsIgnoreCase(reason) ? otherReason : reason;
-            if (finalReason == null || finalReason.isBlank()) {
-                throw new Exception("Vui lòng nhập lý do đổi phòng.");
-            }
-
-            long remainingMillis = stayEnd.getTime() - now.getTime();
-            long remainingNights = Math.max(1L, (long) Math.ceil(remainingMillis / 86_400_000.0));
-            double oldPrice = oldRoom.getPrice() == null ? 0.0 : oldRoom.getPrice();
-            double newPrice = newRoom.getPrice() == null ? 0.0 : newRoom.getPrice();
-            double priceDifference = (newPrice - oldPrice) * remainingNights;
-            List<com.votricuong.mayhotel.documents.BookingDetail> details =
-                    bookingDetailRepository.findByBookingId(invoice.getBookingId());
-            if (details.isEmpty() || details.stream().noneMatch(detail -> oldRoomId.equals(detail.getRoomId()))) {
-                throw new Exception("Chi tiết lưu trú không còn khớp với phòng hiện tại.");
-            }
-
-            // Đổi phòng
-            oldRoom.setStatus("Trống");
-            roomRepository.save(oldRoom);
-
-            newRoom.setStatus("Occupied"); // Đang có khách
-            roomRepository.save(newRoom);
-
-            invoice.setRoomId(newRoomId);
-            invoice.setTotalAmount(Math.max(0.0,
-                    (invoice.getTotalAmount() == null ? 0.0 : invoice.getTotalAmount()) + priceDifference));
-            String transferNote = "[ĐỔI PHÒNG] " + oldRoom.getName() + " -> " + newRoom.getName()
-                    + "; lý do: " + finalReason.trim()
-                    + "; chênh lệch: " + priceDifference;
-            invoice.setNote(invoice.getNote() == null || invoice.getNote().isBlank()
-                    ? transferNote
-                    : invoice.getNote() + " | " + transferNote);
-            invoiceRepository.save(invoice);
-
-            for (com.votricuong.mayhotel.documents.BookingDetail detail : details) {
-                if (oldRoomId.equals(detail.getRoomId())) {
-                    detail.setRoomId(newRoomId);
-                    detail.setUnitPrice(newPrice);
-                    bookingDetailRepository.save(detail);
-                }
-            }
-
-            redirectAttributes.addFlashAttribute("success", "Đổi từ phòng " + oldRoom.getName()
-                    + " sang phòng " + newRoom.getName() + " thành công. Chênh lệch hóa đơn: "
-                    + String.format("%,.0f VNĐ", priceDifference));
+            Object value = session.getAttribute("user");
+            Long performedBy = value instanceof com.votricuong.mayhotel.documents.User user
+                    ? user.getId() : null;
+            com.votricuong.mayhotel.services.RoomChangeService.Result result =
+                    roomChangeService.change(oldRoomId, newRoomId, finalReason, performedBy);
+            redirectAttributes.addFlashAttribute("success",
+                    "Đổi từ phòng " + result.oldRoomName() + " sang phòng " + result.newRoomName()
+                            + " thành công. Chênh lệch hóa đơn: "
+                            + String.format("%,.0f VNĐ", result.priceDifference())
+                            + ". Phòng cũ đã chuyển sang chờ buồng phòng kiểm tra.");
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", e.getMessage());
         }

@@ -8,6 +8,8 @@ import '../../../core/utils/responsive.dart';
 import '../../profile/views/personal_info_screen.dart';
 import '../../profile/views/settings_screen.dart';
 import '../../profile/views/help_center_screen.dart';
+import '../../auth/models/app_role.dart';
+import '../../operations/views/customer_loyalty_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   final String username;
@@ -278,6 +280,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 Icons.person_outline,
                                 lang.translate('personal_info'),
                                 onTap: _openPersonalInfo,
+                              ),
+
+                            if (isLoggedIn &&
+                                AppRole.fromStorage(
+                                      AuthStateService().currentAuth.role,
+                                    ) ==
+                                    AppRole.customer)
+                              _buildProfileItem(
+                                context,
+                                Icons.workspace_premium_outlined,
+                                'Hạng thành viên & điểm thưởng',
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                        const CustomerLoyaltyScreen(),
+                                  ),
+                                ),
                               ),
 
                             _buildProfileItem(

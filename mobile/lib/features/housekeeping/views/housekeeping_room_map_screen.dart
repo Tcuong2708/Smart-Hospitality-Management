@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../../core/constants/app_colors.dart';
@@ -16,36 +18,67 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
   final Set<int> _updatingRoomIds = <int>{};
   List<HousekeepingRoom> _rooms = const [];
   bool _loading = true;
+  bool _syncing = false;
   String? _error;
-  String _filter = 'ALL';
+  String _filter = 'WORK_ORDERS';
+  DateTime _hotelDate = DateTime.now();
+  DateTime? _lastSyncedAt;
+  Timer? _syncTimer;
 
   @override
   void initState() {
     super.initState();
     _loadRooms();
+    _syncTimer = Timer.periodic(
+      const Duration(seconds: 15),
+      (_) => _loadRooms(showLoading: false),
+    );
   }
 
-  Future<void> _loadRooms() async {
-    if (mounted) setState(() { _loading = true; _error = null; });
+  @override
+  void dispose() {
+    _syncTimer?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _loadRooms({bool showLoading = true}) async {
+    if (_syncing) return;
+    _syncing = true;
+    if (mounted && showLoading) setState(() { _loading = true; _error = null; });
     try {
-      final rooms = await _api.getRooms();
-      if (mounted) setState(() { _rooms = rooms; _loading = false; });
+      final snapshot = await _api.getRooms();
+      if (mounted) {
+        setState(() {
+          _rooms = snapshot.rooms;
+          _hotelDate = snapshot.hotelDate;
+          _lastSyncedAt = snapshot.generatedAt ?? DateTime.now();
+          _loading = false;
+          _error = null;
+        });
+      }
     } catch (error) {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = HousekeepingApiService.errorMessage(error);
+          if (_rooms.isEmpty) {
+            _error = HousekeepingApiService.errorMessage(error);
+          }
         });
       }
+    } finally {
+      _syncing = false;
     }
   }
 
   List<HousekeepingRoom> get _visibleRooms {
+    if (_filter == 'WORK_ORDERS') {
+      return _rooms.where((room) => room.hasCleaningOrder).toList();
+    }
     if (_filter == 'ALL') return _rooms;
     return _rooms.where((room) => room.status == _filter).toList();
   }
 
-  int _count(String status) => _rooms.where((room) => room.status == status).length;
+  int get _activeOrderCount => _rooms.where((room) => room.hasCleaningOrder).length;
 
   @override
   Widget build(BuildContext context) {
@@ -60,9 +93,37 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
       ),
       body: Column(
         children: [
+          _buildCurrentDate(),
           _buildSummary(),
           _buildFilter(),
           Expanded(child: _buildBody()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCurrentDate() {
+    final syncedAt = _lastSyncedAt?.toLocal();
+    return Container(
+      width: double.infinity,
+      color: AppColors.primary,
+      padding: const EdgeInsets.fromLTRB(16, 2, 16, 12),
+      child: Row(
+        children: [
+          const Icon(Icons.calendar_today_outlined, size: 18, color: Colors.white),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '${_weekday(_hotelDate.weekday)}, ${_twoDigits(_hotelDate.day)}/${_twoDigits(_hotelDate.month)}/${_hotelDate.year}',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+            ),
+          ),
+          Text(
+            syncedAt == null
+                ? 'Đang đồng bộ...'
+                : 'Đồng bộ ${_twoDigits(syncedAt.hour)}:${_twoDigits(syncedAt.minute)}:${_twoDigits(syncedAt.second)}',
+            style: const TextStyle(color: Colors.white70, fontSize: 11),
+          ),
         ],
       ),
     );
@@ -74,9 +135,9 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
       padding: const EdgeInsets.fromLTRB(12, 14, 12, 10),
       child: Row(
         children: [
-          _summaryItem('Chờ kiểm tra', _count('CLEANING'), Colors.orange),
-          _summaryItem('Sẵn sàng', _count('VACANT'), Colors.green),
-          _summaryItem('Bảo trì', _count('MAINTENANCE'), Colors.blueGrey),
+          _summaryItem('Lệnh đang mở', _activeOrderCount, AppColors.primary),
+          _summaryItem('Chờ dọn', _rooms.where((room) => room.hasCleaningOrder && room.status == 'CLEANING').length, Colors.orange),
+          _summaryItem('Bảo trì', _rooms.where((room) => room.hasCleaningOrder && room.status == 'MAINTENANCE').length, Colors.blueGrey),
         ],
       ),
     );
@@ -95,10 +156,10 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
 
   Widget _buildFilter() {
     const filters = <String, String>{
+      'WORK_ORDERS': 'Công việc cần làm',
       'ALL': 'Tất cả',
-      'CLEANING': 'Chờ kiểm tra',
+      'CLEANING': 'Chờ dọn',
       'MAINTENANCE': 'Bảo trì',
-      'VACANT': 'Sẵn sàng',
     };
     return SizedBox(
       height: 54,
@@ -142,7 +203,15 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
       );
     }
     final rooms = _visibleRooms;
-    if (rooms.isEmpty) return const Center(child: Text('Không có phòng phù hợp'));
+    if (rooms.isEmpty) {
+      return Center(
+        child: Text(
+          _filter == 'WORK_ORDERS'
+              ? 'Hiện không có lệnh dọn phòng nào'
+              : 'Không có phòng phù hợp',
+        ),
+      );
+    }
     return RefreshIndicator(
       onRefresh: _loadRooms,
       child: LayoutBuilder(
@@ -166,7 +235,8 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
 
   Widget _roomCard(HousekeepingRoom room) {
     final color = _statusColor(room.status);
-    final actionable = room.status == 'CLEANING' || room.status == 'MAINTENANCE';
+    final actionable = room.hasCleaningOrder &&
+        (room.status == 'CLEANING' || room.status == 'MAINTENANCE');
     final updating = _updatingRoomIds.contains(room.id);
     return Material(
       color: Colors.white,
@@ -197,6 +267,19 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
               Text(room.roomType, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: Colors.black54)),
               const SizedBox(height: 8),
               Text(room.statusLabel, style: TextStyle(color: color, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 4),
+              Text(
+                room.hasCleaningOrder
+                    ? 'Có lệnh dọn${room.cleaningRequestedAt == null ? '' : ' • ${_formatDateTime(room.cleaningRequestedAt!)}'}'
+                    : 'Chưa có lệnh dọn',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 11,
+                  color: room.hasCleaningOrder ? Colors.deepOrange : Colors.black45,
+                  fontWeight: room.hasCleaningOrder ? FontWeight.w700 : FontWeight.normal,
+                ),
+              ),
               if (room.statusNote?.isNotEmpty == true) ...[
                 const SizedBox(height: 4),
                 Text(room.statusNote!, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(fontSize: 11, color: Colors.black54)),
@@ -329,5 +412,22 @@ class _HousekeepingRoomMapScreenState extends State<HousekeepingRoomMapScreen> {
     'OCCUPIED' => Icons.person_rounded,
     'RESERVED' => Icons.event_available_rounded,
     _ => Icons.meeting_room_rounded,
+  };
+
+  String _twoDigits(int value) => value.toString().padLeft(2, '0');
+
+  String _formatDateTime(DateTime value) {
+    final local = value.toLocal();
+    return '${_twoDigits(local.hour)}:${_twoDigits(local.minute)} ${_twoDigits(local.day)}/${_twoDigits(local.month)}';
+  }
+
+  String _weekday(int weekday) => switch (weekday) {
+    DateTime.monday => 'Thứ Hai',
+    DateTime.tuesday => 'Thứ Ba',
+    DateTime.wednesday => 'Thứ Tư',
+    DateTime.thursday => 'Thứ Năm',
+    DateTime.friday => 'Thứ Sáu',
+    DateTime.saturday => 'Thứ Bảy',
+    _ => 'Chủ Nhật',
   };
 }

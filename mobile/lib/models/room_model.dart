@@ -9,6 +9,9 @@ class RoomModel {
   final String detail;
   final int availableCount;
   final int maxOccupancy;
+  final String roomType;
+  final String statusLabel;
+  final String statusNote;
 
   RoomModel({
     required this.maPhong,
@@ -19,6 +22,9 @@ class RoomModel {
     required this.detail,
     this.availableCount = 0,
     this.maxOccupancy = 1,
+    this.roomType = '',
+    this.statusLabel = 'Trống',
+    this.statusNote = '',
   });
 
   factory RoomModel.fromJson(Map<String, dynamic> json) {
@@ -48,6 +54,10 @@ class RoomModel {
             (json['maxOccupancy'] ?? json['MaxOccupancy'] ?? 1).toString(),
           ) ??
           1,
+      roomType: (json['roomType'] ?? json['tenLoaiPhong'] ?? '').toString(),
+      statusLabel: (json['statusLabel'] ?? json['status'] ?? 'Trống')
+          .toString(),
+      statusNote: (json['statusNote'] ?? '').toString(),
     );
   }
 }

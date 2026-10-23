@@ -7,8 +7,6 @@ import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
-import java.util.Arrays;
-import java.util.List;
 
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
@@ -46,44 +44,43 @@ public class AuthInterceptor implements HandlerInterceptor {
         // Tuyến khách hàng
         if (uri.startsWith("/booking/")) {
             if (!"CUSTOMER".equals(role)) {
-                // Nhân viên không được vào giao diện đặt phòng dành cho khách hàng
-                request.getSession().setAttribute("error", "Bạn không có quyền xem trang này");
-                response.sendRedirect("/account/login");
+                redirectDenied(request, response, role);
                 return false;
             }
             return true;
         }
 
-        // Tuyến Admin/Manager (Ban giám đốc, Kế toán, Nhân sự, Admin)
-        if (uri.startsWith("/admin/") || uri.startsWith("/manager/")) {
-            List<String> adminRoles = Arrays.asList("ADMIN", "MANAGER", "ACCOUNTANT", "HR");
-            
-            // Các trang cụ thể
-            if (uri.startsWith("/admin/statistical") && !Arrays.asList("ADMIN", "MANAGER", "ACCOUNTANT").contains(role)) {
-                redirectDenied(request, response);
-                return false;
-            }
-            
-            if (uri.startsWith("/admin/users") && !"ADMIN".equals(role)) {
-                redirectDenied(request, response);
-                return false;
-            }
-
-            if (!adminRoles.contains(role) && !"RECEPTIONIST".equals(role)) {
-                // Nếu là khách hàng vào admin -> Chặn
-                redirectDenied(request, response);
-                return false;
-            }
-            
-            // Lễ tân, Buồng phòng được truy cập vào admin nhưng bị giới hạn module hiển thị trên giao diện
-            return true;
+        if (uri.startsWith("/manager/") && !"ADMIN".equals(role) && !"MANAGER".equals(role)) {
+            redirectDenied(request, response, role);
+            return false;
+        }
+        if (uri.startsWith("/receptionist/") && !"ADMIN".equals(role) && !"RECEPTIONIST".equals(role)) {
+            redirectDenied(request, response, role);
+            return false;
+        }
+        if (uri.startsWith("/admin/statistical")
+                && !"ADMIN".equals(role) && !"MANAGER".equals(role) && !"ACCOUNTANT".equals(role)) {
+            redirectDenied(request, response, role);
+            return false;
+        }
+        if (uri.startsWith("/admin/") && !uri.startsWith("/admin/statistical") && !"ADMIN".equals(role)) {
+            redirectDenied(request, response, role);
+            return false;
         }
 
         return true;
     }
 
-    private void redirectDenied(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        request.getSession().setAttribute("error", "Bạn không có quyền xem trang này");
-        response.sendRedirect("/account/login");
+    private void redirectDenied(HttpServletRequest request, HttpServletResponse response, String role) throws Exception {
+        request.getSession().setAttribute("error", "Bạn không có quyền xem chức năng này");
+        String home = switch (role) {
+            case "ADMIN" -> "/admin/users";
+            case "MANAGER" -> "/manager/rooms";
+            case "RECEPTIONIST" -> "/receptionist/room-map";
+            case "ACCOUNTANT" -> "/admin/statistical";
+            case "CUSTOMER" -> "/";
+            default -> "/account/login";
+        };
+        response.sendRedirect(home);
     }
 }

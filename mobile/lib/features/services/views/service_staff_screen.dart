@@ -26,6 +26,7 @@ class _ServiceStaffScreenState extends State<ServiceStaffScreen> {
 
   late Future<List<_ServiceRequest>> _requests;
   Timer? _pollTimer;
+  final Set<String> _knownRequestIds = {};
   String _filter = 'ACTIVE';
   bool _isUpdating = false;
   List<BluetoothDevice> _devices = [];
@@ -35,7 +36,10 @@ class _ServiceStaffScreenState extends State<ServiceStaffScreen> {
   @override
   void initState() {
     super.initState();
-    _requests = _loadRequests();
+    _requests = _loadRequests().then((items) {
+      _knownRequestIds.addAll(items.map((item) => item.groupId));
+      return items;
+    });
     _initPrinter();
     _pollTimer = Timer.periodic(
       const Duration(seconds: 15),
@@ -51,7 +55,24 @@ class _ServiceStaffScreenState extends State<ServiceStaffScreen> {
 
   Future<void> _refreshSilently() async {
     if (!mounted || _isUpdating) return;
-    setState(() => _requests = _loadRequests());
+    try {
+      final items = await _loadRequests();
+      if (!mounted) return;
+      final newItems = items
+          .where(
+            (item) =>
+                item.status == 'PENDING' &&
+                !_knownRequestIds.contains(item.groupId),
+          )
+          .length;
+      _knownRequestIds.addAll(items.map((item) => item.groupId));
+      setState(() => _requests = Future.value(items));
+      if (newItems > 0) {
+        _showMessage('Có $newItems yêu cầu dịch vụ mới từ khách hàng.');
+      }
+    } catch (error) {
+      debugPrint('Không thể đồng bộ phiếu dịch vụ: $error');
+    }
   }
 
   Future<List<_ServiceRequest>> _loadRequests() async {

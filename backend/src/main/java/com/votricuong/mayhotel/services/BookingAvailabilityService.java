@@ -17,6 +17,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 
 @Service
@@ -77,8 +78,13 @@ public class BookingAvailabilityService {
     }
 
     public List<Room> findAvailableRooms(Long roomTypeId, Date checkIn, Date checkOut) {
+        return findAvailableRoomsExcludingBooking(roomTypeId, checkIn, checkOut, null);
+    }
+
+    public List<Room> findAvailableRoomsExcludingBooking(
+            Long roomTypeId, Date checkIn, Date checkOut, Long excludedBookingId) {
         validateStay(checkIn, checkOut);
-        Set<Long> conflictingRoomIds = findConflictingRoomIds(checkIn, checkOut);
+        Set<Long> conflictingRoomIds = findConflictingRoomIds(checkIn, checkOut, excludedBookingId);
 
         return roomRepository.findAll().stream()
                 .filter(room -> roomTypeId == null || roomTypeId.equals(room.getRoomTypeId()))
@@ -182,10 +188,13 @@ public class BookingAvailabilityService {
         return value == null ? null : value.toInstant().atZone(HOTEL_ZONE).toLocalDate();
     }
 
-    private Set<Long> findConflictingRoomIds(Date checkIn, Date checkOut) {
+    private Set<Long> findConflictingRoomIds(Date checkIn, Date checkOut, Long excludedBookingId) {
         Set<Long> conflictingRoomIds = new HashSet<>();
 
         for (BookingOrder order : bookingOrderRepository.findAll()) {
+            if (Objects.equals(order.getId(), excludedBookingId)) {
+                continue;
+            }
             if (!blocksInventory(order) || !overlaps(order, checkIn, checkOut)) {
                 continue;
             }

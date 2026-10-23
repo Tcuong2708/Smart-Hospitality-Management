@@ -13,17 +13,82 @@
             </h3>
         </div>
 
+        <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+        <div th:unless="${backupEnabled}" class="alert alert-warning">
+            Sao lưu đang tắt theo cấu hình an toàn. Đặt <code>BACKUP_ENABLED=true</code> sau khi đã kiểm tra MongoDB Database Tools.
+        </div>
+        <div class="card shadow-sm border-0 admin-card mb-4">
+            <div class="card-body p-4">
+                <form th:action="@{/admin/backup/create}" method="post">
+                    <button class="btn btn-success" type="submit" th:disabled="${!backupEnabled}">
+                        <i class="bi bi-cloud-arrow-down-fill me-1"></i> Tạo bản sao lưu ngay
+                    </button>
+                </form>
+                <hr>
+                <form th:action="@{/admin/backup/schedule}" method="post" class="row g-3 align-items-end">
+                    <div class="col-md-3 form-check ms-3">
+                        <input class="form-check-input" type="checkbox" name="enabled" value="true" th:disabled="${!backupEnabled}"
+                               th:checked="${backupSettings.enabled}">
+                        <label class="form-check-label">Bật sao lưu tự động</label>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Chu kỳ</label>
+                        <select name="frequency" class="form-select">
+                            <option value="HOURLY">Theo giờ</option>
+                            <option value="DAILY" th:selected="${backupSettings.frequency == 'DAILY'}">Theo ngày</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Khoảng cách (giờ)</label>
+                        <input class="form-control" type="number" name="intervalHours"
+                               min="1" max="720" th:value="${backupSettings.intervalHours}">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-outline-primary" type="submit" th:disabled="${!backupEnabled}">Lưu lịch</button>
+                    </div>
+                </form>
+            </div>
+        </div>
         <div class="card shadow-sm border-0 admin-card">
-            <div class="card-body p-5 text-center">
-                <i class="bi bi-cloud-check display-1 text-success mb-3 d-block"></i>
-                <h4 class="fw-bold text-navy">Hệ thống Backup tự động đang hoạt động tốt</h4>
-                <p class="text-muted">Tính năng sao lưu thủ công sẽ được cung cấp trong phiên bản nâng cấp tiếp theo.</p>
-                <button class="btn btn-gold mt-3 px-4 shadow-sm text-white" style="background: #C5A059;">
-                    <i class="bi bi-cloud-arrow-down-fill me-1"></i> Tải bản sao lưu gần nhất
-                </button>
+            <div class="card-body p-0 table-responsive">
+                <table class="table table-hover mb-0" id="backupTable">
+                    <thead><tr><th>Tên</th><th>Thao tác</th><th>Thời điểm</th><th>Loại</th><th>Trạng thái</th><th>Thông báo</th></tr></thead>
+                    <tbody>
+                    <tr th:each="backup : ${backups}" class="backup-row">
+                        <td th:text="${backup.fileName}"></td>
+                        <td>
+                            <form th:if="${restoreEnabled and backup.operation == 'BACKUP' and backup.status == 'SUCCESS'}"
+                                  th:action="@{/admin/backup/restore}" method="post"
+                                  onsubmit="return confirm('Phục hồi sẽ ghi đè dữ liệu hiện tại. Tiếp tục?');">
+                                <input type="hidden" name="fileName" th:value="${backup.fileName}">
+                                <button class="btn btn-sm btn-warning" type="submit">Phục hồi</button>
+                            </form>
+                        </td>
+                        <td th:text="${backup.backupDate}"></td>
+                        <td th:text="${backup.operation}"></td>
+                        <td th:text="${backup.status}"></td>
+                        <td th:text="${backup.message}"></td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(backups)}"><td colspan="6" class="text-center py-4">Chưa có bản sao lưu.</td></tr>
+                    </tbody>
+                </table>
+                <div class="adm-pagination" id="backupPagination" aria-label="Phân trang lịch sử sao lưu"></div>
             </div>
         </div>
     </div>
+    <script>
+        window.addEventListener('load', function () {
+            if (window.AdmPagination) {
+                window.AdmPagination.init({
+                    table: '#backupTable',
+                    rowSelector: '.backup-row',
+                    container: '#backupPagination',
+                    pageSize: 10
+                });
+            }
+        });
+    </script>
 </div>
 </body>
 </html>

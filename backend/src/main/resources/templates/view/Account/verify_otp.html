@@ -62,8 +62,9 @@
                             <label for="newpassword">Mật khẩu mới</label>
                             <div class="mh-field-input">
                                 <i class="fa-solid fa-lock"></i>
-                                <input id="newpassword" type="password" name="newpassword" required minlength="6"
-                                    placeholder="Ít nhất 6 ký tự" />
+                                <input id="newpassword" type="password" name="newpassword" required minlength="8"
+                                    pattern="(?=.*[A-Za-z])(?=.*\d).{8,100}"
+                                    placeholder="Ít nhất 8 ký tự, gồm chữ và số" />
                             </div>
                         </div>
 

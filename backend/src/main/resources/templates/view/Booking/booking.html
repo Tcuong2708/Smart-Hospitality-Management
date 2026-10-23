@@ -138,6 +138,13 @@
                                 </div>
 
                                 <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Số khách lưu trú</label>
+                                    <input type="number" name="guestCount" id="mhGuestCount" value="1" min="1"
+                                           th:max="${loaiPhong.soNguoi * soPhongTrong}" required>
+                                    <small>Mỗi khách sẽ được xác thực khi nhận phòng.</small>
+                                </div>
+
+                                <div class="mh-form-group" style="margin-bottom:16px;">
                                     <label>Ngày nhận phòng</label>
                                     <input type="date" name="ngayNhan" id="mhNgayNhan" required>
                                 </div>

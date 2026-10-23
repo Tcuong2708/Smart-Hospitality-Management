@@ -40,6 +40,15 @@ public class Room implements java.io.Serializable {
 
     @Field("status_updated_by")
     private Long statusUpdatedBy;
+
+    @Field("housekeeping_order_active")
+    private Boolean housekeepingOrderActive;
+
+    @Field("housekeeping_order_created_at")
+    private Date housekeepingOrderCreatedAt;
+
+    @Field("housekeeping_order_completed_at")
+    private Date housekeepingOrderCompletedAt;
     
     // --- THUỘC TÍNH BỔ SUNG THEO YÊU CẦU ---
     @Field("view_direction")

@@ -13,6 +13,8 @@ import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.services.LoyaltyService;
 import com.votricuong.mayhotel.services.BookingAvailabilityService;
+import com.votricuong.mayhotel.services.RoomChangeService;
+import org.springframework.mock.web.MockHttpSession;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ui.ExtendedModelMap;
@@ -38,6 +40,7 @@ class ReceptionistControllerTests {
     private BookingDetailRepository bookingDetailRepository;
     private BookingOrderRepository bookingOrderRepository;
     private BookingAvailabilityService bookingAvailabilityService;
+    private RoomChangeService roomChangeService;
     private ReceptionistController controller;
 
     @BeforeEach
@@ -48,6 +51,7 @@ class ReceptionistControllerTests {
         bookingDetailRepository = mock(BookingDetailRepository.class);
         bookingOrderRepository = mock(BookingOrderRepository.class);
         bookingAvailabilityService = mock(BookingAvailabilityService.class);
+        roomChangeService = mock(RoomChangeService.class);
         when(bookingAvailabilityService.findOccupiedRoomIdsOn(any())).thenReturn(Set.of());
         controller = new ReceptionistController(
                 invoiceRepository,
@@ -57,7 +61,8 @@ class ReceptionistControllerTests {
                 mock(LoyaltyService.class),
                 bookingOrderRepository,
                 bookingAvailabilityService,
-                mock(com.votricuong.mayhotel.services.RoomStatusService.class));
+                mock(com.votricuong.mayhotel.services.RoomStatusService.class),
+                roomChangeService);
     }
 
     @Test
@@ -106,7 +111,7 @@ class ReceptionistControllerTests {
         ExtendedModelMap model = new ExtendedModelMap();
         String view = controller.checkInView(null, model);
 
-        assertThat(view).isEqualTo("layout/layout");
+        assertThat(view).isEqualTo("layout/admin");
         List<ReceptionistController.InvoiceDTO> invoices =
                 (List<ReceptionistController.InvoiceDTO>) model.get("invoices");
         assertThat(invoices).singleElement().satisfies(item -> {
@@ -268,60 +273,30 @@ class ReceptionistControllerTests {
     }
 
     @Test
-    void executeChangeRoomPersistsTheStayAndInvoiceDifference() {
-        Date checkOut = new Date(System.currentTimeMillis() + 60L * 60 * 1000);
-        Invoice invoice = Invoice.builder().id(18L).bookingId(22L).roomId(101L)
-                .invoiceStatus("In Use").totalAmount(1_000_000.0).checkOutDate(checkOut).build();
-        BookingOrder booking = BookingOrder.builder().id(22L).status("Đã nhận phòng")
-                .expectedOut(checkOut).build();
-        BookingDetail detail = BookingDetail.builder().id(30L).bookingId(22L).roomId(101L)
-                .unitPrice(500_000.0).actualIn(new Date()).build();
-        Room oldRoom = Room.builder().id(101L).name("P101").status("Occupied").price(500_000.0).build();
-        Room newRoom = Room.builder().id(201L).name("P201").status("Trống").price(800_000.0).build();
-
-        when(invoiceRepository.findAll()).thenReturn(List.of(invoice));
-        when(bookingOrderRepository.findById(22L)).thenReturn(Optional.of(booking));
-        when(bookingDetailRepository.findByBookingId(22L)).thenReturn(List.of(detail));
-        when(roomRepository.findById(101L)).thenReturn(Optional.of(oldRoom));
-        when(roomRepository.findById(201L)).thenReturn(Optional.of(newRoom));
-        when(bookingAvailabilityService.isRoomAvailable(any(), any(), any())).thenReturn(true);
+    void executeChangeRoomDelegatesToTheValidatedService() {
+        when(roomChangeService.change(101L, 201L, "Sự cố kỹ thuật", null))
+                .thenReturn(new RoomChangeService.Result("P101", "P201", 300_000.0, 1));
 
         RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
-        controller.executeChangeRoom(101L, 201L, "Sự cố kỹ thuật", null, redirectAttributes);
+        controller.executeChangeRoom(101L, 201L, "Sự cố kỹ thuật", null,
+                new MockHttpSession(), redirectAttributes);
 
-        assertThat(oldRoom.getStatus()).isEqualTo("Trống");
-        assertThat(newRoom.getStatus()).isEqualTo("Occupied");
-        assertThat(invoice.getRoomId()).isEqualTo(201L);
-        assertThat(invoice.getTotalAmount()).isEqualTo(1_300_000.0);
-        assertThat(invoice.getNote()).contains("P101 -> P201", "Sự cố kỹ thuật");
-        assertThat(detail.getRoomId()).isEqualTo(201L);
-        assertThat(detail.getUnitPrice()).isEqualTo(800_000.0);
-        verify(invoiceRepository).save(invoice);
-        verify(bookingDetailRepository).save(detail);
+        assertThat(redirectAttributes.getFlashAttributes().get("success").toString())
+                .contains("P101", "P201", "300,000");
+        verify(roomChangeService).change(101L, 201L, "Sự cố kỹ thuật", null);
     }
 
     @Test
-    void executeChangeRoomRejectsAConflictForTheRemainingStay() {
-        Date checkOut = new Date(System.currentTimeMillis() + 24L * 60 * 60 * 1000);
-        Invoice invoice = Invoice.builder().id(18L).bookingId(22L).roomId(101L)
-                .invoiceStatus("In Use").checkOutDate(checkOut).build();
-        BookingOrder booking = BookingOrder.builder().id(22L).status("Đã nhận phòng")
-                .expectedOut(checkOut).build();
-
-        when(invoiceRepository.findAll()).thenReturn(List.of(invoice));
-        when(bookingOrderRepository.findById(22L)).thenReturn(Optional.of(booking));
-        when(roomRepository.findById(101L)).thenReturn(Optional.of(
-                Room.builder().id(101L).name("P101").status("Occupied").build()));
-        when(roomRepository.findById(201L)).thenReturn(Optional.of(
-                Room.builder().id(201L).name("P201").status("Trống").build()));
-        when(bookingAvailabilityService.isRoomAvailable(any(), any(), any())).thenReturn(false);
+    void executeChangeRoomReportsAvailabilityConflict() {
+        when(roomChangeService.change(101L, 201L, "Khách yêu cầu", null))
+                .thenThrow(new IllegalStateException(
+                        "Phòng mới không trống trong toàn bộ thời gian lưu trú còn lại."));
 
         RedirectAttributesModelMap redirectAttributes = new RedirectAttributesModelMap();
-        controller.executeChangeRoom(101L, 201L, "Khách yêu cầu", null, redirectAttributes);
+        controller.executeChangeRoom(101L, 201L, "Khách yêu cầu", null,
+                new MockHttpSession(), redirectAttributes);
 
         assertThat(redirectAttributes.getFlashAttributes().get("error"))
                 .isEqualTo("Phòng mới không trống trong toàn bộ thời gian lưu trú còn lại.");
-        verify(roomRepository, never()).save(any(Room.class));
-        verify(invoiceRepository, never()).save(any(Invoice.class));
     }
 }

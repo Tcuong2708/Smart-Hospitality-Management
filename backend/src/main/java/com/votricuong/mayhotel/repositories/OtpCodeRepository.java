@@ -10,4 +10,6 @@ import java.util.Optional;
 public interface OtpCodeRepository extends MongoRepository<OtpCode, String> {
     Optional<OtpCode> findByIdentifierAndCode(String identifier, String code);
     Optional<OtpCode> findByIdentifier(String identifier);
+    Optional<OtpCode> findTopByIdentifierOrderByCreatedAtDesc(String identifier);
+    void deleteByIdentifier(String identifier);
 }

@@ -63,7 +63,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       soDienThoai: _phoneController.text,
       diaChi: _addressController.text,
       quocTich: _nationalityController.text,
-      roleID: 3, // Mặc định là Khách hàng
+      roleID: 5, // Khách hàng; backend không nhận vai trò nhân viên từ đăng ký công khai.
       trangThai: true,
     );
 

@@ -30,6 +30,15 @@ public class Invoice {
     
     @org.springframework.data.mongodb.core.mapping.Field("promo_id")
     private Long promoId;
+
+    @org.springframework.data.mongodb.core.mapping.Field("promotion_code")
+    private String promotionCode;
+
+    @org.springframework.data.mongodb.core.mapping.Field("promotion_discount")
+    private Double promotionDiscount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("gross_amount")
+    private Double grossAmount;
     
     @org.springframework.data.mongodb.core.mapping.Field("created_at")
     private Date createdAt;
@@ -47,12 +56,19 @@ public class Invoice {
 
     private String guestName;
     private String phone;
+
+    @org.springframework.data.mongodb.core.mapping.Field("guest_count")
+    private Integer guestCount;
+
     private Long roomId;
     private Date checkInDate;
     private Date checkOutDate;
     private Long userId;
     private Boolean isPaid;
     private Double surcharge;
+
+    @org.springframework.data.mongodb.core.mapping.Field("points_to_redeem")
+    private Integer pointsToRedeem;
 
     @org.springframework.data.mongodb.core.mapping.Field("loyalty_points_awarded")
     private Boolean loyaltyPointsAwarded;
@@ -66,6 +82,12 @@ public class Invoice {
     @org.springframework.data.mongodb.core.mapping.Field("points_discount")
     private Double pointsDiscount;
 
+    @org.springframework.data.mongodb.core.mapping.Field("loyalty_finalized")
+    private Boolean loyaltyFinalized;
+
+    @org.springframework.data.mongodb.core.mapping.Field("payment_history")
+    private List<PaymentTransaction> paymentHistory;
+
     @org.springframework.data.mongodb.core.mapping.Field("penalty_rate")
     private Double penaltyRate;
 
@@ -77,4 +99,19 @@ public class Invoice {
 
     @org.springframework.data.mongodb.core.mapping.Field("cancellation_type")
     private String cancellationType;
+
+    @Data
+    @Builder
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class PaymentTransaction {
+        private String transactionId;
+        private Date paymentDate;
+        private Double amount;
+        private String paymentMethod;
+        private String bankCode;
+        private String status;
+        private String responseCode;
+        private String note;
+    }
 }

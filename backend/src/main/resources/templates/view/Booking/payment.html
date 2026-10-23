@@ -102,14 +102,19 @@
                                 </div>
 
                                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-                                    <form th:action="@{/booking/complete-online-payment}" method="post" style="flex:1;">
+                                    <a th:if="${vnpayPaymentUrl != null}" th:href="${vnpayPaymentUrl}"
+                                       class="mh-btn mh-btn-gold mh-btn-block" style="flex:1;text-align:center;">
+                                        <i class="fa-solid fa-qrcode"></i>
+                                        Thanh toán qua VNPay
+                                    </a>
+                                    <form th:if="${vnpayPaymentUrl == null}" th:action="@{/booking/complete-online-payment}" method="post" style="flex:1;">
                                         <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
                                             th:value="${_csrf.token}" />
                                         <input type="hidden" name="maHD" th:value="${invoice.id}" />
                                         <button type="submit" class="mh-btn mh-btn-gold mh-btn-block"
                                             style="width:100%;text-align:center;">
                                             <i class="fa-solid fa-qrcode"></i>
-                                            Đã thanh toán (Mô phỏng)
+                                            Đã thanh toán (Mô phỏng nội bộ)
                                         </button>
                                     </form>
                                     <!-- Trả tại khách sạn: phòng đã được giữ, chỉ cần sang trang xác nhận -->

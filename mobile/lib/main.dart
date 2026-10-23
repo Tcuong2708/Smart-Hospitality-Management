@@ -177,7 +177,13 @@ class MayHotelApp extends StatelessWidget {
                     themeMode: currentMode,
                     theme: _buildTheme(Brightness.light),
                     darkTheme: _buildTheme(Brightness.dark),
-                    home: MainScreen(role: authState.role, username: authState.username),
+                    home: MainScreen(
+                      key: ValueKey(
+                        '${authState.role}:${authState.userId ?? authState.username}:${authState.isLoggedIn}',
+                      ),
+                      role: authState.role,
+                      username: authState.username,
+                    ),
                   ),
                 );
               },
