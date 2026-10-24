@@ -207,7 +207,7 @@ public class HomeController extends BaseController {
             model.addAttribute("flashSaleSeconds", 0);
         }
 
-        return "view/Home/index";
+        return "view/home/index";
     }
 
     // ================================================================
