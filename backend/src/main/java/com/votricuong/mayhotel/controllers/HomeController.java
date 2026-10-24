@@ -1,12 +1,25 @@
 package com.votricuong.mayhotel.controllers;
 
+import java.io.Serializable;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+
 import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.Customer;
 import com.votricuong.mayhotel.documents.Promotion;
 import com.votricuong.mayhotel.documents.Review;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.RoomType;
-import com.votricuong.mayhotel.documents.Service;
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
 import com.votricuong.mayhotel.repositories.CustomerRepository;
@@ -15,23 +28,9 @@ import com.votricuong.mayhotel.repositories.ReviewRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.repositories.ServiceRepository;
+
 import jakarta.servlet.http.HttpSession;
 import lombok.Data;
-import org.springframework.stereotype.Controller;
-import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-
-import java.io.Serializable;
-import java.time.LocalDate;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller
 public class HomeController extends BaseController {
@@ -208,7 +207,7 @@ public class HomeController extends BaseController {
             model.addAttribute("flashSaleSeconds", 0);
         }
 
-        return "view/home/index";
+        return "view/Home/index";
     }
 
     // ================================================================
