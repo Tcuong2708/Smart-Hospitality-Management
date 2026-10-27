@@ -24,7 +24,7 @@
             <form class="mh-list-search" th:action="@{/rooms}" method="get">
                 <div class="mh-list-search-field mh-list-search-field--keyword">
                     <label><i class="fa-solid fa-magnifying-glass"></i> Từ khóa</label>
-                    <input type="text" name="keyword" th:value="${keyword}" placeholder="Tên phòng, loại phòng...">
+                    <input type="text" name="keyword" th:value="${keyword}" placeholder="Tên loại phòng...">
                 </div>
 
                 <div class="mh-list-search-field">
@@ -126,7 +126,7 @@
                                 <span th:if="${keyword == null or keyword.isBlank()}">Danh sách phòng nghỉ</span>
                             </h2>
                             <p th:if="${rooms != null}">
-                                Tìm thấy <strong th:text="${#lists.size(rooms)}">0</strong> phòng phù hợp
+                                Tìm thấy <strong th:text="${#lists.size(rooms)}">0</strong> loại phòng phù hợp
                             </p>
                         </div>
 
@@ -148,19 +148,20 @@
 
                     <div class="mh-room-list" th:if="${rooms != null and !#lists.isEmpty(rooms)}">
 
-                        <a th:each="r : ${rooms}" th:href="@{/rooms/detail/{id}(id=${r.id})}" class="mh-room-row"
-                            th:with="imgPath=${(r.imageUrl != null and !r.imageUrl.isBlank()) ? r.imageUrl : 'default.jpg'}">
+                        <a th:each="r : ${rooms}" th:href="@{/rooms/detail/{id}(id=${r.id})}" class="mh-room-row">
 
                             <!-- Ảnh -->
                             <div class="mh-room-row-img">
-                                <img th:src="@{'/images/rooms/' + ${imgPath}}" th:alt="${r.name}">
+                                <img th:src="${r.imageUrl}"
+                                    th:alt="${r.roomType != null ? r.roomType.name : 'Loại phòng'}"
+                                    onerror="this.onerror=null;this.src='/images/a1.jpg';">
                                 <span class="mh-room-row-status" th:text="${r.status}">Trống</span>
                             </div>
 
                             <!-- Info -->
                             <div class="mh-room-row-body">
-                                <h3 th:text="${(r.roomType != null ? r.roomType.name : 'Phòng') + ' – ' + r.name}">
-                                    Phòng Deluxe – P701</h3>
+                                <h3 th:text="${r.roomType != null ? r.roomType.name : 'Loại phòng'}">
+                                    Phòng Deluxe</h3>
 
                                 <p class="mh-room-row-location">
                                     <i class="fa-solid fa-location-dot"></i>
@@ -177,18 +178,6 @@
                                         <i class="fa-solid fa-user"></i>
                                         [[${(r.roomType != null and r.roomType.maxOccupancy != null ?
                                         r.roomType.maxOccupancy : 2) + ' khách'}]]
-                                    </span>
-                                    <span th:if="${r.viewDirection != null and !r.viewDirection.isBlank()}">
-                                        <i class="fa-solid fa-mountain-sun"></i>
-                                        [[${r.viewDirection}]]
-                                    </span>
-                                    <span th:if="${r.locationZone != null and !r.locationZone.isBlank()}">
-                                        <i class="fa-solid fa-location-crosshairs"></i>
-                                        [[${r.locationZone}]]
-                                    </span>
-                                    <span th:if="${r.maxExtraBeds != null and r.maxExtraBeds > 0}">
-                                        <i class="fa-solid fa-bed"></i>
-                                        [[${r.maxExtraBeds + ' giường phụ'}]]
                                     </span>
                                 </div>
 

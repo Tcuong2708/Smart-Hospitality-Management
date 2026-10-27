@@ -22,8 +22,8 @@
     </th:block>
 </head>
 <body>
-<div th:fragment="body_content">
-    <div class="container py-4">
+<div th:fragment="body_content" class="manager-page-shell">
+    <div class="container py-4 manager-fill-page">
         <!-- Alert -->
         <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
@@ -71,14 +71,14 @@
         </div>
 
         <!-- Danh sách khách hàng và điểm -->
-        <div class="admin-card">
+        <div class="admin-card manager-fill-card">
             <div class="admin-header d-flex justify-content-between align-items-center gap-3 p-3" style="background-color: #0F2942; border-bottom: 3px solid #C5A017;">
                 <h4 class="fw-bold text-uppercase mb-0 text-white" style="letter-spacing: 1px;">
                     <i class="bi bi-people-fill me-2" style="color: #C5A017;"></i>Tra cứu Hạng Khách Hàng
                 </h4>
             </div>
 
-            <div class="table-responsive" style="min-height: 400px; background-color: #fff;">
+            <div class="table-responsive manager-fill-body" style="background-color: #fff;">
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-header-navy">
                     <tr>

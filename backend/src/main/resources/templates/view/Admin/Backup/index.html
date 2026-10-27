@@ -5,10 +5,10 @@
     <title>Sao lưu Phục hồi - May Hotel</title>
 </head>
 <body>
-<div th:fragment="body_content">
-    <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3 class="fw-bold text-uppercase" style="color: var(--navy-color);">
+<div th:fragment="body_content" class="manager-page-shell">
+    <div class="container py-5 manager-fill-page">
+        <div class="admin-page-banner d-flex justify-content-between align-items-center mb-4">
+            <h3 class="fw-bold text-uppercase">
                 <i class="bi bi-database-down me-2 text-gold"></i>Sao Lưu & Phục Hồi
             </h3>
         </div>
@@ -21,7 +21,7 @@
         <div class="card shadow-sm border-0 admin-card mb-4">
             <div class="card-body p-4">
                 <form th:action="@{/admin/backup/create}" method="post">
-                    <button class="btn btn-success" type="submit" th:disabled="${!backupEnabled}">
+                    <button class="btn btn-navy" type="submit" th:disabled="${!backupEnabled}">
                         <i class="bi bi-cloud-arrow-down-fill me-1"></i> Tạo bản sao lưu ngay
                     </button>
                 </form>
@@ -45,13 +45,13 @@
                                min="1" max="720" th:value="${backupSettings.intervalHours}">
                     </div>
                     <div class="col-md-3">
-                        <button class="btn btn-outline-primary" type="submit" th:disabled="${!backupEnabled}">Lưu lịch</button>
+                        <button class="btn btn-gold" type="submit" th:disabled="${!backupEnabled}">Lưu lịch</button>
                     </div>
                 </form>
             </div>
         </div>
-        <div class="card shadow-sm border-0 admin-card">
-            <div class="card-body p-0 table-responsive">
+        <div class="card shadow-sm border-0 admin-card manager-fill-card">
+            <div class="card-body p-0 table-responsive manager-fill-body">
                 <table class="table table-hover mb-0" id="backupTable">
                     <thead><tr><th>Tên</th><th>Thao tác</th><th>Thời điểm</th><th>Loại</th><th>Trạng thái</th><th>Thông báo</th></tr></thead>
                     <tbody>

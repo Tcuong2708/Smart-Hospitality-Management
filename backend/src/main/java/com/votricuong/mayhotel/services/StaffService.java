@@ -29,6 +29,10 @@ public class StaffService {
     }
 
     public Staff createStaff(Staff staff, String username, String password, Long roleId) throws Exception {
+        return createStaff(staff, username, password, roleId, staff == null ? null : staff.getPhone() + "@hotel.com");
+    }
+
+    public Staff createStaff(Staff staff, String username, String password, Long roleId, String email) throws Exception {
         validate(staff, null);
         username = com.votricuong.mayhotel.utils.InputValidator.username(username);
         password = com.votricuong.mayhotel.utils.InputValidator.password(password);
@@ -40,7 +44,9 @@ public class StaffService {
         User newUser = new User();
         newUser.setUsername(username);
         newUser.setPassword(password);
-        newUser.setEmail(staff.getPhone() + "@hotel.com"); // Dummy email if none provided
+        newUser.setEmail(email);
+        newUser.setFullName(staff.getFullName());
+        newUser.setPhone(staff.getPhone());
         newUser.setRoleId(validatedRole);
         newUser.setStatus("Hoạt động");
         
@@ -65,6 +71,8 @@ public class StaffService {
         staff.setGender(staffDetails.getGender());
         staff.setPhone(staffDetails.getPhone());
         staff.setPosition(staffDetails.getPosition());
+        staff.setBaseSalary(staffDetails.getBaseSalary() == null ? 0D :
+                com.votricuong.mayhotel.utils.InputValidator.nonNegativeMoney(staffDetails.getBaseSalary(), "Lương cơ bản"));
         
         return staffRepository.save(staff);
     }
@@ -91,6 +99,8 @@ public class StaffService {
         staff.setFullName(com.votricuong.mayhotel.utils.InputValidator.requiredText(staff.getFullName(), "Họ và tên", 100));
         staff.setPhone(com.votricuong.mayhotel.utils.InputValidator.phone(staff.getPhone()));
         staff.setPosition(com.votricuong.mayhotel.utils.InputValidator.requiredText(staff.getPosition(), "Chức vụ", 100));
+        staff.setBaseSalary(staff.getBaseSalary() == null ? 0D :
+                com.votricuong.mayhotel.utils.InputValidator.nonNegativeMoney(staff.getBaseSalary(), "Lương cơ bản"));
         if (staff.getDob() != null && staff.getDob().after(new java.util.Date())) {
             throw new IllegalArgumentException("Ngày sinh không được ở tương lai");
         }

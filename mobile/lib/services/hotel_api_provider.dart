@@ -188,7 +188,7 @@ class HotelApiProvider {
       return [];
     } catch (e) {
       _handleError("Lỗi bốc lịch sử phòng đặt", e);
-      return [];
+      rethrow;
     }
   }
 
@@ -340,7 +340,7 @@ class HotelApiProvider {
       return results;
     } catch (e) {
       _handleError('Lỗi tra cứu phòng', e);
-      return [];
+      rethrow;
     }
   }
 
@@ -358,6 +358,51 @@ class HotelApiProvider {
   // API: CÁC LUỒNG MOBILE MỚI (2.2 - 2.6)
   // ==========================================
 
+  Future<Map<String, dynamic>?> submitIdentityVerification({
+    required int bookingId,
+    required int guestIndex,
+    required String method,
+    required File documentImage,
+    required File selfieImage,
+    String? identityValue,
+    String? nfcProof,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'guestIndex': guestIndex,
+        'method': method,
+        if (identityValue != null && identityValue.trim().isNotEmpty)
+          'identityValue': identityValue.trim(),
+        if (nfcProof != null && nfcProof.trim().isNotEmpty)
+          'nfcProof': nfcProof.trim(),
+        'documentImage': await MultipartFile.fromFile(
+          documentImage.path,
+          filename: 'identity-document.jpg',
+        ),
+        'selfieImage': await MultipartFile.fromFile(
+          selfieImage.path,
+          filename: 'selfie.jpg',
+        ),
+      });
+      final response = await _dio.post(
+        '/api/v1/mobile/bookings/$bookingId/identity-verifications',
+        data: formData,
+      );
+      if (response.statusCode == 200 && response.data is Map) {
+        final body = Map<String, dynamic>.from(response.data as Map);
+        final data = body['data'];
+        return data is Map ? Map<String, dynamic>.from(data) : body;
+      }
+      return null;
+    } catch (error) {
+      _handleError('Lỗi xác thực danh tính', error);
+      rethrow;
+    }
+  }
+
+  @Deprecated(
+    'Use submitIdentityVerification so the backend verifies AI results.',
+  )
   Future<Map<String, dynamic>?> submitCheckInAI(
     int bookingId,
     String cccdData,

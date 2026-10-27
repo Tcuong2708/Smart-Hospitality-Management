@@ -54,6 +54,7 @@ public class LoyaltyController extends BaseController {
         model.addAttribute("policy", policy);
         model.addAttribute("customers", customers);
         model.addAttribute("customerQuery", query == null ? "" : query);
+        setExtraCSS(model, "view/Manager/loyalty/index :: extra_css");
 
         return render(model, "view/Manager/loyalty/index");
     }

@@ -28,6 +28,8 @@ import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -56,7 +58,7 @@ public class ChatbotBookingApiController {
                                        BookingAvailabilityService availabilityService,
                                        SequenceGeneratorService sequenceGeneratorService,
                                        NoShowPredictionService predictionService,
-                                       @Value("${chatbot.internal.token:local-dev-secret}") String internalToken) {
+                                       @Value("${chatbot.internal.token:}") String internalToken) {
         this.customerRepository = customerRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
@@ -69,10 +71,62 @@ public class ChatbotBookingApiController {
         this.internalToken = internalToken;
     }
 
+    @PostMapping("/availability")
+    public ResponseEntity<Map<String, Object>> checkAvailability(
+            @RequestHeader(value = "X-Internal-Token", required = false) String token,
+            @RequestBody Map<String, Object> payload) {
+        if (internalToken.isBlank()) {
+            return ResponseEntity.status(503).body(Map.of("message", "Chatbot nội bộ chưa được cấu hình"));
+        }
+        if (!internalToken.equals(token)) {
+            return ResponseEntity.status(403).body(Map.of("message", "Internal token không hợp lệ"));
+        }
+        try {
+            LocalDate checkIn = LocalDate.parse(required(payload, "checkIn"));
+            LocalDate checkOut = LocalDate.parse(required(payload, "checkOut"));
+            int guestCount = com.votricuong.mayhotel.utils.InputValidator.range(
+                    number(payload.get("guestCount"), 1), "Số khách", 1, 20);
+            com.votricuong.mayhotel.utils.InputValidator.stay(checkIn, checkOut);
+            Date expectedIn = Date.from(checkIn.atStartOfDay(ZoneOffset.UTC).toInstant());
+            Date expectedOut = Date.from(checkOut.atStartOfDay(ZoneOffset.UTC).toInstant());
+            availabilityService.validateStay(expectedIn, expectedOut);
+
+            List<Map<String, Object>> availableTypes = new ArrayList<>();
+            for (RoomType roomType : roomTypeRepository.findAll()) {
+                if (roomType.getMaxOccupancy() != null && roomType.getMaxOccupancy() < guestCount) {
+                    continue;
+                }
+                List<Room> rooms = availabilityService.findAvailableRooms(
+                        roomType.getId(), expectedIn, expectedOut);
+                if (rooms.isEmpty()) continue;
+
+                double minPrice = rooms.stream()
+                        .map(Room::getPrice)
+                        .filter(java.util.Objects::nonNull)
+                        .min(Double::compareTo)
+                        .orElse(0.0);
+                Map<String, Object> row = new LinkedHashMap<>();
+                row.put("roomTypeId", roomType.getId());
+                row.put("name", roomType.getName());
+                row.put("maxOccupancy", roomType.getMaxOccupancy());
+                row.put("availableCount", rooms.size());
+                row.put("price", minPrice);
+                availableTypes.add(row);
+            }
+            return ResponseEntity.ok(Map.of("roomTypes", availableTypes));
+        } catch (Exception ex) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", ex.getMessage() == null ? "Không thể kiểm tra phòng trống" : ex.getMessage()));
+        }
+    }
+
     @PostMapping("/bookings")
     public ResponseEntity<Map<String, Object>> createBooking(
             @RequestHeader(value = "X-Internal-Token", required = false) String token,
             @RequestBody Map<String, Object> payload) {
+        if (internalToken.isBlank()) {
+            return ResponseEntity.status(503).body(Map.of("message", "Chatbot nội bộ chưa được cấu hình"));
+        }
         if (!internalToken.equals(token)) {
             return ResponseEntity.status(403).body(Map.of("message", "Internal token không hợp lệ"));
         }
@@ -160,6 +214,7 @@ public class ChatbotBookingApiController {
             return ResponseEntity.ok(Map.of(
                     "bookingId", order.getId(),
                     "roomId", room.getId(),
+                    "totalAmount", invoice.getTotalAmount(),
                     "riskStatus", analyzed.getRiskAnalysisStatus(),
                     "riskPercentage", analyzed.getNoShowRiskPercentage() == null ? 0.0 : analyzed.getNoShowRiskPercentage()));
         } catch (Exception ex) {

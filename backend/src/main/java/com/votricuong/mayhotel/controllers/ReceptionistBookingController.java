@@ -127,6 +127,7 @@ public class ReceptionistBookingController extends BaseController {
         model.addAttribute("bookings", displayBookings);
         model.addAttribute("roomTypes", roomTypeRepository.findAll());
         setExtraCSS(model, "view/Receptionist/booking/index :: extra_css");
+        setExtraJS(model, "view/Receptionist/booking/index :: extra_js");
         return render(model, "view/Receptionist/booking/index");
     }
 

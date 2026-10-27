@@ -10,8 +10,7 @@
     <section layout:fragment="content">
 
         <!-- ══════════ TÍNH TRƯỚC ĐƯỜNG DẪN ẢNH + TRẠNG THÁI ══════════ -->
-        <div class="mh-detail-page" th:with="imgPath=${(room.imageUrl != null and !room.imageUrl.isBlank()) ? room.imageUrl : 'default.jpg'},
-                     conTrong=${room.status != null and (
+        <div class="mh-detail-page" th:with="conTrong=${room.status != null and (
                          room.status.equalsIgnoreCase('Trống') or
                          room.status.equalsIgnoreCase('Vacant') or
                          room.status.equalsIgnoreCase('Còn phòng') or
@@ -24,14 +23,16 @@
                     <i class="fa-solid fa-chevron-right"></i>
                     <a th:href="@{/rooms}">Phòng nghỉ</a>
                     <i class="fa-solid fa-chevron-right"></i>
-                    <span th:text="${(room.roomType != null ? room.roomType.name : 'Phòng') + ' – ' + room.name}">
-                        Deluxe – P701</span>
+                    <span th:text="${room.roomType != null ? room.roomType.name : 'Loại phòng'}">
+                        Phòng Deluxe</span>
                 </nav>
 
                 <!-- ══════════ GALLERY ══════════ -->
                 <div class="mh-detail-gallery">
                     <div class="mh-detail-gallery-main">
-                        <img id="mainImage" th:src="@{'/images/rooms/' + ${imgPath}}" th:alt="${room.name}">
+                        <img id="mainImage" th:src="${room.imageUrl}"
+                            th:alt="${room.roomType != null ? room.roomType.name : 'Loại phòng'}"
+                            onerror="this.onerror=null;this.src='/images/a1.jpg';">
                         <span class="mh-detail-status" th:classappend="${conTrong} ? 'is-available' : 'is-busy'"
                             th:text="${conTrong} ? 'Còn phòng' : 'Đã có khách'">Trống</span>
                         <button type="button" class="mh-detail-gallery-heart" aria-label="Yêu thích">
@@ -40,16 +41,18 @@
                     </div>
 
                     <div class="mh-detail-gallery-side">
-                        <img th:src="@{'/images/rooms/' + ${imgPath}}" class="mh-gallery-thumb" alt="">
-                        <img th:src="@{'/images/rooms/' + ${imgPath}}" class="mh-gallery-thumb" alt="">
+                        <img th:src="${room.imageUrl}" class="mh-gallery-thumb" alt=""
+                            onerror="this.onerror=null;this.src='/images/a1.jpg';">
+                        <img th:src="${room.imageUrl}" class="mh-gallery-thumb" alt=""
+                            onerror="this.onerror=null;this.src='/images/a1.jpg';">
                     </div>
                 </div>
 
                 <!-- ══════════ HEADER ══════════ -->
                 <header class="mh-detail-header">
                     <div class="mh-detail-header-main">
-                        <h1 th:text="${(room.roomType != null ? room.roomType.name : 'Phòng') + ' – ' + room.name}">
-                            Deluxe – P701</h1>
+                        <h1 th:text="${room.roomType != null ? room.roomType.name : 'Loại phòng'}">
+                            Phòng Deluxe</h1>
                         <p class="mh-detail-header-meta">
                             <i class="fa-solid fa-location-dot"></i>
                             <span>May Hotel</span>

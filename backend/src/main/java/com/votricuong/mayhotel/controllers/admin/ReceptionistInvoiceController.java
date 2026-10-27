@@ -163,6 +163,7 @@ public class ReceptionistInvoiceController extends BaseController {
         model.addAttribute("status", status);
 
         setExtraCSS(model, "view/Admin/Invoice/index :: extra_css");
+        setExtraJS(model, "view/Admin/Invoice/index :: extra_js");
         return render(model, "view/Admin/Invoice/index");
     }
 
@@ -181,6 +182,7 @@ public class ReceptionistInvoiceController extends BaseController {
         model.addAttribute("invoice", dto);
 
         setExtraCSS(model, "view/Admin/Invoice/details :: extra_css");
+        setExtraJS(model, "view/Admin/Invoice/details :: extra_js");
         return render(model, "view/Admin/Invoice/details");
     }
 

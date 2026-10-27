@@ -45,7 +45,7 @@
     <div class="col-4 text-end">
       <div class="fw-bold fs-4 theme-color">HÓA ĐƠN GTGT</div>
       <div class="text-danger fw-bold" th:text="'#HD-' + ${invoice.id}">#HD-0</div>
-      <small class="text-muted">Ngày xuất: <th:block th:text="${#dates.format(#dates.createNow(), 'dd/MM/yyyy HH:mm')}"></th:block></small>
+      <small class="text-muted">Ngày xuất: <th:block th:text="${#dates.format(#dates.createNow(), 'dd-MM-yyyy HH:mm')}"></th:block></small>
     </div>
   </div>
 
@@ -58,8 +58,8 @@
     </div>
     <div class="col-6 text-end">
       <h6 class="fw-bold theme-color text-uppercase border-bottom pb-1 text-end">Thông tin lưu trú</h6>
-      <div>Check-in: <b th:text="${invoice.ngayCheckIn != null ? #dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy') : ''}">01/01/2026</b></div>
-      <div>Check-out: <b th:text="${invoice.ngayCheckOut != null ? #dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy') : ''}">02/01/2026</b></div>
+      <div>Check-in: <b th:text="${invoice.ngayCheckIn != null ? #dates.format(invoice.ngayCheckIn, 'dd-MM-yyyy') : ''}">01-01-2026</b></div>
+      <div>Check-out: <b th:text="${invoice.ngayCheckOut != null ? #dates.format(invoice.ngayCheckOut, 'dd-MM-yyyy') : ''}">02-01-2026</b></div>
       <div class="text-primary fst-italic" th:text="'(' + ${soDem} + ' đêm)'">(1 đêm)</div>
     </div>
   </div>

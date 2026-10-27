@@ -8,6 +8,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import jakarta.servlet.http.HttpSession;
+import com.votricuong.mayhotel.documents.User;
 
 @RestController
 @RequestMapping("/api/staffs")
@@ -20,18 +22,21 @@ public class StaffApiController {
     }
 
     @GetMapping
-    public ResponseEntity<List<Staff>> getAllStaffs() {
+    public ResponseEntity<?> getAllStaffs(HttpSession session) {
+        if (!allowed(session)) return ResponseEntity.status(403).body("Không có quyền quản lý nhân viên");
         return ResponseEntity.ok(staffService.getAllStaffs());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Staff> getStaffById(@PathVariable Long id) {
+    public ResponseEntity<?> getStaffById(@PathVariable Long id, HttpSession session) {
+        if (!allowed(session)) return ResponseEntity.status(403).body("Không có quyền quản lý nhân viên");
         Optional<Staff> staffOpt = staffService.getStaffById(id);
         return staffOpt.map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    public ResponseEntity<?> createStaff(@RequestBody Map<String, Object> payload) {
+    public ResponseEntity<?> createStaff(@RequestBody Map<String, Object> payload, HttpSession session) {
+        if (!allowed(session)) return ResponseEntity.status(403).body("Không có quyền quản lý nhân viên");
         try {
             // Lấy thông tin Staff
             Staff staff = new Staff();
@@ -60,7 +65,8 @@ public class StaffApiController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateStaff(@PathVariable Long id, @RequestBody Staff staffDetails) {
+    public ResponseEntity<?> updateStaff(@PathVariable Long id, @RequestBody Staff staffDetails, HttpSession session) {
+        if (!allowed(session)) return ResponseEntity.status(403).body("Không có quyền quản lý nhân viên");
         try {
             Staff updatedStaff = staffService.updateStaff(id, staffDetails);
             return ResponseEntity.ok(updatedStaff);
@@ -70,12 +76,18 @@ public class StaffApiController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteStaff(@PathVariable Long id) {
+    public ResponseEntity<?> deleteStaff(@PathVariable Long id, HttpSession session) {
+        if (!allowed(session)) return ResponseEntity.status(403).body("Không có quyền quản lý nhân viên");
         try {
             staffService.deleteStaff(id);
             return ResponseEntity.ok("Xóa nhân viên thành công");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    private boolean allowed(HttpSession session) {
+        Object current = session == null ? null : session.getAttribute("user");
+        return current instanceof User user && (Long.valueOf(1L).equals(user.getRoleId()) || Long.valueOf(2L).equals(user.getRoleId()));
     }
 }

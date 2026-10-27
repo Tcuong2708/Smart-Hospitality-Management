@@ -29,6 +29,8 @@ from datetime import datetime
 import pickle
 import urllib.request
 import urllib.error
+import threading
+import time
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -88,6 +90,9 @@ except Exception as e:
     print(f"[WARN] Bỏ qua Model No-show: {e}")
 
 booking_sessions = {}
+booking_session_locks = {}
+booking_session_guard = threading.Lock()
+BOOKING_SESSION_TTL_SECONDS = int(os.getenv("CHATBOT_SESSION_TTL_SECONDS", "1800"))
 
 class ChatRequest(BaseModel):
     message: str
@@ -160,11 +165,34 @@ def get_room_price_summary():
         print(f"Không thể tải bảng giá phòng: {exc}")
     return "Giá phòng thay đổi theo loại phòng và thời gian lưu trú."
 
+def get_backend_availability(checkin, checkout, adults, children):
+    """Lấy phòng trống theo ngày từ backend để dùng chung một nguồn nghiệp vụ."""
+    backend_url = os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
+    internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "").strip()
+    if not internal_token:
+        raise RuntimeError("CHATBOT_INTERNAL_TOKEN chưa được cấu hình")
+    payload = {
+        "checkIn": datetime.strptime(checkin, "%d/%m/%Y").strftime("%Y-%m-%d"),
+        "checkOut": datetime.strptime(checkout, "%d/%m/%Y").strftime("%Y-%m-%d"),
+        "guestCount": max(int(adults) + int(children), 1),
+    }
+    request = urllib.request.Request(
+        backend_url + "/api/v1/internal/chatbot/availability",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json", "X-Internal-Token": internal_token},
+        method="POST",
+    )
+    with urllib.request.urlopen(request, timeout=15) as response:
+        result = json.loads(response.read().decode("utf-8"))
+    return result.get("roomTypes", [])
+
 def save_final_booking(session, user_id):
     try:
         # AI chỉ thu thập hội thoại; toàn bộ kiểm tra phòng và ghi dữ liệu do backend thực hiện.
         backend_url = os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
-        internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "local-dev-secret")
+        internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "").strip()
+        if not internal_token:
+            raise RuntimeError("CHATBOT_INTERNAL_TOKEN chưa được cấu hình")
         checkin_iso = datetime.strptime(session["checkin"], "%d/%m/%Y").strftime("%Y-%m-%d")
         checkout_iso = datetime.strptime(session["checkout"], "%d/%m/%Y").strftime("%Y-%m-%d")
         payload = {
@@ -186,6 +214,7 @@ def save_final_booking(session, user_id):
         with urllib.request.urlopen(request, timeout=20) as response:
             result = json.loads(response.read().decode("utf-8"))
         session["risk_percentage"] = float(result.get("riskPercentage", 0.0))
+        session["total_amount"] = float(result.get("totalAmount", 0.0))
         return int(result["bookingId"])
 
         # Legacy direct-Mongo implementation retained below temporarily for data-reference only;
@@ -352,6 +381,8 @@ def handle_structured_booking(user_id, msg):
             adults, children = int(parts[2]), int(parts[3])
         except ValueError:
             return "Số người lớn và trẻ em phải là số nguyên (Ví dụ: 2 - 1). Bạn vui lòng nhập lại!"
+        if adults < 1 or adults > 20 or children < 0 or children > 20:
+            return "Số người lớn phải từ 1-20 và số trẻ em phải từ 0-20. Bạn vui lòng nhập lại!"
 
         session.update({
             "checkin": checkin_dt.strftime("%d/%m/%Y"),
@@ -361,22 +392,29 @@ def handle_structured_booking(user_id, msg):
             "step": "ask_room_choice"
         })
 
-        # Quét MongoDB Atlas
+        # Backend là nguồn duy nhất kiểm tra giao nhau ngày đặt, tình trạng dọn phòng và sức chứa.
         try:
-            db = get_db_connection()
-            pipeline = [
-                {"$match": {"status": {"$in": ["Phòng trống", "Trống", "Vacant", "Còn phòng"]}}},
-                {"$group": {"_id": "$room_type_id", "Gia": {"$min": "$price"}, "SoLuong": {"$sum": 1}}},
-                {"$lookup": {"from": "room_types", "localField": "_id", "foreignField": "_id", "as": "roomType"}},
-                {"$unwind": "$roomType"}
-            ]
-            rows = list(db.rooms.aggregate(pipeline))
+            rows = get_backend_availability(
+                session["checkin"], session["checkout"], adults, children
+            )
             if rows:
-                room_list_str = "\n".join([f"- **{r['roomType']['name']}**: {r['Gia']:,.0f} VNĐ/đêm (Còn {r['SoLuong']} phòng)" for r in rows])
+                session["available_room_types"] = [str(r["name"]) for r in rows]
+                room_list_str = "\n".join(
+                    f"- **{r['name']}**: {float(r.get('price') or 0):,.0f} VNĐ/đêm "
+                    f"(Còn {int(r.get('availableCount') or 0)} phòng)"
+                    for r in rows
+                )
             else:
-                room_list_str = "- **Phòng Đôi**: 800,000 VNĐ/đêm\n- **Phòng Ba**: 900,000 VNĐ/đêm\n- **Phòng Gia Đình**: 1,000,000 VNĐ/đêm\n- **Phòng Deluxe**: 1,200,000 VNĐ/đêm"
-        except:
-            room_list_str = "- **Phòng Đôi**: 800,000 VNĐ/đêm\n- **Phòng Ba**: 900,000 VNĐ/đêm"
+                return (
+                    "Hiện không còn hạng phòng phù hợp với thời gian và số khách đã chọn. "
+                    "Bạn vui lòng chọn giai đoạn khác."
+                )
+        except Exception as exc:
+            print(f"Không thể kiểm tra phòng trống qua backend: {exc}")
+            return (
+                "Mình chưa thể kiểm tra phòng trống từ hệ thống lúc này. "
+                "Vui lòng thử lại sau hoặc liên hệ lễ tân."
+            )
 
         return (
             f"May Hotel hiện có các loại phòng trống cho giai đoạn **{session['checkin']} -> {session['checkout']}**:\n\n"
@@ -386,9 +424,24 @@ def handle_structured_booking(user_id, msg):
 
     # 3. Bước 2: Nhập thông tin khách
     if step == "ask_room_choice":
-        session.update({"selected_room": msg_clean, "step": "ask_customer_info"})
+        requested_room = normalize_vietnamese(msg_clean)
+        available_types = session.get("available_room_types", [])
+        selected_room = next(
+            (
+                room_name for room_name in available_types
+                if normalize_vietnamese(room_name) in requested_room
+                or requested_room in normalize_vietnamese(room_name)
+            ),
+            None,
+        )
+        if selected_room is None:
+            return (
+                "Loại phòng bạn chọn không có trong danh sách còn trống. "
+                "Vui lòng nhập đúng tên một loại phòng ở danh sách phía trên."
+            )
+        session.update({"selected_room": selected_room, "step": "ask_customer_info"})
         return (
-            f"Bạn đã chọn: **{msg_clean}**.\n\n"
+            f"Bạn đã chọn: **{selected_room}**.\n\n"
             f"Để tiếp tục, bạn vui lòng nhập thông tin người đặt theo cú pháp:\n"
             f"👉 **[Tên khách đặt] - [Số điện thoại] - [Yêu cầu đặc biệt (Ghi chú)]**\n\n"
             f"*(Ví dụ: Nguyễn Văn A - 0987654321 - Nhận phòng muộn lúc 20h)*"
@@ -417,8 +470,6 @@ def handle_structured_booking(user_id, msg):
     if step == "ask_payment":
         payment_method = "Thanh toán tại quầy" if "1" in msg_clean or "quầy" in msg_clean.lower() else "Thanh toán Online"
         session["payment_method"] = payment_method
-        session["total_price"] = 800000
-
         # Gọi Database & AI No-Show
         try:
             order_id = save_final_booking(session, user_id)
@@ -440,8 +491,24 @@ def handle_structured_booking(user_id, msg):
             f"- Phương thức: **{payment_method}**\n\n"
         )
         if payment_method == "Thanh toán Online":
-            qr_url = f"https://img.vietqr.io/image/vietinbank-113366668888-compact2.png?amount=200000&addInfo=MAYHOTEL{order_id}&accountName=MAY%20HOTEL"
-            res_msg += f"Quý khách vui lòng quét mã QR dưới đây để hoàn tất cọc:\n![QR VietQR]({qr_url})\n\n"
+            bank_id = os.getenv("VIETQR_BANK_ID", "").strip()
+            account_no = os.getenv("VIETQR_ACCOUNT_NO", "").strip()
+            account_name = os.getenv("VIETQR_ACCOUNT_NAME", "MAY HOTEL").strip().replace(" ", "%20")
+            amount = int(session.get("total_amount", 0))
+            if bank_id and account_no and amount > 0:
+                qr_url = (
+                    f"https://img.vietqr.io/image/{bank_id}-{account_no}-compact2.png"
+                    f"?amount={amount}&addInfo=MAYHOTEL{order_id}&accountName={account_name}"
+                )
+                res_msg += (
+                    f"Tổng tiền: **{amount:,.0f} VNĐ**. Quý khách vui lòng quét mã QR dưới đây:\n"
+                    f"![QR VietQR]({qr_url})\n\n"
+                )
+            else:
+                res_msg += (
+                    "Hệ thống chưa cấu hình QR thanh toán. Đơn đã được giữ và quý khách "
+                    "có thể thanh toán tại quầy.\n\n"
+                )
         
         # Hiển thị demo Rủi ro No-show cho bạn xem kết quả AI
         res_msg += f"*(Đã lưu CSDL & Kích hoạt AI đánh giá No-Show tự động ngầm: {session['risk_percentage']:.1f}% rủi ro)*"
@@ -449,6 +516,21 @@ def handle_structured_booking(user_id, msg):
 
     booking_sessions[user_id] = {"step": "ask_dates"}
     return handle_structured_booking(user_id, "bắt đầu")
+
+def handle_structured_booking_safely(user_id, message):
+    """Tuần tự hóa hội thoại của từng người dùng và tự dọn phiên quá hạn."""
+    with booking_session_guard:
+        user_lock = booking_session_locks.setdefault(user_id, threading.Lock())
+
+    with user_lock:
+        session = booking_sessions.get(user_id)
+        if session and time.time() - float(session.get("_updated_at", 0)) > BOOKING_SESSION_TTL_SECONDS:
+            booking_sessions.pop(user_id, None)
+        reply = handle_structured_booking(user_id, message)
+        active_session = booking_sessions.get(user_id)
+        if active_session is not None:
+            active_session["_updated_at"] = time.time()
+        return reply
 
 @app.post("/api/v1/ai/verify-cccd")
 async def verify_cccd(
@@ -543,7 +625,7 @@ async def predict_noshow(request: NoShowPredictionRequest):
 async def chat_with_bot(request: ChatRequest):
     user_id = request.user_id
     user_msg = request.message
-    reply = handle_structured_booking(user_id, user_msg)
+    reply = await run_in_threadpool(handle_structured_booking_safely, user_id, user_msg)
     return {"status": "success", "reply": reply, "answer": reply}
 
 if __name__ == "__main__":

@@ -42,7 +42,7 @@ public class ReceptionistController extends BaseController {
     private final BookingAvailabilityService bookingAvailabilityService;
     private final com.votricuong.mayhotel.services.RoomStatusService roomStatusService;
     private final com.votricuong.mayhotel.services.RoomChangeService roomChangeService;
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
+    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd-MM-yyyy");
     private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     public ReceptionistController(InvoiceRepository invoiceRepository, RoomRepository roomRepository, RoomTypeRepository roomTypeRepository, com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingOrderRepository bookingOrderRepository, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService, com.votricuong.mayhotel.services.RoomChangeService roomChangeService) {
@@ -239,12 +239,13 @@ public class ReceptionistController extends BaseController {
 
         model.addAttribute("rooms", roomMap);
         model.addAttribute("selectedDate", selectedDate);
-        model.addAttribute("selectedDateDisplay", selectedDate.format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+        model.addAttribute("selectedDateDisplay", selectedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
         model.addAttribute("today", today);
         model.addAttribute("isToday", selectedDate.equals(today));
 
         // Nạp CSS riêng cho trang này
         setExtraCSS(model, "view/Admin/RoomMap/room-map :: extra_css");
+        setExtraJS(model, "view/Admin/RoomMap/room-map :: extra_js");
 
         // Render template RoomMap
         return render(model, "view/Admin/RoomMap/room-map");
@@ -285,6 +286,7 @@ public class ReceptionistController extends BaseController {
         model.addAttribute("selectedRoomId", roomId);
 
         setExtraCSS(model, "view/Admin/CheckIn/index :: extra_css");
+        setExtraJS(model, "view/Admin/CheckIn/index :: extra_js");
         return render(model, "view/Admin/CheckIn/index");
     }
 

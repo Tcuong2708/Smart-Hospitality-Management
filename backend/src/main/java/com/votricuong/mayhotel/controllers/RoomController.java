@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -50,20 +51,21 @@ public class RoomController extends BaseController {
 
         // 1. Fetch
         List<Room> allRooms = roomRepository.findAll();
-        Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
+        List<RoomType> roomTypes = roomTypeRepository.findAll();
+        Map<Long, RoomType> typeMap = roomTypes.stream()
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
 
         List<Room> filtered = new ArrayList<>(allRooms);
 
-        // 2a. keyword — search room name + room type name
+        // 2a. Public search only uses the room type name; physical room codes
+        // are assigned internally at check-in and must not be exposed here.
         if (keyword != null && !keyword.trim().isEmpty()) {
             String kw = keyword.trim().toLowerCase();
             filtered = filtered.stream()
                     .filter(r -> {
                         RoomType t = r.getRoomTypeId() != null ? typeMap.get(r.getRoomTypeId()) : null;
                         String typeName = (t != null && t.getName() != null) ? t.getName().toLowerCase() : "";
-                        String roomName = (r.getName() != null) ? r.getName().toLowerCase() : "";
-                        return roomName.contains(kw) || typeName.contains(kw);
+                        return typeName.contains(kw);
                     })
                     .collect(Collectors.toList());
         }
@@ -120,20 +122,39 @@ public class RoomController extends BaseController {
                         snap.rankOfType(a.getRoomTypeId())));
         }
 
-        // 4. Attach RoomType + fallback ảnh
+        // 4. Attach RoomType and normalize the public category image path.
         for (Room r : filtered) {
             RoomType t = (r.getRoomTypeId() != null) ? typeMap.get(r.getRoomTypeId()) : null;
             if (t != null) {
                 r.setRoomType(t);
-                if (r.getImageUrl() == null || r.getImageUrl().isBlank()) {
-                    r.setImageUrl(t.getImageUrl());
-                }
+                String publicImage = (t.getImageUrl() != null && !t.getImageUrl().isBlank())
+                        ? t.getImageUrl()
+                        : r.getImageUrl();
+                r.setImageUrl(toPublicImageUrl(publicImage));
             }
         }
 
+        Map<Long, Boolean> availabilityByType = allRooms.stream()
+                .filter(r -> r.getRoomTypeId() != null)
+                .collect(Collectors.groupingBy(
+                        Room::getRoomTypeId,
+                        Collectors.reducing(false, r -> isVacant(r.getStatus()), Boolean::logicalOr)));
+
+        Map<Long, Room> publicRoomsByType = new LinkedHashMap<>();
+        for (Room room : filtered) {
+            if (room.getRoomTypeId() == null) {
+                continue;
+            }
+            room.setStatus(Boolean.TRUE.equals(availabilityByType.get(room.getRoomTypeId()))
+                    ? "Còn phòng"
+                    : "Tạm hết phòng");
+            publicRoomsByType.putIfAbsent(room.getRoomTypeId(), room);
+        }
+        List<Room> publicRooms = new ArrayList<>(publicRoomsByType.values());
+
         // 5. Model
-        model.addAttribute("rooms", filtered);
-        model.addAttribute("roomTypes", roomTypeRepository.findAll());
+        model.addAttribute("rooms", publicRooms);
+        model.addAttribute("roomTypes", roomTypes);
         model.addAttribute("ratingMap", snap.getByRoomType());
 
         model.addAttribute("keyword", keyword);
@@ -161,8 +182,14 @@ public class RoomController extends BaseController {
         if (room.getRoomTypeId() != null) {
             RoomType type = roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
             room.setRoomType(type);
-            if ((room.getImageUrl() == null || room.getImageUrl().isBlank()) && type != null) {
-                room.setImageUrl(type.getImageUrl());
+            if (type != null) {
+                String publicImage = (type.getImageUrl() != null && !type.getImageUrl().isBlank())
+                        ? type.getImageUrl()
+                        : room.getImageUrl();
+                room.setImageUrl(toPublicImageUrl(publicImage));
+                boolean categoryAvailable = roomRepository.findByRoomTypeId(room.getRoomTypeId()).stream()
+                        .anyMatch(candidate -> isVacant(candidate.getStatus()));
+                room.setStatus(categoryAvailable ? "Còn phòng" : "Tạm hết phòng");
             }
         }
 
@@ -175,7 +202,41 @@ public class RoomController extends BaseController {
         model.addAttribute("reviewableBookingId",
                 reviewService.findReviewableBookingId((User) session.getAttribute("user"), room.getRoomTypeId()));
 
-        setPageTitle(model, "Chi tiết " + room.getName());
+        String publicName = room.getRoomType() != null && room.getRoomType().getName() != null
+                ? room.getRoomType().getName()
+                : "Loại phòng";
+        setPageTitle(model, "Chi tiết " + publicName);
         return "view/rooms/detail";
+    }
+
+    private boolean isVacant(String status) {
+        if (status == null) {
+            return false;
+        }
+        String normalized = status.trim();
+        return "Vacant".equalsIgnoreCase(normalized)
+                || "Available".equalsIgnoreCase(normalized)
+                || "Trống".equalsIgnoreCase(normalized)
+                || "Còn phòng".equalsIgnoreCase(normalized)
+                || "Phòng trống".equalsIgnoreCase(normalized);
+    }
+
+    private String toPublicImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return "/images/a1.jpg";
+        }
+        String normalized = imageUrl.trim().replace('\\', '/');
+        if (normalized.startsWith("http://")
+                || normalized.startsWith("https://")
+                || normalized.startsWith("data:")) {
+            return normalized;
+        }
+        if (normalized.startsWith("/")) {
+            return normalized;
+        }
+        if (normalized.startsWith("images/")) {
+            return "/" + normalized;
+        }
+        return "/images/" + normalized;
     }
 }

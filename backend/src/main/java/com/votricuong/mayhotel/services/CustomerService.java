@@ -49,6 +49,10 @@ public class CustomerService {
         customer.setCccd(customerDetails.getCccd());
         customer.setPhone(customerDetails.getPhone());
         customer.setEmail(customerDetails.getEmail());
+        customer.setAddress(customerDetails.getAddress());
+        customer.setNationality(customerDetails.getNationality());
+        customer.setQuocTich(customerDetails.getQuocTich());
+        customer.setGender(customerDetails.getGender());
         if (customerDetails.getPoints() != null) customer.setPoints(customerDetails.getPoints());
         customer.setExpiryDate(customerDetails.getExpiryDate());
         if (customerDetails.getTierId() != null) customer.setTierId(customerDetails.getTierId());

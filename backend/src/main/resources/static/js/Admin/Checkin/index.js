@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8080/api/checkin';
+const API_URL = '/api/checkin';
 document.addEventListener('DOMContentLoaded', () => {
     fetchCheckinData();
 });
@@ -552,10 +552,10 @@ window.submitCheckin = function(event, id) {
 // ==========================================
 
 /**
- * Hàm format ngày giờ chuẩn Việt Nam (DD/MM/YYYY HH:mm)
+ * Hàm format ngày giờ chuẩn Việt Nam (DD-MM-YYYY HH:mm)
  */
 function formatDateVN(dateString) {
-    if (!dateString) return '--/--/---- --:--';
+    if (!dateString) return '---- --:--';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString; // Fallback nếu chuỗi lỗi
     
@@ -565,7 +565,7 @@ function formatDateVN(dateString) {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     
-    return `${day}/${month}/${year} ${hours}:${minutes}`;
+    return `${day}-${month}-${year} ${hours}:${minutes}`;
 }
 
 /**

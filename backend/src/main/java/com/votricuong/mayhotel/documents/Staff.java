@@ -32,4 +32,7 @@ public class Staff {
     private java.util.Date dob;
     
     private String gender;
+
+    @Field("base_salary")
+    private Double baseSalary;
 }

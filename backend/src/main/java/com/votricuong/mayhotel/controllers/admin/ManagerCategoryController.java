@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
@@ -29,6 +30,9 @@ public class ManagerCategoryController extends BaseController {
 
     @Autowired
     private SequenceGeneratorService sequenceGenerator;
+
+    @Autowired
+    private com.votricuong.mayhotel.services.RoomTypeService roomTypeService;
 
     @GetMapping("/categories")
     public String categoriesIndex(Model model) {
@@ -49,6 +53,7 @@ public class ManagerCategoryController extends BaseController {
         
         model.addAttribute("categories", categories);
         model.addAttribute("category", new RoomType());
+        setExtraCSS(model, "view/Admin/Category/index :: extra_css");
         return render(model, "view/Admin/Category/index");
     }
 
@@ -82,7 +87,19 @@ public class ManagerCategoryController extends BaseController {
         return "redirect:/manager/categories";
     }
 
-    @GetMapping("/categories/delete/{id}")
+    @PostMapping("/categories/edit")
+    public String editCategory(RoomType category, RedirectAttributes redirect) {
+        try {
+            if (category.getId() == null) throw new IllegalArgumentException("Thiếu mã loại phòng");
+            roomTypeService.updateRoomType(category.getId(), category);
+            redirect.addFlashAttribute("success", "Cập nhật loại phòng thành công!");
+        } catch (Exception ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/manager/categories";
+    }
+
+    @PostMapping("/categories/delete/{id}")
     public String deleteCategory(@PathVariable Long id, RedirectAttributes redirect) {
         if (!roomTypeRepository.existsById(id)) redirect.addFlashAttribute("error", "Không tìm thấy loại phòng.");
         else if (!roomRepository.findByRoomTypeId(id).isEmpty())

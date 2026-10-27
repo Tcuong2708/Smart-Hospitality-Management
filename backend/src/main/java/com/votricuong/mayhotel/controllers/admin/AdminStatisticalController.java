@@ -1,67 +1,72 @@
 package com.votricuong.mayhotel.controllers.admin;
 
 import com.votricuong.mayhotel.controllers.BaseController;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.votricuong.mayhotel.services.RevenueExportService;
+import com.votricuong.mayhotel.services.RevenueReportService;
+import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.*;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
 
-import com.votricuong.mayhotel.documents.Invoice;
-import com.votricuong.mayhotel.repositories.InvoiceRepository;
-
-import java.util.Calendar;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.time.format.DateTimeFormatter;
 
 @Controller
-@RequestMapping("/admin")
+@RequestMapping("/admin/statistical")
 public class AdminStatisticalController extends BaseController {
+    private final RevenueReportService reportService;
+    private final RevenueExportService exportService;
 
-    @Autowired
-    private InvoiceRepository invoiceRepository;
+    public AdminStatisticalController(RevenueReportService reportService, RevenueExportService exportService) {
+        this.reportService = reportService;
+        this.exportService = exportService;
+    }
 
-    @GetMapping("/statistical")
-    public String index(Model model) {
-        setPageTitle(model, "Thống Kê Doanh Thu - Admin");
-
-        int currentYear = Calendar.getInstance().get(Calendar.YEAR);
-        
-        Double[] doanhThuArr = new Double[12];
-        Integer[] soDonArr = new Integer[12];
-        for (int i = 0; i < 12; i++) {
-            doanhThuArr[i] = 0.0;
-            soDonArr[i] = 0;
+    @GetMapping
+    public String index(@RequestParam(required = false) String from,
+                        @RequestParam(required = false) String to,
+                        Model model) {
+        setPageTitle(model, "Thống kê doanh thu");
+        try {
+            RevenueReportService.Report report = reportService.build(from, to);
+            addReport(model, report);
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("error", ex.getMessage());
+            addReport(model, reportService.build(null, null));
         }
-
-        List<Invoice> allInvoices = invoiceRepository.findAll();
-        for (Invoice inv : allInvoices) {
-            if (inv.getIsPaid() != null && inv.getIsPaid() && inv.getCreatedAt() != null) {
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(inv.getCreatedAt());
-                if (cal.get(Calendar.YEAR) == currentYear) {
-                    int month = cal.get(Calendar.MONTH);
-                    doanhThuArr[month] += (inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0);
-                    soDonArr[month]++;
-                }
-            }
-        }
-
-        Double tongDoanhThu = 0.0;
-        Integer tongSoDon = 0;
-        for (int i = 0; i < 12; i++) {
-            tongDoanhThu += doanhThuArr[i];
-            tongSoDon += soDonArr[i];
-        }
-
-        Double trungBinhThang = tongDoanhThu / 12;
-
-        model.addAttribute("doanhThuArr", doanhThuArr);
-        model.addAttribute("soDonArr", soDonArr);
-        model.addAttribute("nam", currentYear);
-        model.addAttribute("tongDoanhThu", tongDoanhThu);
-        model.addAttribute("tongSoDon", tongSoDon);
-        model.addAttribute("trungBinhThang", trungBinhThang);
-
+        setExtraCSS(model, "view/Admin/Statistical/index :: extra_css");
         return render(model, "view/Admin/Statistical/index");
+    }
+
+    private void addReport(Model model, RevenueReportService.Report report) {
+        model.addAttribute("report", report);
+        model.addAttribute("chartLabels", report.getBuckets().stream().map(RevenueReportService.Bucket::getLabel).toList());
+        model.addAttribute("chartRevenue", report.getBuckets().stream().map(RevenueReportService.Bucket::getRevenue).toList());
+        model.addAttribute("chartBookings", report.getBuckets().stream().map(RevenueReportService.Bucket::getBookingCount).toList());
+    }
+
+    @GetMapping("/export.xlsx")
+    public ResponseEntity<byte[]> excel(@RequestParam(required = false) String from,
+                                        @RequestParam(required = false) String to) throws Exception {
+        RevenueReportService.Report report = reportService.build(from, to);
+        return download(exportService.excel(report), report, "xlsx",
+                MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+    }
+
+    @GetMapping("/export.pdf")
+    public ResponseEntity<byte[]> pdf(@RequestParam(required = false) String from,
+                                      @RequestParam(required = false) String to) throws Exception {
+        RevenueReportService.Report report = reportService.build(from, to);
+        return download(exportService.pdf(report), report, "pdf", MediaType.APPLICATION_PDF);
+    }
+
+    private ResponseEntity<byte[]> download(byte[] bytes, RevenueReportService.Report report, String extension, MediaType type) {
+        DateTimeFormatter compact = DateTimeFormatter.ofPattern("yyyyMMdd");
+        String name = "may-hotel-doanh-thu_" + compact.format(report.getFromDate()) + "-" + compact.format(report.getToDate()) + "." + extension;
+        return ResponseEntity.ok().contentType(type)
+                .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+                        .filename(name, StandardCharsets.UTF_8).build().toString())
+                .body(bytes);
     }
 }

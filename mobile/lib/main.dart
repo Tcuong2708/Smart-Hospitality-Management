@@ -1,9 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:may_hotel_app/services/notification_service.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
+import 'package:may_hotel_app/services/device_security_service.dart';
 import 'package:may_hotel_app/services/language_service.dart';
-import 'package:safe_device/safe_device.dart';
 import 'dart:io';
 import 'core/constants/app_colors.dart';
 import 'features/home/views/main_screen.dart';
@@ -12,7 +13,6 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 final ValueNotifier<ThemeMode> themeNotifier = ValueNotifier(ThemeMode.light);
 
 void main() async {
-  HttpOverrides.global = MyHttpOverrides();
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
@@ -22,6 +22,11 @@ void main() async {
     debugPrint("Không tìm thấy file .env: $e");
   }
 
+  if (kDebugMode &&
+      dotenv.env['ALLOW_BAD_CERTIFICATES']?.trim().toLowerCase() == 'true') {
+    HttpOverrides.global = MyHttpOverrides();
+  }
+
   await NotificationService().initNotification();
   runApp(const MayHotelApp());
 }
@@ -29,33 +34,9 @@ void main() async {
 class MayHotelApp extends StatelessWidget {
   const MayHotelApp({Key? key}) : super(key: key);
 
-  static const platform = MethodChannel('com.votricuong.mayhotel/security');
-
   Future<String?> _checkSecurity() async {
-    try {
-      // 1. Kiểm tra Unlock Bootloader riêng biệt bằng code Native (Kotlin)
-      if (Platform.isAndroid) {
-        final bool isBootloaderUnlocked = await platform.invokeMethod('isBootloaderUnlocked');
-        if (isBootloaderUnlocked) {
-           return "Ứng dụng đã phát hiện thiết bị của bạn đã Unlock Bootloader.  Để đảm bảo ứng dụng an toàn chúng tôi sẽ thoát ứng dụng!";
-        }
-      }
-
-      // 2. Kiểm tra Root (Android) / Jailbreak (iOS)
-      if (await SafeDevice.isJailBroken) {
-        return "Ứng dụng đã phát hiện thiết bị của bạn đã can thiệp sâu hệ thống (Root/Jailbreak). Để đảm bảo ứng dụng an toàn chúng tôi sẽ thoát ứng dụng!";
-      }
-
-      // 3. Kiểm tra bật USB Debugging (Tạm thời tắt để build và test qua cáp trên máy thật)
-      /* 
-      if (await SafeDevice.isUsbDebuggingEnabled) {
-        return "Ứng dụng đã phát hiện mở USB gỡ lỗi. Để đảm bảo ứng dụng an toàn chúng tôi sẽ thoát ứng dụng!";
-      }
-      */
-    } catch (e) {
-      debugPrint("Security check error: $e");
-    }
-    return null;
+    final result = await DeviceSecurityService().check();
+    return result.message;
   }
 
   @override
@@ -137,7 +118,10 @@ class MayHotelApp extends StatelessWidget {
                           },
                           child: const Text(
                             "Thoát ứng dụng",
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -162,9 +146,13 @@ class MayHotelApp extends StatelessWidget {
 
                 final style = SystemUiOverlayStyle(
                   statusBarColor: Colors.transparent,
-                  statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+                  statusBarIconBrightness: isDark
+                      ? Brightness.light
+                      : Brightness.dark,
                   systemNavigationBarColor: Colors.transparent,
-                  systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+                  systemNavigationBarIconBrightness: isDark
+                      ? Brightness.light
+                      : Brightness.dark,
                   systemNavigationBarContrastEnforced: false,
                 );
                 SystemChrome.setSystemUIOverlayStyle(style);
@@ -201,7 +189,9 @@ class MayHotelApp extends StatelessWidget {
       brightness: brightness,
       primaryColor: AppColors.primary,
       cardColor: isDark ? AppColors.cardBgDark : AppColors.cardBg,
-      scaffoldBackgroundColor: isDark ? AppColors.primaryDark : AppColors.background,
+      scaffoldBackgroundColor: isDark
+          ? AppColors.primaryDark
+          : AppColors.background,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
         brightness: brightness,
@@ -219,10 +209,14 @@ class MayHotelApp extends StatelessWidget {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: isDark ? Colors.white.withValues(alpha: 0.05) : Colors.white,
-        labelStyle: TextStyle(color: isDark ? AppColors.accentGold : AppColors.primary),
+        labelStyle: TextStyle(
+          color: isDark ? AppColors.accentGold : AppColors.primary,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: isDark ? Colors.white12 : Colors.grey.shade300),
+          borderSide: BorderSide(
+            color: isDark ? Colors.white12 : Colors.grey.shade300,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -233,7 +227,9 @@ class MayHotelApp extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           backgroundColor: isDark ? AppColors.accentGold : AppColors.primary,
           foregroundColor: isDark ? AppColors.primary : AppColors.accentGold,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
     );
@@ -244,6 +240,7 @@ class MyHttpOverrides extends HttpOverrides {
   @override
   HttpClient createHttpClient(SecurityContext? context) {
     return super.createHttpClient(context)
-      ..badCertificateCallback = (X509Certificate cert, String host, int port) => true;
+      ..badCertificateCallback =
+          (X509Certificate cert, String host, int port) => true;
   }
 }

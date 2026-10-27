@@ -98,9 +98,159 @@ textarea {
 
 .adm-content {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
     padding: 28px 36px 48px;
-    max-width: 1440px;
+    max-width: none;
     width: 100%;
+}
+
+/* Management screens use the complete area to the right of the sidebar. */
+.adm-content .container,
+.adm-content .container-lg,
+.adm-content .container-xl {
+    max-width: none;
+    width: 100%;
+}
+
+/* Keep short management lists visually balanced with the available viewport. */
+.manager-page-shell {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.manager-fill-page {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+}
+
+.manager-fill-page > .manager-fill-card {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    background: var(--white);
+}
+
+.manager-fill-card > .manager-fill-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    background: var(--white);
+}
+
+/* Shared receptionist page shell: the title bar and table palette must match
+   the manager screens instead of falling back to Bootstrap's white card. */
+.receptionist-page .receptionist-data-card {
+    min-height: calc(100vh - 138px);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.receptionist-page .receptionist-page-header {
+    min-height: 78px;
+    padding: 18px 24px;
+    background: var(--navy) !important;
+    color: var(--white) !important;
+    border-bottom: 3px solid var(--gold);
+}
+
+.receptionist-page .receptionist-page-header h3,
+.receptionist-page .receptionist-page-header h3 i {
+    color: var(--white) !important;
+}
+
+.receptionist-page .receptionist-page-header h3 i {
+    color: var(--gold) !important;
+}
+
+.receptionist-page .checkin-search-form {
+    flex: 0 1 430px;
+    min-width: 320px;
+}
+
+.receptionist-page .checkin-search-form .input-group {
+    flex-wrap: nowrap;
+}
+
+.receptionist-page .checkin-search-form .form-control {
+    min-width: 0;
+}
+
+.receptionist-page .checkin-search-form .btn {
+    flex: 0 0 auto;
+    white-space: nowrap;
+    background: var(--gold) !important;
+    border-color: var(--gold) !important;
+    color: var(--navy) !important;
+}
+
+@media (max-width: 767.98px) {
+    .receptionist-page .receptionist-page-header {
+        align-items: stretch !important;
+    }
+
+    .receptionist-page .checkin-search-form {
+        flex-basis: 100%;
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+/*
+ * Bootstrap paints table cells independently from <thead>.  Defining the
+ * management palette on the actual cells keeps every list readable and
+ * prevents white labels from appearing on a white header.
+ */
+.manager-fill-card .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text);
+    margin-bottom: 0;
+}
+
+.manager-fill-card .table > thead > tr > th,
+.manager-fill-card .table-header-navy > tr > th,
+.manager-fill-card .table-dark > tr > th,
+.manager-fill-card .adm-table > thead > tr > th {
+    --bs-table-bg: var(--navy);
+    --bs-table-color: var(--white);
+    background-color: var(--navy) !important;
+    color: var(--white) !important;
+    border-color: rgba(255, 255, 255, 0.14) !important;
+    font-weight: 700;
+    letter-spacing: 0.045em;
+    vertical-align: middle;
+}
+
+.manager-fill-card .table > thead > tr > th i {
+    color: var(--gold) !important;
+}
+
+.manager-fill-card .adm-table > thead > tr > th i {
+    color: var(--gold) !important;
+}
+
+.manager-fill-card .table > tbody > tr > td {
+    background-color: var(--white);
+    color: var(--text);
+    border-color: var(--border-soft);
+    vertical-align: middle;
+}
+
+.manager-fill-card .adm-table > tbody > tr > td {
+    background-color: var(--white);
+}
+
+.manager-fill-card .table > tbody > tr:hover > td {
+    background-color: #F8FAFC;
+}
+
+.manager-fill-card .adm-table > tbody > tr:hover > td {
+    background-color: #F8FAFC;
 }
 
 /* ============ SIDEBAR ============ */
@@ -656,41 +806,71 @@ textarea {
 }
 
 .adm-action {
-    width: 32px;
-    height: 32px;
-    border-radius: 7px;
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     font-size: 13px;
     transition: all 0.18s ease;
-    color: var(--text-soft);
-    border: 1px solid transparent;
+    color: #fff;
+    border: 0;
     cursor: pointer;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
 }
 
 .adm-action:hover {
-    background: var(--bg);
-    color: var(--navy);
-    border-color: var(--border);
+    color: #fff;
+    transform: translateY(-2px);
 }
 
-.adm-action.view:hover {
-    background: var(--blue-bg);
-    color: var(--blue);
-    border-color: transparent;
+.adm-action.view,
+.manager-fill-card .btn-view {
+    background: linear-gradient(135deg, #0dcaf0, #087990) !important;
+    color: #fff !important;
 }
 
-.adm-action.edit:hover {
-    background: var(--yellow-bg);
-    color: var(--yellow);
-    border-color: transparent;
+.adm-action.edit,
+.manager-fill-card .btn-edit {
+    background: linear-gradient(135deg, #0d6efd, #0043a8) !important;
+    color: #fff !important;
 }
 
-.adm-action.delete:hover {
-    background: var(--red-bg);
-    color: var(--red);
-    border-color: transparent;
+.adm-action.delete,
+.manager-fill-card .btn-delete {
+    background: linear-gradient(135deg, #dc3545, #a71d2a) !important;
+    color: #fff !important;
+}
+
+.manager-fill-card .btn-state-locked {
+    background: linear-gradient(135deg, #343a40, #1d2124) !important;
+    color: #fff !important;
+}
+
+.manager-fill-card .btn-state-active {
+    background: linear-gradient(135deg, #198754, #125e3a) !important;
+    color: #fff !important;
+}
+
+.manager-fill-card .btn-action {
+    width: 38px !important;
+    height: 38px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    margin: 0 3px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+    transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.manager-fill-card .btn-action:hover {
+    color: #fff !important;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(15, 41, 66, 0.22);
 }
 
 /* ============ TABLE ============ */
@@ -2235,7 +2415,7 @@ textarea {
 }
 
 .adm-table tbody tr .adm-actions {
-    opacity: 0.55;
+    opacity: 1;
     transition: opacity 0.18s ease;
 }
 
@@ -3433,4 +3613,265 @@ textarea {
 .adm-badge.lg {
     padding: 6px 14px;
     font-size: 12px;
+}
+
+/* =========================================================
+   UNIFIED ROLE UI — ADMIN / MANAGER / RECEPTIONIST
+   Keep the role workspaces visually identical even when a page loads a
+   legacy, page-specific stylesheet after this design system.
+   ========================================================= */
+.adm-content .admin-card,
+.adm-content .admin-card-custom,
+.adm-content .admin-form-card,
+.adm-content .delete-card,
+.adm-content .panel,
+.adm-content .adm-card {
+    background: var(--white) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-md) !important;
+    overflow: hidden;
+    transform: none !important;
+}
+
+.adm-content .admin-card:hover,
+.adm-content .admin-card-custom:hover,
+.adm-content .panel:hover,
+.adm-content .adm-card:hover {
+    transform: none !important;
+}
+
+.adm-content .admin-header,
+.adm-content .admin-header-navy,
+.adm-content .panel-head,
+.adm-content .card-header.bg-navy,
+.adm-content .admin-page-banner {
+    min-height: 76px;
+    padding: 18px 22px !important;
+    background: var(--navy) !important;
+    color: var(--white) !important;
+    border: 0 !important;
+    border-bottom: 3px solid var(--gold) !important;
+    border-radius: 0 !important;
+}
+
+.adm-content .admin-header h1,
+.adm-content .admin-header h2,
+.adm-content .admin-header h3,
+.adm-content .admin-header h4,
+.adm-content .admin-header h5,
+.adm-content .admin-header-navy h1,
+.adm-content .admin-header-navy h2,
+.adm-content .admin-header-navy h3,
+.adm-content .panel-head h1,
+.adm-content .panel-head h2,
+.adm-content .panel-head h3,
+.adm-content .admin-page-banner h1,
+.adm-content .admin-page-banner h2,
+.adm-content .admin-page-banner h3,
+.adm-content .admin-page-banner .adm-page-title {
+    color: var(--white) !important;
+    margin-bottom: 0;
+}
+
+.adm-content .admin-header h1 > i,
+.adm-content .admin-header h2 > i,
+.adm-content .admin-header h3 > i,
+.adm-content .admin-header h4 > i,
+.adm-content .admin-header h5 > i,
+.adm-content .admin-header-navy i,
+.adm-content .panel-head h3 > i,
+.adm-content .admin-page-banner h1 > i,
+.adm-content .admin-page-banner h2 > i,
+.adm-content .admin-page-banner h3 > i {
+    color: var(--gold) !important;
+}
+
+.adm-content .admin-page-banner,
+.adm-content .adm-page-head.admin-page-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 0 0 20px;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-md);
+}
+
+.adm-content .admin-page-banner .page-kicker,
+.adm-content .admin-page-banner .adm-page-eyebrow {
+    color: var(--gold) !important;
+}
+
+.adm-content .admin-page-banner p,
+.adm-content .admin-page-banner .adm-page-sub,
+.adm-content .admin-page-banner .revenue-filter label {
+    color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.adm-content .admin-page-banner .revenue-filter input {
+    color: var(--text);
+    background: var(--white);
+}
+
+.adm-content .btn-gold,
+.adm-content .adm-btn-gold {
+    background: var(--gold) !important;
+    border-color: var(--gold) !important;
+    color: var(--navy-dark) !important;
+    font-weight: 700 !important;
+}
+
+.adm-content .btn-gold:hover,
+.adm-content .adm-btn-gold:hover {
+    background: var(--gold-hover) !important;
+    border-color: var(--gold-hover) !important;
+    color: var(--white) !important;
+}
+
+.adm-content .btn-navy,
+.adm-content .btn-navy-action {
+    background: var(--navy) !important;
+    border-color: var(--navy) !important;
+    color: var(--white) !important;
+}
+
+.adm-content .btn-navy:hover,
+.adm-content .btn-navy-action:hover {
+    background: var(--navy-soft) !important;
+    border-color: var(--navy-soft) !important;
+    color: var(--white) !important;
+}
+
+.adm-content .btn-action,
+.adm-content .adm-action {
+    width: 38px;
+    height: 38px;
+    padding: 0;
+    border: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--white) !important;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.12);
+}
+
+.adm-content .btn-view,
+.adm-content .adm-action.view {
+    background: linear-gradient(135deg, #0dcaf0, #087990) !important;
+}
+
+.adm-content .btn-edit,
+.adm-content .adm-action.edit {
+    background: linear-gradient(135deg, #0d6efd, #0043a8) !important;
+}
+
+.adm-content .btn-delete,
+.adm-content .adm-action.delete {
+    background: linear-gradient(135deg, #dc3545, #a71d2a) !important;
+}
+
+.adm-content .btn-state-locked {
+    background: linear-gradient(135deg, #343a40, #1d2124) !important;
+}
+
+.adm-content .btn-state-active {
+    background: linear-gradient(135deg, #198754, #125e3a) !important;
+}
+
+.adm-content .manager-fill-card .table > thead > tr > th,
+.adm-content .manager-fill-card .adm-table > thead > tr > th {
+    background: var(--navy) !important;
+    color: var(--white) !important;
+}
+
+.adm-content .modal-content {
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius) !important;
+    overflow: hidden;
+    box-shadow: var(--shadow-lg) !important;
+}
+
+.adm-content .modal-header:not(.bg-danger) {
+    background: var(--navy) !important;
+    color: var(--white) !important;
+    border-bottom: 3px solid var(--gold) !important;
+}
+
+.adm-content .modal-header:not(.bg-danger) .modal-title,
+.adm-content .modal-header:not(.bg-danger) .modal-title i {
+    color: var(--white) !important;
+}
+
+.adm-content .modal-footer {
+    background: var(--bg-cream);
+    border-top: 1px solid var(--border-soft);
+}
+
+.adm-content input.form-control:not([type="file"]),
+.adm-content select.form-select,
+.adm-content .input-group-text {
+    min-height: 42px;
+    border-color: #D6DDE4;
+}
+
+.adm-content input.form-control:focus,
+.adm-content select.form-select:focus,
+.adm-content textarea.form-control:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 3px var(--gold-soft);
+}
+
+.adm-content .staff-summary article,
+.adm-content .customer-page .summary article {
+    background: var(--white) !important;
+    border: 1px solid var(--border) !important;
+    border-top: 4px solid var(--gold) !important;
+    border-radius: var(--radius) !important;
+    box-shadow: var(--shadow-md) !important;
+}
+
+.adm-content .badge-custom {
+    min-width: 126px;
+    padding: 8px 12px;
+    border: 0;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--white);
+    box-shadow: 0 4px 10px rgba(15, 41, 66, 0.12);
+}
+
+.adm-content .badge-role-admin {
+    background: linear-gradient(135deg, #ff3d6e, #ff4b32) !important;
+}
+
+.adm-content .badge-role-staff {
+    background: linear-gradient(135deg, #2fc5d7, #538be8) !important;
+}
+
+.adm-content .badge-role-user {
+    background: linear-gradient(135deg, #a7b2b8, #77858a) !important;
+}
+
+/* Room-map actions are full-width workflow controls, not square CRUD icons. */
+.adm-content .room-map-page .room-card .btn-action {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 38px;
+    padding: 8px 12px !important;
+    border-radius: 7px !important;
+}
+
+@media (max-width: 767.98px) {
+    .adm-content {
+        padding: 18px 14px 32px;
+    }
+
+    .adm-content .admin-header,
+    .adm-content .panel-head,
+    .adm-content .admin-page-banner {
+        align-items: stretch !important;
+    }
 }

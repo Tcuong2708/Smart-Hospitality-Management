@@ -74,6 +74,13 @@ public final class InputValidator {
         return value;
     }
 
+    public static double nonNegativeMoney(Double value, String field) {
+        if (value == null || !Double.isFinite(value) || value < 0 || value > 1_000_000_000D) {
+            throw new IllegalArgumentException(field + " phải từ 0 đến 1 tỷ đồng");
+        }
+        return value;
+    }
+
     public static int range(Integer value, String field, int min, int max) {
         if (value == null || value < min || value > max) {
             throw new IllegalArgumentException(field + " phải từ " + min + " đến " + max);

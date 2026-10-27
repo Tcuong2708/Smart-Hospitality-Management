@@ -34,6 +34,7 @@ public class ManagerServiceController extends BaseController {
         List<Service> services = serviceRepository.findAll();
         model.addAttribute("services", services);
         model.addAttribute("serviceObj", new Service());
+        setExtraCSS(model, "view/Admin/Service/index :: extra_css");
         return render(model, "view/Admin/Service/index");
     }
 
@@ -42,6 +43,27 @@ public class ManagerServiceController extends BaseController {
         setPageTitle(model, "Thêm Dịch Vụ - Manager");
         model.addAttribute("serviceObj", new Service());
         return render(model, "view/Admin/Service/create");
+    }
+
+    @PostMapping("/services/edit")
+    public String editService(Service input, RedirectAttributes redirect) {
+        try {
+            if (input.getId() == null) throw new IllegalArgumentException("Thiếu mã dịch vụ");
+            Service service = serviceRepository.findById(input.getId())
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy dịch vụ"));
+            String name = com.votricuong.mayhotel.utils.InputValidator.requiredText(input.getName(), "Tên dịch vụ", 100);
+            String unit = com.votricuong.mayhotel.utils.InputValidator.requiredText(input.getUnit(), "Đơn vị tính", 30);
+            Double price = com.votricuong.mayhotel.utils.InputValidator.positiveMoney(input.getPrice(), "Giá dịch vụ");
+            boolean duplicate = serviceRepository.findAll().stream().anyMatch(item -> !item.getId().equals(input.getId())
+                    && item.getName() != null && item.getName().equalsIgnoreCase(name));
+            if (duplicate) throw new IllegalArgumentException("Tên dịch vụ đã tồn tại");
+            service.setName(name); service.setUnit(unit); service.setPrice(price);
+            serviceRepository.save(service);
+            redirect.addFlashAttribute("success", "Cập nhật dịch vụ thành công!");
+        } catch (Exception ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/manager/services";
     }
 
     @PostMapping("/services/create")
@@ -66,7 +88,7 @@ public class ManagerServiceController extends BaseController {
         return "redirect:/manager/services";
     }
 
-    @GetMapping("/services/delete/{id}")
+    @PostMapping("/services/delete/{id}")
     public String deleteService(@PathVariable Long id, RedirectAttributes redirect) {
         if (!serviceRepository.existsById(id)) redirect.addFlashAttribute("error", "Không tìm thấy dịch vụ.");
         else if (serviceTicketRepository.existsByServiceId(id))

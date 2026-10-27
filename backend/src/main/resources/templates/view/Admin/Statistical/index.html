@@ -1,169 +1,109 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <meta charset="UTF-8" />
-    <title>Thống Kê Kinh Doanh - MAY HOTEL</title>
+    <th:block th:fragment="extra_css">
+        <link rel="stylesheet" th:href="@{/css/Admin/Statistical/index.css(v='20261027-2')}" />
+    </th:block>
 </head>
 <body>
+<div th:fragment="body_content" class="manager-page-shell">
+    <div class="manager-wide revenue-page manager-fill-page">
+        <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
-<th:block th:fragment="extra_css">
-    <link rel="stylesheet" th:href="@{/css/Admin/Statistical/index.css}" />
-    <style>
-        .text-navy { color: #0F2942 !important; }
-        .bg-navy { background-color: #0F2942 !important; }
-        .text-gold { color: #C5A017 !important; }
-    </style>
-</th:block>
-
-<div th:fragment="body_content">
-    <div class="container py-4">
-
-        <input type="hidden" id="revArrayData" th:value="${#strings.arrayJoin(doanhThuArr, ',')}" />
-        <input type="hidden" id="ordArrayData" th:value="${#strings.arrayJoin(soDonArr, ',')}" />
-
-        <h2 class="text-uppercase fw-bold text-center mb-4 text-navy">
-            Thống kê kinh doanh năm <th:block th:text="${nam}"></th:block>
-        </h2>
-
-        <div class="row mb-4">
-            <div class="col-md-4">
-                <div class="card bg-primary text-white mb-3 h-100 shadow-sm border-0">
-                    <div class="card-body text-center d-flex flex-column justify-content-center py-4">
-                        <h5 class="card-title opacity-75 small text-uppercase fw-bold">Tổng Doanh Thu Năm</h5>
-                        <h2 class="fw-bold mt-2" th:text="${#numbers.formatDecimal(tongDoanhThu, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h2>
-                    </div>
-                </div>
+        <div class="revenue-heading admin-page-banner">
+            <div>
+                <span class="page-kicker">BÁO CÁO KINH DOANH</span>
+                <h1>Thống kê doanh thu</h1>
+                <p>Dữ liệu thanh toán từ <strong th:text="${report.fromDisplay}"></strong> đến <strong th:text="${report.toDisplay}"></strong></p>
             </div>
-
-            <div class="col-md-4">
-                <div class="card bg-success text-white mb-3 h-100 shadow-sm border-0">
-                    <div class="card-body text-center d-flex flex-column justify-content-center py-4">
-                        <h5 class="card-title opacity-75 small text-uppercase fw-bold">Tổng Đơn Đặt Phòng</h5>
-                        <h2 class="fw-bold mt-2" th:text="${tongSoDon} + ' đơn'">0 đơn</h2>
-                    </div>
+            <form class="revenue-filter" method="get" th:action="@{/admin/statistical}" id="revenueFilter">
+                <label>Từ ngày<input name="from" id="fromDate" inputmode="numeric" placeholder="dd-MM-yyyy" th:value="${report.fromDisplay}" required></label>
+                <label>Đến ngày<input name="to" id="toDate" inputmode="numeric" placeholder="dd-MM-yyyy" th:value="${report.toDisplay}" required></label>
+                <button class="btn btn-navy" type="submit"><i class="bi bi-funnel"></i> Xem báo cáo</button>
+                <div class="dropdown">
+                    <button class="btn btn-gold dropdown-toggle" type="button" data-bs-toggle="dropdown"><i class="bi bi-download"></i> Xuất báo cáo</button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><a class="dropdown-item export-link" data-type="xlsx" href="#"><i class="bi bi-file-earmark-excel me-2 text-success"></i>Excel (.xlsx)</a></li>
+                        <li><a class="dropdown-item export-link" data-type="pdf" href="#"><i class="bi bi-file-earmark-pdf me-2 text-danger"></i>PDF (.pdf)</a></li>
+                    </ul>
                 </div>
-            </div>
-
-            <div class="col-md-4">
-                <div class="card bg-warning text-dark mb-3 h-100 shadow-sm border-0">
-                    <div class="card-body text-center d-flex flex-column justify-content-center py-4">
-                        <h5 class="card-title opacity-75 small text-uppercase fw-bold">Trung bình / Tháng</h5>
-                        <h2 class="fw-bold mt-2" th:text="${#numbers.formatDecimal(trungBinhThang, 0, 'COMMA', 0, 'POINT')} + ' đ'">0 đ</h2>
-                    </div>
-                </div>
-            </div>
+            </form>
         </div>
 
-        <div class="card shadow-sm border-0 rounded-3 overflow-hidden">
-            <div class="card-header bg-white fw-bold py-3 text-navy border-bottom">
-                <i class="bi bi-bar-chart-line-fill me-2 text-warning"></i>Biểu đồ doanh thu từng tháng
-            </div>
-            <div class="card-body p-4">
-                <div style="position: relative; height:380px; width:100%">
-                    <canvas id="myChart"></canvas>
-                </div>
-            </div>
+        <div class="quick-periods">
+            <button type="button" data-period="today">Hôm nay</button>
+            <button type="button" data-period="month">Tháng này</button>
+            <button type="button" data-period="quarter">Quý này</button>
+            <button type="button" data-period="year">Năm nay</button>
         </div>
+
+        <div class="revenue-kpis">
+            <article class="kpi kpi-primary"><span>Doanh thu thực nhận</span><strong th:text="${#numbers.formatDecimal(report.netRevenue,0,'COMMA',0,'POINT')} + ' đ'"></strong><small>Sau hoàn tiền</small></article>
+            <article class="kpi"><span>Doanh thu gộp</span><strong th:text="${#numbers.formatDecimal(report.grossRevenue,0,'COMMA',0,'POINT')} + ' đ'"></strong><small>Tổng tiền đã thanh toán</small></article>
+            <article class="kpi kpi-refund"><span>Tiền hoàn</span><strong th:text="${#numbers.formatDecimal(report.refundAmount,0,'COMMA',0,'POINT')} + ' đ'"></strong><small>Đã trừ khỏi thực nhận</small></article>
+            <article class="kpi kpi-booking"><span>Booking / Hóa đơn</span><strong th:text="${report.bookingCount + ' / ' + report.paidInvoiceCount}"></strong><small th:text="'TB ' + ${#numbers.formatDecimal(report.averageInvoice,0,'COMMA',0,'POINT')} + ' đ/hóa đơn'"></small></article>
+        </div>
+
+        <div class="revenue-grid">
+            <section class="report-card chart-card">
+                <header><div><h2><i class="bi bi-bar-chart-line"></i> Diễn biến doanh thu</h2><p>Doanh thu thực nhận và số booking theo kỳ</p></div></header>
+                <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
+            </section>
+            <section class="report-card period-card">
+                <header><div><h2><i class="bi bi-calendar3"></i> Chi tiết theo kỳ</h2><p>Tổng hợp từ bộ lọc hiện tại</p></div></header>
+                <div class="period-list">
+                    <div th:each="bucket : ${report.buckets}"><span th:text="${bucket.label}"></span><strong th:text="${#numbers.formatDecimal(bucket.revenue,0,'COMMA',0,'POINT')} + ' đ'"></strong><small th:text="${bucket.bookingCount} + ' booking'"></small></div>
+                </div>
+            </section>
+        </div>
+
+        <section class="report-card invoice-card">
+            <header><div><h2><i class="bi bi-receipt"></i> Hóa đơn đã thanh toán</h2><p th:text="${report.paidInvoiceCount} + ' hóa đơn trong khoảng đã chọn'"></p></div></header>
+            <div class="table-responsive">
+                <table class="table align-middle mb-0">
+                    <thead><tr><th>Mã HĐ</th><th>Booking</th><th>Ngày</th><th>Khách hàng</th><th>Thanh toán</th><th class="text-end">Tổng tiền</th><th class="text-end">Hoàn</th><th class="text-end">Thực nhận</th></tr></thead>
+                    <tbody>
+                    <tr th:if="${report.invoices.isEmpty()}"><td colspan="8" class="empty-report"><i class="bi bi-inbox"></i><span>Không có hóa đơn trong khoảng thời gian này</span></td></tr>
+                    <tr th:each="invoice : ${report.invoices}">
+                        <td class="fw-bold" th:text="${invoice.id}"></td><td th:text="${invoice.bookingId}"></td><td th:text="${invoice.dateDisplay}"></td>
+                        <td><strong th:text="${invoice.guestName.isEmpty() ? 'Khách lẻ' : invoice.guestName}"></strong><small th:text="${invoice.phone}"></small></td>
+                        <td th:text="${invoice.payMethod.isEmpty() ? 'Chưa ghi nhận' : invoice.payMethod}"></td>
+                        <td class="text-end" th:text="${#numbers.formatDecimal(invoice.grossAmount,0,'COMMA',0,'POINT')} + ' đ'"></td>
+                        <td class="text-end text-danger" th:text="${#numbers.formatDecimal(invoice.refundAmount,0,'COMMA',0,'POINT')} + ' đ'"></td>
+                        <td class="text-end fw-bold text-success" th:text="${#numbers.formatDecimal(invoice.netAmount,0,'COMMA',0,'POINT')} + ' đ'"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <div id="chartData" hidden th:attr="data-labels=${#strings.listJoin(chartLabels,'|')},data-revenue=${#strings.listJoin(chartRevenue,'|')},data-bookings=${#strings.listJoin(chartBookings,'|')}"></div>
     </div>
-
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        console.log("-> [MAY HOTEL]: Khởi tạo đồ thị phân tích liên hợp Doanh thu - Lượt đơn");
-
-        // Bóc tách mảng dữ liệu từ các thẻ ẩn an toàn
-        const rawRevStr = document.getElementById("revArrayData").value;
-        const rawOrdStr = document.getElementById("ordArrayData").value;
-
-        const cleanDoanhThu = rawRevStr ? rawRevStr.split(',').map(Number) : Array(12).fill(0);
-        const cleanSoDon = rawOrdStr ? rawOrdStr.split(',').map(Number) : Array(12).fill(0);
-
-        const ctxElement = document.getElementById('myChart');
-        if (ctxElement) {
-            new Chart(ctxElement, {
-                data: {
-                    labels: ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'],
-                    datasets: [
-                        {
-                            type: 'bar', // Cột đứng doanh thu
-                            label: 'Doanh thu (VNĐ)',
-                            data: cleanDoanhThu,
-                            backgroundColor: 'rgba(15, 41, 66, 0.85)',
-                            borderColor: '#0F2942',
-                            borderWidth: 1,
-                            borderRadius: 4,
-                            yAxisID: 'y'
-                        },
-                        {
-                            type: 'line', // Đường chỉ số lượt đặt
-                            label: 'Số đơn đặt',
-                            data: cleanSoDon,
-                            borderColor: '#C5A017',
-                            backgroundColor: '#C5A017',
-                            borderWidth: 3,
-                            pointRadius: 4,
-                            pointHoverRadius: 6,
-                            tension: 0.15, // Tạo độ cong nhẹ cho đường line sinh động
-                            yAxisID: 'y1'
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false
-                    },
-                    plugins: {
-                        tooltip: {
-                            callbacks: {
-                                // Định dạng hiển thị tiền VND cực chuẩn khi rê chuột vào cột doanh thu
-                                label: function(context) {
-                                    let labelText = context.dataset.label || '';
-                                    if (labelText) { labelText += ': '; }
-                                    if (context.datasetIndex === 0) {
-                                        labelText += new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(context.parsed.y);
-                                    } else {
-                                        labelText += context.parsed.y + ' đơn';
-                                    }
-                                    return labelText;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            type: 'linear',
-                            display: true,
-                            position: 'left',
-                            beginAtZero: true,
-                            title: { display: true, text: 'Doanh thu (VNĐ)', font: { weight: 'bold' } },
-                            ticks: {
-                                callback: function(value) {
-                                    return new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(value) + ' đ';
-                                }
-                            }
-                        },
-                        y1: {
-                            type: 'linear',
-                            display: true,
-                            position: 'right',
-                            beginAtZero: true,
-                            grid: { drawOnChartArea: false }, // Ẩn grid để không bị đè rối mắt
-                            title: { display: true, text: 'Số lượng đơn đặt', font: { weight: 'bold' } },
-                            ticks: {
-                                stepSize: 1, // Ép nhảy số nguyên tròn đơn
-                                callback: function(value) { return value + ' đơn'; }
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        (() => {
+            const pad = n => String(n).padStart(2, '0');
+            const format = d => `${pad(d.getDate())}-${pad(d.getMonth()+1)}-${d.getFullYear()}`;
+            document.querySelectorAll('[data-period]').forEach(button => button.addEventListener('click', () => {
+                const now = new Date(), type = button.dataset.period; let from = new Date(now), to = new Date(now);
+                if (type === 'month') from = new Date(now.getFullYear(), now.getMonth(), 1);
+                if (type === 'quarter') from = new Date(now.getFullYear(), Math.floor(now.getMonth()/3)*3, 1);
+                if (type === 'year') { from = new Date(now.getFullYear(), 0, 1); to = new Date(now.getFullYear(), 11, 31); }
+                document.getElementById('fromDate').value = format(from); document.getElementById('toDate').value = format(to);
+                document.getElementById('revenueFilter').submit();
+            }));
+            document.querySelectorAll('.export-link').forEach(link => link.addEventListener('click', event => {
+                event.preventDefault(); const params = new URLSearchParams({from: document.getElementById('fromDate').value, to: document.getElementById('toDate').value});
+                window.location.href = `/admin/statistical/export.${link.dataset.type}?${params}`;
+            }));
+            const data = document.getElementById('chartData');
+            const labels = (data.dataset.labels || '').split('|').filter(Boolean);
+            new Chart(document.getElementById('revenueChart'), {data:{labels,datasets:[
+                {type:'bar',label:'Doanh thu (VNĐ)',data:(data.dataset.revenue||'').split('|').map(Number),backgroundColor:'rgba(15,41,66,.88)',borderRadius:6,yAxisID:'y'},
+                {type:'line',label:'Booking',data:(data.dataset.bookings||'').split('|').map(Number),borderColor:'#c9a609',backgroundColor:'#c9a609',borderWidth:3,tension:.25,yAxisID:'y1'}]},
+                options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},scales:{y:{beginAtZero:true,ticks:{callback:v=>new Intl.NumberFormat('vi-VN',{notation:'compact'}).format(v)+' đ'}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},ticks:{precision:0}}}}});
+        })();
     </script>
 </div>
-
-<th:block th:fragment="extra_js"></th:block>
-
 </body>
 </html>

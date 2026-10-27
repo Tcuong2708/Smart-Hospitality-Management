@@ -8,7 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatDate = (dateInput) => {
         if (!dateInput) return '';
         const d = new Date(dateInput);
-        return d.toLocaleDateString('vi-VN');
+        if (Number.isNaN(d.getTime())) return dateInput;
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        return `${day}-${month}-${d.getFullYear()}`;
     };
 
     const bookings = Array.isArray(window.mockBookings) ? window.mockBookings.map(b => ({
@@ -44,8 +47,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     <span class="badge ${riskBadge} fs-6 shadow-sm mb-1">${item.aiRisk}</span><br>
                 </td>
                 <td class="text-center">
-                    <button class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết"><i class="bi bi-eye"></i></button>
-                    <button class="btn btn-sm btn-warning text-white shadow-sm mx-1" title="Sửa"><i class="bi bi-pencil"></i></button>
+                    <button class="btn btn-action btn-view" title="Xem chi tiết"><i class="bi bi-eye"></i></button>
+                    <button class="btn btn-action btn-edit" title="Sửa"><i class="bi bi-pencil"></i></button>
                 </td>
             `;
             tableBody.appendChild(tr);

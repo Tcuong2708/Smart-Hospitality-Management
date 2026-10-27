@@ -13,8 +13,8 @@
     </th:block>
 </head>
 <body>
-<div th:fragment="body_content">
-    <div class="container py-4">
+<div th:fragment="body_content" class="manager-page-shell">
+    <div class="container py-4 manager-fill-page">
         <!-- Alert -->
         <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
@@ -25,7 +25,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <div class="card shadow-sm border-0 admin-card">
+        <div class="card shadow-sm border-0 admin-card manager-fill-card">
             <!-- Header mới được cải tiến từ frontend -->
             <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3 p-3" style="background-color: #0F2942; border-bottom: 3px solid #C5A017;">
                 <h3 class="fw-bold text-uppercase mb-0 text-white" style="letter-spacing: 1px;">
@@ -38,39 +38,42 @@
                         <input type="text" class="form-control border-0" id="searchCategory" placeholder="Tìm loại phòng..." onkeyup="filterCategoryTable()">
                     </div>
 
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#categoryModal" class="btn px-4 shadow-sm text-white" style="background: #C5A017; font-weight: 600;">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#categoryModal" class="btn btn-gold px-4 shadow-sm">
                         <i class="bi bi-plus-lg me-1"></i> Thêm Mới
                     </a>
                 </div>
             </div>
             
-            <div class="card-body p-0">
+            <div class="card-body p-0 manager-fill-body">
                 <div class="table-responsive" style="background-color: #fff;">
                     <table class="table table-hover align-middle mb-0" id="categoryTable">
                         <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
                         <tr>
                             <th class="py-3 text-center text-uppercase small text-white fw-bold">Mã số</th>
+                            <th class="text-center text-uppercase small text-white fw-bold">Hình ảnh</th>
                             <th class="text-center text-uppercase small text-white fw-bold">Tên loại phòng <i class="bi bi-funnel-fill text-warning ms-1"></i></th>
-                            <th class="text-center text-uppercase small text-white fw-bold">Số lượng phòng</th>
+                            <th class="text-center text-uppercase small text-white fw-bold">Sức chứa</th>
+                            <th class="text-center text-uppercase small text-white fw-bold">Tổng phòng</th>
+                            <th class="text-center text-uppercase small text-white fw-bold">Phòng trống</th>
                             <th class="text-center text-uppercase small text-white fw-bold" style="width: 150px;">Thao tác</th>
                         </tr>
                         </thead>
                         <tbody id="category-table-body">
                             <tr th:if="${categories == null or categories.isEmpty()}">
-                                <td colspan="4" class="text-center py-5 text-muted">Không có dữ liệu.</td>
+                                <td colspan="7" class="text-center py-5 text-muted">Không có dữ liệu.</td>
                             </tr>
                             <tr th:each="c : ${categories}" class="category-row">
                                 <td class="text-center fw-bold text-secondary" th:text="${c.id}"></td>
-                                <td class="text-center fw-bold category-name" style="color: #0F2942;" th:text="${c.name}">
-                                    <br>
-                                    <span class="badge bg-secondary" th:text="${c.maxOccupancy + ' người'}"></span>
-                                </td>
+                                <td class="text-center"><img th:src="${not #strings.isEmpty(c.imageUrl) ? (c.imageUrl.startsWith('http') ? c.imageUrl : '/images/' + c.imageUrl) : 'https://via.placeholder.com/96x58?text=Room'}" alt="Loại phòng" style="width:96px;height:58px;object-fit:cover;border-radius:8px"></td>
+                                <td class="text-center fw-bold category-name" style="color: #0F2942;" th:text="${c.name}"></td>
+                                <td class="text-center"><span class="badge bg-light text-dark border" th:text="${c.maxOccupancy + ' người'}"></span></td>
+                                <td class="text-center fw-bold" th:text="${c.totalRoomsCount}"></td>
                                 <td class="text-center fw-bold align-middle">
                                     <span class="badge bg-success py-2 px-3 shadow-sm" style="font-size: 0.9rem;" th:text="${c.availableRoomsCount} + ' trống'"></span>
                                 </td>
                                 <td class="text-center">
-                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${c.id}" class="btn btn-sm btn-warning text-white shadow-sm" title="Sửa"><i class="bi bi-pencil"></i></a>
-                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#deleteModal' + ${c.id}" class="btn btn-sm btn-danger shadow-sm ms-1" title="Xóa"><i class="bi bi-trash"></i></a>
+                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${c.id}" class="btn btn-action btn-edit" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#deleteModal' + ${c.id}" class="btn btn-action btn-delete" title="Xóa"><i class="bi bi-trash"></i></a>
                                 </td>
                             </tr>
                         </tbody>
@@ -96,7 +99,7 @@
                     </div>
                     <div class="modal-footer bg-light border-0 justify-content-center">
                         <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
-                        <a th:href="@{/manager/categories/delete/{id}(id=${c.id})}" class="btn btn-danger px-4 fw-bold">Xóa Ngay</a>
+                        <form th:action="@{/manager/categories/delete/{id}(id=${c.id})}" method="post" class="d-inline"><button type="submit" class="btn btn-danger px-4 fw-bold">Xóa Ngay</button></form>
                     </div>
                 </div>
             </div>

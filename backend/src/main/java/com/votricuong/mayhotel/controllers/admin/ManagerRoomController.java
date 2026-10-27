@@ -53,6 +53,7 @@ public class ManagerRoomController extends BaseController {
         model.addAttribute("rooms", rooms);
         model.addAttribute("room", new Room());
         model.addAttribute("roomTypes", roomTypes);
+        setExtraCSS(model, "view/Admin/Room/index :: extra_css");
         return render(model, "view/Admin/Room/index");
     }
 
@@ -77,7 +78,7 @@ public class ManagerRoomController extends BaseController {
         return "redirect:/manager/rooms";
     }
 
-    @GetMapping("/rooms/delete/{id}")
+    @PostMapping("/rooms/delete/{id}")
     public String deleteRoom(@PathVariable Long id, RedirectAttributes redirect) {
         Room room = roomRepository.findById(id).orElse(null);
         if (room == null) redirect.addFlashAttribute("error", "Không tìm thấy phòng.");

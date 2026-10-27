@@ -1,8 +1,8 @@
-<div th:fragment="body_content" xmlns:th="http://www.thymeleaf.org">
+<div th:fragment="body_content" xmlns:th="http://www.thymeleaf.org" class="manager-page-shell receptionist-page room-map-page">
 
-    <div class="container-fluid py-4">
-        <div class="admin-card mb-4">
-            <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div class="container-fluid py-4 manager-fill-page">
+        <div class="admin-card manager-fill-card receptionist-data-card mb-4">
+            <div class="admin-header receptionist-page-header d-flex flex-wrap justify-content-between align-items-center gap-3">
                 <h3 class="fw-bold text-uppercase mb-0">
                     <i class="bi bi-grid-3x3-gap-fill me-2"></i>Sơ đồ phòng nghỉ
                 </h3>
@@ -55,7 +55,7 @@
                 </div>
             </div>
             
-            <div class="card-body p-4">
+            <div class="card-body p-4 manager-fill-body">
                 <div class="d-flex flex-wrap gap-4 p-3 bg-white rounded shadow-sm border mb-2" style="font-size: 0.9rem;">
                     <span class="fw-bold"><i class="bi bi-square-fill text-success me-1"></i>Phòng trống</span>
                     <span class="fw-bold"><i class="bi bi-square-fill text-danger me-1"></i>Đang lưu trú</span>
@@ -162,14 +162,15 @@
 
 
 <th:block th:fragment="extra_css">
-<link rel="stylesheet" th:href="@{/css/room-map.css(v=20261018-1)}" />
+<link rel="stylesheet" th:href="@{/css/room-map.css(v=20261027-2)}" />
 </th:block>
 <th:block th:fragment="extra_js">
 <script th:inline="javascript">
+window.ADM_PAGE_MODULE = 'room-map';
 window.mockRoomMapData = /*[[${rooms}]]*/ {};
 window.roomMapSelectedDate = /*[[${selectedDate}]]*/ '';
 window.roomMapIsToday = /*[[${isToday}]]*/ false;
 </script>
-<script th:src="@{/js/Admin/RoomMap/room-map.js(v=20261018-1)}"></script>
+<script th:src="@{/js/Admin/RoomMap/room-map.js(v=20261027-2)}"></script>
 </th:block>
 </div>

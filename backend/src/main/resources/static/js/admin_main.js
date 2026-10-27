@@ -1,7 +1,7 @@
 'use strict';
 
 const CFG = {
-    base: window.API_BASE_URL || 'http://localhost:8080/api',
+    base: window.API_BASE_URL || '/api',
     ai: window.AI_URL || '',
     poll: 3000,
     tz: 'Asia/Ho_Chi_Minh',
@@ -64,6 +64,12 @@ const AdmToast = {
 function toast(msg, type) {
     if (type === 'error') type = 'danger';
     AdmToast.show(msg, type || 'success');
+}
+
+function roomCode(value) {
+    return String(value == null ? '' : value)
+        .trim()
+        .replace(/^P\s*[.\-]?\s*/i, '');
 }
 
 // ============================================================
@@ -516,7 +522,7 @@ const SoDoPhong = {
 
                 html += `<div class="adm-room-card ${st.cls}">
                     <div class="adm-room-card-head">
-                        <h5>P.${esc(r.name)}</h5>
+                        <h5>Phòng ${esc(roomCode(r.name || r.id))}</h5>
                         <span class="adm-badge adm-badge-cat">${esc(r.maLoai)}</span>
                     </div>
                     <div class="adm-room-card-meta">
@@ -585,7 +591,7 @@ const SoDoPhong = {
         this.rooms.filter(r => r.status === 'Trống').forEach(r => {
             const opt = document.createElement('option');
             opt.value = r.gia;
-            opt.textContent = `Phòng ${r.name} (${r.maLoai}) - ${money(r.gia)}`;
+            opt.textContent = `Phòng ${roomCode(r.name || r.id)} (${r.maLoai}) - ${money(r.gia)}`;
             sel.appendChild(opt);
         });
 
@@ -660,7 +666,7 @@ const CheckIn = {
                 const verified = it.isVerified === true;
 
                 const roomBadge = roomName
-                    ? `<span class="adm-badge adm-badge-success"><i class="bi bi-door-open-fill"></i> Phòng ${esc(roomName)}</span>`
+                    ? `<span class="adm-badge adm-badge-success"><i class="bi bi-door-open-fill"></i> Phòng ${esc(roomCode(roomName))}</span>`
                     : `<span class="adm-badge adm-badge-warning"><i class="bi bi-exclamation-triangle-fill"></i> Chưa xếp phòng</span>`;
 
                 let roomUI = '';
@@ -677,7 +683,7 @@ const CheckIn = {
                         <input type="hidden" name="maPhong" id="room-${id}" value="" required>`;
                 } else {
                     const roomLabel = roomName
-                        ? `<i class="bi bi-door-open-fill"></i> Phòng ${esc(roomName)} (Đổi)`
+                        ? `<i class="bi bi-door-open-fill"></i> Phòng ${esc(roomCode(roomName))} (Đổi)`
                         : `<i class="bi bi-key-fill"></i> Chọn phòng...`;
                     const btnCls = roomName ? 'adm-btn-outline' : 'adm-btn-danger';
 
@@ -812,7 +818,7 @@ const CheckIn = {
             return `<button type="button" class="adm-room-pick"
                 onclick="CheckIn.chonPhong('${r.id}', '${esc(r.view)}', '${esc(r.type)}', '${esc(r.name || r.id)}')">
                 <div>
-                    <h6 class="adm-room-pick-name"><i class="bi bi-door-open-fill"></i> Phòng ${esc(r.name || r.id)}</h6>
+                    <h6 class="adm-room-pick-name"><i class="bi bi-door-open-fill"></i> Phòng ${esc(roomCode(r.name || r.id))}</h6>
                     <span class="adm-room-pick-type">${esc(r.type)}</span>
                 </div>
                 <div class="adm-room-pick-view"><i class="bi ${vIcon}"></i> ${esc(r.view)}</div>
@@ -826,7 +832,7 @@ const CheckIn = {
 
         const btn = document.getElementById('btn-select-room-' + this.assignId);
         if (btn) {
-            btn.innerHTML = `<i class="bi bi-door-open-fill"></i> P.${esc(roomName || roomId)} (${esc(view)})`;
+            btn.innerHTML = `<i class="bi bi-door-open-fill"></i> Phòng ${esc(roomCode(roomName || roomId))} (${esc(view)})`;
             btn.classList.remove('adm-btn-danger');
             btn.classList.add('adm-btn-outline');
         }
@@ -1052,8 +1058,11 @@ const TraCuu = {
 // KHỞI CHẠY
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
-    HoaDon.init();
-    SoDoPhong.init();
-    CheckIn.init();
-    TraCuu.init();
+    const pageModule = window.ADM_PAGE_MODULE || '';
+    if (pageModule !== 'invoice') HoaDon.init();
+    if (pageModule !== 'room-map') SoDoPhong.init();
+    if (pageModule !== 'checkin') {
+        CheckIn.init();
+        TraCuu.init();
+    }
 });

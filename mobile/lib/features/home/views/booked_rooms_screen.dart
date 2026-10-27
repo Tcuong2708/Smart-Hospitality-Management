@@ -4,6 +4,7 @@ import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
 import '../../../core/utils/responsive.dart';
 import '../../checkin/views/mobile_self_checkin_screen.dart';
+import '../../auth/views/login_screen.dart';
 import '../../operations/services/mobile_operations_api.dart';
 import '../../services/views/service_order_screen.dart';
 
@@ -52,7 +53,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
       final res = await _apiProvider.getTransactionHistory(userId);
       if (mounted) {
         setState(() {
-          _bookedRooms = res;
+          _bookedRooms = _distinctBookings(res);
           _isLoading = false;
         });
       }
@@ -65,6 +66,35 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
         });
       }
     }
+  }
+
+  List<dynamic> _distinctBookings(List<dynamic> bookings) {
+    final distinct = <String, dynamic>{};
+    for (var index = 0; index < bookings.length; index++) {
+      final item = bookings[index];
+      final bookingId = item is Map ? item['bookingId']?.toString() : null;
+      final key = bookingId == null || bookingId.isEmpty
+          ? 'row-$index'
+          : 'booking-$bookingId';
+      distinct.putIfAbsent(key, () => item);
+    }
+    return distinct.values.toList();
+  }
+
+  Future<bool> _requireCustomerLogin(String featureName) async {
+    if (AuthStateService().currentAuth.isLoggedIn) return true;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Vui lòng đăng nhập để $featureName.')),
+    );
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
+    );
+    if (!mounted || !AuthStateService().currentAuth.isLoggedIn) return false;
+
+    await _fetchBookingHistory();
+    return mounted;
   }
 
   // Định dạng ngày tháng an toàn
@@ -87,14 +117,12 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     } else if (_selectedFilter == 'RESERVED') {
       return _bookedRooms.where((item) {
         String st = item['trangThai']?.toString() ?? '';
-        return st.contains('Đã xác nhận') ||
-            st.contains('Reserved') ||
-            st == 'Pending';
+        return _isAwaitingCheckInStatus(st);
       }).toList();
     } else if (_selectedFilter == 'HISTORY') {
       return _bookedRooms.where((item) {
         String st = item['trangThai']?.toString() ?? '';
-        return st == 'Đã trả phòng' || st == 'Completed' || st == 'Đã hủy';
+        return _isHistoricalStatus(st);
       }).toList();
     }
     return _bookedRooms;
@@ -127,6 +155,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     final normalized = status.trim().toLowerCase();
     return normalized == 'reserved' ||
         normalized == 'pending' ||
+        normalized == 'confirmed' ||
         normalized.contains('đã xác nhận') ||
         normalized.contains('chờ nhận phòng') ||
         normalized.contains('đã xác thực');
@@ -140,6 +169,19 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
       'checked-out',
     }.contains(normalized);
   }
+
+  bool _isHistoricalStatus(String status) {
+    final normalized = status.trim().toLowerCase();
+    return _isCompletedStayStatus(status) ||
+        normalized == 'đã hủy' ||
+        normalized == 'cancelled' ||
+        normalized == 'canceled';
+  }
+
+  int get _historyBookingCount => _bookedRooms.where((item) {
+    final status = item is Map ? item['trangThai']?.toString() ?? '' : '';
+    return _isHistoricalStatus(status);
+  }).length;
 
   @override
   Widget build(BuildContext context) {
@@ -252,7 +294,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                     const Color(0xFF1E3E62),
                   ],
                   iconColor: Colors.amber,
-                  onTap: () {
+                  onTap: () async {
+                    if (!await _requireCustomerLogin('đặt dịch vụ')) return;
+                    if (!mounted) return;
                     final active = _activeBooking;
                     if (active != null) {
                       final bookingId =
@@ -281,7 +325,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                   title: "Lịch Sử Đặt",
                   subtitle: "Tất cả phiếu & hóa đơn",
                   icon: Icons.history_toggle_off_rounded,
-                  badgeText: "${_bookedRooms.length} đơn",
+                  badgeText: "$_historyBookingCount đơn",
                   badgeColor: colorScheme.primary,
                   cardGradient: isDarkMode
                       ? [Colors.grey.shade900, Colors.grey.shade800]
@@ -295,7 +339,10 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                   subtitleColor: isDarkMode
                       ? Colors.white70
                       : Colors.grey.shade700,
-                  onTap: () {
+                  onTap: () async {
+                    if (!await _requireCustomerLogin('xem lịch sử đặt phòng')) {
+                      return;
+                    }
                     setState(() {
                       _selectedFilter = 'HISTORY';
                     });
@@ -319,7 +366,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                   iconColor: Colors.teal.shade700,
                   textColor: Colors.teal.shade900,
                   subtitleColor: Colors.teal.shade800,
-                  onTap: () {
+                  onTap: () async {
+                    if (!await _requireCustomerLogin('xác thực nhận phòng')) {
+                      return;
+                    }
+                    if (!mounted) return;
                     final reserved = _bookedRooms.firstWhere(
                       (item) => _isAwaitingCheckInStatus(
                         item['trangThai']?.toString() ?? '',
@@ -534,8 +585,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
               backgroundColor: isDarkMode
                   ? colorScheme.surface
                   : Colors.grey.shade200,
-              onSelected: (selected) {
+              onSelected: (selected) async {
                 if (selected) {
+                  if (!await _requireCustomerLogin('xem lịch sử đặt phòng')) {
+                    return;
+                  }
                   setState(() {
                     _selectedFilter = f['key']!;
                   });
@@ -563,11 +617,16 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     }
 
     if (_errorMessage.isNotEmpty) {
+      final isGuest = !AuthStateService().currentAuth.isLoggedIn;
       return _buildEmptyOrErrorState(
-        icon: Icons.wifi_off_rounded,
+        icon: isGuest ? Icons.lock_outline_rounded : Icons.wifi_off_rounded,
         title: _errorMessage,
-        buttonText: "Thử lại ngay",
-        onPressed: _fetchBookingHistory,
+        buttonText: isGuest ? "Đăng nhập ngay" : "Thử lại ngay",
+        onPressed: isGuest
+            ? () async {
+                await _requireCustomerLogin('xem lịch sử đặt phòng');
+              }
+            : _fetchBookingHistory,
         colorScheme: colorScheme,
       );
     }
@@ -641,6 +700,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
 
     double tongTien = double.tryParse(item['tongTien']?.toString() ?? '0') ?? 0;
     String trangThai = item['trangThai']?.toString() ?? 'Chờ xác nhận';
+    final bool daThanhToan = item['daThanhToan'] == true;
     final bool isFaceVerified = item['isFaceVerified'] == true;
     if (isFaceVerified && !_isActiveStayStatus(trangThai)) {
       trangThai = 'Đã xác thực - chờ lễ tân gán phòng';
@@ -726,6 +786,37 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                       fontWeight: FontWeight.w500,
                     ),
                   ),
+                  const SizedBox(height: 5),
+                  InkWell(
+                    onTap: () => _showInvoiceDetails(item),
+                    borderRadius: BorderRadius.circular(6),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 2),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.receipt_long_outlined,
+                            size: 15,
+                            color: daThanhToan ? Colors.green : Colors.orange,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            daThanhToan
+                                ? 'Đã thanh toán · Xem hóa đơn'
+                                : 'Chưa thanh toán · Xem chi tiết',
+                            style: TextStyle(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: daThanhToan
+                                  ? Colors.green
+                                  : Colors.orange.shade800,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 8),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -748,6 +839,106 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  double _number(dynamic value) =>
+      double.tryParse(value?.toString() ?? '0') ?? 0;
+
+  String _money(dynamic value) => '${_number(value).toStringAsFixed(0)} VNĐ';
+
+  Future<void> _showInvoiceDetails(dynamic rawItem) async {
+    final item = Map<String, dynamic>.from(rawItem as Map);
+    final services = item['dichVu'] is List
+        ? List<dynamic>.from(item['dichVu'] as List)
+        : <dynamic>[];
+    final paid = item['daThanhToan'] == true;
+
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 4, 20, 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                item['invoiceId'] == null
+                    ? 'Chi tiết thanh toán'
+                    : 'Hóa đơn #${item['invoiceId']}',
+                style: Theme.of(
+                  sheetContext,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+              _invoiceRow('Tiền phòng', _money(item['tienPhong'])),
+              _invoiceRow('Tiền dịch vụ', _money(item['tienDichVu'])),
+              _invoiceRow('Phụ thu', _money(item['phuThu'])),
+              _invoiceRow('Giảm giá', _money(item['giamGia'])),
+              const Divider(height: 22),
+              _invoiceRow(
+                'Tổng thanh toán',
+                _money(item['tongTien']),
+                emphasized: true,
+              ),
+              _invoiceRow(
+                'Trạng thái',
+                paid ? 'Đã thanh toán' : 'Chưa thanh toán',
+              ),
+              if ((item['phuongThucThanhToan']?.toString() ?? '').isNotEmpty)
+                _invoiceRow(
+                  'Phương thức',
+                  item['phuongThucThanhToan'].toString(),
+                ),
+              if (services.isNotEmpty) ...[
+                const SizedBox(height: 14),
+                Text(
+                  'Dịch vụ đã đặt',
+                  style: Theme.of(sheetContext).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                for (final rawService in services)
+                  if (rawService is Map)
+                    _invoiceRow(
+                      '${rawService['tenDichVu'] ?? 'Dịch vụ'} × ${rawService['soLuong'] ?? 1}',
+                      _money(rawService['thanhTien']),
+                    ),
+              ],
+              const SizedBox(height: 16),
+              const Text(
+                'Hóa đơn nhiệt do quầy dịch vụ hoặc lễ tân thực hiện in.',
+                style: TextStyle(fontSize: 12, color: Colors.grey),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _invoiceRow(String label, String value, {bool emphasized = false}) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Expanded(child: Text(label)),
+          const SizedBox(width: 12),
+          Text(
+            value,
+            textAlign: TextAlign.right,
+            style: TextStyle(
+              fontWeight: emphasized ? FontWeight.bold : FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

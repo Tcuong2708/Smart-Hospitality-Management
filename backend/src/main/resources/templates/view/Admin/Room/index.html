@@ -22,8 +22,8 @@
     </th:block>
 </head>
 <body>
-<div th:fragment="body_content">
-    <div class="container py-4">
+<div th:fragment="body_content" class="manager-page-shell">
+    <div class="container py-4 manager-fill-page">
         <!-- Alert -->
         <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
@@ -34,7 +34,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <div class="admin-card">
+        <div class="admin-card manager-fill-card">
             <!-- Header mới được cải tiến từ frontend -->
             <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3 p-3" style="background-color: #0F2942; border-bottom: 3px solid #C5A017;">
                 <h3 class="fw-bold text-uppercase mb-0 text-white" style="letter-spacing: 1px;">
@@ -47,13 +47,13 @@
                         <input type="text" class="form-control border-0" id="searchRoom" placeholder="Tìm kiếm phòng..." onkeyup="filterTable()">
                     </div>
 
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#roomModal" class="btn px-4 shadow-sm text-white" style="background: #C5A017; font-weight: 600;">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#roomModal" class="btn btn-gold px-4 shadow-sm">
                         <i class="bi bi-plus-circle-fill me-1"></i> Thêm Mới
                     </a>
                 </div>
             </div>
 
-            <div class="table-responsive" style="min-height: 400px; overflow: visible; background-color: #fff;">
+            <div class="table-responsive manager-fill-body" style="overflow: visible; background-color: #fff;">
                 <table class="table table-hover align-middle mb-0" id="roomTable">
                     <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
                     <tr>
@@ -112,9 +112,9 @@
                                 <span class="status-badge" th:classappend="${r.status == 'Trống' ? 'status-1' : (r.status == 'Đang ở' ? 'status-2' : 'status-3')}" th:text="${r.status}"></span>
                             </td>
                             <td class="text-center">
-                                <a href="#" data-bs-toggle="modal" th:data-bs-target="'#detailModal' + ${r.id}" class="btn btn-sm btn-info text-white shadow-sm" title="Chi tiết"><i class="bi bi-eye"></i></a>
-                                <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${r.id}" class="btn btn-sm btn-warning text-white shadow-sm mx-1" title="Sửa"><i class="bi bi-pencil"></i></a>
-                                <a href="#" data-bs-toggle="modal" th:data-bs-target="'#deleteModal' + ${r.id}" class="btn btn-sm btn-danger shadow-sm ms-1" title="Xóa"><i class="bi bi-trash"></i></a>
+                                <a href="#" data-bs-toggle="modal" th:data-bs-target="'#detailModal' + ${r.id}" class="btn btn-action btn-view" title="Chi tiết"><i class="bi bi-eye"></i></a>
+                                <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${r.id}" class="btn btn-action btn-edit" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                <a href="#" data-bs-toggle="modal" th:data-bs-target="'#deleteModal' + ${r.id}" class="btn btn-action btn-delete" title="Xóa"><i class="bi bi-trash"></i></a>
                             </td>
                         </tr>
                     </tbody>
@@ -139,7 +139,7 @@
                     </div>
                     <div class="modal-footer bg-light border-0 justify-content-center">
                         <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
-                        <a th:href="@{/manager/rooms/delete/{id}(id=${r.id})}" class="btn btn-danger px-4 fw-bold">Xóa Ngay</a>
+                                <form th:action="@{/manager/rooms/delete/{id}(id=${r.id})}" method="post" class="d-inline"><button type="submit" class="btn btn-danger px-4 fw-bold">Xóa Ngay</button></form>
                     </div>
                 </div>
             </div>

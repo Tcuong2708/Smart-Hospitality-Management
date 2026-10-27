@@ -48,19 +48,44 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
       _hasSearched = true;
     });
 
-    final results = await _apiProvider.searchRooms(
-      dateRange.start,
-      dateRange.end,
-      _adults,
-      _children,
-      cancelToken: _searchCancelToken,
-    );
+    try {
+      final results = await _apiProvider.searchRooms(
+        dateRange.start,
+        dateRange.end,
+        _adults,
+        _children,
+        cancelToken: _searchCancelToken,
+      );
 
-    if (mounted && requestVersion == _searchRequestVersion) {
-      setState(() {
-        _searchResults = results;
-        _isLoading = false;
-      });
+      if (mounted && requestVersion == _searchRequestVersion) {
+        setState(() {
+          _searchResults = results;
+          _isLoading = false;
+        });
+      }
+    } on DioException catch (error) {
+      if (CancelToken.isCancel(error)) return;
+      if (mounted && requestVersion == _searchRequestVersion) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Không thể tra cứu phòng từ máy chủ. Vui lòng kiểm tra kết nối và thử lại.',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (_) {
+      if (mounted && requestVersion == _searchRequestVersion) {
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không thể tra cứu phòng. Vui lòng thử lại.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

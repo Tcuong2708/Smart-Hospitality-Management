@@ -13,8 +13,8 @@
     </th:block>
 </head>
 <body>
-<div th:fragment="body_content">
-    <div class="container py-4">
+<div th:fragment="body_content" class="manager-page-shell">
+    <div class="container py-4 manager-fill-page">
         <!-- Alert -->
         <div th:if="${success}" class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="bi bi-check-circle-fill me-2"></i><span th:text="${success}"></span>
@@ -25,7 +25,7 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <div class="card border-0 shadow-sm admin-card">
+        <div class="card border-0 shadow-sm admin-card manager-fill-card">
             <!-- Header mới được cải tiến từ frontend -->
             <div class="admin-header d-flex flex-wrap justify-content-between align-items-center gap-3 p-3" style="background-color: #0F2942; border-bottom: 3px solid #C5A017;">
                 <h3 class="fw-bold text-uppercase mb-0 text-white" style="letter-spacing: 1px;">
@@ -38,13 +38,13 @@
                         <input type="text" class="form-control border-0" id="searchService" placeholder="Tìm dịch vụ..." onkeyup="filterServiceTable()">
                     </div>
 
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#serviceModal" class="btn px-4 shadow-sm text-white" style="background: #C5A017; font-weight: 600;">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#serviceModal" class="btn btn-gold px-4 shadow-sm">
                         <i class="bi bi-plus-circle me-2"></i>Thêm dịch vụ mới
                     </a>
                 </div>
             </div>
             
-            <div class="card-body p-0">
+            <div class="card-body p-0 manager-fill-body">
                 <div class="table-responsive" style="background-color: #fff;">
                     <table class="table table-hover align-middle mb-0" id="serviceTable">
                         <thead class="table-header-navy" style="background-color: #0F2942; color: white;">
@@ -66,8 +66,8 @@
                                 <td class="text-center text-danger fw-bold" th:text="${#numbers.formatDecimal(s.price, 0, 'COMMA', 0, 'POINT') + ' VNĐ'}"></td>
                                 <td class="text-center text-muted" th:text="${s.unit}"></td>
                                 <td class="text-center">
-                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${s.id}" class="btn btn-sm btn-warning text-white shadow-sm" title="Sửa"><i class="bi bi-pencil"></i></a>
-                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#deleteModal' + ${s.id}" class="btn btn-sm btn-danger shadow-sm ms-1" title="Xóa"><i class="bi bi-trash"></i></a>
+                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${s.id}" class="btn btn-action btn-edit" title="Sửa"><i class="bi bi-pencil"></i></a>
+                                    <a href="#" data-bs-toggle="modal" th:data-bs-target="'#deleteModal' + ${s.id}" class="btn btn-action btn-delete" title="Xóa"><i class="bi bi-trash"></i></a>
                                 </td>
                             </tr>
                         </tbody>
@@ -93,7 +93,7 @@
                     </div>
                     <div class="modal-footer bg-light border-0 justify-content-center">
                         <button type="button" class="btn btn-secondary px-4" data-bs-dismiss="modal">Hủy</button>
-                        <a th:href="@{/manager/services/delete/{id}(id=${s.id})}" class="btn btn-danger px-4 fw-bold">Xóa Ngay</a>
+                        <form th:action="@{/manager/services/delete/{id}(id=${s.id})}" method="post" class="d-inline"><button type="submit" class="btn btn-danger px-4 fw-bold">Xóa Ngay</button></form>
                     </div>
                 </div>
             </div>

@@ -1,5 +1,3 @@
-const API_URL = 'http://localhost:8080/api/invoices';
-
 document.addEventListener('DOMContentLoaded', () => {
     // Sửa lỗi backdrop che modal
     const modalElement = document.getElementById('createInvoiceModal');
@@ -40,11 +38,7 @@ function showAlert(message, type = 'success') {
 
 async function fetchInvoices() {
     const tbody = document.getElementById('invoice-table-body');
-    const mockInvoices = window.mockInvoices && window.mockInvoices.length > 0 ? window.mockInvoices : [
-        { id: 1, hoTen: 'Nguyễn Văn A', sdt: '0901234567', ngayDat: '2026-06-15', ngayCheckIn: '2026-06-18', ngayCheckOut: '2026-06-20', totalPrice: 3600000 },
-        { id: 2, hoTen: 'Trần Thị B', sdt: '0987654321', ngayDat: '2026-06-16', ngayCheckIn: '2026-06-17', ngayCheckOut: '2026-06-19', totalPrice: 2400000 },
-        { id: 3, hoTen: 'Lê Hoàng C', sdt: '0912345678', ngayDat: '2026-06-10', ngayCheckIn: '2026-06-12', ngayCheckOut: '2026-06-14', totalPrice: 5400000 }
-    ];
+    const mockInvoices = Array.isArray(window.mockInvoices) ? window.mockInvoices : [];
 
     try {
         const invoices = mockInvoices;
@@ -69,7 +63,10 @@ async function fetchInvoices() {
             const formatDate = (dateInput) => {
                 if (!dateInput) return '';
                 const d = new Date(dateInput);
-                return d.toLocaleDateString('vi-VN');
+                if (Number.isNaN(d.getTime())) return dateInput;
+                const day = String(d.getDate()).padStart(2, '0');
+                const month = String(d.getMonth() + 1).padStart(2, '0');
+                return `${day}-${month}-${d.getFullYear()}`;
             };
             
             let statusHtml = '';
@@ -101,14 +98,14 @@ async function fetchInvoices() {
                 <td class="text-center fw-bold fs-6 text-gold">${priceFormatted}</td>
                 <td class="text-center">${statusHtml}</td>
                 <td class="text-center">
-                    <div class="btn-group" role="group">
-                        <a href="/receptionist/invoices/details/${item.id}" class="btn btn-sm btn-info text-white shadow-sm" title="Xem chi tiết">
+                    <div class="d-inline-flex justify-content-center" role="group">
+                        <a href="/receptionist/invoices/details/${item.id}" class="btn btn-action btn-view" title="Xem chi tiết">
                             <i class="bi bi-eye"></i>
                         </a>
-                        <a href="/receptionist/invoices/print/${item.id}" target="_blank" class="btn btn-sm btn-success text-white shadow-sm mx-1" title="In hóa đơn">
+                        <a href="/receptionist/invoices/print/${item.id}" target="_blank" class="btn btn-action btn-state-active" title="In hóa đơn">
                             <i class="bi bi-printer"></i>
                         </a>
-                        <a href="/receptionist/invoices/delete/${item.id}" class="btn btn-sm btn-danger shadow-sm ms-1" title="Xóa vĩnh viễn" onclick="return confirm('Bạn có chắc chắn muốn xóa?');">
+                        <a href="/receptionist/invoices/delete/${item.id}" class="btn btn-action btn-delete" title="Xóa vĩnh viễn" onclick="return confirm('Bạn có chắc chắn muốn xóa?');">
                             <i class="bi bi-trash"></i>
                         </a>
                     </div>

@@ -11,8 +11,10 @@ import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.ServiceRepository;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import com.votricuong.mayhotel.repositories.UserRepository;
 import com.votricuong.mayhotel.documents.OtpCode;
 import com.votricuong.mayhotel.repositories.OtpCodeRepository;
@@ -58,8 +60,13 @@ public class MobileApiController {
     private final com.votricuong.mayhotel.services.MobileTokenService mobileTokenService;
     private final com.votricuong.mayhotel.services.RoomStatusService roomStatusService;
     private final com.votricuong.mayhotel.services.AuthService authService;
+    private final com.votricuong.mayhotel.services.IdentityVerificationService identityVerificationService;
+    private final com.votricuong.mayhotel.services.NfcDemoProofService nfcDemoProofService;
+    private final org.springframework.data.mongodb.core.MongoTemplate mongoTemplate;
+    private final boolean legacyIdentityResultEnabled;
 
-    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService, com.votricuong.mayhotel.services.MobileTokenService mobileTokenService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService, com.votricuong.mayhotel.services.AuthService authService) {
+    @org.springframework.beans.factory.annotation.Autowired
+    public MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository, InvoiceRepository invoiceRepository, UserRepository userRepository, EmailService emailService, OtpCodeRepository otpCodeRepository, com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository, BookingOrderRepository bookingOrderRepository, BookingDetailRepository bookingDetailRepository, ServiceTicketRepository serviceTicketRepository, CustomerRepository customerRepository, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.services.LoyaltyService loyaltyService, BookingAvailabilityService bookingAvailabilityService, com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService, com.votricuong.mayhotel.services.MobileTokenService mobileTokenService, com.votricuong.mayhotel.services.RoomStatusService roomStatusService, com.votricuong.mayhotel.services.AuthService authService, com.votricuong.mayhotel.services.IdentityVerificationService identityVerificationService, com.votricuong.mayhotel.services.NfcDemoProofService nfcDemoProofService, org.springframework.data.mongodb.core.MongoTemplate mongoTemplate, @org.springframework.beans.factory.annotation.Value("${mobile.identity.legacy-client-results-enabled:false}") boolean legacyIdentityResultEnabled) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.invoiceRepository = invoiceRepository;
@@ -78,6 +85,33 @@ public class MobileApiController {
         this.mobileTokenService = mobileTokenService;
         this.roomStatusService = roomStatusService;
         this.authService = authService;
+        this.identityVerificationService = identityVerificationService;
+        this.nfcDemoProofService = nfcDemoProofService;
+        this.mongoTemplate = mongoTemplate;
+        this.legacyIdentityResultEnabled = legacyIdentityResultEnabled;
+    }
+
+    // Giữ tương thích cho các unit test/call site cũ; Spring dùng constructor @Autowired ở trên.
+    MobileApiController(RoomRepository roomRepository, ServiceRepository serviceRepository,
+                        InvoiceRepository invoiceRepository, UserRepository userRepository,
+                        EmailService emailService, OtpCodeRepository otpCodeRepository,
+                        com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository,
+                        BookingOrderRepository bookingOrderRepository,
+                        BookingDetailRepository bookingDetailRepository,
+                        ServiceTicketRepository serviceTicketRepository,
+                        CustomerRepository customerRepository,
+                        SequenceGeneratorService sequenceGeneratorService,
+                        com.votricuong.mayhotel.services.LoyaltyService loyaltyService,
+                        BookingAvailabilityService bookingAvailabilityService,
+                        com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService,
+                        com.votricuong.mayhotel.services.MobileTokenService mobileTokenService,
+                        com.votricuong.mayhotel.services.RoomStatusService roomStatusService,
+                        com.votricuong.mayhotel.services.AuthService authService) {
+        this(roomRepository, serviceRepository, invoiceRepository, userRepository, emailService,
+                otpCodeRepository, roomTypeRepository, bookingOrderRepository, bookingDetailRepository,
+                serviceTicketRepository, customerRepository, sequenceGeneratorService, loyaltyService,
+                bookingAvailabilityService, noShowPredictionService, mobileTokenService, roomStatusService,
+                authService, null, null, null, true);
     }
 
     private String hashPassword(String password) {
@@ -624,6 +658,20 @@ public class MobileApiController {
                     ? Map.of()
                     : roomRepository.findAllById(roomIds).stream()
                     .collect(Collectors.toMap(Room::getId, room -> room));
+            List<ServiceTicket> serviceTickets = bookingIds.isEmpty()
+                    ? List.of()
+                    : serviceTicketRepository.findByBookingIdIn(bookingIds);
+            Map<Long, List<ServiceTicket>> serviceTicketsByBooking = serviceTickets.stream()
+                    .filter(ticket -> ticket.getBookingId() != null)
+                    .collect(Collectors.groupingBy(ServiceTicket::getBookingId));
+            Set<Long> serviceIds = serviceTickets.stream()
+                    .map(ServiceTicket::getServiceId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            Map<Long, Service> servicesById = serviceIds.isEmpty()
+                    ? Map.of()
+                    : serviceRepository.findAllById(serviceIds).stream()
+                    .collect(Collectors.toMap(Service::getId, service -> service));
                 
             List<Map<String, Object>> data = new ArrayList<>();
             for (BookingOrder o : orders) {
@@ -644,6 +692,13 @@ public class MobileApiController {
                 map.put("verifiedGuestCount", effectiveVerifiedGuestCount(o));
                 map.put("daThanhToan", invOpt.map(inv -> Boolean.TRUE.equals(inv.getIsPaid())).orElse(false));
                 map.put("phuongThucThanhToan", invOpt.map(Invoice::getPayMethod).orElse(null));
+                map.put("invoiceId", invOpt.map(Invoice::getId).orElse(null));
+                map.put("trangThaiHoaDon", invOpt.map(Invoice::getInvoiceStatus).orElse(null));
+                map.put("ngayLapHoaDon", invOpt.map(Invoice::getCreatedAt)
+                        .map(date -> date.toInstant().toString()).orElse(null));
+                map.put("phuThu", invOpt.map(Invoice::getSurcharge).orElse(0.0));
+                map.put("giamGia", invOpt.map(inv -> Optional.ofNullable(inv.getPromotionDiscount()).orElse(0.0))
+                        .orElse(0.0));
                 map.put("tenPhong", "Chưa gán phòng");
                 map.put("roomId", null);
                 map.put("hinhAnh", "");
@@ -657,6 +712,32 @@ public class MobileApiController {
                         map.put("hinhAnh", r.getImageUrl() != null ? r.getImageUrl() : "");
                     });
                 }
+
+                List<Map<String, Object>> serviceLines = new ArrayList<>();
+                double serviceAmount = 0.0;
+                for (ServiceTicket ticket : serviceTicketsByBooking.getOrDefault(o.getId(), List.of())) {
+                    int quantity = ticket.getQuantity() != null && ticket.getQuantity() > 0
+                            ? ticket.getQuantity() : 1;
+                    Service service = ticket.getServiceId() != null
+                            ? servicesById.get(ticket.getServiceId()) : null;
+                    double unitPrice = ticket.getPrice() != null
+                            ? ticket.getPrice()
+                            : service != null && service.getPrice() != null ? service.getPrice() : 0.0;
+                    double lineTotal = unitPrice * quantity;
+                    serviceAmount += lineTotal;
+
+                    Map<String, Object> line = new LinkedHashMap<>();
+                    line.put("serviceId", ticket.getServiceId());
+                    line.put("tenDichVu", service != null ? service.getName() : "Dịch vụ #" + ticket.getServiceId());
+                    line.put("soLuong", quantity);
+                    line.put("donGia", unitPrice);
+                    line.put("thanhTien", lineTotal);
+                    line.put("trangThai", ticket.getStatus());
+                    serviceLines.add(line);
+                }
+                map.put("dichVu", serviceLines);
+                map.put("tienDichVu", serviceAmount);
+                map.put("tienPhong", Math.max(0.0, tongTien - serviceAmount));
                 
                 data.add(map);
             }
@@ -746,11 +827,140 @@ public class MobileApiController {
         }
     }
 
+    @PostMapping(
+            value = "/bookings/{bookingId}/identity-verifications",
+            consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public synchronized ResponseEntity<ApiResponse<Map<String, Object>>> verifyBookingIdentity(
+            @RequestHeader(value = "Authorization", required = false) String authorization,
+            @PathVariable Long bookingId,
+            @RequestParam int guestIndex,
+            @RequestParam String method,
+            @RequestParam(required = false) String identityValue,
+            @RequestParam(required = false) String nfcProof,
+            @RequestPart("documentImage") MultipartFile documentImage,
+            @RequestPart("selfieImage") MultipartFile selfieImage) {
+        try {
+            com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
+                    requireRole(authorization, Set.of(5L));
+            BookingOrder order = bookingOrderRepository.findById(bookingId)
+                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng"));
+            assertOwnedBooking(claims, order);
+
+            int requiredGuestCount = effectiveGuestCount(order);
+            if (guestIndex < 0 || guestIndex >= requiredGuestCount) {
+                throw new IllegalArgumentException(
+                        "Vị trí khách xác thực không hợp lệ. Booking có " + requiredGuestCount + " khách.");
+            }
+
+            String normalizedMethod = method == null ? "" : method.trim().toUpperCase(Locale.ROOT);
+            if (!Set.of("REAL_NFC", "SIGNED_NDEF", "AI_ONLY").contains(normalizedMethod)) {
+                throw new IllegalArgumentException("Phương thức xác thực không hợp lệ");
+            }
+
+            String identitySource;
+            String identityLast4;
+            String trustLevel;
+            String tokenHash = null;
+            if ("SIGNED_NDEF".equals(normalizedMethod)) {
+                com.votricuong.mayhotel.services.NfcDemoProofService.DemoProof proof =
+                        nfcDemoProofService.verify(nfcProof);
+                identitySource = "NDEF:" + proof.tokenId();
+                identityLast4 = proof.last4();
+                trustLevel = "DEMO";
+                tokenHash = identityVerificationService.fingerprint("NFC_TOKEN:" + proof.tokenId());
+                assertNfcTokenNotReused(tokenHash, bookingId, guestIndex);
+            } else if ("REAL_NFC".equals(normalizedMethod)) {
+                String documentNumber = com.votricuong.mayhotel.utils.InputValidator.requiredText(
+                        identityValue, "Số giấy tờ đọc từ chip", 64);
+                identitySource = "REAL:" + documentNumber;
+                identityLast4 = identityVerificationService.last4(documentNumber);
+                // BAC/PACE controls chip access; without a trusted CSCA chain this is not official C06 verification.
+                trustLevel = "MEDIUM";
+            } else {
+                identitySource = "IMAGE:" + identityVerificationService.imageFingerprint(documentImage);
+                identityLast4 = identityVerificationService.last4(identityValue);
+                trustLevel = "AI_ONLY";
+            }
+
+            com.votricuong.mayhotel.services.IdentityVerificationService.FaceMatchResult face =
+                    identityVerificationService.verifyFace(documentImage, selfieImage);
+            if (!face.verified()) {
+                throw new IllegalArgumentException(
+                        "Khuôn mặt chưa đạt ngưỡng xác thực (" + String.format(Locale.ROOT, "%.1f", face.similarity()) + "%)");
+            }
+
+            String identityFingerprint = identityVerificationService.fingerprint(identitySource);
+            List<Map<String, Object>> verifications = order.getGuestVerifications() == null
+                    ? new ArrayList<>() : new ArrayList<>(order.getGuestVerifications());
+            boolean duplicateIdentity = verifications.stream().anyMatch(item ->
+                    !Objects.equals(asInteger(item.get("guestIndex")), guestIndex)
+                            && Objects.equals(String.valueOf(item.get("identityFingerprint")), identityFingerprint));
+            if (duplicateIdentity) {
+                throw new IllegalArgumentException("Giấy tờ này đã được dùng để xác thực cho một khách khác.");
+            }
+
+            Map<String, Object> verification = new LinkedHashMap<>();
+            verification.put("guestIndex", guestIndex);
+            verification.put("identityFingerprint", identityFingerprint);
+            verification.put("identityLast4", identityLast4);
+            verification.put("method", normalizedMethod);
+            verification.put("trustLevel", trustLevel);
+            verification.put("faceSimilarity", face.similarity());
+            verification.put("verifiedAt", new Date());
+            if (tokenHash != null) verification.put("nfcTokenIdHash", tokenHash);
+            verifications.removeIf(item -> Objects.equals(asInteger(item.get("guestIndex")), guestIndex));
+            verifications.add(verification);
+
+            int verifiedGuestCount = (int) verifications.stream()
+                    .map(item -> asInteger(item.get("guestIndex")))
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .count();
+            boolean allGuestsVerified = verifiedGuestCount >= requiredGuestCount;
+            order.setGuestCount(requiredGuestCount);
+            order.setGuestVerifications(verifications);
+            order.setVerifiedGuestCount(verifiedGuestCount);
+            order.setIsFaceVerified(allGuestsVerified);
+            order.setIdentityVerificationMethod(allGuestsVerified
+                    ? normalizedMethod : normalizedMethod + "_PARTIAL");
+            order.setIdentityVerificationReason(null);
+            order.setIdentityVerifiedAt(new Date());
+            bookingOrderRepository.save(order);
+
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("bookingId", bookingId);
+            response.put("verificationMethod", normalizedMethod);
+            response.put("trustLevel", trustLevel);
+            response.put("faceSimilarity", face.similarity());
+            response.put("verifiedGuestCount", verifiedGuestCount);
+            response.put("requiredGuestCount", requiredGuestCount);
+            response.put("allGuestsVerified", allGuestsVerified);
+            response.put("canOrderService", false);
+            return ResponseEntity.ok(ApiResponse.success(
+                    allGuestsVerified
+                            ? "Đã xác thực đủ khách. Vui lòng chờ lễ tân gán phòng."
+                            : "Đã xác thực " + verifiedGuestCount + "/" + requiredGuestCount + " khách.",
+                    response));
+        } catch (SecurityException exception) {
+            return securityError(exception);
+        } catch (IllegalStateException exception) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(ApiResponse.error(exception.getMessage()));
+        } catch (Exception exception) {
+            return ResponseEntity.badRequest().body(ApiResponse.error(exception.getMessage()));
+        }
+    }
+
+    @Deprecated
     @PostMapping("/booking/checkin")
     public synchronized ResponseEntity<ApiResponse<Map<String, Object>>> checkinAIAndNFC(
             @RequestHeader(value = "Authorization", required = false) String authorization,
             @RequestBody Map<String, Object> payload) {
         try {
+            if (!legacyIdentityResultEnabled) {
+                return ResponseEntity.status(HttpStatus.GONE).body(ApiResponse.error(
+                        "Phiên bản ứng dụng đã cũ. Vui lòng cập nhật để xác thực danh tính an toàn."));
+            }
             com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
                     requireRole(authorization, Set.of(5L));
             Long bookingId = Long.valueOf(payload.get("bookingId").toString());
@@ -1274,6 +1484,24 @@ public class MobileApiController {
         boolean tokenError = message.toLowerCase(Locale.ROOT).contains("token");
         return ResponseEntity.status(tokenError ? HttpStatus.UNAUTHORIZED : HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error(message));
+    }
+
+    private void assertNfcTokenNotReused(String tokenHash, Long bookingId, int guestIndex) {
+        org.springframework.data.mongodb.core.query.Query query =
+                org.springframework.data.mongodb.core.query.Query.query(
+                        org.springframework.data.mongodb.core.query.Criteria
+                                .where("guest_verifications.nfcTokenIdHash").is(tokenHash));
+        List<BookingOrder> matches = mongoTemplate.find(query, BookingOrder.class);
+        boolean reused = matches.stream().anyMatch(existing -> {
+            if (existing.getGuestVerifications() == null) return false;
+            return existing.getGuestVerifications().stream().anyMatch(item ->
+                    Objects.equals(String.valueOf(item.get("nfcTokenIdHash")), tokenHash)
+                            && (!Objects.equals(existing.getId(), bookingId)
+                            || !Objects.equals(asInteger(item.get("guestIndex")), guestIndex)));
+        });
+        if (reused) {
+            throw new IllegalArgumentException("Thẻ NFC mô phỏng đã được dùng cho một khách khác.");
+        }
     }
 
     private int effectiveGuestCount(BookingOrder order) {

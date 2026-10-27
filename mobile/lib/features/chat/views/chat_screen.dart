@@ -8,7 +8,11 @@ class ChatMessage {
   final bool isUser;
   final DateTime timestamp;
 
-  ChatMessage({required this.text, required this.isUser, required this.timestamp});
+  ChatMessage({
+    required this.text,
+    required this.isUser,
+    required this.timestamp,
+  });
 }
 
 class ChatScreen extends StatefulWidget {
@@ -29,11 +33,14 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
-    _messages.add(ChatMessage(
-      text: "Xin chào! Tôi là May Bot - Trợ lý ảo của khách sạn. Bạn cần hỗ trợ thông tin gì ạ?",
-      isUser: false,
-      timestamp: DateTime.now(),
-    ));
+    _messages.add(
+      ChatMessage(
+        text:
+            "Xin chào! Tôi là May Bot - Trợ lý ảo của khách sạn. Bạn cần hỗ trợ thông tin gì ạ?",
+        isUser: false,
+        timestamp: DateTime.now(),
+      ),
+    );
   }
 
   void _scrollToBottom() {
@@ -55,7 +62,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     _messageController.clear();
     setState(() {
-      _messages.add(ChatMessage(text: text, isUser: true, timestamp: DateTime.now()));
+      _messages.add(
+        ChatMessage(text: text, isUser: true, timestamp: DateTime.now()),
+      );
       _isBotThinking = true; // Kích hoạt hiệu ứng Bot đang suy nghĩ
     });
     _scrollToBottom();
@@ -65,7 +74,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
     if (mounted) {
       setState(() {
-        _messages.add(ChatMessage(text: botReply, isUser: false, timestamp: DateTime.now()));
+        _messages.add(
+          ChatMessage(text: botReply, isUser: false, timestamp: DateTime.now()),
+        );
         _isBotThinking = false; // Tắt hiệu ứng suy nghĩ
       });
       _scrollToBottom();
@@ -78,9 +89,15 @@ class _ChatScreenState extends State<ChatScreen> {
     final bool isDark = theme.brightness == Brightness.dark;
 
     // ĐỒNG BỘ TRỤC MÀU LUXURY THEO APP_COLORS CLASS CỦA CƯỜNG
-    final Color dynamicScaffoldBg = isDark ? AppColors.primaryDark : AppColors.background;
-    final Color dynamicAppBarBg = isDark ? const Color(0xFF111111) : AppColors.primary;
-    final Color dynamicInputBg = isDark ? const Color(0xFF242424) : Colors.white;
+    final Color dynamicScaffoldBg = isDark
+        ? AppColors.primaryDark
+        : AppColors.background;
+    final Color dynamicAppBarBg = isDark
+        ? const Color(0xFF111111)
+        : AppColors.primary;
+    final Color dynamicInputBg = isDark
+        ? const Color(0xFF242424)
+        : Colors.white;
     final Color dynamicTextColor = isDark ? Colors.white : AppColors.primary;
 
     return Scaffold(
@@ -91,7 +108,10 @@ class _ChatScreenState extends State<ChatScreen> {
         centerTitle: true,
         title: const Text(
           "Trợ lý ảo May Bot",
-          style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.accentGold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppColors.accentGold,
+          ),
         ),
       ),
       body: Column(
@@ -143,14 +163,22 @@ class _ChatScreenState extends State<ChatScreen> {
                         hintStyle: const TextStyle(color: AppColors.textSub),
                         filled: true,
                         fillColor: dynamicInputBg,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: BorderSide(color: isDark ? Colors.white10 : Colors.grey[300]!),
+                          borderSide: BorderSide(
+                            color: isDark ? Colors.white10 : Colors.grey[300]!,
+                          ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
-                          borderSide: const BorderSide(color: AppColors.accentGold, width: 1.5),
+                          borderSide: const BorderSide(
+                            color: AppColors.accentGold,
+                            width: 1.5,
+                          ),
                         ),
                       ),
                       onSubmitted: (_) => _handleSendMessage(),
@@ -167,7 +195,11 @@ class _ChatScreenState extends State<ChatScreen> {
                         color: AppColors.accentGold,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.send, color: AppColors.primary, size: 20),
+                      child: const Icon(
+                        Icons.send,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ],
@@ -186,7 +218,9 @@ class _ChatScreenState extends State<ChatScreen> {
       child: Container(
         margin: const EdgeInsets.symmetric(vertical: 4),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.of(context).size.width * 0.75,
+        ),
         decoration: BoxDecoration(
           // Người dùng: Nền đen (Sáng) hoặc nền Vàng (Tối). Bot: Nền trắng (Sáng) hoặc Carbon (Tối)
           color: msg.isUser
@@ -203,21 +237,59 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.black.withOpacity(isDark ? 0.2 : 0.03),
               blurRadius: 4,
               offset: const Offset(0, 2),
-            )
+            ),
           ],
         ),
-        child: Text(
-          msg.text,
-          style: TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w400,
-            // Khóa chặt màu tương phản: Đảm bảo chữ luôn nổi rực rỡ chống tàng hình
-            color: msg.isUser
-                ? (isDark ? AppColors.primary : Colors.white)
-                : (isDark ? Colors.white : AppColors.primary),
-          ),
-        ),
+        child: msg.isUser
+            ? Text(
+                msg.text,
+                style: TextStyle(
+                  fontSize: 15,
+                  color: isDark ? AppColors.primary : Colors.white,
+                ),
+              )
+            : _buildBotContent(
+                msg.text,
+                isDark ? Colors.white : AppColors.primary,
+              ),
       ),
+    );
+  }
+
+  Widget _buildBotContent(String message, Color textColor) {
+    final imagePattern = RegExp(r'!\[[^\]]*\]\((https?://[^)\s]+)\)');
+    final match = imagePattern.firstMatch(message);
+    final cleanedText = message
+        .replaceAll(imagePattern, '')
+        .replaceAll('**', '')
+        .replaceAll('👉', '')
+        .trim();
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (cleanedText.isNotEmpty)
+          SelectableText(
+            cleanedText,
+            style: TextStyle(fontSize: 15, color: textColor, height: 1.35),
+          ),
+        if (match != null) ...[
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Image.network(
+              match.group(1)!,
+              width: 220,
+              fit: BoxFit.contain,
+              errorBuilder: (_, _, _) => Text(
+                'Không tải được mã QR. Vui lòng thanh toán tại quầy.',
+                style: TextStyle(color: textColor, fontSize: 13),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

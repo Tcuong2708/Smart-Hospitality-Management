@@ -28,7 +28,12 @@ class HotelApiClient {
       ),
     );
 
-    if (!kIsWeb && _dio.httpClientAdapter is IOHttpClientAdapter) {
+    final allowBadCertificates =
+        kDebugMode &&
+        dotenv.env['ALLOW_BAD_CERTIFICATES']?.trim().toLowerCase() == 'true';
+    if (allowBadCertificates &&
+        !kIsWeb &&
+        _dio.httpClientAdapter is IOHttpClientAdapter) {
       (_dio.httpClientAdapter as IOHttpClientAdapter).createHttpClient = () {
         final client = HttpClient();
         client.badCertificateCallback =

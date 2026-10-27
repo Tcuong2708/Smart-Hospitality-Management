@@ -66,6 +66,8 @@ public class ReviewAdminController extends BaseController {
 
         setPageTitle(model, "Quản lý Đánh giá");
         model.addAttribute("reviews", reviews);
+        setExtraCSS(model, "view/Manager/reviews/index :: extra_css");
+        setExtraJS(model, "view/Manager/reviews/index :: extra_js");
         return render(model, "view/Manager/reviews/index");
     }
 
@@ -86,21 +88,25 @@ public class ReviewAdminController extends BaseController {
         } else {
             ra.addFlashAttribute("error", "Không tìm thấy đánh giá!");
         }
-        return "redirect:/admin/reviews";
+        return "redirect:/manager/reviews";
     }
 
     // Quản lý phản hồi đánh giá (UC34)
     @PostMapping("/reply/{id}")
     public String replyReview(@PathVariable("id") Long id, @RequestParam("replyContent") String replyContent, RedirectAttributes ra) {
+        if (replyContent == null || replyContent.trim().isEmpty() || replyContent.trim().length() > 1000) {
+            ra.addFlashAttribute("error", "Phản hồi phải từ 1 đến 1000 ký tự.");
+            return "redirect:/manager/reviews";
+        }
         Optional<Review> reviewOpt = reviewRepository.findById(id);
         if (reviewOpt.isPresent()) {
             Review review = reviewOpt.get();
-            review.setReply(replyContent);
+            review.setReply(replyContent.trim());
             reviewRepository.save(review);
             ra.addFlashAttribute("success", "Đã gửi phản hồi thành công!");
         } else {
             ra.addFlashAttribute("error", "Không tìm thấy đánh giá!");
         }
-        return "redirect:/admin/reviews";
+        return "redirect:/manager/reviews";
     }
 }
