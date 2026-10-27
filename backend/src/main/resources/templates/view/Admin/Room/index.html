@@ -18,6 +18,14 @@
             .status-1, .bg-success-custom { background-color: #E8F5E9; color: #2E7D32; }
             .status-2, .bg-danger-custom { background-color: #FFEBEE; color: #C62828; }
             .status-3, .bg-warning-custom { background-color: #FFF8E1; color: #F9A825; }
+            .status-4 { background-color: #E3F2FD; color: #1565C0; }
+            .status-5 { background-color: #ECEFF1; color: #37474F; }
+            .inventory-date-form { min-width: 235px; }
+            .inventory-meta {
+                background: #f8fafc;
+                border-bottom: 1px solid #e3e8ee;
+                color: #5f6f7f;
+            }
         </style>
     </th:block>
 </head>
@@ -42,6 +50,15 @@
                 </h3>
                 
                 <div class="d-flex flex-wrap align-items-center gap-2 flex-grow-1 justify-content-end">
+                    <form class="inventory-date-form d-flex align-items-center" method="get" th:action="@{/manager/rooms}">
+                        <label for="roomStatusDate" class="visually-hidden">Ngày xem trạng thái</label>
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-0" title="Ngày xem trạng thái"><i class="bi bi-calendar3" style="color:#C5A017"></i></span>
+                            <input id="roomStatusDate" type="date" name="date" class="form-control border-0"
+                                   th:value="${selectedDate}" onchange="this.form.submit()" aria-label="Ngày xem trạng thái phòng">
+                            <button class="btn btn-light border-0" type="submit" title="Cập nhật dữ liệu"><i class="bi bi-arrow-clockwise"></i></button>
+                        </div>
+                    </form>
                     <div class="input-group shadow-sm" style="max-width: 250px;">
                         <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
                         <input type="text" class="form-control border-0" id="searchRoom" placeholder="Tìm kiếm phòng..." onkeyup="filterTable()">
@@ -51,6 +68,11 @@
                         <i class="bi bi-plus-circle-fill me-1"></i> Thêm Mới
                     </a>
                 </div>
+            </div>
+
+            <div class="inventory-meta px-3 py-2 d-flex flex-wrap justify-content-between gap-2 small">
+                <span><i class="bi bi-clock-history me-1"></i>Trạng thái phòng ngày <strong th:text="${selectedDateText}">27-10-2026</strong><span th:if="${isToday}"> (hôm nay)</span></span>
+                <span>Cập nhật lúc <strong th:text="${refreshedAtText}">00:00:00 27-10-2026</strong></span>
             </div>
 
             <div class="table-responsive manager-fill-body" style="overflow: visible; background-color: #fff;">
@@ -109,7 +131,9 @@
                             </td>
                             <td class="text-center text-danger fw-bold" th:text="${#numbers.formatDecimal(r.price, 0, 'COMMA', 0, 'POINT') + ' VNĐ'}"></td>
                             <td class="text-center room-status">
-                                <span class="status-badge" th:classappend="${r.status == 'Trống' ? 'status-1' : (r.status == 'Đang ở' ? 'status-2' : 'status-3')}" th:text="${r.status}"></span>
+                                <span class="status-badge"
+                                      th:classappend="${r.displayStatus == 'Trống' ? 'status-1' : (r.displayStatus == 'Đang lưu trú' ? 'status-2' : (r.displayStatus == 'Chờ dọn/kiểm tra' ? 'status-3' : (r.displayStatus == 'Đã đặt' ? 'status-4' : 'status-5')))}"
+                                      th:text="${r.displayStatus}"></span>
                             </td>
                             <td class="text-center">
                                 <a href="#" data-bs-toggle="modal" th:data-bs-target="'#detailModal' + ${r.id}" class="btn btn-action btn-view" title="Chi tiết"><i class="bi bi-eye"></i></a>
@@ -164,7 +188,8 @@
                                     <tr><td class="fw-bold">Tên Phòng:</td><td class="text-primary fw-bold" th:text="${r.name}"></td></tr>
                                     <tr><td class="fw-bold">Loại Phòng:</td><td><span class="badge bg-secondary" th:text="${r.roomType != null ? r.roomType.name : 'Chưa phân loại'}"></span></td></tr>
                                     <tr><td class="fw-bold">Giá Phòng:</td><td class="text-danger fw-bold" th:text="${#numbers.formatDecimal(r.price, 0, 'COMMA', 0, 'POINT') + ' VNĐ'}"></td></tr>
-                                    <tr><td class="fw-bold">Trạng Thái:</td><td><span class="badge bg-info" th:text="${r.status}"></span></td></tr>
+                                    <tr><td class="fw-bold">Trạng Thái:</td><td><span class="status-badge" th:text="${r.displayStatus}"></span></td></tr>
+                                    <tr><td class="fw-bold">Ngày Đang Xem:</td><td th:text="${selectedDateText}"></td></tr>
                                     <tr><td class="fw-bold">Giường Phụ Tối Đa:</td><td th:text="${r.maxExtraBeds}"></td></tr>
                                 </table>
                             </div>
@@ -228,8 +253,10 @@
                                     <label class="form-label fw-bold">Trạng Thái</label>
                                     <select class="form-select" name="status">
                                         <option value="Trống" th:selected="${r.status == 'Trống'}">Trống</option>
-                                        <option value="Đang ở" th:selected="${r.status == 'Đang ở'}">Đang ở</option>
-                                        <option value="Bảo trì" th:selected="${r.status == 'Bảo trì'}">Bảo trì</option>
+                                        <option value="Đã đặt" th:selected="${r.status == 'Đã đặt'}">Đã đặt</option>
+                                        <option value="Đang lưu trú" th:selected="${r.status == 'Đang lưu trú'}">Đang lưu trú</option>
+                                        <option value="Chờ dọn/kiểm tra" th:selected="${r.status == 'Chờ dọn/kiểm tra'}">Chờ dọn/kiểm tra</option>
+                                        <option value="Đang bảo trì" th:selected="${r.status == 'Đang bảo trì'}">Đang bảo trì</option>
                                     </select>
                                 </div>
                                 <div class="col-12">
@@ -301,8 +328,8 @@
                                 <label class="form-label fw-bold">Trạng Thái</label>
                                 <select class="form-select" th:field="*{status}">
                                     <option value="Trống">Trống</option>
-                                    <option value="Đang ở">Đang ở</option>
-                                    <option value="Bảo trì">Bảo trì</option>
+                                    <option value="Chờ dọn/kiểm tra">Chờ dọn/kiểm tra</option>
+                                    <option value="Đang bảo trì">Đang bảo trì</option>
                                 </select>
                             </div>
                             <div class="col-12">
@@ -430,6 +457,24 @@
                     document.body.appendChild(modal);
                 }
             });
+        })();
+    </script>
+    <script th:inline="javascript">
+        (() => {
+            const isToday = /*[[${isToday}]]*/ false;
+            if (!isToday) return;
+            let reloadTimer;
+            const refresh = () => {
+                clearTimeout(reloadTimer);
+                reloadTimer = setTimeout(() => window.location.reload(), 600);
+            };
+            // Cập nhật ngay khi check-in/check-out/buồng phòng phát sinh sự kiện.
+            if (window.EventSource) {
+                const events = new EventSource('/admin/room-map/events');
+                events.onmessage = refresh;
+            }
+            // Dự phòng cho các thao tác đặt phòng chưa phát SSE.
+            window.setInterval(refresh, 60000);
         })();
     </script>
 </div>

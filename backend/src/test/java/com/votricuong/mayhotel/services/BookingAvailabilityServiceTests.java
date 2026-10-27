@@ -3,6 +3,7 @@ package com.votricuong.mayhotel.services;
 import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.Room;
+import com.votricuong.mayhotel.enums.RoomStatus;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
@@ -133,6 +134,41 @@ class BookingAvailabilityServiceTests {
 
         assertThat(usage).containsEntry(
                 2L, BookingAvailabilityService.RoomTimelineStatus.RESERVED);
+    }
+
+    @Test
+    void statusSnapshotUsesTheSelectedDateInsteadOfTheStoredReservedFlag() {
+        Room bookedOnSelectedDate = room(1L, 10L, "Trống");
+        Room staleReservedFlag = room(2L, 10L, "Reserved");
+        BookingOrder reserved = order(
+                203L,
+                "Đã xác nhận cọc",
+                "2026-11-10T00:00:00Z",
+                "2026-11-12T00:00:00Z");
+        when(bookingOrderRepository.findAll()).thenReturn(List.of(reserved));
+        when(bookingDetailRepository.findByBookingId(203L)).thenReturn(List.of(detail(1L)));
+
+        Map<Long, RoomStatus> snapshot = service.findRoomStatusesOn(
+                LocalDate.of(2026, 11, 11), List.of(bookedOnSelectedDate, staleReservedFlag));
+
+        assertThat(snapshot)
+                .containsEntry(1L, RoomStatus.RESERVED)
+                .containsEntry(2L, RoomStatus.VACANT);
+    }
+
+    @Test
+    void statusSnapshotKeepsCurrentCleaningAndMaintenanceStates() {
+        Room cleaning = room(1L, 10L, "Cleaning");
+        Room maintenance = room(2L, 10L, "Maintenance");
+        when(bookingOrderRepository.findAll()).thenReturn(List.of());
+
+        Map<Long, RoomStatus> snapshot = service.findRoomStatusesOn(
+                LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")),
+                List.of(cleaning, maintenance));
+
+        assertThat(snapshot)
+                .containsEntry(1L, RoomStatus.CLEANING)
+                .containsEntry(2L, RoomStatus.MAINTENANCE);
     }
 
     private Room room(Long id, Long roomTypeId, String status) {

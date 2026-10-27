@@ -14,6 +14,7 @@ import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -129,6 +130,43 @@ public class BookingAvailabilityService {
             }
         }
         return usageByRoom;
+    }
+
+    /**
+     * Tạo ảnh chụp trạng thái phòng tại một ngày cụ thể. Thứ tự ưu tiên này được
+     * dùng chung cho sơ đồ phòng, quản lý phòng và thống kê phòng trống theo loại.
+     */
+    public Map<Long, RoomStatus> findRoomStatusesOn(LocalDate selectedDate, List<Room> rooms) {
+        if (selectedDate == null) {
+            throw new IllegalArgumentException("Ngày xem trạng thái phòng không được để trống");
+        }
+        Map<Long, RoomTimelineStatus> usageByRoom = findRoomUsageOn(selectedDate);
+        LocalDate today = LocalDate.now(HOTEL_ZONE);
+        Map<Long, RoomStatus> result = new LinkedHashMap<>();
+
+        if (rooms == null) return result;
+        for (Room room : rooms) {
+            if (room == null || room.getId() == null) continue;
+            RoomStatus operational = RoomStatus.fromStored(room.getStatus());
+            RoomTimelineStatus timeline = usageByRoom.get(room.getId());
+            RoomStatus resolved;
+
+            if (timeline == RoomTimelineStatus.OCCUPIED) {
+                resolved = RoomStatus.OCCUPIED;
+            } else if (!selectedDate.isBefore(today) && operational == RoomStatus.MAINTENANCE) {
+                resolved = RoomStatus.MAINTENANCE;
+            } else if (selectedDate.equals(today) && operational == RoomStatus.CLEANING) {
+                resolved = RoomStatus.CLEANING;
+            } else if (timeline == RoomTimelineStatus.RESERVED) {
+                resolved = RoomStatus.RESERVED;
+            } else if (selectedDate.equals(today) && operational == RoomStatus.OCCUPIED) {
+                resolved = RoomStatus.OCCUPIED;
+            } else {
+                resolved = RoomStatus.VACANT;
+            }
+            result.put(room.getId(), resolved);
+        }
+        return result;
     }
 
     public Set<Long> findOccupiedRoomIdsOn(LocalDate selectedDate) {

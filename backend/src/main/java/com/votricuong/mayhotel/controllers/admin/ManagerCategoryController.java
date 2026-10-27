@@ -3,10 +3,13 @@ package com.votricuong.mayhotel.controllers.admin;
 import com.votricuong.mayhotel.controllers.BaseController;
 import com.votricuong.mayhotel.documents.RoomType;
 import com.votricuong.mayhotel.documents.Room;
+import com.votricuong.mayhotel.enums.RoomStatus;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
+import com.votricuong.mayhotel.services.BookingAvailabilityService;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,11 +19,19 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/manager")
 public class ManagerCategoryController extends BaseController {
+    private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter DISPLAY_TIMESTAMP = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy");
 
     @Autowired
     private RoomTypeRepository roomTypeRepository;
@@ -34,15 +45,28 @@ public class ManagerCategoryController extends BaseController {
     @Autowired
     private com.votricuong.mayhotel.services.RoomTypeService roomTypeService;
 
+    @Autowired
+    private BookingAvailabilityService bookingAvailabilityService;
+
     @GetMapping("/categories")
-    public String categoriesIndex(Model model) {
+    public String categoriesIndex(
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate requestedDate,
+            Model model) {
         setPageTitle(model, "Quản Lý Loại Phòng");
         List<RoomType> categories = roomTypeRepository.findAll();
+        List<Room> allRooms = roomRepository.findAll();
+        LocalDate selectedDate = requestedDate == null ? LocalDate.now(HOTEL_ZONE) : requestedDate;
+        Map<Long, RoomStatus> statuses = bookingAvailabilityService.findRoomStatusesOn(selectedDate, allRooms);
         
         for (RoomType category : categories) {
-            List<Room> roomsInType = roomRepository.findByRoomTypeId(category.getId());
+            List<Room> roomsInType = allRooms.stream()
+                    .filter(room -> category.getId().equals(room.getRoomTypeId()))
+                    .toList();
             int total = roomsInType.size();
-            int available = (int) roomsInType.stream().filter(r -> "Trống".equalsIgnoreCase(r.getStatus())).count();
+            int available = (int) roomsInType.stream()
+                    .filter(room -> statuses.get(room.getId()) == RoomStatus.VACANT)
+                    .count();
             category.setTotalRoomsCount(total);
             category.setAvailableRoomsCount(available);
             
@@ -53,6 +77,10 @@ public class ManagerCategoryController extends BaseController {
         
         model.addAttribute("categories", categories);
         model.addAttribute("category", new RoomType());
+        model.addAttribute("selectedDate", selectedDate);
+        model.addAttribute("selectedDateText", selectedDate.format(DISPLAY_DATE));
+        model.addAttribute("isToday", selectedDate.equals(LocalDate.now(HOTEL_ZONE)));
+        model.addAttribute("refreshedAtText", ZonedDateTime.now(HOTEL_ZONE).format(DISPLAY_TIMESTAMP));
         setExtraCSS(model, "view/Admin/Category/index :: extra_css");
         return render(model, "view/Admin/Category/index");
     }

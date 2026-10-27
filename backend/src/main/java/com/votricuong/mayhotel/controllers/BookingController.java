@@ -541,7 +541,7 @@ public class BookingController extends BaseController {
                 
                 tongGiaCacPhong += phongDuocChon.getPrice() * currentBooking.getSoDem();
 
-                phongDuocChon.setStatus("Reserved");
+                phongDuocChon.setStatus(com.votricuong.mayhotel.enums.RoomStatus.RESERVED.getLabel());
                 roomRepository.save(phongDuocChon);
             }
             

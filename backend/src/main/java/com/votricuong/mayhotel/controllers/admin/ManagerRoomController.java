@@ -3,18 +3,26 @@ package com.votricuong.mayhotel.controllers.admin;
 import com.votricuong.mayhotel.controllers.BaseController;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.RoomType;
+import com.votricuong.mayhotel.enums.RoomStatus;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
+import com.votricuong.mayhotel.services.BookingAvailabilityService;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -22,6 +30,9 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/manager")
 public class ManagerRoomController extends BaseController {
+    private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
+    private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("dd-MM-yyyy");
+    private static final DateTimeFormatter DISPLAY_TIMESTAMP = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy");
 
     @Autowired
     private RoomRepository roomRepository;
@@ -35,8 +46,14 @@ public class ManagerRoomController extends BaseController {
     @Autowired
     private com.votricuong.mayhotel.repositories.BookingDetailRepository bookingDetailRepository;
 
+    @Autowired
+    private BookingAvailabilityService bookingAvailabilityService;
+
     @GetMapping("/rooms")
-    public String roomsIndex(Model model) {
+    public String roomsIndex(
+            @RequestParam(value = "date", required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate requestedDate,
+            Model model) {
         setPageTitle(model, "Quản Lý Phòng - Manager");
         
         List<RoomType> roomTypes = roomTypeRepository.findAll();
@@ -44,15 +61,23 @@ public class ManagerRoomController extends BaseController {
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
 
         List<Room> rooms = roomRepository.findAll();
+        LocalDate selectedDate = requestedDate == null ? LocalDate.now(HOTEL_ZONE) : requestedDate;
+        Map<Long, RoomStatus> statuses = bookingAvailabilityService.findRoomStatusesOn(selectedDate, rooms);
         for (Room room : rooms) {
             if (room.getRoomTypeId() != null && typeMap.containsKey(room.getRoomTypeId())) {
                 room.setRoomType(typeMap.get(room.getRoomTypeId()));
             }
+            room.setDisplayStatus(statuses.getOrDefault(room.getId(), RoomStatus.VACANT).getLabel());
+            room.setStatus(RoomStatus.fromStored(room.getStatus()).getLabel());
         }
         
         model.addAttribute("rooms", rooms);
         model.addAttribute("room", new Room());
         model.addAttribute("roomTypes", roomTypes);
+        model.addAttribute("selectedDate", selectedDate);
+        model.addAttribute("selectedDateText", selectedDate.format(DISPLAY_DATE));
+        model.addAttribute("isToday", selectedDate.equals(LocalDate.now(HOTEL_ZONE)));
+        model.addAttribute("refreshedAtText", ZonedDateTime.now(HOTEL_ZONE).format(DISPLAY_TIMESTAMP));
         setExtraCSS(model, "view/Admin/Room/index :: extra_css");
         return render(model, "view/Admin/Room/index");
     }
@@ -146,5 +171,8 @@ public class ManagerRoomController extends BaseController {
                 && existing.getName().equalsIgnoreCase(room.getName()))) {
             throw new IllegalArgumentException("Tên phòng đã tồn tại");
         }
+        room.setStatus(room.getStatus() == null || room.getStatus().isBlank()
+                ? RoomStatus.VACANT.getLabel()
+                : RoomStatus.fromApi(room.getStatus()).getLabel());
     }
 }

@@ -114,7 +114,7 @@ public class RoomStatusService {
         Query query = Query.query(Criteria.where("_id").is(room.getId())
                 .and("status").is(room.getStatus()));
         Update update = new Update()
-                .set("status", target.name())
+                .set("status", target.getLabel())
                 .set("status_note", note)
                 .set("status_updated_at", updatedAt)
                 .set("status_updated_by", updatedBy)

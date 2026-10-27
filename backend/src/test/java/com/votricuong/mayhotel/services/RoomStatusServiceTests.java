@@ -7,6 +7,7 @@ import com.votricuong.mayhotel.repositories.RoomRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Update;
 
 import java.time.LocalDate;
 import java.util.Optional;
@@ -17,6 +18,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 
 class RoomStatusServiceTests {
     private RoomRepository roomRepository;
@@ -37,7 +39,7 @@ class RoomStatusServiceTests {
     @Test
     void completesCleaningAndPublishesTheNewVacantState() {
         Room current = Room.builder().id(101L).name("P101").status("Cleaning").build();
-        Room updated = Room.builder().id(101L).name("P101").status("VACANT").statusUpdatedBy(104L).build();
+        Room updated = Room.builder().id(101L).name("P101").status("Trống").statusUpdatedBy(104L).build();
         when(roomRepository.findById(101L)).thenReturn(Optional.of(current));
         when(availabilityService.isRoomOccupiedOn(any(), any(LocalDate.class))).thenReturn(false);
         when(mongoTemplate.findAndModify(any(), any(), any(), org.mockito.ArgumentMatchers.eq(Room.class)))
@@ -46,7 +48,12 @@ class RoomStatusServiceTests {
         Room result = service.updateByHousekeeper(
                 101L, RoomStatus.CLEANING, RoomStatus.VACANT, "Đã kiểm tra", 104L);
 
-        assertThat(result.getStatus()).isEqualTo("VACANT");
+        assertThat(result.getStatus()).isEqualTo("Trống");
+        ArgumentCaptor<Update> updateCaptor = ArgumentCaptor.forClass(Update.class);
+        verify(mongoTemplate).findAndModify(any(), updateCaptor.capture(), any(),
+                org.mockito.ArgumentMatchers.eq(Room.class));
+        assertThat(updateCaptor.getValue().getUpdateObject().get("$set", org.bson.Document.class))
+                .containsEntry("status", "Trống");
         verify(eventService).publish(any());
     }
 

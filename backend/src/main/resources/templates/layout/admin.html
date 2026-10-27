@@ -26,7 +26,7 @@
         </a>
 
         <nav class="adm-nav">
-            <div class="adm-nav-group">
+            <div class="adm-nav-group" th:if="${role != 'ACCOUNTANT'}">
                 <span class="adm-nav-label">Tổng quan</span>
                 <a th:if="${role == 'ADMIN'}" th:href="@{/admin/users}" class="adm-nav-item"
                    th:classappend="${#strings.startsWith(currentPath, '/admin/users')} ? 'is-active'">
@@ -39,10 +39,6 @@
                 <a th:if="${role == 'RECEPTIONIST'}" th:href="@{/receptionist/room-map}" class="adm-nav-item"
                    th:classappend="${#strings.startsWith(currentPath, '/receptionist/room-map')} ? 'is-active'">
                     <i class="bi bi-grid-3x3-gap"></i><span>Sơ đồ phòng</span>
-                </a>
-                <a th:if="${role == 'ACCOUNTANT'}" th:href="@{/admin/statistical}" class="adm-nav-item"
-                   th:classappend="${#strings.startsWith(currentPath, '/admin/statistical')} ? 'is-active'">
-                    <i class="bi bi-bar-chart-line"></i><span>Báo cáo doanh thu</span>
                 </a>
             </div>
 
@@ -66,7 +62,7 @@
                 </a>
                 <a th:href="@{/receptionist/invoices}" class="adm-nav-item"
                    th:classappend="${#strings.startsWith(currentPath, '/receptionist/invoice')} ? 'is-active'">
-                    <i class="bi bi-receipt"></i><span>Hóa đơn</span>
+                    <i class="bi bi-receipt"></i><span>Quản lý hóa đơn</span>
                 </a>
                 <a th:href="@{/receptionist/ai-no-show}" class="adm-nav-item"
                    th:classappend="${#strings.startsWith(currentPath, '/receptionist/ai-no-show')} ? 'is-active'">

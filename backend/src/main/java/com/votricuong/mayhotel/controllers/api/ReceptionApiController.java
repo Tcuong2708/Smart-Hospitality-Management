@@ -203,12 +203,13 @@ public class ReceptionApiController {
             Room room = roomOpt.get();
 
             // Nếu phòng không trống
-            if (!"Trống".equalsIgnoreCase(room.getStatus())) {
+            if (com.votricuong.mayhotel.enums.RoomStatus.fromStored(room.getStatus())
+                    != com.votricuong.mayhotel.enums.RoomStatus.VACANT) {
                 return ResponseEntity.status(400).body(Map.of("status", "error", "message", "Phòng đã có người ở hoặc đang bảo trì."));
             }
 
             // Cập nhật trạng thái phòng (Room)
-            room.setStatus("Đang ở");
+            room.setStatus(com.votricuong.mayhotel.enums.RoomStatus.OCCUPIED.getLabel());
             roomRepository.save(room);
 
             // Cập nhật trạng thái phiếu đặt (BookingOrder)

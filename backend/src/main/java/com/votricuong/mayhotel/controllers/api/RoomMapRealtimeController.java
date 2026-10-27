@@ -58,15 +58,15 @@ public class RoomMapRealtimeController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Không có quyền xem sơ đồ phòng"));
         }
         LocalDate selectedDate = requestedDate == null ? LocalDate.now(HOTEL_ZONE) : requestedDate;
-        LocalDate today = LocalDate.now(HOTEL_ZONE);
-        Map<Long, BookingAvailabilityService.RoomTimelineStatus> usage =
-                bookingAvailabilityService.findRoomUsageOn(selectedDate);
+        List<Room> rooms = roomRepository.findAll();
+        Map<Long, RoomStatus> statuses = bookingAvailabilityService.findRoomStatusesOn(selectedDate, rooms);
         Map<Long, RoomType> types = roomTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(RoomType::getId, type -> type));
 
-        List<Map<String, Object>> result = roomRepository.findAll().stream()
+        List<Map<String, Object>> result = rooms.stream()
                 .sorted(Comparator.comparing(Room::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
-                .map(room -> toDto(room, types.get(room.getRoomTypeId()), usage.get(room.getId()), selectedDate, today))
+                .map(room -> toDto(room, types.get(room.getRoomTypeId()),
+                        statuses.getOrDefault(room.getId(), RoomStatus.VACANT)))
                 .toList();
         return ResponseEntity.ok(result);
     }
@@ -81,25 +81,7 @@ public class RoomMapRealtimeController {
 
     private Map<String, Object> toDto(Room room,
                                       RoomType type,
-                                      BookingAvailabilityService.RoomTimelineStatus timeline,
-                                      LocalDate selectedDate,
-                                      LocalDate today) {
-        RoomStatus operational = RoomStatus.fromStored(room.getStatus());
-        int mapStatus;
-        if (timeline == BookingAvailabilityService.RoomTimelineStatus.OCCUPIED) {
-            mapStatus = RoomStatus.OCCUPIED.getMapCode();
-        } else if (!selectedDate.isBefore(today) && operational == RoomStatus.MAINTENANCE) {
-            mapStatus = RoomStatus.MAINTENANCE.getMapCode();
-        } else if (selectedDate.equals(today) && operational == RoomStatus.CLEANING) {
-            mapStatus = RoomStatus.CLEANING.getMapCode();
-        } else if (timeline == BookingAvailabilityService.RoomTimelineStatus.RESERVED) {
-            mapStatus = RoomStatus.RESERVED.getMapCode();
-        } else if (selectedDate.equals(today) && operational == RoomStatus.OCCUPIED) {
-            mapStatus = RoomStatus.OCCUPIED.getMapCode();
-        } else {
-            mapStatus = RoomStatus.VACANT.getMapCode();
-        }
-
+                                      RoomStatus status) {
         String label = room.getName() == null ? String.valueOf(room.getId()) : room.getName().replaceAll("\\D+", "");
         if (label.isBlank()) label = String.valueOf(room.getId());
         Map<String, Object> dto = new LinkedHashMap<>();
@@ -108,7 +90,7 @@ public class RoomMapRealtimeController {
         dto.put("label", label);
         dto.put("maLoai", type == null ? "Chưa phân loại" : type.getName());
         dto.put("price", room.getPrice());
-        dto.put("maTrangThai", mapStatus);
+        dto.put("maTrangThai", status.getMapCode());
         dto.put("sucChua", type == null || type.getMaxOccupancy() == null ? 2 : type.getMaxOccupancy());
         dto.put("view", room.getView());
         dto.put("statusNote", room.getStatusNote());

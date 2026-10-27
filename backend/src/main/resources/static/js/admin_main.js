@@ -276,21 +276,6 @@ function tangCua(name) {
 // ============================================================
 const HoaDon = {
     init() {
-        const modalEl = document.getElementById('createInvoiceModal');
-        if (modalEl) {
-            modalEl.addEventListener('adm:modal-closed', () => {
-                document.getElementById('createInvoiceForm')?.reset();
-            });
-        }
-
-        document.getElementById('btn-submit-invoice')?.addEventListener('click', () => {
-            const form = document.getElementById('createInvoiceForm');
-            if (!form) return;
-            if (!form.checkValidity()) return form.reportValidity();
-            AdmModal.close(modalEl);
-            toast('Tạo hóa đơn thành công');
-        });
-
         this.tai();
     },
 

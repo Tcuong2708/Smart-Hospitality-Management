@@ -104,7 +104,7 @@ public class BookingApiController {
             noShowPredictionService.analyzeAndSave(order.getId());
             
             // Đổi trạng thái phòng
-            room.setStatus("Reserved");
+            room.setStatus(com.votricuong.mayhotel.enums.RoomStatus.RESERVED.getLabel());
             roomRepository.save(room);
 
             Map<String, Object> response = new HashMap<>();

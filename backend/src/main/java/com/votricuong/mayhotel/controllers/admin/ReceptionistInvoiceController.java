@@ -2,29 +2,21 @@ package com.votricuong.mayhotel.controllers.admin;
 
 import com.votricuong.mayhotel.controllers.BaseController;
 import com.votricuong.mayhotel.documents.BookingDetail;
-import com.votricuong.mayhotel.documents.BookingOrder;
-import com.votricuong.mayhotel.documents.Customer;
 import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
-import com.votricuong.mayhotel.repositories.BookingOrderRepository;
-import com.votricuong.mayhotel.repositories.CustomerRepository;
 import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
-import com.votricuong.mayhotel.services.SequenceGeneratorService;
 import lombok.Builder;
 import lombok.Data;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Optional;
@@ -36,30 +28,14 @@ public class ReceptionistInvoiceController extends BaseController {
 
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
-    private final CustomerRepository customerRepository;
-    private final BookingOrderRepository bookingOrderRepository;
     private final BookingDetailRepository bookingDetailRepository;
-    private final SequenceGeneratorService sequenceGeneratorService;
-    private final com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService;
-    private final com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService;
-    private final SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
 
     public ReceptionistInvoiceController(InvoiceRepository invoiceRepository,
                                          RoomRepository roomRepository,
-                                         CustomerRepository customerRepository,
-                                         BookingOrderRepository bookingOrderRepository,
-                                         BookingDetailRepository bookingDetailRepository,
-                                         SequenceGeneratorService sequenceGeneratorService,
-                                         com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService,
-                                         com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService) {
+                                         BookingDetailRepository bookingDetailRepository) {
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
-        this.customerRepository = customerRepository;
-        this.bookingOrderRepository = bookingOrderRepository;
         this.bookingDetailRepository = bookingDetailRepository;
-        this.sequenceGeneratorService = sequenceGeneratorService;
-        this.bookingAvailabilityService = bookingAvailabilityService;
-        this.noShowPredictionService = noShowPredictionService;
     }
 
     @Data
@@ -202,99 +178,7 @@ public class ReceptionistInvoiceController extends BaseController {
         return "view/Admin/Invoice/print";
     }
 
-    // 4. POST /create: Tạo đơn đặt phòng khách lẻ (LapHoaDon)
-    @PostMapping("/create")
-    public String createInvoice(@RequestParam("guestName") String guestName,
-                                @RequestParam("phone") String phone,
-                                @RequestParam("checkInDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkInDate,
-                                @RequestParam("checkOutDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate checkOutDate,
-                                @RequestParam(value = "roomId", required = false) Long roomId,
-                                @RequestParam(value = "note", required = false) String note,
-                                RedirectAttributes redirectAttributes) {
-        try {
-            guestName = com.votricuong.mayhotel.utils.InputValidator.requiredText(guestName, "Họ và tên", 100);
-            phone = com.votricuong.mayhotel.utils.InputValidator.phone(phone);
-            note = com.votricuong.mayhotel.utils.InputValidator.optionalText(note, "Ghi chú", 500);
-            com.votricuong.mayhotel.utils.InputValidator.stay(checkInDate, checkOutDate);
-            if (roomId == null) throw new IllegalArgumentException("Vui lòng chọn phòng");
-            Room selectedRoom = roomRepository.findById(roomId)
-                    .orElseThrow(() -> new IllegalArgumentException("Phòng không tồn tại"));
-
-            Long nextId = sequenceGeneratorService.generateSequence(Invoice.SEQUENCE_NAME);
-            
-            Date checkIn = Date.from(checkInDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-            Date checkOut = Date.from(checkOutDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
-
-            bookingAvailabilityService.validateStay(checkIn, checkOut);
-            if (!bookingAvailabilityService.isRoomAvailable(roomId, checkIn, checkOut)) {
-                throw new IllegalArgumentException("Phòng đã được đặt trong khoảng thời gian này");
-            }
-            long numNights = ChronoUnit.DAYS.between(checkInDate, checkOutDate);
-
-            Double pricePerNight = com.votricuong.mayhotel.utils.InputValidator.positiveMoney(
-                    selectedRoom.getPrice(), "Giá phòng");
-
-            Double totalAmount = pricePerNight * numNights;
-
-            Invoice invoice = Invoice.builder()
-                    .id(nextId)
-                    .guestName(guestName)
-                    .phone(phone)
-                    .roomId(roomId)
-                    .checkInDate(checkIn)
-                    .checkOutDate(checkOut)
-                    .totalAmount(totalAmount)
-                    .invoiceStatus("Reserved")
-                    .payMethod("Tiền mặt")
-                    .isPaid(false)
-                    .createdAt(new Date())
-                    .note(note)
-                    .build();
-
-            invoiceRepository.save(invoice);
-
-            // Ghi nhận BookingOrder tương ứng
-            Long nextBookingId = sequenceGeneratorService.generateSequence("booking_orders");
-            Customer customer = customerRepository.findByPhone(phone).stream().findFirst().orElse(null);
-            if (customer == null) {
-                customer = new Customer();
-                customer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
-                customer.setFullName(guestName);
-                customer.setPhone(phone);
-                customerRepository.save(customer);
-            }
-            BookingOrder booking = BookingOrder.builder()
-                    .id(nextBookingId)
-                    .customerId(customer.getId())
-                    .bookingDate(new Date())
-                    .expectedIn(checkIn)
-                    .expectedOut(checkOut)
-                    .status("Reserved")
-                    .bookingSource("RECEPTION")
-                    .riskAnalysisStatus("PENDING")
-                    .build();
-            bookingOrderRepository.save(booking);
-
-            BookingDetail detail = BookingDetail.builder()
-                    .id(sequenceGeneratorService.generateSequence("booking_details_sequence"))
-                    .bookingId(nextBookingId)
-                    .roomId(roomId)
-                    .unitPrice(pricePerNight)
-                    .build();
-            bookingDetailRepository.save(detail);
-
-            invoice.setBookingId(nextBookingId);
-            invoiceRepository.save(invoice);
-            noShowPredictionService.analyzeAndSave(nextBookingId);
-
-            redirectAttributes.addFlashAttribute("success", "Tạo thành công Hóa đơn #" + nextId + " cho khách " + guestName);
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "Lỗi tạo hóa đơn: " + e.getMessage());
-        }
-        return "redirect:/receptionist/invoices";
-    }
-
-    // 5. GET /delete/{id}: Xóa hóa đơn
+    // 4. GET /delete/{id}: Xóa hóa đơn
     @GetMapping("/delete/{id}")
     public String deleteInvoice(@PathVariable("id") Long id, RedirectAttributes redirectAttributes) {
         try {

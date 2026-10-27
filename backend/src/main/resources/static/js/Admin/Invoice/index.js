@@ -24,7 +24,7 @@ async function fetchInvoices() {
                 <tr>
                     <td colspan="7" class="text-center py-5">
                         <i class="bi bi-clipboard-x text-muted" style="font-size: 2rem;"></i>
-                        <p class="text-muted mt-2 mb-0">Chưa có dữ liệu đơn đặt phòng nào.</p>
+                        <p class="text-muted mt-2 mb-0">Chưa có dữ liệu hóa đơn nào.</p>
                     </td>
                 </tr>
             `;

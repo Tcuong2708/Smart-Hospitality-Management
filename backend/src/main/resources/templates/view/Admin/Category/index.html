@@ -9,6 +9,12 @@
                 overflow: hidden;
                 border: 0;
             }
+            .inventory-date-form { min-width: 235px; }
+            .inventory-meta {
+                background: #f8fafc;
+                border-bottom: 1px solid #e3e8ee;
+                color: #5f6f7f;
+            }
         </style>
     </th:block>
 </head>
@@ -33,6 +39,15 @@
                 </h3>
                 
                 <div class="d-flex flex-wrap align-items-center gap-3 flex-grow-1 justify-content-end">
+                    <form class="inventory-date-form d-flex align-items-center" method="get" th:action="@{/manager/categories}">
+                        <label for="categoryStatusDate" class="visually-hidden">Ngày xem phòng trống</label>
+                        <div class="input-group shadow-sm">
+                            <span class="input-group-text bg-white border-0" title="Ngày xem phòng trống"><i class="bi bi-calendar3" style="color:#C5A017"></i></span>
+                            <input id="categoryStatusDate" type="date" name="date" class="form-control border-0"
+                                   th:value="${selectedDate}" onchange="this.form.submit()" aria-label="Ngày xem số phòng trống">
+                            <button class="btn btn-light border-0" type="submit" title="Cập nhật dữ liệu"><i class="bi bi-arrow-clockwise"></i></button>
+                        </div>
+                    </form>
                     <div class="input-group shadow-sm" style="max-width: 250px;">
                         <span class="input-group-text bg-white border-0"><i class="bi bi-search text-muted"></i></span>
                         <input type="text" class="form-control border-0" id="searchCategory" placeholder="Tìm loại phòng..." onkeyup="filterCategoryTable()">
@@ -42,6 +57,10 @@
                         <i class="bi bi-plus-lg me-1"></i> Thêm Mới
                     </a>
                 </div>
+            </div>
+            <div class="inventory-meta px-3 py-2 d-flex flex-wrap justify-content-between gap-2 small">
+                <span><i class="bi bi-clock-history me-1"></i>Số phòng trống ngày <strong th:text="${selectedDateText}">27-10-2026</strong><span th:if="${isToday}"> (hôm nay)</span></span>
+                <span>Cập nhật lúc <strong th:text="${refreshedAtText}">00:00:00 27-10-2026</strong></span>
             </div>
             
             <div class="card-body p-0 manager-fill-body">
@@ -54,7 +73,7 @@
                             <th class="text-center text-uppercase small text-white fw-bold">Tên loại phòng <i class="bi bi-funnel-fill text-warning ms-1"></i></th>
                             <th class="text-center text-uppercase small text-white fw-bold">Sức chứa</th>
                             <th class="text-center text-uppercase small text-white fw-bold">Tổng phòng</th>
-                            <th class="text-center text-uppercase small text-white fw-bold">Phòng trống</th>
+                            <th class="text-center text-uppercase small text-white fw-bold">Phòng trống theo ngày</th>
                             <th class="text-center text-uppercase small text-white fw-bold" style="width: 150px;">Thao tác</th>
                         </tr>
                         </thead>
@@ -69,7 +88,8 @@
                                 <td class="text-center"><span class="badge bg-light text-dark border" th:text="${c.maxOccupancy + ' người'}"></span></td>
                                 <td class="text-center fw-bold" th:text="${c.totalRoomsCount}"></td>
                                 <td class="text-center fw-bold align-middle">
-                                    <span class="badge bg-success py-2 px-3 shadow-sm" style="font-size: 0.9rem;" th:text="${c.availableRoomsCount} + ' trống'"></span>
+                                    <span class="badge bg-success py-2 px-3 shadow-sm" style="font-size: 0.9rem;"
+                                          th:text="${c.availableRoomsCount + '/' + c.totalRoomsCount + ' phòng trống'}"></span>
                                 </td>
                                 <td class="text-center">
                                     <a href="#" data-bs-toggle="modal" th:data-bs-target="'#editModal' + ${c.id}" class="btn btn-action btn-edit" title="Sửa"><i class="bi bi-pencil"></i></a>
@@ -204,6 +224,22 @@
                     document.body.appendChild(modal);
                 }
             });
+        })();
+    </script>
+    <script th:inline="javascript">
+        (() => {
+            const isToday = /*[[${isToday}]]*/ false;
+            if (!isToday) return;
+            let reloadTimer;
+            const refresh = () => {
+                clearTimeout(reloadTimer);
+                reloadTimer = setTimeout(() => window.location.reload(), 600);
+            };
+            if (window.EventSource) {
+                const events = new EventSource('/admin/room-map/events');
+                events.onmessage = refresh;
+            }
+            window.setInterval(refresh, 60000);
         })();
     </script>
 </div>

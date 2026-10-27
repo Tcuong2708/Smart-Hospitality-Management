@@ -37,6 +37,8 @@ public class RoomService {
         room.setId(sequenceGeneratorService.generateSequence("rooms_sequence"));
         if (room.getStatus() == null || room.getStatus().isEmpty()) {
             room.setStatus("Trống");
+        } else {
+            room.setStatus(com.votricuong.mayhotel.enums.RoomStatus.fromApi(room.getStatus()).getLabel());
         }
         return roomRepository.save(room);
     }
@@ -53,7 +55,9 @@ public class RoomService {
         room.setDetail(roomDetails.getDetail());
         room.setImageUrl(roomDetails.getImageUrl());
         room.setRoomTypeId(roomDetails.getRoomTypeId());
-        room.setStatus(roomDetails.getStatus());
+        room.setStatus(roomDetails.getStatus() == null || roomDetails.getStatus().isBlank()
+                ? com.votricuong.mayhotel.enums.RoomStatus.VACANT.getLabel()
+                : com.votricuong.mayhotel.enums.RoomStatus.fromApi(roomDetails.getStatus()).getLabel());
         room.setNote(roomDetails.getNote());
         room.setMaxExtraBeds(roomDetails.getMaxExtraBeds());
 
@@ -66,7 +70,7 @@ public class RoomService {
             throw new Exception("Không tìm thấy phòng.");
         }
         Room room = roomOpt.get();
-        room.setStatus(com.votricuong.mayhotel.enums.RoomStatus.fromApi(status).name());
+        room.setStatus(com.votricuong.mayhotel.enums.RoomStatus.fromApi(status).getLabel());
         return roomRepository.save(room);
     }
 

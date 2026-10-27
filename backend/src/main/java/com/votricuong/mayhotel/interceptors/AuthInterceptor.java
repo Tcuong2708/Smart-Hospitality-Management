@@ -41,6 +41,15 @@ public class AuthInterceptor implements HandlerInterceptor {
             else if (user.getRoleId() == 6L) role = "SERVICE_STAFF";
             else if (user.getRoleId() == 7L) role = "ACCOUNTANT";
         }
+
+        // Kế toán là vai trò chuyên biệt theo sơ đồ use case: chỉ được xem,
+        // lọc và xuất báo cáo doanh thu. Mọi nghiệp vụ quản trị/lễ tân khác
+        // đều quay lại màn hình thống kê.
+        if ("ACCOUNTANT".equals(role) && !uri.startsWith("/admin/statistical")) {
+            redirectDenied(request, response, role);
+            return false;
+        }
+
         // Tuyến khách hàng
         if (uri.startsWith("/booking/")) {
             if (!"CUSTOMER".equals(role)) {
