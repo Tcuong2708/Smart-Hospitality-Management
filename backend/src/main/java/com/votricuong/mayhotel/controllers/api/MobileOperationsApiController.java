@@ -410,7 +410,7 @@ public class MobileOperationsApiController {
         return roleAction(authorization, Set.of(3L), claims -> {
             BookingOrder order = requiredBooking(bookingId);
             if (Boolean.FALSE.equals(order.getIsFaceVerified())
-                    || effectiveVerifiedGuests(order) < effectiveGuestCount(order)) {
+                    || effectiveVerifiedGuests(order) < requiredIdentityVerifications(order)) {
                 throw new IllegalStateException("Chưa xác thực đủ danh tính của tất cả khách lưu trú");
             }
             Invoice invoice = firstInvoice(bookingId)
@@ -456,7 +456,7 @@ public class MobileOperationsApiController {
         return roleAction(authorization, Set.of(3L), claims -> {
             BookingOrder order = requiredBooking(bookingId);
             if (!isPending(order)) throw new IllegalStateException("Phiếu không còn chờ nhận phòng");
-            int guestCount = effectiveGuestCount(order);
+            int guestCount = requiredIdentityVerifications(order);
             int guestIndex = intValue(payload.get("guestIndex"), "Vị trí khách");
             if (guestIndex < 0 || guestIndex >= guestCount) {
                 throw new IllegalArgumentException("Vị trí khách xác thực không hợp lệ");
@@ -826,7 +826,7 @@ public class MobileOperationsApiController {
         data.put("status", order.getStatus());
         data.put("guestCount", effectiveGuestCount(order));
         data.put("verifiedGuestCount", effectiveVerifiedGuests(order));
-        data.put("identityVerified", effectiveVerifiedGuests(order) >= effectiveGuestCount(order));
+        data.put("identityVerified", effectiveVerifiedGuests(order) >= requiredIdentityVerifications(order));
         data.put("verificationMethod", order.getIdentityVerificationMethod());
         data.put("riskLevel", order.getNoShowRiskLevel());
         data.put("riskPercentage", order.getNoShowRiskPercentage());
@@ -1015,6 +1015,10 @@ public class MobileOperationsApiController {
 
     private int effectiveGuestCount(BookingOrder order) {
         return order.getGuestCount() == null || order.getGuestCount() < 1 ? 1 : order.getGuestCount();
+    }
+
+    private int requiredIdentityVerifications(BookingOrder order) {
+        return com.votricuong.mayhotel.services.OnlineBookingPolicy.requiredIdentityVerifications(order);
     }
 
     private int effectiveVerifiedGuests(BookingOrder order) {

@@ -12,6 +12,7 @@ import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
@@ -52,5 +53,39 @@ class BookingCancellationServiceTests {
         verify(bookingOrders).save(order);
         verify(invoices).save(invoice);
         verify(rooms).save(room);
+    }
+
+    @Test
+    void customerCancellationRefundsOnlyPaidDepositNotEntireInvoice() {
+        BookingOrderRepository bookingOrders = mock(BookingOrderRepository.class);
+        BookingDetailRepository bookingDetails = mock(BookingDetailRepository.class);
+        InvoiceRepository invoices = mock(InvoiceRepository.class);
+        RoomRepository rooms = mock(RoomRepository.class);
+        BookingCancellationService service = new BookingCancellationService(
+                bookingOrders, bookingDetails, invoices, rooms);
+
+        BookingOrder order = BookingOrder.builder()
+                .id(11L)
+                .status(OnlineBookingPolicy.BOOKING_DEPOSIT_CONFIRMED)
+                .expectedIn(new Date(System.currentTimeMillis() + 48L * 60 * 60 * 1000))
+                .build();
+        Invoice invoice = Invoice.builder()
+                .id(31L)
+                .bookingId(11L)
+                .totalAmount(1_000_000.0)
+                .depositPaidAmount(100_000L)
+                .depositStatus(OnlineBookingPolicy.DEPOSIT_PAID)
+                .isPaid(false)
+                .build();
+
+        when(bookingOrders.findById(11L)).thenReturn(Optional.of(order));
+        when(bookingDetails.findByBookingId(11L)).thenReturn(List.of());
+        when(invoices.findByBookingId(11L)).thenReturn(List.of(invoice));
+
+        service.cancel(11L, BookingCancellationService.CancellationType.CUSTOMER, "Đổi kế hoạch");
+
+        assertThat(invoice.getPenaltyRate()).isZero();
+        assertThat(invoice.getPenaltyAmount()).isZero();
+        assertThat(invoice.getRefundAmount()).isEqualTo(100_000.0);
     }
 }

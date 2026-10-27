@@ -279,13 +279,14 @@ class HotelApiProvider {
     DateTime ngayNhan,
     DateTime ngayTra,
     int adults,
-    int children, {
+    int children,
+    int infants, {
     CancelToken? cancelToken,
   }) async {
     final startDate = DateTime(ngayNhan.year, ngayNhan.month, ngayNhan.day);
     final endDate = DateTime(ngayTra.year, ngayTra.month, ngayTra.day);
     final cacheKey =
-        '${_formatDate(startDate)}|${_formatDate(endDate)}|$adults|$children';
+        '${_formatDate(startDate)}|${_formatDate(endDate)}|$adults|$children|$infants';
     final cachedResults = RoomSearchCache.instance.read(cacheKey);
     if (cachedResults != null) return cachedResults;
 
@@ -297,6 +298,7 @@ class HotelApiProvider {
       endDate,
       adults,
       children,
+      infants,
       cacheKey,
       cancelToken,
     );
@@ -316,6 +318,7 @@ class HotelApiProvider {
     DateTime ngayTra,
     int adults,
     int children,
+    int infants,
     String cacheKey,
     CancelToken? cancelToken,
   ) async {
@@ -327,6 +330,7 @@ class HotelApiProvider {
           'ngayTra': _formatApiDateTime(ngayTra),
           'adults': adults,
           'children': children,
+          'infants': infants,
         },
         cancelToken: cancelToken,
       );
@@ -719,7 +723,9 @@ class HotelApiProvider {
     required int userId,
     required DateTime ngayNhanPhong,
     required DateTime ngayTraPhong,
-    required int soNguoi,
+    required int adultCount,
+    required int childCount,
+    required int infantCount,
     String? ghiChu,
     String? customerName,
     String? customerPhone,
@@ -731,7 +737,9 @@ class HotelApiProvider {
         // Gửi ngày thuần để không bị lùi một ngày khi đổi từ UTC+7 sang UTC.
         'ngayNhan': _formatDate(ngayNhanPhong),
         'ngayTra': _formatDate(ngayTraPhong),
-        'soNguoi': soNguoi,
+        'adultCount': adultCount,
+        'childCount': childCount,
+        'infantCount': infantCount,
         'ghiChu': ghiChu,
         'customerName': customerName,
         'customerPhone': customerPhone,
@@ -747,7 +755,11 @@ class HotelApiProvider {
         RoomSearchCache.instance.invalidate();
         return {
           'bookingId': data['bookingId'] ?? 0,
+          'invoiceId': data['invoiceId'] ?? 0,
           'totalAmount': (data['total'] ?? 0).toDouble(),
+          'depositAmount': (data['depositAmount'] ?? 0).toDouble(),
+          'remainingAmount': (data['remainingAmount'] ?? 0).toDouble(),
+          'paymentExpiresAt': data['paymentExpiresAt'],
           'success': true,
           'maPhong': data['roomId'] ?? maPhong,
           'soNgay': ngayTraPhong.difference(ngayNhanPhong).inDays,
@@ -855,6 +867,21 @@ class HotelApiProvider {
       _handleError("Confirm payment error", e);
       return null;
     }
+  }
+
+  Future<Map<String, dynamic>> createVnPayDepositUrl(int invoiceId) async {
+    final response = await _dio.post(
+      '/api/payment/create-vnpay-url',
+      data: {'invoiceId': invoiceId},
+    );
+    return Map<String, dynamic>.from(response.data as Map);
+  }
+
+  Future<Map<String, dynamic>> getDepositStatus(int invoiceId) async {
+    final response = await _dio.get(
+      '/api/payment/invoices/$invoiceId/deposit-status',
+    );
+    return Map<String, dynamic>.from(response.data as Map);
   }
 
   // =========================================================================

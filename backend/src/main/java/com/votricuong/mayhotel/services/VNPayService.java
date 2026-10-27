@@ -26,8 +26,8 @@ public class VNPayService {
 
     public String createPaymentUrl(Invoice invoice, HttpServletRequest request) {
         requireConfigured();
-        if (invoice == null || invoice.getId() == null || invoice.getTotalAmount() == null
-                || invoice.getTotalAmount() <= 0) {
+        long payableAmount = OnlineBookingPolicy.payableDeposit(invoice);
+        if (invoice == null || invoice.getId() == null || payableAmount <= 0) {
             throw new IllegalArgumentException("Hóa đơn thanh toán không hợp lệ.");
         }
         String vnp_Version = "2.1.0";
@@ -36,7 +36,7 @@ public class VNPayService {
         String vnp_IpAddr = getIpAddress(request);
         String vnp_TmnCode = vnPayConfig.getTmnCode();
 
-        long amount = (long) (invoice.getTotalAmount() * 100);
+        long amount = payableAmount * 100;
 
         Map<String, String> vnp_Params = new HashMap<>();
         vnp_Params.put("vnp_Version", vnp_Version);
@@ -45,7 +45,7 @@ public class VNPayService {
         vnp_Params.put("vnp_Amount", String.valueOf(amount));
         vnp_Params.put("vnp_CurrCode", "VND");
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", "Thanh toan phong MAY HOTEL - HD #" + invoice.getId());
+        vnp_Params.put("vnp_OrderInfo", "Dat coc 10% phong MAY HOTEL - HD #" + invoice.getId());
         vnp_Params.put("vnp_OrderType", "other");
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", vnPayConfig.getReturnUrl());

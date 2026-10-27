@@ -50,9 +50,12 @@ public class BookingCancellationService {
         for (Invoice invoice : invoiceRepository.findByBookingId(bookingId)) {
             double total = invoice.getTotalAmount() == null ? 0.0 : invoice.getTotalAmount();
             double penaltyRate = customerPenaltyRate;
-            double penaltyBase = noShow || Boolean.TRUE.equals(invoice.getIsPaid()) ? total : 0.0;
+            double paidAmount = invoice.getDepositPaidAmount() != null && invoice.getDepositPaidAmount() > 0
+                    ? invoice.getDepositPaidAmount()
+                    : (Boolean.TRUE.equals(invoice.getIsPaid()) ? total : 0.0);
+            double penaltyBase = paidAmount;
             double penalty = penaltyBase * penaltyRate / 100.0;
-            double refund = Boolean.TRUE.equals(invoice.getIsPaid()) ? Math.max(total - penalty, 0.0) : 0.0;
+            double refund = Math.max(paidAmount - penalty, 0.0);
             invoice.setPenaltyRate(penaltyRate);
             invoice.setPenaltyAmount(penalty);
             invoice.setRefundAmount(refund);

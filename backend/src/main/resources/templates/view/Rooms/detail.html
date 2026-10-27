@@ -274,7 +274,8 @@
                             </div>
 
                             <!-- Nút đặt — chỉ hiện khi phòng trống -->
-                            <a th:if="${conTrong}" th:href="@{/booking/book(maLoai=${room.roomTypeId})}"
+                            <a th:if="${conTrong}"
+                                th:href="@{/booking/book(maLoai=${room.roomTypeId},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants})}"
                                 class="mh-detail-book-btn">
                                 <i class="fa-solid fa-calendar-check"></i> Đặt phòng ngay
                             </a>

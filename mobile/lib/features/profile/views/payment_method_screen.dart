@@ -1,379 +1,202 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
-import '../../../core/utils/responsive.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
   final int bookingId;
+  final int invoiceId;
   final double totalAmount;
+  final double depositAmount;
+  final double remainingAmount;
 
   const PaymentMethodScreen({
-    Key? key,
+    super.key,
     required this.bookingId,
+    this.invoiceId = 0,
     required this.totalAmount,
-  }) : super(key: key);
+    this.depositAmount = 0,
+    this.remainingAmount = 0,
+  });
 
   @override
   State<PaymentMethodScreen> createState() => _PaymentMethodScreenState();
 }
 
 class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
-  final HotelApiProvider _apiProvider = HotelApiProvider();
-  // Biến lưu ID phương thức đang được khách chọn
-  int? _selectedMethodId;
-  bool _isProcessing = false;
+  final HotelApiProvider _api = HotelApiProvider();
+  Timer? _pollTimer;
+  bool _processing = false;
+  String _status = 'PENDING';
 
-  bool get _onlinePaymentEnabled =>
-      dotenv.env['PAYMENT_GATEWAY_ENABLED']?.toLowerCase() == 'true';
+  String _money(double value) =>
+      '${value.round().toString().replaceAllMapped(RegExp(r'\B(?=(\d{3})+(?!\d))'), (m) => '.')} đ';
 
-  // Hàm xử lý khi nhấn nút Xác nhận thanh toán
-  void _handlePayment() async {
-    if (_selectedMethodId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Vui lòng chọn một phương thức thanh toán!"),
-        ),
-      );
+  Future<void> _openVnPay() async {
+    if (widget.invoiceId <= 0) {
+      _message('Không tìm thấy hóa đơn cọc của đơn đặt phòng.');
       return;
     }
-    if (_selectedMethodId != 8 && !_onlinePaymentEnabled) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Cổng thanh toán trực tuyến chưa cấu hình callback xác nhận. Vui lòng chọn thanh toán tại khách sạn.',
-          ),
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isProcessing = true);
-
-    Map<String, dynamic>? result;
+    setState(() => _processing = true);
     try {
-      // Liên thông gọi API kết toán sang Backend C#
-      result = await _apiProvider.confirmPayment(
-        widget.bookingId,
-        widget.totalAmount,
-        _selectedMethodId!,
-      );
-    } catch (_) {
-      result = null;
-    }
-
-    if (!mounted) return;
-    setState(() => _isProcessing = false);
-
-    if (result != null) {
-      if (result['status'] == 'PAYMENT_PENDING') {
-        _showPendingPaymentDialog();
-      } else {
-        _showSuccessDialog(payAtHotel: _selectedMethodId == 8);
+      final result = await _api.createVnPayDepositUrl(widget.invoiceId);
+      final rawUrl = result['paymentUrl']?.toString();
+      final uri = rawUrl == null ? null : Uri.tryParse(rawUrl);
+      if (uri == null ||
+          !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
+        throw Exception('Không thể mở cổng VNPay');
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Lỗi kết nối Server. Vui lòng thử lại!")),
-      );
+      _startPolling();
+    } catch (error) {
+      _message('Không thể tạo giao dịch VNPay: $error');
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
 
-  void _showPendingPaymentDialog() {
-    showDialog<void>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Đang chờ xác nhận thanh toán'),
-        content: const Text(
-          'Yêu cầu đã được tạo nhưng chưa được xem là đã thanh toán. Đơn chỉ được xác nhận sau khi backend nhận callback hợp lệ từ cổng thanh toán.',
-        ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Đã hiểu'),
-          ),
-        ],
-      ),
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _pollStatus(),
     );
+    _pollStatus();
+  }
+
+  Future<void> _pollStatus() async {
+    try {
+      final result = await _api.getDepositStatus(widget.invoiceId);
+      if (!mounted) return;
+      final status = result['depositStatus']?.toString() ?? 'PENDING';
+      setState(() => _status = status);
+      if (result['confirmed'] == true) {
+        _pollTimer?.cancel();
+        await showDialog<void>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogContext) => AlertDialog(
+            icon: const Icon(Icons.check_circle, color: Colors.green, size: 54),
+            title: const Text('Đặt cọc thành công'),
+            content: const Text(
+              'Đơn đặt phòng đã được xác nhận. Phần còn lại thanh toán tại khách sạn.',
+              textAlign: TextAlign.center,
+            ),
+            actions: [
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(),
+                child: const Text('Hoàn tất'),
+              ),
+            ],
+          ),
+        );
+        if (mounted) Navigator.of(context).popUntil((route) => route.isFirst);
+      } else if (status == 'EXPIRED') {
+        _pollTimer?.cancel();
+        _message('Đã hết 15 phút giữ chỗ. Vui lòng tạo lại đơn đặt phòng.');
+      }
+    } catch (_) {
+      // Mất mạng tạm thời không được coi là thanh toán thất bại; lần poll sau sẽ thử lại.
+    }
+  }
+
+  void _message(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..removeCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  @override
+  void dispose() {
+    _pollTimer?.cancel();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final bool isDark = theme.brightness == Brightness.dark;
-
+    final deposit = widget.depositAmount > 0
+        ? widget.depositAmount
+        : widget.totalAmount * .10;
+    final remaining = widget.remainingAmount > 0
+        ? widget.remainingAmount
+        : widget.totalAmount - deposit;
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        title: const Text(
-          "Phương thức thanh toán",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-        elevation: 0.5,
-      ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: EdgeInsets.all(Responsive.sp(context, 20)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (!_onlinePaymentEnabled)
-                  const Card(
-                    color: Color(0xFFFFF3CD),
-                    child: Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'Thanh toán online tạm khóa để tránh ghi nhận thanh toán giả khi chưa có callback từ cổng thanh toán.',
-                      ),
-                    ),
-                  ),
-                _buildSectionTitle(context, "Thẻ tín dụng / Ghi nợ"),
-                _buildPaymentCard(
-                  context,
-                  "Visa / Mastercard / JCB",
-                  "**** 4242",
-                  Icons.credit_card,
-                  Colors.blueAccent,
-                  1,
-                ),
-
-                const SizedBox(height: 25),
-                _buildSectionTitle(context, "Ví điện tử & Nền tảng số"),
-
-                // Cường giữ nguyên các icon đã bổ sung ở đây, chỉ thêm ID (số cuối)
-                _buildWalletItem(
-                  context,
-                  "MoMo",
-                  "https://developers.momo.vn/v3/assets/images/MOMO-Logo-App-6262c3743a290ef02396a24ea2b66c35.png",
-                  Colors.pink,
-                  2,
-                ),
-                _buildWalletItem(
-                  context,
-                  "ZaloPay",
-                  "https://play-lh.googleusercontent.com/rvpjYf8EqoCsOFG7IpSpzgmKt820BZpWDpCW2u6gaIAFsfHOIqvk8eGXhgvJLLymIlo0rqzWUjeyG_JqevNogA=w240-h480-rw",
-                  Colors.blue,
-                  3,
-                ),
-                _buildWalletItem(
-                  context,
-                  "Google Pay",
-                  "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQUkmJppezLENkmpeJ5Ldh8x1Ez5J_MIf_qww&s",
-                  Colors.redAccent,
-                  4,
-                ),
-                _buildWalletItem(
-                  context,
-                  "PayPal",
-                  Icons.paypal,
-                  isDark ? Colors.white : Colors.black,
-                  5,
-                ),
-                _buildWalletItem(
-                  context,
-                  "Shopee Pay",
-                  "https://play-lh.googleusercontent.com/H7Ja21f7Q66xICkTSzWzjR3E9IB_2YQUbt0xlHtFdXSdUOdbOqQxxCVxiA73mm8heA",
-                  Colors.deepOrange,
-                  6,
-                ),
-                _buildWalletItem(
-                  context,
-                  "Apple Pay",
-                  Icons.apple,
-                  isDark ? Colors.white : Colors.black,
-                  7,
-                ),
-
-                const SizedBox(height: 30),
-                _buildSectionTitle(context, "Khác"),
-                _buildWalletItem(
-                  context,
-                  "Thanh toán khi nhận phòng (COD)",
-                  Icons.hotel_class,
-                  Colors.orange,
-                  8,
-                ),
-
-                const SizedBox(height: 40),
-                // Nút bấm thực hiện gọi API
-                SizedBox(
-                  width: double.infinity,
-                  height: 55,
-                  child: ElevatedButton(
-                    onPressed: _isProcessing ? null : _handlePayment,
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                    ),
-                    child: _isProcessing
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text(
-                            "XÁC NHẬN & THANH TOÁN",
-                            style: TextStyle(fontWeight: FontWeight.bold),
-                          ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Cập nhật lại Widget để có hiệu ứng chọn (Selection)
-  Widget _buildWalletItem(
-    BuildContext context,
-    String name,
-    dynamic leading,
-    Color brandColor,
-    int id,
-  ) {
-    final colorScheme = Theme.of(context).colorScheme;
-    bool isSelected = _selectedMethodId == id;
-
-    return GestureDetector(
-      onTap: () => setState(() => _selectedMethodId = id),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(
-            color: isSelected
-                ? brandColor
-                : colorScheme.outlineVariant.withOpacity(0.5),
-            width: isSelected ? 2 : 1,
-          ),
-        ),
-        child: ListTile(
-          leading: Container(
-            width: 45,
-            height: 45,
-            alignment: Alignment.center,
-            decoration: BoxDecoration(
-              color: brandColor.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: _buildLeadingIcon(leading, brandColor),
-          ),
-          title: Text(
-            name,
-            style: TextStyle(
-              color: colorScheme.onSurface,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            ),
-          ),
-          trailing: Icon(
-            isSelected ? Icons.check_circle : Icons.radio_button_off,
-            color: isSelected
-                ? brandColor
-                : colorScheme.onSurface.withOpacity(0.3),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Hàm helper giữ nguyên logic xử lý Icon/Image của Cường
-  Widget _buildLeadingIcon(dynamic leading, Color brandColor) {
-    if (leading is IconData) return Icon(leading, color: brandColor, size: 30);
-    if (leading is String && leading.startsWith('http')) {
-      return Image.network(leading, width: 30, height: 30, fit: BoxFit.contain);
-    }
-    return Icon(Icons.account_balance_wallet, color: brandColor, size: 30);
-  }
-
-  // Giữ nguyên Card Visa của Cường nhưng thêm logic chọn
-  Widget _buildPaymentCard(
-    BuildContext context,
-    String title,
-    String subtitle,
-    IconData icon,
-    Color cardColor,
-    int id,
-  ) {
-    bool isSelected = _selectedMethodId == id;
-    return GestureDetector(
-      onTap: () => setState(() => _selectedMethodId = id),
-      child: Container(
-        width: double.infinity,
+      appBar: AppBar(title: const Text('Đặt cọc phòng')),
+      body: ListView(
         padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [cardColor, cardColor.withOpacity(0.7)],
+        children: [
+          const Icon(
+            Icons.verified_user_outlined,
+            size: 64,
+            color: Color(0xFFD4AF37),
           ),
-          borderRadius: BorderRadius.circular(20),
-          border: isSelected ? Border.all(color: Colors.white, width: 3) : null,
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 40),
-            const SizedBox(width: 20),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(color: Colors.white.withOpacity(0.8)),
-                ),
-              ],
+          const SizedBox(height: 16),
+          const Text(
+            'Đặt cọc 10% qua VNPay',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Bạn có 15 phút để hoàn tất. Mã đặt phòng chỉ được xác nhận khi backend nhận callback hợp lệ từ VNPay.',
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 24),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                children: [
+                  _row('Tổng giá trị đơn', _money(widget.totalAmount)),
+                  const Divider(height: 26),
+                  _row('Cọc VNPay (10%)', _money(deposit), emphasized: true),
+                  const SizedBox(height: 12),
+                  _row('Còn lại tại khách sạn', _money(remaining)),
+                  const SizedBox(height: 12),
+                  _row('Trạng thái', _status),
+                ],
+              ),
             ),
-            const Spacer(),
-            Icon(
-              isSelected ? Icons.check_circle : Icons.circle_outlined,
-              color: Colors.white,
+          ),
+          const SizedBox(height: 24),
+          FilledButton.icon(
+            onPressed: _processing ? null : _openVnPay,
+            icon: _processing
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.open_in_browser),
+            label: const Padding(
+              padding: EdgeInsets.symmetric(vertical: 15),
+              child: Text('MỞ VNPAY ĐỂ ĐẶT CỌC'),
             ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- CÁC WIDGET PHỤ TRỢ KHÁC CỦA CƯỜNG ---
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 15, left: 5),
-      child: Text(
-        title.toUpperCase(),
-        style: TextStyle(
-          color: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
-          fontWeight: FontWeight.bold,
-          fontSize: 12,
-          letterSpacing: 1.1,
-        ),
-      ),
-    );
-  }
-
-  void _showSuccessDialog({required bool payAtHotel}) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Icon(Icons.check_circle, color: Colors.green, size: 60),
-        content: Text(
-          payAtHotel
-              ? "Đã ghi nhận đặt phòng. Vui lòng thanh toán tại quầy khi nhận phòng."
-              : "Thanh toán thành công! Hệ thống đã ghi nhận giao dịch của bạn.",
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          TextButton(
-            onPressed: () =>
-                Navigator.of(context).popUntil((route) => route.isFirst),
-            child: const Text("HOÀN TẤT"),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: _pollStatus,
+            icon: const Icon(Icons.refresh),
+            label: const Text('Tôi đã thanh toán – kiểm tra lại'),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _row(String label, String value, {bool emphasized = false}) {
+    return Row(
+      children: [
+        Expanded(child: Text(label)),
+        Text(
+          value,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: emphasized ? 20 : 15,
+            color: emphasized ? const Color(0xFFD4AF37) : null,
+          ),
+        ),
+      ],
     );
   }
 }

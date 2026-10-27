@@ -201,8 +201,10 @@ def save_final_booking(session, user_id):
             "roomType": session.get("selected_room", ""),
             "checkIn": checkin_iso,
             "checkOut": checkout_iso,
-            "guestCount": max(int(session.get("adults", 1)) + int(session.get("children", 0)), 1),
-            "paymentMethod": "ONLINE" if session.get("payment_method") == "Thanh toán Online" else "COD",
+            "adultCount": max(int(session.get("adults", 1)), 1),
+            "childCount": max(int(session.get("children", 0)), 0),
+            "infantCount": max(int(session.get("infants", 0)), 0),
+            "paymentMethod": "ONLINE",
             "note": session.get("note", ""),
         }
         request = urllib.request.Request(
@@ -213,9 +215,11 @@ def save_final_booking(session, user_id):
         )
         with urllib.request.urlopen(request, timeout=20) as response:
             result = json.loads(response.read().decode("utf-8"))
-        session["risk_percentage"] = float(result.get("riskPercentage", 0.0))
         session["total_amount"] = float(result.get("totalAmount", 0.0))
-        return int(result["bookingId"])
+        session["deposit_amount"] = float(result.get("depositAmount", 0.0))
+        session["payment_url"] = result.get("paymentUrl", "")
+        session["invoice_id"] = result.get("invoiceId")
+        return result
 
         # Legacy direct-Mongo implementation retained below temporarily for data-reference only;
         # it is unreachable so the chatbot cannot bypass backend business rules.
@@ -460,19 +464,18 @@ def handle_structured_booking(user_id, msg):
         })
         return (
             f"Cảm ơn **{parts[0]}**!\n\n"
-            f"Vui lòng chọn **Phương thức thanh toán**:\n"
-            f"1️⃣ **Thanh toán tại quầy** (Thanh toán bằng tiền mặt/thẻ khi nhận phòng)\n"
-            f"2️⃣ **Thanh toán Online** (Quét mã QR qua ví điện tử/ngân hàng)\n\n"
-            f"👉 *(Nhập số **1** hoặc **2**)*"
+            f"Đặt phòng trực tuyến yêu cầu **đặt cọc 10% qua VNPay**.\n"
+            f"Phần còn lại thanh toán tại khách sạn khi nhận phòng.\n\n"
+            f"👉 Nhập **đồng ý** để tạo yêu cầu giữ chỗ 15 phút và nhận liên kết VNPay."
         )
 
     # 5. Bước 4: Hoàn tất
     if step == "ask_payment":
-        payment_method = "Thanh toán tại quầy" if "1" in msg_clean or "quầy" in msg_clean.lower() else "Thanh toán Online"
+        payment_method = "Đặt cọc 10% qua VNPay"
         session["payment_method"] = payment_method
         # Gọi Database & AI No-Show
         try:
-            order_id = save_final_booking(session, user_id)
+            booking_result = save_final_booking(session, user_id)
         except Exception:
             # Keep the session at the payment step so the customer can retry after
             # the backend/AI service is available again without re-entering data.
@@ -483,35 +486,22 @@ def handle_structured_booking(user_id, msg):
         booking_sessions[user_id]["step"] = "completed"
 
         res_msg = (
-            f"🎉 **CẢM ƠN BẠN ĐÃ ĐẶT PHÒNG TẠI MAY HOTEL!** 🎉\n\n"
-            f"📋 **THÔNG TIN ĐƠN ĐẶT PHÒNG #{order_id}**:\n"
+            f"🕒 **MAY HOTEL ĐÃ GIỮ CHỖ TRONG 15 PHÚT**\n\n"
+            f"📋 **THÔNG TIN YÊU CẦU ĐẶT PHÒNG**:\n"
             f"- Khách hàng: **{session['customer_name']}** ({session['phone']})\n"
             f"- Loại phòng: **{session['selected_room']}**\n"
             f"- Lưu trú: **{session['checkin']} -> {session['checkout']}**\n"
             f"- Phương thức: **{payment_method}**\n\n"
         )
-        if payment_method == "Thanh toán Online":
-            bank_id = os.getenv("VIETQR_BANK_ID", "").strip()
-            account_no = os.getenv("VIETQR_ACCOUNT_NO", "").strip()
-            account_name = os.getenv("VIETQR_ACCOUNT_NAME", "MAY HOTEL").strip().replace(" ", "%20")
-            amount = int(session.get("total_amount", 0))
-            if bank_id and account_no and amount > 0:
-                qr_url = (
-                    f"https://img.vietqr.io/image/{bank_id}-{account_no}-compact2.png"
-                    f"?amount={amount}&addInfo=MAYHOTEL{order_id}&accountName={account_name}"
-                )
-                res_msg += (
-                    f"Tổng tiền: **{amount:,.0f} VNĐ**. Quý khách vui lòng quét mã QR dưới đây:\n"
-                    f"![QR VietQR]({qr_url})\n\n"
-                )
-            else:
-                res_msg += (
-                    "Hệ thống chưa cấu hình QR thanh toán. Đơn đã được giữ và quý khách "
-                    "có thể thanh toán tại quầy.\n\n"
-                )
-        
-        # Hiển thị demo Rủi ro No-show cho bạn xem kết quả AI
-        res_msg += f"*(Đã lưu CSDL & Kích hoạt AI đánh giá No-Show tự động ngầm: {session['risk_percentage']:.1f}% rủi ro)*"
+        amount = int(session.get("deposit_amount", 0))
+        payment_url = session.get("payment_url", "")
+        res_msg += (
+            f"Tổng giá trị: **{session.get('total_amount', 0):,.0f} VNĐ**\n"
+            f"Tiền cọc 10%: **{amount:,.0f} VNĐ**\n\n"
+            f"[Thanh toán cọc an toàn qua VNPay]({payment_url})\n\n"
+            "Mã đặt phòng chỉ được xác nhận sau khi VNPay báo giao dịch thành công. "
+            "Sau thanh toán, hệ thống tự động lưu kết quả phân tích no-show."
+        )
         return res_msg
 
     booking_sessions[user_id] = {"step": "ask_dates"}

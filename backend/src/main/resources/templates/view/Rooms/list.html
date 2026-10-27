@@ -48,8 +48,16 @@
                 </div>
 
                 <div class="mh-list-search-field mh-list-search-field--guest">
-                    <label><i class="fa-solid fa-user"></i> Số khách</label>
-                    <input type="number" name="guests" min="1" placeholder="1" th:value="${guests}">
+                    <label><i class="fa-solid fa-user"></i> Người lớn (12+)</label>
+                    <input type="number" name="adults" min="1" th:value="${adults}" required>
+                </div>
+                <div class="mh-list-search-field mh-list-search-field--guest">
+                    <label><i class="fa-solid fa-child"></i> Trẻ em (6–11)</label>
+                    <input type="number" name="children" min="0" th:value="${children}" required>
+                </div>
+                <div class="mh-list-search-field mh-list-search-field--guest">
+                    <label><i class="fa-solid fa-baby"></i> Em bé (0–5)</label>
+                    <input type="number" name="infants" min="0" th:value="${infants}" required>
                 </div>
 
                 <button type="submit" class="mh-list-search-btn">
@@ -75,7 +83,9 @@
                         <input type="hidden" name="roomTypeId" th:value="${roomTypeId}">
                         <input type="hidden" name="checkin" th:value="${checkin}">
                         <input type="hidden" name="checkout" th:value="${checkout}">
-                        <input type="hidden" name="guests" th:value="${guests}">
+                        <input type="hidden" name="adults" th:value="${adults}">
+                        <input type="hidden" name="children" th:value="${children}">
+                        <input type="hidden" name="infants" th:value="${infants}">
 
                         <header class="mh-filter-head">
                             <h3><i class="fa-solid fa-filter"></i> Bộ lọc</h3>
@@ -148,7 +158,9 @@
 
                     <div class="mh-room-list" th:if="${rooms != null and !#lists.isEmpty(rooms)}">
 
-                        <a th:each="r : ${rooms}" th:href="@{/rooms/detail/{id}(id=${r.id})}" class="mh-room-row">
+                        <a th:each="r : ${rooms}"
+                            th:href="@{/rooms/detail/{id}(id=${r.id},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants})}"
+                            class="mh-room-row">
 
                             <!-- Ảnh -->
                             <div class="mh-room-row-img">

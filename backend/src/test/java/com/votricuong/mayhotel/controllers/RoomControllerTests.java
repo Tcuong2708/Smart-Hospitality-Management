@@ -6,6 +6,7 @@ import com.votricuong.mayhotel.dto.RatingSnapshot;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.services.ReviewService;
+import com.votricuong.mayhotel.services.BookingAvailabilityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.ui.ExtendedModelMap;
@@ -21,14 +22,16 @@ class RoomControllerTests {
     private RoomRepository roomRepository;
     private RoomTypeRepository roomTypeRepository;
     private RoomController controller;
+    private BookingAvailabilityService availabilityService;
 
     @BeforeEach
     void setUp() {
         roomRepository = mock(RoomRepository.class);
         roomTypeRepository = mock(RoomTypeRepository.class);
         ReviewService reviewService = mock(ReviewService.class);
+        availabilityService = mock(BookingAvailabilityService.class);
         when(reviewService.snapshot()).thenReturn(RatingSnapshot.empty());
-        controller = new RoomController(roomRepository, roomTypeRepository, reviewService);
+        controller = new RoomController(roomRepository, roomTypeRepository, reviewService, availabilityService);
     }
 
     @Test
@@ -45,17 +48,21 @@ class RoomControllerTests {
 
         when(roomTypeRepository.findAll()).thenReturn(List.of(deluxe, suite));
         when(roomRepository.findAll()).thenReturn(List.of(busyDeluxe, vacantDeluxe, busySuite));
+        when(availabilityService.findAvailableRooms(
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(List.of(vacantDeluxe));
 
         ExtendedModelMap model = new ExtendedModelMap();
-        String view = controller.listRooms(null, null, null, null, null, "all", "default", model);
+        String view = controller.listRooms(
+                null, null, null, null, null, null, 0, 0, "all", "default", model);
 
         assertThat(view).isEqualTo("view/rooms/list");
         List<Room> publicRooms = (List<Room>) model.get("rooms");
-        assertThat(publicRooms).hasSize(2);
+        assertThat(publicRooms).hasSize(1);
         assertThat(publicRooms.get(0).getRoomType().getName()).isEqualTo("Phòng Deluxe");
         assertThat(publicRooms.get(0).getImageUrl()).isEqualTo("/images/d1.jpg");
         assertThat(publicRooms.get(0).getStatus()).isEqualTo("Còn phòng");
-        assertThat(publicRooms.get(1).getStatus()).isEqualTo("Tạm hết phòng");
     }
 
     @Test
@@ -66,9 +73,14 @@ class RoomControllerTests {
                 .status("Trống").build();
         when(roomTypeRepository.findAll()).thenReturn(List.of(deluxe));
         when(roomRepository.findAll()).thenReturn(List.of(physicalRoom));
+        when(availabilityService.findAvailableRooms(
+                org.mockito.ArgumentMatchers.isNull(),
+                org.mockito.ArgumentMatchers.any(),
+                org.mockito.ArgumentMatchers.any())).thenReturn(List.of(physicalRoom));
 
         ExtendedModelMap model = new ExtendedModelMap();
-        controller.listRooms("P705", null, null, null, null, "all", "default", model);
+        controller.listRooms(
+                "P705", null, null, null, null, null, 0, 0, "all", "default", model);
 
         assertThat((List<Room>) model.get("rooms")).isEmpty();
     }

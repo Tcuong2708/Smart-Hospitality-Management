@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 80" role="img" aria-labelledby="title desc">
+  <title id="title">VNPay</title>
+  <desc id="desc">Biểu tượng cổng thanh toán trực tuyến VNPay</desc>
+  <rect width="180" height="80" rx="14" fill="#f7faff"/>
+  <g transform="translate(12 17)" fill="none" stroke="#075aaa" stroke-width="5">
+    <path d="M0 13V0h13M31 0h13v13M44 31v13H31M13 44H0V31"/>
+    <path d="M10 10h10v10H10zm24 0h10v10H34zM10 34h10v10H10zm23-2h5v5h-5zm9 7h5v5h-5zm-14 2h5v5h-5z"/>
+  </g>
+  <text x="67" y="49" font-family="Arial, sans-serif" font-size="28" font-weight="800" letter-spacing="-1">
+    <tspan fill="#075aaa">VN</tspan><tspan fill="#e31e24">PAY</tspan>
+  </text>
+  <path d="M69 57h91" stroke="#d4af37" stroke-width="3" stroke-linecap="round"/>
+</svg>

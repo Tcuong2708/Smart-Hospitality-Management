@@ -151,48 +151,19 @@
                                 </div>
 
                                 <div class="mh-co-pay-list">
-                                    <!-- COD -->
-                                    <input type="radio" name="phuongThucThanhToan" id="mhPayCOD" value="COD"
-                                        class="mh-co-pay-radio" checked>
-                                    <label for="mhPayCOD" class="mh-co-pay-card">
-                                        <span class="mh-co-pay-dot"></span>
-                                        <div class="mh-co-pay-info">
-                                            <strong>Thanh toán tại khách sạn</strong>
-                                            <small>Giữ phòng trước, trả tiền mặt hoặc thẻ khi nhận phòng.</small>
-                                        </div>
-                                        <div class="mh-co-pay-logo-img">
-                                            <img th:src="@{/images/payment/cash.png}" alt="Cash">
-                                        </div>
-                                    </label>
-
                                     <!-- Online VNPay -->
                                     <input type="radio" name="phuongThucThanhToan" id="mhPayOnline" value="ONLINE"
-                                        class="mh-co-pay-radio">
+                                        class="mh-co-pay-radio" checked>
                                     <label for="mhPayOnline" class="mh-co-pay-card">
                                         <span class="mh-co-pay-dot"></span>
                                         <div class="mh-co-pay-info">
-                                            <strong>Thanh toán online qua VNPay</strong>
-                                            <small>Quét mã QR, dùng thẻ ATM nội địa hoặc thẻ quốc tế
-                                                (Visa/Mastercard).</small>
+                                            <strong>Đặt cọc 10% qua VNPay</strong>
+                                            <small>Đơn chỉ được xác nhận sau khi VNPay báo giao dịch thành công.</small>
                                         </div>
                                         <div class="mh-co-pay-logo-img">
-                                            <img th:src="@{/images/payment/vnpay.png}" alt="VNPay">
+                                            <img th:src="@{/images/payment/vnpay.svg}" alt="Thanh toán trực tuyến qua VNPay">
                                         </div>
                                     </label>
-
-                                    <!-- Panel COD -->
-                                    <div class="mh-co-qr-panel mh-co-qr-cod">
-                                        <div class="mh-co-panel-inner">
-                                            <div class="mh-co-panel-icon cod">
-                                                <i class="fa-solid fa-hand-holding-dollar"></i>
-                                            </div>
-                                            <div class="mh-co-panel-body">
-                                                <h4>Thanh toán tại khách sạn</h4>
-                                                <p>Quý khách thanh toán trực tiếp tại quầy lễ tân khi nhận phòng. Vui
-                                                    lòng mang theo CCCD/Hộ chiếu để xác minh danh tính.</p>
-                                            </div>
-                                        </div>
-                                    </div>
 
                                     <!-- Panel VNPay -->
                                     <div class="mh-co-qr-panel mh-co-qr-vnpay">
@@ -201,14 +172,13 @@
                                                 <i class="fa-solid fa-qrcode"></i>
                                             </div>
                                             <div class="mh-co-panel-body">
-                                                <h4>Thanh toán qua cổng VNPay</h4>
-                                                <p>Bấm <strong>Xác nhận &amp; Đặt phòng</strong> để chuyển sang VNPay và
-                                                    thanh toán bằng mã QR, thẻ ATM nội địa hoặc Visa/Mastercard. Phòng
-                                                    được bảo đảm ngay khi giao dịch thành công.</p>
+                                                <h4>Đặt cọc bắt buộc qua cổng VNPay</h4>
+                                                <p>Bạn có 15 phút để thanh toán 10% tiền phòng sau ưu đãi/điểm.
+                                                    Dịch vụ không tính vào tiền cọc; phần còn lại thanh toán tại khách sạn.</p>
                                                 <p class="mh-co-panel-amount">
                                                     <span>Số tiền:</span>
-                                                    <strong id="mhCoQrAmount" th:text="${finalTotal != null
-                                                        ? #numbers.formatDecimal(finalTotal, 0, 'COMMA', 0, 'POINT') + ' đ'
+                                                    <strong id="mhCoQrAmount" th:text="${depositAmount != null
+                                                        ? #numbers.formatDecimal(depositAmount, 0, 'COMMA', 0, 'POINT') + ' đ'
                                                         : '0 đ'}">0 đ</strong>
                                                 </p>
                                             </div>
@@ -353,6 +323,16 @@
                                         ? #numbers.formatDecimal(finalTotal, 0, 'COMMA', 0, 'POINT') + ' đ'
                                         : '0 đ'}">0 đ</strong>
                                     </div>
+                                    <div class="mh-co-price-row" style="margin-top:12px;color:#b08900;">
+                                        <span>Cọc VNPay (10% tiền phòng)</span>
+                                        <strong id="mhDepositAmount" th:text="${depositAmount != null
+                                        ? #numbers.formatDecimal(depositAmount, 0, 'COMMA', 0, 'POINT') + ' đ'
+                                        : '0 đ'}">0 đ</strong>
+                                    </div>
+                                    <div class="mh-co-price-row">
+                                        <span>Còn lại trả tại khách sạn</span>
+                                        <strong id="mhRemainingAmount">0 đ</strong>
+                                    </div>
 
                                     <!-- CTA -->
                                     <button type="submit" class="mh-co-cta">
@@ -399,6 +379,7 @@
                 var inNhan = $('mhNgayNhan'), inTra = $('mhNgayTra');
                 var elNhan = $('mhSumNgayNhan'), elTra = $('mhSumNgayTra'), elSoDem = $('mhSumSoDem');
                 var elTienPhong = $('mhSumTienPhong'), elTong = $('mhSumTong'), elQrAmount = $('mhCoQrAmount');
+                var elDeposit = $('mhDepositAmount'), elRemaining = $('mhRemainingAmount');
                 var elWarn = $('mhDateWarn');
                 var pointsInput = $('mhPointsToUse'), pointsValue = $('mhPointsDiscount');
                 var voucherInput = $('mhVoucher'), voucherMessage = $('mhVoucherMessage');
@@ -441,11 +422,16 @@
                     }
                     var pointsDiscount = Math.min(points * 1000, tong);
                     tong = Math.max(0, tong - pointsDiscount);
+                    var netRoom = Math.max(0, tienPhong - voucherDiscount - pointsDiscount);
+                    var deposit = Math.round(netRoom * 0.10);
+                    var remaining = Math.max(0, tong - deposit);
 
                     if (elSoDem) elSoDem.textContent = soDem;
                     if (elTienPhong) elTienPhong.textContent = fmtTien(tienPhong);
                     if (elTong) elTong.textContent = fmtTien(tong);
-                    if (elQrAmount) elQrAmount.textContent = fmtTien(tong);
+                    if (elQrAmount) elQrAmount.textContent = fmtTien(deposit);
+                    if (elDeposit) elDeposit.textContent = fmtTien(deposit);
+                    if (elRemaining) elRemaining.textContent = fmtTien(remaining);
                     if (pointsValue) pointsValue.textContent = '- ' + fmtTien(pointsDiscount);
                 }
 

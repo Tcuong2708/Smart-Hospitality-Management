@@ -491,7 +491,7 @@ textarea {
 
 .mh-search-body {
   display: grid;
-  grid-template-columns: 1.6fr 1fr 1fr .8fr .8fr auto;
+  grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .75fr) minmax(0, .75fr) minmax(0, .75fr) auto;
   gap: 2px;
   background: #d6dce5;
   border-radius: 0 0 14px 14px;
@@ -502,6 +502,7 @@ textarea {
 .mh-search-field {
   background: #fff;
   padding: 13px 15px;
+  min-width: 0;
 }
 
 .mh-search-field label {
@@ -541,6 +542,7 @@ textarea {
 }
 
 .mh-search-btn {
+  grid-column: auto;
   background: var(--gold);
   color: var(--navy-dark);
   border: none;
@@ -3265,7 +3267,7 @@ textarea {
 /* ---------- SEARCH BAR ---------- */
 .mh-list-search {
   display: grid;
-  grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr .8fr auto;
+  grid-template-columns: 1.2fr .9fr .9fr .9fr .65fr .65fr .65fr auto;
   gap: 2px;
   background: #d6dce5;
   border-radius: 14px;

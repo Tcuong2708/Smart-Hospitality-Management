@@ -98,12 +98,16 @@ public class NoShowPredictionService {
         }
         List<Invoice> invoices = invoiceRepository.findByBookingId(order.getId());
         boolean hasDeposit = invoices != null && invoices.stream().anyMatch(invoice ->
-                Boolean.TRUE.equals(invoice.getIsPaid()) || "Paid".equalsIgnoreCase(invoice.getInvoiceStatus()));
+                Boolean.TRUE.equals(invoice.getIsPaid())
+                        || OnlineBookingPolicy.DEPOSIT_PAID.equalsIgnoreCase(invoice.getDepositStatus())
+                        || "Paid".equalsIgnoreCase(invoice.getInvoiceStatus()));
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("lead_time", leadTime);
-        data.put("adults", order.getGuestCount() == null ? 1 : Math.max(order.getGuestCount(), 1));
-        data.put("children", 0);
+        data.put("adults", OnlineBookingPolicy.requiredIdentityVerifications(order));
+        int children = Math.max(order.getChildCount() == null ? 0 : order.getChildCount(), 0)
+                + Math.max(order.getInfantCount() == null ? 0 : order.getInfantCount(), 0);
+        data.put("children", children);
         data.put("stays_in_week_nights", nights);
         data.put("is_deposit", hasDeposit ? 1 : 0);
         data.put("total_of_special_requests", order.getNotes() == null || order.getNotes().isBlank() ? 0 : 1);

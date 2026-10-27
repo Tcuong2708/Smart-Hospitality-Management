@@ -272,7 +272,9 @@ class _BookingScreenState extends State<BookingScreen> {
         userId: userId,
         ngayNhanPhong: _selectedDateRange!.start,
         ngayTraPhong: _selectedDateRange!.end,
-        soNguoi: 1,
+        adultCount: 1,
+        childCount: 0,
+        infantCount: 0,
         ghiChu: 'Quoc tich: $quocTich, Dia chi: $diaChi',
         customerName: hoTen,
         customerPhone: dienThoai,
@@ -284,6 +286,7 @@ class _BookingScreenState extends State<BookingScreen> {
       if (res['success'] == true) {
         // 🌟 ĐÃ SỬA CHÍ MẠNG: Đọc trường 'bookingId' và 'totalAmount' map từ Provider của Cường
         final int generatedBookingId = res['bookingId'] ?? 0;
+        final int invoiceId = res['invoiceId'] ?? 0;
         final double currentTotal = res['totalAmount'] ?? total;
 
         // Bỏ qua chọn dịch vụ, đi thẳng tới khay thanh toán
@@ -292,7 +295,10 @@ class _BookingScreenState extends State<BookingScreen> {
           MaterialPageRoute(
             builder: (_) => PaymentMethodScreen(
               bookingId: generatedBookingId,
+              invoiceId: invoiceId,
               totalAmount: currentTotal,
+              depositAmount: (res['depositAmount'] ?? 0).toDouble(),
+              remainingAmount: (res['remainingAmount'] ?? 0).toDouble(),
             ),
           ),
         );

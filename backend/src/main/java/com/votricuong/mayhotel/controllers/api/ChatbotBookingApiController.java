@@ -13,8 +13,10 @@ import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.services.BookingAvailabilityService;
-import com.votricuong.mayhotel.services.NoShowPredictionService;
+import com.votricuong.mayhotel.services.OnlineBookingPolicy;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
+import com.votricuong.mayhotel.services.VNPayService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
@@ -46,7 +48,7 @@ public class ChatbotBookingApiController {
     private final InvoiceRepository invoiceRepository;
     private final BookingAvailabilityService availabilityService;
     private final SequenceGeneratorService sequenceGeneratorService;
-    private final NoShowPredictionService predictionService;
+    private final VNPayService vnPayService;
     private final String internalToken;
 
     public ChatbotBookingApiController(CustomerRepository customerRepository,
@@ -57,7 +59,7 @@ public class ChatbotBookingApiController {
                                        InvoiceRepository invoiceRepository,
                                        BookingAvailabilityService availabilityService,
                                        SequenceGeneratorService sequenceGeneratorService,
-                                       NoShowPredictionService predictionService,
+                                       VNPayService vnPayService,
                                        @Value("${chatbot.internal.token:}") String internalToken) {
         this.customerRepository = customerRepository;
         this.roomRepository = roomRepository;
@@ -67,7 +69,7 @@ public class ChatbotBookingApiController {
         this.invoiceRepository = invoiceRepository;
         this.availabilityService = availabilityService;
         this.sequenceGeneratorService = sequenceGeneratorService;
-        this.predictionService = predictionService;
+        this.vnPayService = vnPayService;
         this.internalToken = internalToken;
     }
 
@@ -123,12 +125,17 @@ public class ChatbotBookingApiController {
     @PostMapping("/bookings")
     public ResponseEntity<Map<String, Object>> createBooking(
             @RequestHeader(value = "X-Internal-Token", required = false) String token,
-            @RequestBody Map<String, Object> payload) {
+            @RequestBody Map<String, Object> payload,
+            HttpServletRequest request) {
         if (internalToken.isBlank()) {
             return ResponseEntity.status(503).body(Map.of("message", "Chatbot nội bộ chưa được cấu hình"));
         }
         if (!internalToken.equals(token)) {
             return ResponseEntity.status(403).body(Map.of("message", "Internal token không hợp lệ"));
+        }
+        if (!vnPayService.isEnabled()) {
+            return ResponseEntity.status(503).body(Map.of(
+                    "message", "Cổng VNPay chưa được cấu hình; chưa thể tạo đặt phòng trực tuyến"));
         }
         try {
             String rawName = required(payload, "customerName");
@@ -141,13 +148,13 @@ public class ChatbotBookingApiController {
             final String requestedType = com.votricuong.mayhotel.utils.InputValidator.requiredText(rawRequestedType, "Loại phòng", 100)
                     .toLowerCase(Locale.ROOT);
             com.votricuong.mayhotel.utils.InputValidator.stay(checkIn, checkOut);
-            int guestCount = com.votricuong.mayhotel.utils.InputValidator.range(
-                    number(payload.get("guestCount"), 1), "Số khách", 1, 20);
+            int adultCount = number(payload.get("adultCount"), number(payload.get("guestCount"), 1));
+            int childCount = nonNegativeNumber(payload.get("childCount"), 0);
+            int infantCount = nonNegativeNumber(payload.get("infantCount"), 0);
+            int guestCount = OnlineBookingPolicy.totalGuests(adultCount, childCount, infantCount);
+            com.votricuong.mayhotel.utils.InputValidator.range(guestCount, "Số khách", 1, 20);
             String note = com.votricuong.mayhotel.utils.InputValidator.optionalText(
                     payload.get("note") == null ? null : payload.get("note").toString(), "Ghi chú", 500);
-            String paymentMethod = com.votricuong.mayhotel.utils.InputValidator.oneOf(
-                    payload.get("paymentMethod") == null ? "COD" : payload.get("paymentMethod").toString(),
-                    "Phương thức thanh toán", java.util.Set.of("COD", "ONLINE"));
             Date expectedIn = Date.from(checkIn.atStartOfDay(ZoneOffset.UTC).toInstant());
             Date expectedOut = Date.from(checkOut.atStartOfDay(ZoneOffset.UTC).toInstant());
             availabilityService.validateStay(expectedIn, expectedOut);
@@ -156,6 +163,11 @@ public class ChatbotBookingApiController {
                     .filter(type -> type.getName() != null && (type.getName().toLowerCase(Locale.ROOT).contains(requestedType)
                             || requestedType.contains(type.getName().toLowerCase(Locale.ROOT))))
                     .findFirst().orElseThrow(() -> new IllegalArgumentException("Không tìm thấy loại phòng phù hợp"));
+            int maxOccupancy = roomType.getMaxOccupancy() == null ? 1 : roomType.getMaxOccupancy();
+            if (guestCount > maxOccupancy) {
+                throw new IllegalArgumentException(
+                        "Số khách vượt quá sức chứa tối đa " + maxOccupancy + " người của loại phòng");
+            }
             Room room = availabilityService.findAvailableRooms(roomType.getId(), expectedIn, expectedOut).stream()
                     .findFirst().orElseThrow(() -> new IllegalStateException("Loại phòng đã hết trong khoảng ngày yêu cầu"));
 
@@ -177,11 +189,15 @@ public class ChatbotBookingApiController {
             order.setBookingDate(new Date());
             order.setExpectedIn(expectedIn);
             order.setExpectedOut(expectedOut);
-            order.setStatus("Đã xác nhận");
+            order.setStatus(OnlineBookingPolicy.BOOKING_AWAITING_DEPOSIT);
             order.setBookingSource("CHATBOT");
             order.setRiskAnalysisStatus("PENDING");
             order.setGuestCount(guestCount);
+            order.setAdultCount(adultCount);
+            order.setChildCount(childCount);
+            order.setInfantCount(infantCount);
             order.setVerifiedGuestCount(0);
+            order.setPaymentExpiresAt(OnlineBookingPolicy.paymentExpiryFromNow());
             order.setNotes(note.isBlank() ? "[CHATBOT]" : "[CHATBOT] " + note);
             bookingOrderRepository.save(order);
 
@@ -203,20 +219,29 @@ public class ChatbotBookingApiController {
             invoice.setCheckInDate(expectedIn);
             invoice.setCheckOutDate(expectedOut);
             invoice.setTotalAmount((room.getPrice() == null ? 0.0 : room.getPrice()) * nights);
-            invoice.setPayMethod(paymentMethod);
-            invoice.setInvoiceStatus("Reserved");
+            long depositAmount = OnlineBookingPolicy.depositAmount(invoice.getTotalAmount());
+            invoice.setPayMethod("VNPAY_DEPOSIT");
+            invoice.setInvoiceStatus("Awaiting Deposit");
             invoice.setIsPaid(false);
+            invoice.setDepositRate(OnlineBookingPolicy.DEPOSIT_RATE);
+            invoice.setDepositBaseAmount(Math.round(invoice.getTotalAmount()));
+            invoice.setDepositRequiredAmount(depositAmount);
+            invoice.setDepositPaidAmount(0L);
+            invoice.setRemainingAmount(Math.max(0L, Math.round(invoice.getTotalAmount()) - depositAmount));
+            invoice.setDepositStatus(OnlineBookingPolicy.DEPOSIT_PENDING);
             invoice.setSurcharge(0.0);
             invoiceRepository.save(invoice);
 
-            predictionService.analyzeAndSave(order.getId());
-            BookingOrder analyzed = bookingOrderRepository.findById(order.getId()).orElse(order);
-            return ResponseEntity.ok(Map.of(
-                    "bookingId", order.getId(),
-                    "roomId", room.getId(),
-                    "totalAmount", invoice.getTotalAmount(),
-                    "riskStatus", analyzed.getRiskAnalysisStatus(),
-                    "riskPercentage", analyzed.getNoShowRiskPercentage() == null ? 0.0 : analyzed.getNoShowRiskPercentage()));
+            String paymentUrl = vnPayService.createPaymentUrl(invoice, request);
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("invoiceId", invoice.getId());
+            response.put("depositAmount", depositAmount);
+            response.put("remainingAmount", invoice.getRemainingAmount());
+            response.put("totalAmount", invoice.getTotalAmount());
+            response.put("paymentUrl", paymentUrl);
+            response.put("paymentExpiresAt", order.getPaymentExpiresAt());
+            response.put("status", order.getStatus());
+            return ResponseEntity.ok(response);
         } catch (Exception ex) {
             return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage() == null ? "Không thể tạo đặt phòng" : ex.getMessage()));
         }
@@ -231,6 +256,12 @@ public class ChatbotBookingApiController {
     private int number(Object value, int fallback) {
         if (value instanceof Number) return Math.max(((Number) value).intValue(), 1);
         try { return Math.max(Integer.parseInt(String.valueOf(value)), 1); }
+        catch (Exception ignored) { return fallback; }
+    }
+
+    private int nonNegativeNumber(Object value, int fallback) {
+        if (value instanceof Number) return Math.max(((Number) value).intValue(), 0);
+        try { return Math.max(Integer.parseInt(String.valueOf(value)), 0); }
         catch (Exception ignored) { return fallback; }
     }
 }

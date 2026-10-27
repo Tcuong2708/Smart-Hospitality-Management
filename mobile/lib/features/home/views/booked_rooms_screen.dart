@@ -989,7 +989,12 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                     bookingId: bookingId,
                     roomName: item['tenPhong']?.toString() ?? 'Phòng của bạn',
                     totalGuests:
-                        int.tryParse(item['guestCount']?.toString() ?? '1') ??
+                        int.tryParse(
+                          item['requiredIdentityCount']?.toString() ??
+                              item['adultCount']?.toString() ??
+                              item['guestCount']?.toString() ??
+                              '1',
+                        ) ??
                         1,
                   ),
                 ),

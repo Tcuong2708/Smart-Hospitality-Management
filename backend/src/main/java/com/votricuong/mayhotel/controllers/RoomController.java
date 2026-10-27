@@ -7,6 +7,7 @@ import com.votricuong.mayhotel.services.ReviewService;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.documents.User;
+import com.votricuong.mayhotel.services.BookingAvailabilityService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -15,6 +16,9 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,12 +31,14 @@ public class RoomController extends BaseController {
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
     private final ReviewService reviewService;
+    private final BookingAvailabilityService bookingAvailabilityService;
 
     public RoomController(RoomRepository roomRepository, RoomTypeRepository roomTypeRepository,
-            ReviewService reviewService) {
+            ReviewService reviewService, BookingAvailabilityService bookingAvailabilityService) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.reviewService = reviewService;
+        this.bookingAvailabilityService = bookingAvailabilityService;
     }
 
     // ================================================================
@@ -45,6 +51,9 @@ public class RoomController extends BaseController {
             @RequestParam(value = "checkin", required = false) String checkin,
             @RequestParam(value = "checkout", required = false) String checkout,
             @RequestParam(value = "guests", required = false) Integer guests,
+            @RequestParam(value = "adults", required = false) Integer adults,
+            @RequestParam(value = "children", required = false, defaultValue = "0") Integer children,
+            @RequestParam(value = "infants", required = false, defaultValue = "0") Integer infants,
             @RequestParam(value = "priceRange", required = false, defaultValue = "all") String priceRange,
             @RequestParam(value = "sortBy", required = false, defaultValue = "default") String sortBy,
             Model model) {
@@ -55,7 +64,33 @@ public class RoomController extends BaseController {
         Map<Long, RoomType> typeMap = roomTypes.stream()
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
 
-        List<Room> filtered = new ArrayList<>(allRooms);
+        int adultCount = adults == null ? (guests == null ? 2 : guests) : adults;
+        int childCount = children == null ? 0 : children;
+        int infantCount = infants == null ? 0 : infants;
+        int totalGuests;
+        LocalDate checkInDate;
+        LocalDate checkOutDate;
+        try {
+            totalGuests = com.votricuong.mayhotel.services.OnlineBookingPolicy
+                    .totalGuests(adultCount, childCount, infantCount);
+            checkInDate = checkin == null || checkin.isBlank() ? LocalDate.now() : LocalDate.parse(checkin);
+            checkOutDate = checkout == null || checkout.isBlank() ? checkInDate.plusDays(1) : LocalDate.parse(checkout);
+            com.votricuong.mayhotel.utils.InputValidator.stay(checkInDate, checkOutDate);
+        } catch (IllegalArgumentException ex) {
+            model.addAttribute("error", ex.getMessage());
+            adultCount = Math.max(1, adultCount);
+            childCount = Math.max(0, childCount);
+            infantCount = Math.max(0, infantCount);
+            totalGuests = adultCount + childCount + infantCount;
+            checkInDate = LocalDate.now();
+            checkOutDate = checkInDate.plusDays(1);
+        }
+        checkin = checkInDate.toString();
+        checkout = checkOutDate.toString();
+        Date requestedIn = Date.from(checkInDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+        Date requestedOut = Date.from(checkOutDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+        List<Room> availableRooms = bookingAvailabilityService.findAvailableRooms(null, requestedIn, requestedOut);
+        List<Room> filtered = new ArrayList<>(availableRooms);
 
         // 2a. Public search only uses the room type name; physical room codes
         // are assigned internally at check-in and must not be exposed here.
@@ -93,12 +128,13 @@ public class RoomController extends BaseController {
         }
 
         // 2d. guests — dùng maxOccupancy từ RoomType
-        if (guests != null && guests > 0) {
+        if (totalGuests > 0) {
+            final int requestedGuests = totalGuests;
             filtered = filtered.stream()
                     .filter(r -> {
                         RoomType t = r.getRoomTypeId() != null ? typeMap.get(r.getRoomTypeId()) : null;
                         int max = (t != null && t.getMaxOccupancy() != null) ? t.getMaxOccupancy() : 2;
-                        return max >= guests;
+                        return max >= requestedGuests;
                     })
                     .collect(Collectors.toList());
         }
@@ -134,11 +170,11 @@ public class RoomController extends BaseController {
             }
         }
 
-        Map<Long, Boolean> availabilityByType = allRooms.stream()
+        Map<Long, Boolean> availabilityByType = availableRooms.stream()
                 .filter(r -> r.getRoomTypeId() != null)
                 .collect(Collectors.groupingBy(
                         Room::getRoomTypeId,
-                        Collectors.reducing(false, r -> isVacant(r.getStatus()), Boolean::logicalOr)));
+                        Collectors.reducing(false, r -> true, Boolean::logicalOr)));
 
         Map<Long, Room> publicRoomsByType = new LinkedHashMap<>();
         for (Room room : filtered) {
@@ -162,6 +198,10 @@ public class RoomController extends BaseController {
         model.addAttribute("checkin", checkin);
         model.addAttribute("checkout", checkout);
         model.addAttribute("guests", guests);
+        model.addAttribute("adults", adultCount);
+        model.addAttribute("children", childCount);
+        model.addAttribute("infants", infantCount);
+        model.addAttribute("totalGuests", totalGuests);
 
         setPageTitle(model, "Danh sách phòng nghỉ");
         return "view/rooms/list";
@@ -171,7 +211,13 @@ public class RoomController extends BaseController {
     // ROOM DETAIL — GET /rooms/detail/{id}
     // ================================================================
     @GetMapping("/rooms/detail/{id}")
-    public String roomDetail(@PathVariable("id") Long id, Model model, HttpSession session) {
+    public String roomDetail(@PathVariable("id") Long id,
+                             @RequestParam(value = "checkin", required = false) String checkin,
+                             @RequestParam(value = "checkout", required = false) String checkout,
+                             @RequestParam(value = "adults", required = false, defaultValue = "2") Integer adults,
+                             @RequestParam(value = "children", required = false, defaultValue = "0") Integer children,
+                             @RequestParam(value = "infants", required = false, defaultValue = "0") Integer infants,
+                             Model model, HttpSession session) {
 
         Room room = roomRepository.findById(id).orElse(null);
         if (room == null) {
@@ -187,9 +233,22 @@ public class RoomController extends BaseController {
                         ? type.getImageUrl()
                         : room.getImageUrl();
                 room.setImageUrl(toPublicImageUrl(publicImage));
-                boolean categoryAvailable = roomRepository.findByRoomTypeId(room.getRoomTypeId()).stream()
-                        .anyMatch(candidate -> isVacant(candidate.getStatus()));
+                LocalDate in = checkin == null || checkin.isBlank() ? LocalDate.now() : LocalDate.parse(checkin);
+                LocalDate out = checkout == null || checkout.isBlank() ? in.plusDays(1) : LocalDate.parse(checkout);
+                Date requestedIn = Date.from(in.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+                Date requestedOut = Date.from(out.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+                int totalGuests = com.votricuong.mayhotel.services.OnlineBookingPolicy
+                        .totalGuests(adults, children, infants);
+                int capacity = type.getMaxOccupancy() == null ? 2 : type.getMaxOccupancy();
+                boolean categoryAvailable = totalGuests <= capacity
+                        && !bookingAvailabilityService.findAvailableRooms(
+                                room.getRoomTypeId(), requestedIn, requestedOut).isEmpty();
                 room.setStatus(categoryAvailable ? "Còn phòng" : "Tạm hết phòng");
+                model.addAttribute("checkin", in.toString());
+                model.addAttribute("checkout", out.toString());
+                model.addAttribute("adults", adults);
+                model.addAttribute("children", children);
+                model.addAttribute("infants", infants);
             }
         }
 

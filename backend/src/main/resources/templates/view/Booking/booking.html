@@ -138,20 +138,30 @@
                                 </div>
 
                                 <div class="mh-form-group" style="margin-bottom:16px;">
-                                    <label>Số khách lưu trú</label>
-                                    <input type="number" name="guestCount" id="mhGuestCount" value="1" min="1"
-                                           th:max="${loaiPhong.soNguoi * soPhongTrong}" required>
-                                    <small>Mỗi khách sẽ được xác thực khi nhận phòng.</small>
+                                    <label>Người lớn (từ 12 tuổi)</label>
+                                    <input type="number" name="adultCount" id="mhAdultCount" min="1"
+                                           th:value="${adults != null ? adults : 1}" required>
+                                </div>
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Trẻ em (6–11 tuổi)</label>
+                                    <input type="number" name="childCount" id="mhChildCount" min="0"
+                                           th:value="${children != null ? children : 0}" required>
+                                </div>
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Em bé (0–5 tuổi)</label>
+                                    <input type="number" name="infantCount" id="mhInfantCount" min="0"
+                                           th:value="${infants != null ? infants : 0}" required>
+                                    <small>Tất cả khách được tính vào sức chứa; chỉ người lớn cần xác thực CCCD/khuôn mặt.</small>
                                 </div>
 
                                 <div class="mh-form-group" style="margin-bottom:16px;">
                                     <label>Ngày nhận phòng</label>
-                                    <input type="date" name="ngayNhan" id="mhNgayNhan" required>
+                                    <input type="date" name="ngayNhan" id="mhNgayNhan" th:value="${checkin}" required>
                                 </div>
 
                                 <div class="mh-form-group" style="margin-bottom:16px;">
                                     <label>Ngày trả phòng</label>
-                                    <input type="date" name="ngayTra" id="mhNgayTra" required>
+                                    <input type="date" name="ngayTra" id="mhNgayTra" th:value="${checkout}" required>
                                 </div>
 
                                 <div class="mh-price-breakdown">

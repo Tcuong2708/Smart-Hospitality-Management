@@ -19,16 +19,19 @@ public class BookingApiController {
     private final InvoiceRepository invoiceRepository;
     private final RoomRepository roomRepository;
     private final com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository;
+    private final com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService;
 
     public BookingApiController(
             com.votricuong.mayhotel.repositories.BookingOrderRepository bookingOrderRepository,
             InvoiceRepository invoiceRepository,
             RoomRepository roomRepository,
-            com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository) {
+            com.votricuong.mayhotel.repositories.RoomTypeRepository roomTypeRepository,
+            com.votricuong.mayhotel.services.NoShowPredictionService noShowPredictionService) {
         this.bookingOrderRepository = bookingOrderRepository;
         this.invoiceRepository = invoiceRepository;
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
+        this.noShowPredictionService = noShowPredictionService;
     }
 
     @PostMapping("/add")
@@ -74,6 +77,18 @@ public class BookingApiController {
             order.setExpectedIn(ngayNhan);
             order.setExpectedOut(ngayTra);
             order.setStatus("Đã xác nhận");
+            order.setBookingSource("LEGACY_API");
+            order.setRiskAnalysisStatus("PENDING");
+            int adults = payload.get("adultCount") instanceof Number
+                    ? Math.max(1, ((Number) payload.get("adultCount")).intValue()) : 1;
+            int children = payload.get("childCount") instanceof Number
+                    ? Math.max(0, ((Number) payload.get("childCount")).intValue()) : 0;
+            int infants = payload.get("infantCount") instanceof Number
+                    ? Math.max(0, ((Number) payload.get("infantCount")).intValue()) : 0;
+            order.setAdultCount(adults);
+            order.setChildCount(children);
+            order.setInfantCount(infants);
+            order.setGuestCount(adults + children + infants);
             order.setNotes(ghiChu);
             bookingOrderRepository.save(order);
 
@@ -85,6 +100,8 @@ public class BookingApiController {
             invoice.setInvoiceStatus("Chờ thanh toán");
             invoice.setCreatedAt(new Date());
             invoiceRepository.save(invoice);
+
+            noShowPredictionService.analyzeAndSave(order.getId());
             
             // Đổi trạng thái phòng
             room.setStatus("Reserved");

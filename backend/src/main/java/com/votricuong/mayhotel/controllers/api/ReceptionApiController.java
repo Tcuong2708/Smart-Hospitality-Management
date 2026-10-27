@@ -62,9 +62,8 @@ public class ReceptionApiController {
             }
 
             BookingOrder booking = bookingOpt.get();
-            int requiredGuestCount = booking.getGuestCount() == null || booking.getGuestCount() < 1
-                    ? 1
-                    : booking.getGuestCount();
+            int requiredGuestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy
+                    .requiredIdentityVerifications(booking);
             int verifiedGuestCount = booking.getVerifiedGuestCount() == null
                     ? (Boolean.TRUE.equals(booking.getIsFaceVerified()) ? requiredGuestCount : 0)
                     : booking.getVerifiedGuestCount();
@@ -128,7 +127,8 @@ public class ReceptionApiController {
             customerRepository.save(customer);
 
             booking.setIsFaceVerified(true);
-            int guestCount = booking.getGuestCount() == null || booking.getGuestCount() < 1 ? 1 : booking.getGuestCount();
+            int guestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy
+                    .requiredIdentityVerifications(booking);
             booking.setGuestCount(guestCount);
             booking.setVerifiedGuestCount(guestCount);
             booking.setIdentityVerificationMethod("MANUAL_EXCEPTION");
@@ -156,7 +156,8 @@ public class ReceptionApiController {
             BookingOrder booking = bookingOrderRepository.findById(bookingId)
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy Booking."));
             booking.setIsFaceVerified(true);
-            int guestCount = booking.getGuestCount() == null || booking.getGuestCount() < 1 ? 1 : booking.getGuestCount();
+            int guestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy
+                    .requiredIdentityVerifications(booking);
             booking.setGuestCount(guestCount);
             booking.setVerifiedGuestCount(guestCount);
             booking.setIdentityVerificationMethod("DEMO_SIMULATION");

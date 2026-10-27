@@ -41,8 +41,16 @@
               <input type="date" name="checkout">
             </div>
             <div class="mh-search-field mh-search-field--guest">
-              <label><i class="fa-solid fa-user"></i> Số khách</label>
-              <input type="number" name="guests" min="1" value="2">
+              <label><i class="fa-solid fa-user"></i> Người lớn (12+)</label>
+              <input type="number" name="adults" min="1" value="2" required>
+            </div>
+            <div class="mh-search-field mh-search-field--guest">
+              <label><i class="fa-solid fa-child"></i> Trẻ em (6–11)</label>
+              <input type="number" name="children" min="0" value="0" required>
+            </div>
+            <div class="mh-search-field mh-search-field--guest">
+              <label><i class="fa-solid fa-baby"></i> Em bé (0–5)</label>
+              <input type="number" name="infants" min="0" value="0" required>
             </div>
             <button type="submit" class="mh-search-btn">
               <i class="fa-solid fa-magnifying-glass"></i> Tìm phòng

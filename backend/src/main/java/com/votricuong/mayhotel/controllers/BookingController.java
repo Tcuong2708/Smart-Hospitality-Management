@@ -42,6 +42,7 @@ public class BookingController extends BaseController {
     private final com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService;
     private final com.votricuong.mayhotel.services.VNPayService vnPayService;
     private final com.votricuong.mayhotel.services.PromotionService promotionService;
+    private final com.votricuong.mayhotel.services.DepositPaymentService depositPaymentService;
 
     public BookingController(RoomRepository roomRepository, 
                              ServiceRepository serviceRepository, 
@@ -58,7 +59,8 @@ public class BookingController extends BaseController {
                              com.votricuong.mayhotel.services.BookingCancellationService bookingCancellationService,
                              com.votricuong.mayhotel.services.BookingAvailabilityService bookingAvailabilityService,
                              com.votricuong.mayhotel.services.VNPayService vnPayService,
-                             com.votricuong.mayhotel.services.PromotionService promotionService) {
+                             com.votricuong.mayhotel.services.PromotionService promotionService,
+                             com.votricuong.mayhotel.services.DepositPaymentService depositPaymentService) {
         this.roomRepository = roomRepository;
         this.serviceRepository = serviceRepository;
         this.bookingOrderRepository = bookingOrderRepository;
@@ -75,6 +77,7 @@ public class BookingController extends BaseController {
         this.bookingAvailabilityService = bookingAvailabilityService;
         this.vnPayService = vnPayService;
         this.promotionService = promotionService;
+        this.depositPaymentService = depositPaymentService;
     }
 
     // 1. SELECT SERVICES (Redirect to checkout with services)
@@ -91,7 +94,14 @@ public class BookingController extends BaseController {
 
     // 2. BOOK ROOM VIEW
     @GetMapping("/book")
-    public String book(@RequestParam("maLoai") Long maLoai, Model model, RedirectAttributes redirectAttributes, HttpSession session, jakarta.servlet.http.HttpServletRequest request) {
+    public String book(@RequestParam("maLoai") Long maLoai,
+                       @RequestParam(value = "checkin", required = false) String checkin,
+                       @RequestParam(value = "checkout", required = false) String checkout,
+                       @RequestParam(value = "adults", required = false, defaultValue = "1") Integer adults,
+                       @RequestParam(value = "children", required = false, defaultValue = "0") Integer children,
+                       @RequestParam(value = "infants", required = false, defaultValue = "0") Integer infants,
+                       Model model, RedirectAttributes redirectAttributes, HttpSession session,
+                       jakarta.servlet.http.HttpServletRequest request) {
         if (session.getAttribute("user") == null) {
             return "redirect:/account/login?error=auth";
         }
@@ -110,13 +120,11 @@ public class BookingController extends BaseController {
             return "redirect:/error/404";
         }
 
-        long phongTrong = allRooms.stream()
-                .filter(p -> p.getRoomTypeId() != null && p.getRoomTypeId().equals(maLoai) && 
-                            ("Vacant".equalsIgnoreCase(p.getStatus()) || 
-                             "Còn phòng".equalsIgnoreCase(p.getStatus()) || 
-                             "Trống".equalsIgnoreCase(p.getStatus()) || 
-                             "Phòng trống".equalsIgnoreCase(p.getStatus())))
-                .count();
+        LocalDate checkInDate = checkin == null || checkin.isBlank() ? LocalDate.now() : LocalDate.parse(checkin);
+        LocalDate checkOutDate = checkout == null || checkout.isBlank() ? checkInDate.plusDays(1) : LocalDate.parse(checkout);
+        Date requestedIn = Date.from(checkInDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+        Date requestedOut = Date.from(checkOutDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
+        long phongTrong = bookingAvailabilityService.findAvailableRooms(maLoai, requestedIn, requestedOut).size();
 
         if (phongTrong == 0) {
             redirectAttributes.addFlashAttribute("error", "Rất tiếc, loại phòng này hiện tại đã hết phòng trống!");
@@ -127,6 +135,11 @@ public class BookingController extends BaseController {
         setPageTitle(model, "Đặt phòng: " + loai.getName());
         model.addAttribute("loaiPhong", loai);
         model.addAttribute("soPhongTrong", phongTrong);
+        model.addAttribute("checkin", checkInDate.toString());
+        model.addAttribute("checkout", checkOutDate.toString());
+        model.addAttribute("adults", adults);
+        model.addAttribute("children", children);
+        model.addAttribute("infants", infants);
 
         setExtraCSS(model, "view/Booking/booking :: extra_css");
         return "view/Booking/booking";
@@ -136,14 +149,22 @@ public class BookingController extends BaseController {
     @PostMapping("/checkout")
     public String startCheckout(@RequestParam("maLoai") Long maLoai,
                             @RequestParam("soLuong") int soLuong,
-                            @RequestParam(value = "guestCount", defaultValue = "1") int guestCount,
+                            @RequestParam(value = "guestCount", required = false) Integer legacyGuestCount,
+                            @RequestParam(value = "adultCount", required = false) Integer adultCount,
+                            @RequestParam(value = "childCount", defaultValue = "0") Integer childCount,
+                            @RequestParam(value = "infantCount", defaultValue = "0") Integer infantCount,
                             @RequestParam("ngayNhan") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate ngayNhan,
                             @RequestParam("ngayTra") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate ngayTra,
                             HttpSession session,
                             RedirectAttributes redirectAttributes,
                             jakarta.servlet.http.HttpServletRequest request) {
 
+        int adults = adultCount == null ? (legacyGuestCount == null ? 1 : legacyGuestCount) : adultCount;
+        int children = childCount == null ? 0 : childCount;
+        int infants = infantCount == null ? 0 : infantCount;
+        int guestCount;
         try {
+            guestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy.totalGuests(adults, children, infants);
             com.votricuong.mayhotel.utils.InputValidator.stay(ngayNhan, ngayTra);
             com.votricuong.mayhotel.utils.InputValidator.range(soLuong, "Số lượng phòng", 1, 10);
             com.votricuong.mayhotel.utils.InputValidator.range(guestCount, "Số khách lưu trú", 1, 100);
@@ -180,6 +201,9 @@ public class BookingController extends BaseController {
             currentBooking.setLoaiPhong(loai);
             currentBooking.setSoLuong(soLuong);
             currentBooking.setGuestCount(guestCount);
+            currentBooking.setAdultCount(adults);
+            currentBooking.setChildCount(children);
+            currentBooking.setInfantCount(infants);
             currentBooking.setNgayNhan(ngayNhan);
             currentBooking.setNgayTra(ngayTra);
 
@@ -274,6 +298,9 @@ public class BookingController extends BaseController {
                     maLoai,
                     1,
                     1,
+                    null,
+                    0,
+                    0,
                     LocalDate.now(),
                     LocalDate.now().plusDays(1),
                     session,
@@ -309,6 +336,9 @@ public class BookingController extends BaseController {
         model.addAttribute("chosenServices", chosenServices);
         model.addAttribute("totalDichVu", totalDichVu);
         model.addAttribute("finalTotal", currentBooking.getThanhTien() + totalDichVu);
+        model.addAttribute("depositAmount",
+                com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(
+                        currentBooking.getThanhTien()));
         
         // Push all services cho trường hợp muốn thêm dịch vụ
         model.addAttribute("listDichVu", serviceRepository.findAll());
@@ -374,7 +404,7 @@ public class BookingController extends BaseController {
             phone = com.votricuong.mayhotel.utils.InputValidator.phone(phone);
             ghiChu = com.votricuong.mayhotel.utils.InputValidator.optionalText(ghiChu, "Ghi chú", 500);
             phuongThucThanhToan = com.votricuong.mayhotel.utils.InputValidator.oneOf(
-                    phuongThucThanhToan, "Phương thức thanh toán", java.util.Set.of("COD", "ONLINE"));
+                    phuongThucThanhToan, "Phương thức thanh toán", java.util.Set.of("ONLINE"));
             com.votricuong.mayhotel.utils.InputValidator.range(currentBooking.getSoLuong(), "Số lượng phòng", 1, 10);
             if (currentBooking.getGuestCount() <= 0) {
                 currentBooking.setGuestCount(Math.max(1, currentBooking.getSoLuong()));
@@ -481,9 +511,15 @@ public class BookingController extends BaseController {
             bookingOrder.setBookingDate(new Date());
             bookingOrder.setExpectedIn(Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             bookingOrder.setExpectedOut(Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-            bookingOrder.setStatus("Pending");
+            bookingOrder.setStatus(com.votricuong.mayhotel.services.OnlineBookingPolicy.BOOKING_AWAITING_DEPOSIT);
             bookingOrder.setBookingSource("WEB");
             bookingOrder.setRiskAnalysisStatus("PENDING");
+            bookingOrder.setGuestCount(currentBooking.getGuestCount());
+            bookingOrder.setAdultCount(currentBooking.getAdultCount());
+            bookingOrder.setChildCount(currentBooking.getChildCount());
+            bookingOrder.setInfantCount(currentBooking.getInfantCount());
+            bookingOrder.setVerifiedGuestCount(0);
+            bookingOrder.setPaymentExpiresAt(com.votricuong.mayhotel.services.OnlineBookingPolicy.paymentExpiryFromNow());
             
             String noteStr = (ghiChu != null) ? ghiChu.trim() : "";
             bookingOrder.setNotes(noteStr);
@@ -542,8 +578,17 @@ public class BookingController extends BaseController {
             invoice.setPromotionCode(promotionQuote.promotion() == null ? null : promotionQuote.promotion().getCode());
             invoice.setPromotionDiscount(promotionDiscount);
             invoice.setTotalAmount(roomAndServiceTotal - pointsDiscount);
-            invoice.setPayMethod(phuongThucThanhToan);
-            invoice.setInvoiceStatus("Reserved");
+            double netRoomAmount = Math.max(0D, tongGiaCacPhong - promotionDiscount - pointsDiscount);
+            long depositAmount = com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(netRoomAmount);
+            long totalAmount = Math.round(roomAndServiceTotal - pointsDiscount);
+            invoice.setPayMethod("VNPAY_DEPOSIT");
+            invoice.setInvoiceStatus("Awaiting Deposit");
+            invoice.setDepositRate(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_RATE);
+            invoice.setDepositBaseAmount(Math.round(netRoomAmount));
+            invoice.setDepositRequiredAmount(depositAmount);
+            invoice.setDepositPaidAmount(0L);
+            invoice.setRemainingAmount(Math.max(0L, totalAmount - depositAmount));
+            invoice.setDepositStatus(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PENDING);
             invoice.setNote(noteStr);
             invoice.setGuestName(customer.getFullName());
             invoice.setPhone(customer.getPhone());
@@ -560,15 +605,7 @@ public class BookingController extends BaseController {
             invoice.setPointsDiscount(pointsDiscount);
             invoice.setLoyaltyFinalized(false);
             invoiceRepository.save(invoice);
-            noShowPredictionService.analyzeAndSave(savedBookingOrder.getId());
-
-            if ("ONLINE".equalsIgnoreCase(phuongThucThanhToan)) {
-                return "redirect:/booking/payment-gate?id=" + invoice.getId();
-            } else {
-                redirectAttributes.addFlashAttribute("success", "Đặt phòng thành công! Quý khách vui lòng thanh toán trực tiếp tại quầy lễ tân.");
-                redirectAttributes.addFlashAttribute("successBookingId", savedBookingOrder.getId());
-                return "redirect:/booking/success";
-            }
+            return "redirect:/booking/payment-gate?id=" + invoice.getId();
 
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("error", "Lỗi xử lý đặt phòng: " + e.getMessage());
@@ -594,7 +631,9 @@ public class BookingController extends BaseController {
         }
         model.addAttribute("invoice", invoice);
         model.addAttribute("vnpayEnabled", vnPayService.isEnabled());
-        if (vnPayService.isEnabled() && !Boolean.TRUE.equals(invoice.getIsPaid())) {
+        if (vnPayService.isEnabled()
+                && !com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PAID
+                .equalsIgnoreCase(invoice.getDepositStatus())) {
             model.addAttribute("vnpayPaymentUrl", vnPayService.createPaymentUrl(invoice, request));
         }
         return "view/Booking/payment";
@@ -615,42 +654,31 @@ public class BookingController extends BaseController {
             ra.addFlashAttribute("error", "Không tìm thấy hóa đơn của giao dịch này.");
             return "redirect:/";
         }
-        if (!isInvoiceOwner(invoice, session)) {
+        if (!isInvoiceOwner(invoice, session) && !isChatbotInvoice(invoice)) {
             ra.addFlashAttribute("error", "Bạn không có quyền xử lý hóa đơn này.");
             return "redirect:/booking/success";
         }
 
         long paidAmount = parseVnpAmount(allParams.get("vnp_Amount"));
         boolean validSignature = vnPayService.validateSignature(allParams);
-        boolean amountMatches = invoice.getTotalAmount() != null
-                && Math.round(invoice.getTotalAmount()) == paidAmount;
+        boolean amountMatches = com.votricuong.mayhotel.services.OnlineBookingPolicy.payableDeposit(invoice)
+                == paidAmount;
         String responseCode = allParams.get("vnp_ResponseCode");
 
         if (validSignature && amountMatches && "00".equals(responseCode)) {
-            if (!Boolean.TRUE.equals(invoice.getIsPaid())) {
-                invoice.setInvoiceStatus("Paid");
-                invoice.setPayMethod("VNPAY");
-                invoice.setNote((invoice.getNote() == null ? "" : invoice.getNote())
-                        + " | [VNPAY] Thanh toán thành công. Mã GD: " + allParams.get("vnp_TransactionNo"));
-                addPaymentTransaction(invoice, txnRef, paidAmount, allParams.get("vnp_BankCode"),
-                        "SUCCESS", responseCode, "VNPay xác nhận thanh toán thành công");
-                LoyaltyService.PaymentLoyaltyResult result = loyaltyService.finalizePaidInvoice(invoice);
-                if (!result.success()) {
-                    ra.addFlashAttribute("error", result.message());
-                    return "redirect:/booking/payment-gate?id=" + invoice.getId();
-                }
-            }
-            ra.addFlashAttribute("success", "Thanh toán VNPay thành công. Đơn đặt phòng đã được giữ.");
+            depositPaymentService.confirmDeposit(invoice, txnRef, paidAmount, allParams.get("vnp_BankCode"),
+                    responseCode, "VNPay xác nhận thanh toán cọc thành công. Mã GD: "
+                            + allParams.get("vnp_TransactionNo"));
+            ra.addFlashAttribute("success", "Thanh toán cọc VNPay thành công. Đơn đặt phòng đã được xác nhận.");
             if (invoice.getBookingId() != null) {
                 ra.addFlashAttribute("successBookingId", invoice.getBookingId());
             }
             return "redirect:/booking/success";
         }
 
-        if (validSignature && !Boolean.TRUE.equals(invoice.getIsPaid())) {
-            addPaymentTransaction(invoice, txnRef, paidAmount, allParams.get("vnp_BankCode"),
-                    "FAILED", responseCode, "Giao dịch VNPay không thành công hoặc đã bị hủy");
-            invoiceRepository.save(invoice);
+        if (validSignature) {
+            depositPaymentService.recordFailure(invoice, txnRef, paidAmount, allParams.get("vnp_BankCode"),
+                    responseCode, "Giao dịch cọc VNPay không thành công hoặc đã bị hủy");
         }
         String message = !validSignature
                 ? "Chữ ký thanh toán không hợp lệ."
@@ -702,26 +730,8 @@ public class BookingController extends BaseController {
     @PostMapping("/complete-online-payment")
     public String completeOnlinePayment(@RequestParam("maHD") Long maHD, RedirectAttributes ra,
                                         HttpSession session) {
-        try {
-            Optional<Invoice> invoiceOpt = invoiceRepository.findById(maHD);
-            if (invoiceOpt.isPresent()) {
-                Invoice invoice = invoiceOpt.get();
-                if (!isInvoiceOwner(invoice, session)) {
-                    throw new IllegalStateException("Bạn không có quyền thanh toán hóa đơn này.");
-                }
-                invoice.setInvoiceStatus("Paid");
-                invoice.setNote((invoice.getNote() != null ? invoice.getNote() : "") + " | [ONLINE] Đã thanh toán trực tuyến thành công.");
-                LoyaltyService.PaymentLoyaltyResult loyaltyResult = loyaltyService.finalizePaidInvoice(invoice);
-                if (!loyaltyResult.success()) {
-                    throw new IllegalStateException(loyaltyResult.message());
-                }
-                invoiceRepository.save(invoice);
-                ra.addFlashAttribute("success", "Thanh toán trực tuyến thành công! Phòng của bạn đã được đảm bảo.");
-            }
-        } catch (Exception e) {
-            ra.addFlashAttribute("error", "Lỗi kết toán giao dịch trực tuyến: " + e.getMessage());
-        }
-        return "redirect:/booking/success";
+        ra.addFlashAttribute("error", "Không thể xác nhận thanh toán thủ công. Vui lòng hoàn tất giao dịch trên VNPay.");
+        return "redirect:/booking/payment-gate?id=" + maHD;
     }
 
     private boolean isInvoiceOwner(Invoice invoice, HttpSession session) {
@@ -730,6 +740,13 @@ public class BookingController extends BaseController {
         return principal instanceof User user
                 && user.getId() != null
                 && Objects.equals(invoice.getUserId(), user.getId());
+    }
+
+    private boolean isChatbotInvoice(Invoice invoice) {
+        if (invoice == null || invoice.getBookingId() == null || invoice.getUserId() != null) return false;
+        return bookingOrderRepository.findById(invoice.getBookingId())
+                .map(order -> "CHATBOT".equalsIgnoreCase(order.getBookingSource()))
+                .orElse(false);
     }
 
     // 8. SUCCESS

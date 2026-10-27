@@ -24,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late DateTimeRange _selectedDateRange;
   int _adults = 2;
   int _children = 0;
+  int _infants = 0;
 
   String _currentUserName = "Guest";
   String _searchQuery = "";
@@ -88,6 +89,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _selectedDateRange.end,
       _adults,
       _children,
+      _infants,
     );
     return results
         .whereType<Map>()
@@ -213,7 +215,9 @@ class _HomeScreenState extends State<HomeScreen> {
           imageUrl: image,
           maPhong: id,
           initialDateRange: _selectedDateRange,
-          initialGuestCount: _adults + _children,
+          initialAdultCount: _adults,
+          initialChildCount: _children,
+          initialInfantCount: _infants,
           maxGuestCount: maxOccupancy,
         ),
       ),
@@ -717,7 +721,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   onDecrease: _adults > 1
                       ? () => setState(() => _adults--)
                       : null,
-                  onIncrease: _adults + _children < 10
+                  onIncrease: _adults + _children + _infants < 10
                       ? () => setState(() => _adults++)
                       : null,
                 ),
@@ -725,17 +729,26 @@ class _HomeScreenState extends State<HomeScreen> {
               const SizedBox(width: 10),
               Expanded(
                 child: _buildGuestCounter(
-                  label: 'Trẻ em',
+                  label: 'Trẻ em (6–11)',
                   value: _children,
                   onDecrease: _children > 0
                       ? () => setState(() => _children--)
                       : null,
-                  onIncrease: _adults + _children < 10
+                  onIncrease: _adults + _children + _infants < 10
                       ? () => setState(() => _children++)
                       : null,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+          _buildGuestCounter(
+            label: 'Em bé (0–5)',
+            value: _infants,
+            onDecrease: _infants > 0 ? () => setState(() => _infants--) : null,
+            onIncrease: _adults + _children + _infants < 10
+                ? () => setState(() => _infants++)
+                : null,
           ),
           const SizedBox(height: 12),
           SizedBox(

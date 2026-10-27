@@ -67,6 +67,27 @@ public class Invoice {
     private Boolean isPaid;
     private Double surcharge;
 
+    @org.springframework.data.mongodb.core.mapping.Field("deposit_rate")
+    private Double depositRate;
+
+    @org.springframework.data.mongodb.core.mapping.Field("deposit_base_amount")
+    private Long depositBaseAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("deposit_required_amount")
+    private Long depositRequiredAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("deposit_paid_amount")
+    private Long depositPaidAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("deposit_paid_at")
+    private Date depositPaidAt;
+
+    @org.springframework.data.mongodb.core.mapping.Field("remaining_amount")
+    private Long remainingAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("deposit_status")
+    private String depositStatus;
+
     @org.springframework.data.mongodb.core.mapping.Field("points_to_redeem")
     private Integer pointsToRedeem;
 

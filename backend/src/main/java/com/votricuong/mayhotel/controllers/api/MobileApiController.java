@@ -399,16 +399,19 @@ public class MobileApiController {
             @RequestParam("ngayNhan") String ngayNhanStr,
             @RequestParam("ngayTra") String ngayTraStr,
             @RequestParam(value = "adults", required = false, defaultValue = "2") Integer adults,
-            @RequestParam(value = "children", required = false, defaultValue = "0") Integer children) {
+            @RequestParam(value = "children", required = false, defaultValue = "0") Integer children,
+            @RequestParam(value = "infants", required = false, defaultValue = "0") Integer infants) {
         try {
             Date ngayNhan = parseMobileDate(ngayNhanStr);
             Date ngayTra = parseMobileDate(ngayTraStr);
             int adultCount = adults == null ? 2 : adults;
             int childCount = children == null ? 0 : children;
-            if (adultCount < 1 || childCount < 0) {
+            int infantCount = infants == null ? 0 : infants;
+            if (adultCount < 1 || childCount < 0 || infantCount < 0) {
                 throw new IllegalArgumentException("Số lượng người lớn hoặc trẻ em không hợp lệ");
             }
-            int totalGuests = Math.addExact(adultCount, childCount);
+            int totalGuests = com.votricuong.mayhotel.services.OnlineBookingPolicy.totalGuests(
+                    adultCount, childCount, infantCount);
             
             if (ngayTra.before(ngayNhan) || ngayTra.equals(ngayNhan)) {
                 return ResponseEntity.badRequest().body(ApiResponse.error("Ngày trả phòng phải sau ngày nhận phòng"));
@@ -491,7 +494,13 @@ public class MobileApiController {
             Long roomTypeId = requiredLong(payload, "roomTypeId");
             String ngayNhanStr = requiredString(payload, "ngayNhan");
             String ngayTraStr = requiredString(payload, "ngayTra");
-            int guestCount = optionalPositiveInt(payload, "soNguoi", 1);
+            int legacyGuestCount = optionalPositiveInt(payload, "soNguoi", 1);
+            int adultCount = optionalNonNegativeInt(payload, "adultCount",
+                    payload.containsKey("adultCount") ? 0 : legacyGuestCount);
+            int childCount = optionalNonNegativeInt(payload, "childCount", 0);
+            int infantCount = optionalNonNegativeInt(payload, "infantCount", 0);
+            int guestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy.totalGuests(
+                    adultCount, childCount, infantCount);
 
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new IllegalArgumentException("Tài khoản đặt phòng không tồn tại"));
@@ -562,15 +571,19 @@ public class MobileApiController {
             order.setBookingDate(new Date());
             order.setExpectedIn(ngayNhan);
             order.setExpectedOut(ngayTra);
-            order.setStatus("Pending");
+            order.setStatus(com.votricuong.mayhotel.services.OnlineBookingPolicy.BOOKING_AWAITING_DEPOSIT);
             order.setBookingSource("MOBILE");
             order.setRiskAnalysisStatus("PENDING");
             order.setNotes(ghiChu);
             order.setGuestCount(guestCount);
+            order.setAdultCount(adultCount);
+            order.setChildCount(childCount);
+            order.setInfantCount(infantCount);
             order.setVerifiedGuestCount(0);
             order.setGuestVerifications(new ArrayList<>());
             order.setIsFaceVerified(false);
             order.setAutoCancelTime(calculateAutoCancelTime(ngayNhan, false));
+            order.setPaymentExpiresAt(com.votricuong.mayhotel.services.OnlineBookingPolicy.paymentExpiryFromNow());
             bookingOrderRepository.save(order);
             
             BookingDetail bd = new BookingDetail();
@@ -584,7 +597,8 @@ public class MobileApiController {
             invoice.setId(sequenceGeneratorService.generateSequence("invoices_sequence"));
             invoice.setBookingId(order.getId());
             invoice.setTotalAmount(total);
-            invoice.setInvoiceStatus("Pending");
+            long depositAmount = com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(total);
+            invoice.setInvoiceStatus("Awaiting Deposit");
             invoice.setCreatedAt(new Date());
             invoice.setUserId(userId);
             invoice.setGuestName(customer.getFullName());
@@ -593,19 +607,28 @@ public class MobileApiController {
             invoice.setCheckInDate(ngayNhan);
             invoice.setCheckOutDate(ngayTra);
             invoice.setIsPaid(false);
+            invoice.setPayMethod("VNPAY_DEPOSIT");
+            invoice.setDepositRate(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_RATE);
+            invoice.setDepositBaseAmount(Math.round(total));
+            invoice.setDepositRequiredAmount(depositAmount);
+            invoice.setDepositPaidAmount(0L);
+            invoice.setRemainingAmount(Math.max(0L, Math.round(total) - depositAmount));
+            invoice.setDepositStatus(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PENDING);
             invoice.setSurcharge(0.0);
             invoice.setNote(ghiChu);
             invoiceRepository.save(invoice);
-            noShowPredictionService.analyzeAndSave(order.getId());
-            
             Map<String, Object> resp = new HashMap<>();
             resp.put("bookingId", order.getId());
             resp.put("invoiceId", invoice.getId());
             resp.put("roomId", selectedRoom.getId());
             resp.put("total", total);
+            resp.put("depositAmount", depositAmount);
+            resp.put("remainingAmount", invoice.getRemainingAmount());
+            resp.put("paymentExpiresAt", order.getPaymentExpiresAt());
             resp.put("status", order.getStatus());
             
-            return ResponseEntity.ok(ApiResponse.success("Đặt phòng thành công", resp));
+            return ResponseEntity.ok(ApiResponse.success(
+                    "Đã giữ chỗ 15 phút. Vui lòng đặt cọc VNPay để xác nhận đơn.", resp));
         } catch (SecurityException e) {
             return securityError(e);
         } catch (Exception e) {
@@ -689,11 +712,20 @@ public class MobileApiController {
                 map.put("trangThai", o.getStatus() != null ? o.getStatus() : "Chờ xác nhận");
                 map.put("isFaceVerified", Boolean.TRUE.equals(o.getIsFaceVerified()));
                 map.put("guestCount", effectiveGuestCount(o));
+                map.put("adultCount", o.getAdultCount() == null ? effectiveGuestCount(o) : o.getAdultCount());
+                map.put("childCount", o.getChildCount() == null ? 0 : o.getChildCount());
+                map.put("infantCount", o.getInfantCount() == null ? 0 : o.getInfantCount());
+                map.put("requiredIdentityCount",
+                        com.votricuong.mayhotel.services.OnlineBookingPolicy.requiredIdentityVerifications(o));
                 map.put("verifiedGuestCount", effectiveVerifiedGuestCount(o));
                 map.put("daThanhToan", invOpt.map(inv -> Boolean.TRUE.equals(inv.getIsPaid())).orElse(false));
                 map.put("phuongThucThanhToan", invOpt.map(Invoice::getPayMethod).orElse(null));
                 map.put("invoiceId", invOpt.map(Invoice::getId).orElse(null));
                 map.put("trangThaiHoaDon", invOpt.map(Invoice::getInvoiceStatus).orElse(null));
+                map.put("depositStatus", invOpt.map(Invoice::getDepositStatus).orElse(null));
+                map.put("depositAmount", invOpt.map(Invoice::getDepositPaidAmount).orElse(0L));
+                map.put("depositRequiredAmount", invOpt.map(Invoice::getDepositRequiredAmount).orElse(0L));
+                map.put("remainingAmount", invOpt.map(Invoice::getRemainingAmount).orElse(0L));
                 map.put("ngayLapHoaDon", invOpt.map(Invoice::getCreatedAt)
                         .map(date -> date.toInstant().toString()).orElse(null));
                 map.put("phuThu", invOpt.map(Invoice::getSurcharge).orElse(0.0));
@@ -808,7 +840,7 @@ public class MobileApiController {
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng"));
             assertOwnedBooking(claims, order);
 
-            int requiredGuestCount = effectiveGuestCount(order);
+            int requiredGuestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy.requiredIdentityVerifications(order);
             int verifiedGuestCount = Math.min(
                     effectiveVerifiedGuestCount(order), requiredGuestCount);
             Map<String, Object> data = new LinkedHashMap<>();
@@ -846,7 +878,7 @@ public class MobileApiController {
                     .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy đơn đặt phòng"));
             assertOwnedBooking(claims, order);
 
-            int requiredGuestCount = effectiveGuestCount(order);
+            int requiredGuestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy.requiredIdentityVerifications(order);
             if (guestIndex < 0 || guestIndex >= requiredGuestCount) {
                 throw new IllegalArgumentException(
                         "Vị trí khách xác thực không hợp lệ. Booking có " + requiredGuestCount + " khách.");
@@ -978,7 +1010,7 @@ public class MobileApiController {
             
             BookingOrder order = orderOpt.get();
             assertOwnedBooking(claims, order);
-            int requiredGuestCount = effectiveGuestCount(order);
+            int requiredGuestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy.requiredIdentityVerifications(order);
             if (guestIndex >= requiredGuestCount) {
                 return ResponseEntity.badRequest().body(ApiResponse.error(
                         "Vị trí khách xác thực không hợp lệ. Booking có " + requiredGuestCount + " khách."));

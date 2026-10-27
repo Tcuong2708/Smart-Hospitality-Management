@@ -7,6 +7,8 @@ import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.services.VNPayService;
 import com.votricuong.mayhotel.services.LoyaltyService;
 import com.votricuong.mayhotel.services.MobileTokenService;
+import com.votricuong.mayhotel.services.DepositPaymentService;
+import com.votricuong.mayhotel.services.OnlineBookingPolicy;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -24,17 +26,20 @@ public class PaymentApiController {
     private final BookingOrderRepository bookingOrderRepository;
     private final LoyaltyService loyaltyService;
     private final MobileTokenService mobileTokenService;
+    private final DepositPaymentService depositPaymentService;
 
     public PaymentApiController(VNPayService vnPayService,
             InvoiceRepository invoiceRepository,
             BookingOrderRepository bookingOrderRepository,
             LoyaltyService loyaltyService,
-            MobileTokenService mobileTokenService) {
+            MobileTokenService mobileTokenService,
+            DepositPaymentService depositPaymentService) {
         this.vnPayService = vnPayService;
         this.invoiceRepository = invoiceRepository;
         this.bookingOrderRepository = bookingOrderRepository;
         this.loyaltyService = loyaltyService;
         this.mobileTokenService = mobileTokenService;
+        this.depositPaymentService = depositPaymentService;
     }
 
     /**
@@ -90,7 +95,7 @@ public class PaymentApiController {
         }
 
         // 3. Kiểm tra số tiền
-        long invoiceAmount = invoice.getTotalAmount() != null ? invoice.getTotalAmount().longValue() : 0L;
+        long invoiceAmount = OnlineBookingPolicy.payableDeposit(invoice);
         if (invoiceAmount != vnp_Amount) {
             response.put("RspCode", "04");
             response.put("Message", "Invalid amount");
@@ -98,7 +103,7 @@ public class PaymentApiController {
         }
 
         // 4. Kiểm tra xem hóa đơn đã được thanh toán trước đó chưa
-        if (Boolean.TRUE.equals(invoice.getIsPaid())) {
+        if (OnlineBookingPolicy.DEPOSIT_PAID.equalsIgnoreCase(invoice.getDepositStatus())) {
             response.put("RspCode", "02");
             response.put("Message", "Order already confirmed");
             return ResponseEntity.ok(response);
@@ -106,60 +111,11 @@ public class PaymentApiController {
 
         // 5. Cập nhật kết quả thanh toán
         if ("00".equals(vnp_ResponseCode)) {
-            invoice.setInvoiceStatus("Confirmed");
-            invoice.setPayMethod("VNPAY");
-            invoice.setNote((invoice.getNote() != null ? invoice.getNote() : "")
-                    + " | [VNPAY IPN] Thanh toán thành công Mã GD: " + vnp_TransactionNo);
-
-            // Ghi nhận lịch sử giao dịch
-            Invoice.PaymentTransaction tx = Invoice.PaymentTransaction.builder()
-                    .transactionId(vnp_TxnRef)
-                    .paymentDate(new Date())
-                    .amount((double) vnp_Amount)
-                    .paymentMethod("VNPAY")
-                    .bankCode(vnp_BankCode)
-                    .status("SUCCESS")
-                    .responseCode(vnp_ResponseCode)
-                    .note("VNPAY IPN xác nhận thành công - Mã GD: " + vnp_TransactionNo)
-                    .build();
-
-            if (invoice.getPaymentHistory() == null) {
-                invoice.setPaymentHistory(new ArrayList<>());
-            }
-            invoice.getPaymentHistory().add(tx);
-            LoyaltyService.PaymentLoyaltyResult loyaltyResult = loyaltyService.finalizePaidInvoice(invoice);
-            if (!loyaltyResult.success()) {
-                response.put("RspCode", "09");
-                response.put("Message", loyaltyResult.message());
-                return ResponseEntity.ok(response);
-            }
-
-            // Cập nhật trạng thái BookingOrder
-            if (invoice.getBookingId() != null) {
-                bookingOrderRepository.findById(invoice.getBookingId()).ifPresent(bo -> {
-                    // Thanh toán thành công chưa đồng nghĩa lễ tân đã xác nhận đơn.
-                    bo.setStatus("Pending");
-                    bookingOrderRepository.save(bo);
-                });
-            }
+            depositPaymentService.confirmDeposit(invoice, vnp_TxnRef, vnp_Amount, vnp_BankCode,
+                    vnp_ResponseCode, "VNPAY IPN xác nhận cọc thành công - Mã GD: " + vnp_TransactionNo);
         } else {
-            // Thanh toán thất bại hoặc hủy
-            Invoice.PaymentTransaction tx = Invoice.PaymentTransaction.builder()
-                    .transactionId(vnp_TxnRef)
-                    .paymentDate(new Date())
-                    .amount((double) vnp_Amount)
-                    .paymentMethod("VNPAY")
-                    .bankCode(vnp_BankCode)
-                    .status("FAILED")
-                    .responseCode(vnp_ResponseCode)
-                    .note("VNPAY IPN báo giao dịch thất bại - Mã phản hồi: " + vnp_ResponseCode)
-                    .build();
-
-            if (invoice.getPaymentHistory() == null) {
-                invoice.setPaymentHistory(new ArrayList<>());
-            }
-            invoice.getPaymentHistory().add(tx);
-            invoiceRepository.save(invoice);
+            depositPaymentService.recordFailure(invoice, vnp_TxnRef, vnp_Amount, vnp_BankCode,
+                    vnp_ResponseCode, "VNPAY IPN báo giao dịch cọc thất bại");
         }
 
         response.put("RspCode", "00");
@@ -186,13 +142,13 @@ public class PaymentApiController {
         if (invoice == null) {
             return ResponseEntity.status(404).body(Map.of("error", "Không tìm thấy hóa đơn #" + invoiceId));
         }
-        if (Boolean.TRUE.equals(invoice.getIsPaid())) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Hóa đơn đã được thanh toán."));
+        if (OnlineBookingPolicy.DEPOSIT_PAID.equalsIgnoreCase(invoice.getDepositStatus())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Tiền cọc của hóa đơn đã được thanh toán."));
         }
 
         try {
             MobileTokenService.Claims claims = mobileTokenService.verifyAuthorization(authorization);
-            if (invoice.getUserId() == null || invoice.getUserId() != claims.userId()) {
+            if (invoice.getUserId() == null || invoice.getUserId().longValue() != claims.userId()) {
                 return ResponseEntity.status(403).body(Map.of("error", "Bạn không có quyền thanh toán hóa đơn này."));
             }
         } catch (SecurityException exception) {
@@ -203,6 +159,35 @@ public class PaymentApiController {
         return ResponseEntity.ok(Map.of(
                 "invoiceId", invoiceId,
                 "paymentUrl", paymentUrl,
-                "amount", invoice.getTotalAmount()));
+                "amount", OnlineBookingPolicy.payableDeposit(invoice),
+                "remainingAmount", invoice.getRemainingAmount() == null ? 0L : invoice.getRemainingAmount()));
+    }
+
+    @GetMapping("/invoices/{invoiceId}/deposit-status")
+    public ResponseEntity<?> depositStatus(
+            @PathVariable Long invoiceId,
+            @RequestHeader(value = "Authorization", required = false) String authorization) {
+        try {
+            MobileTokenService.Claims claims = mobileTokenService.verifyAuthorization(authorization);
+            Invoice invoice = invoiceRepository.findById(invoiceId).orElse(null);
+            if (invoice == null) return ResponseEntity.notFound().build();
+            if (invoice.getUserId() == null || invoice.getUserId().longValue() != claims.userId()) {
+                return ResponseEntity.status(403).body(Map.of("error", "Bạn không có quyền xem giao dịch này."));
+            }
+            BookingOrder order = invoice.getBookingId() == null ? null
+                    : bookingOrderRepository.findById(invoice.getBookingId()).orElse(null);
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("invoiceId", invoice.getId());
+            result.put("bookingId", OnlineBookingPolicy.DEPOSIT_PAID.equalsIgnoreCase(invoice.getDepositStatus())
+                    ? invoice.getBookingId() : null);
+            result.put("depositStatus", invoice.getDepositStatus());
+            result.put("depositAmount", OnlineBookingPolicy.payableDeposit(invoice));
+            result.put("remainingAmount", invoice.getRemainingAmount() == null ? 0L : invoice.getRemainingAmount());
+            result.put("bookingStatus", order == null ? null : order.getStatus());
+            result.put("confirmed", OnlineBookingPolicy.DEPOSIT_PAID.equalsIgnoreCase(invoice.getDepositStatus()));
+            return ResponseEntity.ok(result);
+        } catch (SecurityException ex) {
+            return ResponseEntity.status(401).body(Map.of("error", ex.getMessage()));
+        }
     }
 }

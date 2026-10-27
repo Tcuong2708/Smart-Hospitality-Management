@@ -9,6 +9,9 @@ public class BookingSession implements java.io.Serializable {
     private RoomTypeDTO loaiPhong;
     private int soLuong;
     private int guestCount;
+    private int adultCount;
+    private int childCount;
+    private int infantCount;
     private LocalDate ngayNhan;
     private LocalDate ngayTra;
 

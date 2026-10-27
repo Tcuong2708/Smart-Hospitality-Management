@@ -88,6 +88,18 @@ public class BookingOrder {
     @Field("guest_count")
     private Integer guestCount;
 
+    @Field("adult_count")
+    private Integer adultCount;
+
+    @Field("child_count")
+    private Integer childCount;
+
+    @Field("infant_count")
+    private Integer infantCount;
+
+    @Field("payment_expires_at")
+    private Date paymentExpiresAt;
+
     @Field("verified_guest_count")
     private Integer verifiedGuestCount;
 

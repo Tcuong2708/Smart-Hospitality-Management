@@ -11,7 +11,9 @@ class BookingScreen extends StatefulWidget {
   final String imageUrl;
   final int maPhong;
   final DateTimeRange? initialDateRange;
-  final int? initialGuestCount;
+  final int? initialAdultCount;
+  final int? initialChildCount;
+  final int? initialInfantCount;
   final int? maxGuestCount;
 
   const BookingScreen({
@@ -21,7 +23,9 @@ class BookingScreen extends StatefulWidget {
     required this.imageUrl,
     required this.maPhong,
     this.initialDateRange,
-    this.initialGuestCount,
+    this.initialAdultCount,
+    this.initialChildCount,
+    this.initialInfantCount,
     this.maxGuestCount,
   });
 
@@ -36,7 +40,9 @@ class _BookingScreenState extends State<BookingScreen> {
   final _nationalityController = TextEditingController(text: "Việt Nam");
   final _addressController = TextEditingController();
   final HotelApiProvider _apiProvider = HotelApiProvider();
-  int _guestCount = 1;
+  int _adultCount = 1;
+  int _childCount = 0;
+  int _infantCount = 0;
 
   @override
   void initState() {
@@ -49,7 +55,9 @@ class _BookingScreenState extends State<BookingScreen> {
       );
     }
     final maxGuests = (widget.maxGuestCount ?? 20).clamp(1, 20).toInt();
-    _guestCount = (widget.initialGuestCount ?? 1).clamp(1, maxGuests).toInt();
+    _adultCount = (widget.initialAdultCount ?? 1).clamp(1, maxGuests).toInt();
+    _childCount = (widget.initialChildCount ?? 0).clamp(0, maxGuests).toInt();
+    _infantCount = (widget.initialInfantCount ?? 0).clamp(0, maxGuests).toInt();
     _loadBookingProfile();
   }
 
@@ -137,43 +145,34 @@ class _BookingScreenState extends State<BookingScreen> {
             _buildDatePicker(context, colorScheme, isDarkMode),
 
             const SizedBox(height: 20),
-            Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    "Số khách lưu trú",
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: Responsive.sp(context, 16),
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  onPressed: _guestCount > 1
-                      ? () => setState(() => _guestCount--)
-                      : null,
-                  icon: const Icon(Icons.remove_circle_outline),
-                ),
-                Text(
-                  "$_guestCount",
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                IconButton(
-                  onPressed:
-                      _guestCount <
-                          (widget.maxGuestCount ?? 20).clamp(1, 20).toInt()
-                      ? () => setState(() => _guestCount++)
-                      : null,
-                  icon: const Icon(Icons.add_circle_outline),
-                ),
-              ],
+            Text(
+              "Khách lưu trú",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: Responsive.sp(context, 16),
+                color: colorScheme.onSurface,
+              ),
+            ),
+            _buildGuestCounterRow(
+              'Người lớn (12+)',
+              _adultCount,
+              1,
+              (value) => setState(() => _adultCount = value),
+            ),
+            _buildGuestCounterRow(
+              'Trẻ em (6–11)',
+              _childCount,
+              0,
+              (value) => setState(() => _childCount = value),
+            ),
+            _buildGuestCounterRow(
+              'Em bé (0–5)',
+              _infantCount,
+              0,
+              (value) => setState(() => _infantCount = value),
             ),
             Text(
-              "Mỗi khách phải xác thực CCCD NFC và khuôn mặt khi nhận phòng.",
+              "Tất cả khách được tính vào sức chứa; chỉ người lớn xác thực CCCD NFC và khuôn mặt.",
               style: TextStyle(
                 color: colorScheme.onSurfaceVariant,
                 fontSize: 12,
@@ -310,6 +309,35 @@ class _BookingScreenState extends State<BookingScreen> {
               ),
             ],
           ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGuestCounterRow(
+    String label,
+    int value,
+    int minimum,
+    ValueChanged<int> onChanged,
+  ) {
+    final maximum = (widget.maxGuestCount ?? 20).clamp(1, 20).toInt();
+    final total = _adultCount + _childCount + _infantCount;
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            label,
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        ),
+        IconButton(
+          onPressed: value > minimum ? () => onChanged(value - 1) : null,
+          icon: const Icon(Icons.remove_circle_outline),
+        ),
+        SizedBox(width: 28, child: Text('$value', textAlign: TextAlign.center)),
+        IconButton(
+          onPressed: total < maximum ? () => onChanged(value + 1) : null,
+          icon: const Icon(Icons.add_circle_outline),
         ),
       ],
     );
@@ -589,7 +617,9 @@ class _BookingScreenState extends State<BookingScreen> {
         userId: userId,
         ngayNhanPhong: _selectedDateRange!.start,
         ngayTraPhong: _selectedDateRange!.end,
-        soNguoi: _guestCount,
+        adultCount: _adultCount,
+        childCount: _childCount,
+        infantCount: _infantCount,
         ghiChu: 'Quoc tich: $quocTich, Dia chi: $diaChi',
         customerName: hoTen,
         customerPhone: dienThoai,
@@ -600,14 +630,20 @@ class _BookingScreenState extends State<BookingScreen> {
 
       if (res['success'] == true) {
         final int generatedBookingId = res['bookingId'] ?? 0;
+        final int invoiceId = res['invoiceId'] ?? 0;
         final double currentTotal = res['totalAmount'] ?? total;
+        final double depositAmount = res['depositAmount'] ?? 0;
+        final double remainingAmount = res['remainingAmount'] ?? 0;
 
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (_) => PaymentMethodScreen(
               bookingId: generatedBookingId,
+              invoiceId: invoiceId,
               totalAmount: currentTotal,
+              depositAmount: depositAmount,
+              remainingAmount: remainingAmount,
             ),
           ),
         );

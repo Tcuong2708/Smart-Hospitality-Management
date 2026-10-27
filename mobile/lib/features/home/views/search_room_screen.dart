@@ -24,6 +24,7 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
   bool _hasSearched = false;
   int _adults = 2;
   int _children = 0;
+  int _infants = 0;
   CancelToken? _searchCancelToken;
   int _searchRequestVersion = 0;
 
@@ -54,6 +55,7 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
         dateRange.end,
         _adults,
         _children,
+        _infants,
         cancelToken: _searchCancelToken,
       );
 
@@ -126,7 +128,9 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
           imageUrl: image,
           maPhong: id,
           initialDateRange: _selectedDateRange,
-          initialGuestCount: _adults + _children,
+          initialAdultCount: _adults,
+          initialChildCount: _children,
+          initialInfantCount: _infants,
           maxGuestCount: maxOccupancy,
         ),
       ),
@@ -267,6 +271,56 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 15),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Em bé (0–5 tuổi)",
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color: colorScheme.onSurface,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.grey.shade900
+                            : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: _infants > 0
+                                ? () => setState(() => _infants--)
+                                : null,
+                            color: colorScheme.primary,
+                          ),
+                          Text(
+                            "$_infants",
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: (_adults + _children + _infants) < 10
+                                ? () => setState(() => _infants++)
+                                : null,
+                            color: colorScheme.primary,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 20),
                 Row(
