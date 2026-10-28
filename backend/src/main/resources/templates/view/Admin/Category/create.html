@@ -18,7 +18,7 @@
             </div>
 
             <div class="card-body p-4 p-md-5">
-                <form th:action="@{/manager/categories/create}" method="post" th:object="${category}">
+                <form th:action="@{/manager/categories/create}" method="post" th:object="${category}" enctype="multipart/form-data">
                     <div class="row g-4">
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Tên Loại Phòng <span class="text-danger">*</span></label>
@@ -30,7 +30,11 @@
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">URL Hình Ảnh Đại Diện</label>
-                            <input type="text" class="form-control" th:field="*{imageUrl}" placeholder="Ví dụ: /images/c1.jpg">
+                            <input type="file" class="form-control" name="imageFile"
+                                   accept="image/jpeg,image/png,image/gif,image/webp"
+                                   th:disabled="${cloudinaryEnabled == false}">
+                            <div class="form-text">Ảnh JPEG, PNG, GIF hoặc WebP; tối đa 5 MB.</div>
+                            <div class="form-text text-warning" th:if="${cloudinaryEnabled == false}">Cloudinary chưa được cấu hình.</div>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-bold">Số lượng phòng (mặc định)</label>

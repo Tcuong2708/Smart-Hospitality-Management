@@ -7,6 +7,7 @@ import com.votricuong.mayhotel.enums.RoomStatus;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.services.BookingAvailabilityService;
+import com.votricuong.mayhotel.services.CloudinaryService;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
@@ -30,6 +32,7 @@ import java.util.stream.Collectors;
 @Controller
 @RequestMapping("/manager")
 public class ManagerRoomController extends BaseController {
+    private static final String CLOUDINARY_FOLDER = "may_hotel/rooms";
     private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private static final DateTimeFormatter DISPLAY_DATE = DateTimeFormatter.ofPattern("dd-MM-yyyy");
     private static final DateTimeFormatter DISPLAY_TIMESTAMP = DateTimeFormatter.ofPattern("HH:mm:ss dd-MM-yyyy");
@@ -48,6 +51,9 @@ public class ManagerRoomController extends BaseController {
 
     @Autowired
     private BookingAvailabilityService bookingAvailabilityService;
+
+    @Autowired
+    private CloudinaryService cloudinaryService;
 
     @GetMapping("/rooms")
     public String roomsIndex(
@@ -78,6 +84,7 @@ public class ManagerRoomController extends BaseController {
         model.addAttribute("selectedDateText", selectedDate.format(DISPLAY_DATE));
         model.addAttribute("isToday", selectedDate.equals(LocalDate.now(HOTEL_ZONE)));
         model.addAttribute("refreshedAtText", ZonedDateTime.now(HOTEL_ZONE).format(DISPLAY_TIMESTAMP));
+        model.addAttribute("cloudinaryEnabled", cloudinaryService.isConfigured());
         setExtraCSS(model, "view/Admin/Room/index :: extra_css");
         return render(model, "view/Admin/Room/index");
     }
@@ -87,18 +94,31 @@ public class ManagerRoomController extends BaseController {
         setPageTitle(model, "Thêm Phòng Mới - Manager");
         model.addAttribute("room", new Room());
         model.addAttribute("roomTypes", roomTypeRepository.findAll());
+        model.addAttribute("cloudinaryEnabled", cloudinaryService.isConfigured());
         return render(model, "view/Admin/Room/create");
     }
 
     @PostMapping("/rooms/create")
-    public String storeRoom(Room room, RedirectAttributes redirect) {
+    public String storeRoom(
+            Room room,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+            RedirectAttributes redirect) {
+        CloudinaryService.UploadResult uploaded = null;
         try {
             validateRoom(room, null);
+            if (hasImage(imageFile)) {
+                uploaded = cloudinaryService.uploadImage(imageFile, CLOUDINARY_FOLDER);
+                room.setImageUrl(uploaded.secureUrl());
+            }
             room.setId(sequenceGenerator.generateSequence("rooms_sequence"));
             roomRepository.save(room);
             redirect.addFlashAttribute("success", "Thêm phòng thành công!");
         } catch (IllegalArgumentException ex) {
+            cleanupUpload(uploaded);
             redirect.addFlashAttribute("error", ex.getMessage());
+        } catch (Exception ex) {
+            cleanupUpload(uploaded);
+            redirect.addFlashAttribute("error", "Không thể thêm phòng: " + safeMessage(ex));
         }
         return "redirect:/manager/rooms";
     }
@@ -110,36 +130,61 @@ public class ManagerRoomController extends BaseController {
         else if (bookingDetailRepository.existsByRoomId(id))
             redirect.addFlashAttribute("error", "Không thể xóa phòng đã phát sinh đặt phòng; hãy chuyển sang trạng thái bảo trì.");
         else {
+            String publicId = cloudinaryService.extractPublicId(room.getImageUrl());
             roomRepository.deleteById(id);
-            redirect.addFlashAttribute("success", "Xóa phòng thành công!");
+            if (publicId != null && !cloudinaryService.deleteImage(publicId)) {
+                redirect.addFlashAttribute("warning", "Đã xóa phòng nhưng chưa xóa được ảnh trên Cloudinary.");
+            } else {
+                redirect.addFlashAttribute("success", "Xóa phòng thành công!");
+            }
         }
         return "redirect:/manager/rooms";
     }
 
     @PostMapping("/rooms/edit")
-    public String editRoom(Room room, RedirectAttributes redirect) {
+    public String editRoom(
+            Room room,
+            @RequestParam(value = "imageFile", required = false) MultipartFile imageFile,
+            RedirectAttributes redirect) {
         if (room.getId() != null) {
             Room existing = roomRepository.findById(room.getId()).orElse(null);
             if (existing != null) {
+                CloudinaryService.UploadResult uploaded = null;
+                String oldImageUrl = existing.getImageUrl();
                 try {
                     validateRoom(room, room.getId());
+                    if (hasImage(imageFile)) {
+                        uploaded = cloudinaryService.uploadImage(imageFile, CLOUDINARY_FOLDER);
+                    }
+
+                    // Update fields
+                    existing.setName(room.getName());
+                    existing.setPrice(room.getPrice());
+                    existing.setRoomTypeId(room.getRoomTypeId());
+                    existing.setMaxExtraBeds(room.getMaxExtraBeds());
+                    existing.setStatus(room.getStatus());
+                    existing.setDetail(room.getDetail());
+                    existing.setNote(room.getNote());
+                    existing.setViewDirection(room.getViewDirection());
+                    if (uploaded != null) existing.setImageUrl(uploaded.secureUrl());
+
+                    roomRepository.save(existing);
+                    if (uploaded != null) {
+                        String oldPublicId = cloudinaryService.extractPublicId(oldImageUrl);
+                        if (oldPublicId != null && !cloudinaryService.deleteImage(oldPublicId)) {
+                            redirect.addFlashAttribute("warning", "Đã cập nhật phòng nhưng chưa xóa được ảnh cũ.");
+                        }
+                    }
+                    if (!redirect.getFlashAttributes().containsKey("warning")) {
+                        redirect.addFlashAttribute("success", "Cập nhật phòng thành công!");
+                    }
                 } catch (IllegalArgumentException ex) {
+                    cleanupUpload(uploaded);
                     redirect.addFlashAttribute("error", ex.getMessage());
-                    return "redirect:/manager/rooms";
+                } catch (Exception ex) {
+                    cleanupUpload(uploaded);
+                    redirect.addFlashAttribute("error", "Không thể cập nhật phòng: " + safeMessage(ex));
                 }
-                // Update fields
-                existing.setName(room.getName());
-                existing.setPrice(room.getPrice());
-                existing.setImageUrl(room.getImageUrl());
-                existing.setRoomTypeId(room.getRoomTypeId());
-                existing.setMaxExtraBeds(room.getMaxExtraBeds());
-                existing.setStatus(room.getStatus());
-                existing.setDetail(room.getDetail());
-                existing.setNote(room.getNote());
-                existing.setViewDirection(room.getViewDirection());
-                
-                roomRepository.save(existing);
-                redirect.addFlashAttribute("success", "Cập nhật phòng thành công!");
             }
         }
         return "redirect:/manager/rooms";
@@ -174,5 +219,18 @@ public class ManagerRoomController extends BaseController {
         room.setStatus(room.getStatus() == null || room.getStatus().isBlank()
                 ? RoomStatus.VACANT.getLabel()
                 : RoomStatus.fromApi(room.getStatus()).getLabel());
+    }
+
+    private boolean hasImage(MultipartFile imageFile) {
+        return imageFile != null && !imageFile.isEmpty();
+    }
+
+    private void cleanupUpload(CloudinaryService.UploadResult uploaded) {
+        if (uploaded != null) cloudinaryService.deleteImage(uploaded.publicId());
+    }
+
+    private String safeMessage(Exception ex) {
+        return ex.getMessage() == null || ex.getMessage().isBlank()
+                ? "Lỗi không xác định" : ex.getMessage();
     }
 }
