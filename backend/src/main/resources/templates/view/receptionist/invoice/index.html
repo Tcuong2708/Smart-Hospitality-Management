@@ -12,13 +12,8 @@
         <div class="adm-page-head">
             <div class="adm-page-head-text">
                 <span class="adm-page-eyebrow">Nghiệp vụ lễ tân</span>
-                <h1 class="adm-page-title">Đơn đặt phòng</h1>
-                <p class="adm-page-sub">Quản lý danh sách hóa đơn, đơn đặt phòng và trạng thái lưu trú.</p>
-            </div>
-            <div class="adm-page-head-actions">
-                <button type="button" class="adm-btn adm-btn-gold" data-adm-open="createInvoiceModal">
-                    <i class="bi bi-person-plus"></i> Tạo đơn khách lẻ
-                </button>
+                <h1 class="adm-page-title">Quản lý hóa đơn</h1>
+                <p class="adm-page-sub">Tra cứu, theo dõi trạng thái và in hóa đơn lưu trú.</p>
             </div>
         </div>
 
@@ -52,7 +47,7 @@
 
                 <div class="adm-result-count">
                     <i class="bi bi-receipt" style="color:var(--gold-hover);"></i>
-                    <strong id="invoiceCount" th:text="${#lists.size(invoices)}">0</strong> đơn
+                    <strong id="invoiceCount" th:text="${invoices == null ? 0 : #lists.size(invoices)}">0</strong> hóa đơn
                 </div>
             </div>
 
@@ -94,7 +89,7 @@
                             <td>
                                 <span class="adm-invoice-code">
                                     <i class="bi bi-receipt"></i>
-                                    <span th:text="'#' + ${item.id}">#1</span>
+                                    <span th:text="${'#' + item.id}">#1</span>
                                 </span>
                             </td>
 
@@ -114,9 +109,9 @@
 
                             <!-- Ngày đặt -->
                             <td class="col-center text-muted" style="font-size:12.5px;">
-                                <span th:text="${#dates.format(item.ngayDat, 'dd/MM/yyyy')}">01/01/2026</span>
+                                <span th:text="${item.ngayDat == null ? '—' : #dates.format(item.ngayDat, 'dd/MM/yyyy')}">01/01/2026</span>
                                 <br>
-                                <small th:text="${#dates.format(item.ngayDat, 'HH:mm')}">12:00</small>
+                                <small th:if="${item.ngayDat != null}" th:text="${#dates.format(item.ngayDat, 'HH:mm')}">12:00</small>
                             </td>
 
                             <!-- Lưu trú -->
@@ -124,13 +119,11 @@
                                 <div class="adm-date-pair">
                                     <span class="adm-date-line in">
                                         <i class="bi bi-box-arrow-in-right"></i>
-                                        <strong
-                                            th:text="${#dates.format(item.ngayCheckIn, 'dd/MM/yyyy')}">01/01/2026</strong>
+                                        <strong th:text="${item.ngayCheckIn == null ? '—' : #dates.format(item.ngayCheckIn, 'dd/MM/yyyy')}">01/01/2026</strong>
                                     </span>
                                     <span class="adm-date-line out">
                                         <i class="bi bi-box-arrow-left"></i>
-                                        <strong
-                                            th:text="${#dates.format(item.ngayCheckOut, 'dd/MM/yyyy')}">02/01/2026</strong>
+                                        <strong th:text="${item.ngayCheckOut == null ? '—' : #dates.format(item.ngayCheckOut, 'dd/MM/yyyy')}">02/01/2026</strong>
                                     </span>
                                 </div>
                             </td>
@@ -188,65 +181,6 @@
                 </table>
             </div>
         </div>
-
-
-        <!-- ==================== MODAL: TẠO ĐƠN KHÁCH LẺ ==================== -->
-        <div class="adm-modal-backdrop" id="createInvoiceModal">
-            <div class="adm-modal lg">
-                <form th:action="@{/receptionist/invoices/create}" method="post">
-
-                    <div class="adm-modal-head">
-                        <h3><i class="bi bi-person-plus"></i> Tạo đơn đặt phòng khách lẻ</h3>
-                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
-                    </div>
-
-                    <div class="adm-modal-body">
-
-                        <div class="adm-form-row">
-                            <div class="adm-field">
-                                <label>Họ và tên khách <span class="req">*</span></label>
-                                <input type="text" name="guestName" required maxlength="100"
-                                    placeholder="VD: Nguyễn Văn A">
-                            </div>
-                            <div class="adm-field">
-                                <label>Số điện thoại <span class="req">*</span></label>
-                                <input type="tel" name="phone" required pattern="[0-9]{10}" maxlength="10"
-                                    inputmode="numeric" placeholder="VD: 0901234567">
-                            </div>
-                        </div>
-
-                        <div class="adm-form-row">
-                            <div class="adm-field">
-                                <label>Ngày nhận phòng <span class="req">*</span></label>
-                                <input type="date" name="checkInDate" required>
-                            </div>
-                            <div class="adm-field">
-                                <label>Ngày trả phòng <span class="req">*</span></label>
-                                <input type="date" name="checkOutDate" required>
-                            </div>
-                        </div>
-
-                        <div class="adm-form-row full">
-                            <div class="adm-field">
-                                <label>Ghi chú thêm</label>
-                                <textarea name="note" rows="3" maxlength="300"
-                                    placeholder="Ghi chú nếu có..."></textarea>
-                            </div>
-                        </div>
-
-                    </div>
-
-                    <div class="adm-modal-foot">
-                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
-                        <button type="submit" class="adm-btn adm-btn-gold">
-                            <i class="bi bi-check-lg"></i> Xác nhận tạo đơn
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-
         <script>
             (function () {
                 'use strict';

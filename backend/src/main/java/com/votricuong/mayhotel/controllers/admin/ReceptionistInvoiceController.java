@@ -138,8 +138,6 @@ public class ReceptionistInvoiceController extends BaseController {
         model.addAttribute("keyword", keyword);
         model.addAttribute("status", status);
 
-        setExtraCSS(model, "view/receptionist/invoice/index :: extra_css");
-        setExtraJS(model, "view/receptionist/invoice/index :: extra_js");
         return render(model, "view/receptionist/invoice/index");
     }
 

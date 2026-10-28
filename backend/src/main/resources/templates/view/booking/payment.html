@@ -97,22 +97,15 @@
                                 <div class="mh-qr-amount">
                                     <span>Số tiền cần thanh toán</span>
                                     <strong
-                                        th:text="${#numbers.formatDecimal(invoice.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                        th:text="${#numbers.formatDecimal(paymentAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
                                         đ</strong>
                                 </div>
 
                                 <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;">
-                                    <!-- GET /booking/payment-gate/vnpay?id=<mã hóa đơn> → chuyển sang VNPay -->
                                     <a th:href="@{/booking/payment-gate/vnpay(id=${invoice.id})}"
                                         class="mh-btn mh-btn-gold mh-btn-block" style="flex:1;text-align:center;">
                                         <i class="fa-solid fa-external-link-alt"></i>
                                         Thanh toán qua VNPay
-                                    </a>
-                                    <!-- Trả tại khách sạn: phòng đã được giữ, chỉ cần sang trang xác nhận -->
-                                    <a th:href="@{/booking/success}" class="mh-btn mh-btn-outline mh-btn-block"
-                                        style="flex:1;text-align:center;">
-                                        <i class="fa-solid fa-building-columns"></i>
-                                        Trả tại khách sạn
                                     </a>
                                 </div>
                             </div>
@@ -189,7 +182,7 @@
                                     thanh toán</span>
                                 <strong
                                     style="font-family:var(--font-heading);font-size:28px;color:var(--gold);display:block;"
-                                    th:text="${#numbers.formatDecimal(invoice.totalAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                    th:text="${#numbers.formatDecimal(paymentAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
                                     đ</strong>
                             </div>
 

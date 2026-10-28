@@ -74,6 +74,9 @@ public class ReceptionistController extends BaseController {
         private String ghiChu;
         @com.fasterxml.jackson.annotation.JsonProperty("isVerified")
         private boolean isVerified;
+        private int requiredGuestCount;
+        private int verifiedGuestCount;
+        private String verificationMethod;
     }
 
     @Data
@@ -82,6 +85,7 @@ public class ReceptionistController extends BaseController {
         private Long id;
         private String name;
         private String maLoai;
+        private String view;
         private Double price;
         private Integer maTrangThai;
         private Integer sucChua;
@@ -153,10 +157,16 @@ public class ReceptionistController extends BaseController {
             }
         }
         
-        boolean isVerified = inv.getBookingId() != null
-                && bookingOrderRepository.findById(inv.getBookingId())
-                        .map(order -> Boolean.TRUE.equals(order.getIsFaceVerified()))
-                        .orElse(false);
+        BookingOrder verificationOrder = inv.getBookingId() == null ? null
+                : bookingOrderRepository.findById(inv.getBookingId()).orElse(null);
+        int requiredGuestCount = verificationOrder == null ? 1
+                : com.votricuong.mayhotel.services.OnlineBookingPolicy
+                        .requiredIdentityVerifications(verificationOrder);
+        int verifiedGuestCount = verificationOrder == null ? 0
+                : (verificationOrder.getVerifiedGuestCount() == null
+                        ? (Boolean.TRUE.equals(verificationOrder.getIsFaceVerified()) ? requiredGuestCount : 0)
+                        : verificationOrder.getVerifiedGuestCount());
+        boolean isVerified = verifiedGuestCount >= requiredGuestCount;
 
         return InvoiceDTO.builder()
                 .id(inv.getId())
@@ -172,6 +182,10 @@ public class ReceptionistController extends BaseController {
                 .idTaiKhoan(inv.getUserId())
                 .ghiChu(inv.getNote())
                 .isVerified(isVerified)
+                .requiredGuestCount(requiredGuestCount)
+                .verifiedGuestCount(verifiedGuestCount)
+                .verificationMethod(verificationOrder == null ? null
+                        : verificationOrder.getIdentityVerificationMethod())
                 .build();
     }
 
@@ -223,6 +237,7 @@ public class ReceptionistController extends BaseController {
                     .id(room.getId())
                     .name(room.getName())
                     .maLoai(loai)
+                    .view(room.getViewDirection())
                     .price(room.getPrice())
                     .maTrangThai(trangThai)
                     .sucChua(sucChua)

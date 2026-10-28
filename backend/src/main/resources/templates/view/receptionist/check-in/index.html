@@ -135,13 +135,15 @@
                                     </div>
 
                                     <div class="adm-ci-quick-btns">
-                                        <button type="button" class="adm-btn adm-btn-outline" data-ci-action="nfc"
-                                            th:attr="data-ci-id=${item.id}, data-ci-name=${item.hoTen}">
-                                            <i class="bi bi-phone-vibrate"></i> NFC
+                                        <button type="button" class="adm-btn adm-btn-outline" data-ci-action="mobile"
+                                            th:classappend="${item.isVerified} ? ' adm-btn-success'"
+                                            th:attr="data-booking-id=${item.bookingId},data-invoice-id=${item.id},data-required=${item.requiredGuestCount},data-verified=${item.verifiedGuestCount}">
+                                            <i class="bi" th:classappend="${item.isVerified} ? ' bi-shield-check' : ' bi-phone-vibrate'"></i>
+                                            <span th:text="${item.isVerified ? 'Đã xác thực ' + item.verifiedGuestCount + '/' + item.requiredGuestCount : 'Chờ Mobile ' + item.verifiedGuestCount + '/' + item.requiredGuestCount}">Chờ Mobile</span>
                                         </button>
-                                        <button type="button" class="adm-btn adm-btn-outline" data-ci-action="cccd"
-                                            th:attr="data-ci-id=${item.id}">
-                                            <i class="bi bi-person-vcard"></i> CCCD
+                                        <button type="button" class="adm-btn adm-btn-outline" data-ci-action="manual"
+                                            th:attr="data-booking-id=${item.bookingId},data-required=${item.requiredGuestCount},data-verified=${item.verifiedGuestCount}">
+                                            <i class="bi bi-keyboard"></i> Nhập tay ngoại lệ
                                         </button>
                                     </div>
 
@@ -152,6 +154,8 @@
                                     </label>
 
                                     <button type="submit" class="adm-btn adm-btn-gold adm-ci-submit"
+                                        th:disabled="${!item.isVerified}"
+                                        th:attr="data-booking-submit=${item.bookingId}"
                                         onclick="return confirm('Xác nhận số phòng bàn giao và tiến hành Check-in?')">
                                         <i class="bi bi-check-circle"></i> Duyệt nhận phòng
                                     </button>
@@ -168,25 +172,25 @@
         <div class="adm-modal-backdrop" id="verifyIdModal">
             <div class="adm-modal lg">
                 <div class="adm-modal-head">
-                    <h3><i class="bi bi-person-vcard"></i> Xác thực giấy tờ tuỳ thân</h3>
+                    <h3><i class="bi bi-keyboard"></i> Nhập tay xác thực ngoại lệ</h3>
                     <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
                 </div>
 
                 <div class="adm-modal-body">
                     <div class="adm-tabs-wrapper">
-                        <div class="adm-tabs-nav">
+                        <div class="adm-tabs-nav" style="display:none;">
                             <button type="button" class="adm-tab-btn is-active" data-adm-tab="upload">
                                 <i class="bi bi-upload"></i> Tải ảnh
                             </button>
                             <button type="button" class="adm-tab-btn" data-adm-tab="webcam">
                                 <i class="bi bi-camera-video"></i> Camera
                             </button>
-                            <button type="button" class="adm-tab-btn" data-adm-tab="manual">
+                            <button type="button" class="adm-tab-btn is-active" data-adm-tab="manual">
                                 <i class="bi bi-keyboard"></i> Nhập tay
                             </button>
                         </div>
 
-                        <div class="adm-tab-panel is-active" data-adm-panel="upload">
+                        <div class="adm-tab-panel" data-adm-panel="upload">
                             <div class="adm-form-row">
                                 <div class="adm-field">
                                     <label>Mặt trước CCCD</label>
@@ -237,7 +241,11 @@
                             </div>
                         </div>
 
-                        <div class="adm-tab-panel" data-adm-panel="manual">
+                        <div class="adm-tab-panel is-active" data-adm-panel="manual">
+                            <div class="adm-alert adm-alert-warning" style="margin-bottom:16px;">
+                                <i class="bi bi-exclamation-triangle-fill"></i>
+                                <span>Chỉ sử dụng khi khách nước ngoài, không có CCCD hợp lệ hoặc xác thực Mobile thất bại.</span>
+                            </div>
                             <div class="adm-form-row">
                                 <div class="adm-field">
                                     <label>Họ và tên</label>
@@ -247,6 +255,29 @@
                                     <label>Số CCCD / Hộ chiếu</label>
                                     <input type="text" id="ci-manual-id" placeholder="Nhập số giấy tờ">
                                 </div>
+                            </div>
+                            <div class="adm-form-row" style="margin-top:14px;">
+                                <div class="adm-field">
+                                    <label>Khách cần xác thực</label>
+                                    <select id="ci-manual-guest-index"></select>
+                                </div>
+                                <div class="adm-field">
+                                    <label>Quốc tịch</label>
+                                    <input type="text" id="ci-manual-nationality" placeholder="VD: Việt Nam">
+                                </div>
+                                <div class="adm-field">
+                                    <label>Ngày sinh</label>
+                                    <input type="date" id="ci-manual-dob">
+                                </div>
+                            </div>
+                            <div class="adm-field" style="margin-top:14px;">
+                                <label>Lý do ngoại lệ</label>
+                                <select id="ci-manual-reason">
+                                    <option value="">— Chọn lý do —</option>
+                                    <option value="FOREIGN_GUEST">Khách nước ngoài</option>
+                                    <option value="NO_VALID_CCCD">Không có CCCD hợp lệ</option>
+                                    <option value="MOBILE_VERIFICATION_FAILED">Xác thực Mobile thất bại</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -261,20 +292,19 @@
 
                 <div class="adm-modal-foot">
                     <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
-                    <button type="button" class="adm-btn adm-btn-gold"
-                        onclick="alert('Xác nhận lưu thông tin giấy tờ thành công!'); AdmModal.close('verifyIdModal');">
-                        <i class="bi bi-check-circle"></i> Xác nhận đính kèm
+                    <button type="button" class="adm-btn adm-btn-gold" id="ci-manual-submit">
+                        <i class="bi bi-check-circle"></i> Lưu xác thực ngoại lệ
                     </button>
                 </div>
             </div>
         </div>
 
 
-        <!-- ==================== MODAL: XÁC THỰC NFC THẬT ==================== -->
+        <!-- ==================== MODAL: CHỜ KẾT QUẢ XÁC THỰC MOBILE ==================== -->
         <div class="adm-modal-backdrop" id="mobileVerifyModal">
             <div class="adm-modal">
                 <div class="adm-modal-head">
-                    <h3><i class="bi bi-phone-vibrate"></i> Đọc thẻ NFC</h3>
+                    <h3><i class="bi bi-phone-vibrate"></i> Xác thực từ Mobile App</h3>
                     <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
                 </div>
 
@@ -283,30 +313,28 @@
                     <!-- Trạng thái 1: Chờ quét -->
                     <div id="ci-nfc-waiting" class="adm-ci-waiting" style="text-align:center;">
                         <div class="adm-ci-waiting-spinner"></div>
-                        <h5>Đang chờ quét thẻ NFC</h5>
-                        <p>Đưa mặt sau điện thoại lại gần sticker NFC và giữ yên 1-2 giây.</p>
+                        <h5>Đang chờ khách xác thực trên Mobile App</h5>
+                        <p>Khách thực hiện selfie và đọc NFC CCCD cho đủ số người lớn trong đơn đặt phòng.</p>
 
                         <div class="adm-ci-connect-code">
                             <i class="bi bi-upc-scan"></i>
                             <div class="label">
                                 <small>Trạng thái</small>
-                                <strong id="ci-nfc-status">Sẵn sàng quét</strong>
+                                <strong id="ci-nfc-status">Đang kết nối...</strong>
                             </div>
                         </div>
 
-                        <div id="ci-nfc-support-warning" class="adm-alert adm-alert-warning"
-                            style="display:none;margin-top:20px;text-align:left;">
-                            <i class="bi bi-exclamation-triangle-fill"></i>
-                            <span>Thiết bị / trình duyệt này không hỗ trợ Web NFC. Cần <strong>Chrome trên
-                                    Android</strong> và trang chạy <strong>HTTPS</strong>.</span>
+                        <div class="adm-alert adm-alert-warning" style="margin-top:20px;text-align:left;">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <span>Web chỉ theo dõi kết quả do API Mobile gửi về, không đọc NFC hoặc ảnh CCCD trực tiếp.</span>
                         </div>
                     </div>
 
                     <!-- Trạng thái 2: Đọc thành công -->
                     <div id="ci-nfc-success" class="adm-ci-success" style="display:none;">
                         <i class="bi bi-check-circle-fill"></i>
-                        <h5>Đọc thẻ NFC thành công</h5>
-                        <p id="ci-nfc-success-msg">Dữ liệu đã được trích xuất.</p>
+                        <h5>Xác thực danh tính thành công</h5>
+                        <p id="ci-nfc-success-msg">Mobile đã xác thực đủ khách.</p>
                     </div>
 
                     <!-- Trạng thái 3: Lỗi -->
@@ -317,7 +345,7 @@
 
                     <!-- Kết quả thô -->
                     <div id="ci-nfc-result-box" class="adm-field" style="margin-top:20px;display:none;">
-                        <label><i class="bi bi-file-earmark-text" style="color:var(--gold);"></i> Dữ liệu từ thẻ</label>
+                        <label><i class="bi bi-shield-check" style="color:var(--gold);"></i> Trạng thái đồng bộ</label>
                         <textarea class="adm-ci-raw-result" id="ci-nfc-raw" rows="5" readonly></textarea>
                     </div>
 
@@ -325,8 +353,8 @@
 
                 <div class="adm-modal-foot">
                     <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Đóng</button>
-                    <button type="button" class="adm-btn adm-btn-gold" id="ci-nfc-sync">
-                        <i class="bi bi-upc-scan"></i> Bắt đầu quét
+                    <button type="button" class="adm-btn adm-btn-gold" id="ci-simulate-mobile">
+                        <i class="bi bi-magic"></i> (Giả lập) Mobile đã xác thực
                     </button>
                     <button type="button" class="adm-btn adm-btn-gold" id="ci-mobile-continue" style="display:none;"
                         onclick="AdmModal.close('mobileVerifyModal');">
@@ -396,41 +424,99 @@
                         });
                     });
 
+                    var activeBookingId = null;
+                    var verificationPoll = null;
+
+                    function markBookingVerified(bookingId, verified, required, method) {
+                        document.querySelectorAll('[data-booking-id="' + bookingId + '"]').forEach(function (button) {
+                            button.dataset.verified = verified;
+                            button.dataset.required = required;
+                            if (button.dataset.ciAction !== 'mobile') return;
+                            button.classList.add('adm-btn-success');
+                            button.innerHTML = '<i class="bi bi-shield-check"></i><span>Đã xác thực '
+                                + verified + '/' + required + '</span>';
+                        });
+                        var submit = document.querySelector('[data-booking-submit="' + bookingId + '"]');
+                        if (submit) submit.disabled = false;
+                        var raw = document.getElementById('ci-nfc-raw');
+                        if (raw) raw.value = JSON.stringify({
+                            bookingId: Number(bookingId),
+                            verifiedGuestCount: verified,
+                            requiredGuestCount: required,
+                            verificationMethod: method || 'MOBILE_AI_NFC'
+                        }, null, 2);
+                    }
+
+                    async function pollVerificationStatus() {
+                        if (!activeBookingId) return;
+                        try {
+                            var response = await fetch('/api/v1/reception/bookings/' + activeBookingId
+                                + '/verification-status', { headers: { 'Accept': 'application/json' } });
+                            var data = await response.json();
+                            if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Không tải được trạng thái');
+                            var verified = Number(data.verifiedGuestCount || 0);
+                            var required = Number(data.requiredGuestCount || 1);
+                            var status = document.getElementById('ci-nfc-status');
+                            if (status) status.textContent = 'Đã xác thực ' + verified + '/' + required + ' khách';
+                            if (data.isFaceVerified === true || verified >= required) {
+                                if (verificationPoll) clearInterval(verificationPoll);
+                                verificationPoll = null;
+                                document.getElementById('ci-nfc-waiting').style.display = 'none';
+                                document.getElementById('ci-nfc-success').style.display = '';
+                                document.getElementById('ci-nfc-result-box').style.display = '';
+                                document.getElementById('ci-mobile-continue').style.display = '';
+                                markBookingVerified(activeBookingId, verified, required, data.verificationMethod);
+                            }
+                        } catch (error) {
+                            var errorBox = document.getElementById('ci-nfc-error');
+                            var errorMsg = document.getElementById('ci-nfc-error-msg');
+                            if (errorBox) errorBox.style.display = '';
+                            if (errorMsg) errorMsg.textContent = error.message;
+                        }
+                    }
+
+                    function openMobileWaiting(bookingId) {
+                        activeBookingId = bookingId;
+                        document.getElementById('ci-nfc-waiting').style.display = '';
+                        document.getElementById('ci-nfc-success').style.display = 'none';
+                        document.getElementById('ci-nfc-error').style.display = 'none';
+                        document.getElementById('ci-nfc-result-box').style.display = 'none';
+                        document.getElementById('ci-nfc-raw').value = '';
+                        document.getElementById('ci-mobile-continue').style.display = 'none';
+                        AdmModal.open('mobileVerifyModal');
+                        if (verificationPoll) clearInterval(verificationPoll);
+                        pollVerificationStatus();
+                        verificationPoll = setInterval(pollVerificationStatus, 2000);
+                    }
+
                     /* --- Open modal --- */
                     document.addEventListener('click', function (e) {
                         var btn = e.target.closest('[data-ci-action]');
                         if (!btn) return;
                         var action = btn.dataset.ciAction;
-                        var id = btn.dataset.ciId;
+                        var bookingId = btn.dataset.bookingId;
 
-                        if (action === 'nfc') {
-                            // Reset modal
-                            document.getElementById('ci-nfc-waiting').style.display = '';
-                            document.getElementById('ci-nfc-success').style.display = 'none';
-                            document.getElementById('ci-nfc-error').style.display = 'none';
-                            document.getElementById('ci-nfc-result-box').style.display = 'none';
-                            document.getElementById('ci-nfc-raw').value = '';
-                            document.getElementById('ci-mobile-continue').style.display = 'none';
-                            document.getElementById('ci-nfc-sync').style.display = '';
-
-                            // Kiểm tra hỗ trợ Web NFC
-                            var supportWarn = document.getElementById('ci-nfc-support-warning');
-                            var supported = ('NDEFReader' in window) && window.isSecureContext;
-                            supportWarn.style.display = supported ? 'none' : 'flex';
-
-                            // Đổi label nút
-                            var syncBtn = document.getElementById('ci-nfc-sync');
-                            if (syncBtn) {
-                                syncBtn.innerHTML = supported
-                                    ? '<i class="bi bi-upc-scan"></i> Bắt đầu quét'
-                                    : '<i class="bi bi-x-circle"></i> Không hỗ trợ';
-                                syncBtn.disabled = !supported;
-                            }
-
-                            AdmModal.open('mobileVerifyModal');
+                        if (action === 'mobile') {
+                            openMobileWaiting(bookingId);
                         }
 
-                        if (action === 'cccd') {
+                        if (action === 'manual') {
+                            if (verificationPoll) clearInterval(verificationPoll);
+                            verificationPoll = null;
+                            activeBookingId = bookingId;
+                            var guestSelect = document.getElementById('ci-manual-guest-index');
+                            if (guestSelect) {
+                                guestSelect.innerHTML = '';
+                                var required = Number(btn.dataset.required || 1);
+                                var verified = Number(btn.dataset.verified || 0);
+                                for (var guestIndex = 0; guestIndex < required; guestIndex++) {
+                                    var option = document.createElement('option');
+                                    option.value = guestIndex;
+                                    option.textContent = 'Khách ' + (guestIndex + 1) + '/' + required;
+                                    if (guestIndex === Math.min(verified, required - 1)) option.selected = true;
+                                    guestSelect.appendChild(option);
+                                }
+                            }
                             if (rawResult) rawResult.value = '';
                             ['ci-preview-front', 'ci-preview-back'].forEach(function (pid) {
                                 var p = document.getElementById(pid);
@@ -447,12 +533,89 @@
                             if (mi) mi.value = '';
                             document.querySelectorAll('.adm-tab-btn').forEach(function (t) { t.classList.remove('is-active'); });
                             document.querySelectorAll('.adm-tab-panel').forEach(function (p) { p.classList.remove('is-active'); });
-                            var uploadBtn = document.querySelector('[data-adm-tab="upload"]');
-                            var uploadPanel = document.querySelector('[data-adm-panel="upload"]');
-                            if (uploadBtn) uploadBtn.classList.add('is-active');
-                            if (uploadPanel) uploadPanel.classList.add('is-active');
+                            var manualBtn = document.querySelector('[data-adm-tab="manual"]');
+                            var manualPanel = document.querySelector('[data-adm-panel="manual"]');
+                            if (manualBtn) manualBtn.classList.add('is-active');
+                            if (manualPanel) manualPanel.classList.add('is-active');
                             AdmModal.open('verifyIdModal');
                         }
+                    });
+
+                    var manualSubmit = document.getElementById('ci-manual-submit');
+                    if (manualSubmit) manualSubmit.addEventListener('click', async function () {
+                        var payload = {
+                            fullName: (document.getElementById('ci-manual-name').value || '').trim(),
+                            documentNumber: (document.getElementById('ci-manual-id').value || '').trim(),
+                            nationality: (document.getElementById('ci-manual-nationality').value || '').trim(),
+                            dateOfBirth: document.getElementById('ci-manual-dob').value || '',
+                            reason: document.getElementById('ci-manual-reason').value || ''
+                        };
+                        payload.guestIndex = Number(document.getElementById('ci-manual-guest-index').value || 0);
+                        if (!activeBookingId || !payload.fullName || !payload.documentNumber
+                            || !payload.nationality || !payload.dateOfBirth || !payload.reason) {
+                            if (typeof toast === 'function') toast('Vui lòng nhập đầy đủ thông tin và lý do ngoại lệ', 'warning');
+                            return;
+                        }
+                        manualSubmit.disabled = true;
+                        try {
+                            var response = await fetch('/api/v1/reception/bookings/' + activeBookingId
+                                + '/manual-verification', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                                body: JSON.stringify(payload)
+                            });
+                            var data = await response.json();
+                            if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Không lưu được xác thực');
+                            var verified = Number(data.verifiedGuestCount || 0);
+                            var required = Number(data.requiredGuestCount || 1);
+                            if (data.isFaceVerified === true || verified >= required) {
+                                markBookingVerified(activeBookingId, verified, required, 'MANUAL_EXCEPTION');
+                            } else {
+                                var mobileButton = document.querySelector('[data-ci-action="mobile"][data-booking-id="'
+                                    + activeBookingId + '"]');
+                                if (mobileButton) {
+                                    mobileButton.dataset.verified = verified;
+                                    mobileButton.innerHTML = '<i class="bi bi-phone-vibrate"></i><span>Chờ Mobile '
+                                        + verified + '/' + required + '</span>';
+                                }
+                                var manualButton = document.querySelector('[data-ci-action="manual"][data-booking-id="'
+                                    + activeBookingId + '"]');
+                                if (manualButton) {
+                                    manualButton.dataset.verified = verified;
+                                    manualButton.dataset.required = required;
+                                }
+                            }
+                            AdmModal.close('verifyIdModal');
+                            if (typeof toast === 'function') toast('Đã lưu xác thực nhập tay ngoại lệ');
+                        } catch (error) {
+                            if (typeof toast === 'function') toast(error.message, 'danger');
+                        } finally {
+                            manualSubmit.disabled = false;
+                        }
+                    });
+
+                    var simulateButton = document.getElementById('ci-simulate-mobile');
+                    if (simulateButton) simulateButton.addEventListener('click', async function () {
+                        if (!activeBookingId) return;
+                        simulateButton.disabled = true;
+                        try {
+                            var response = await fetch('/api/v1/reception/bookings/' + activeBookingId
+                                + '/simulate-verification', { method: 'POST', headers: { 'Accept': 'application/json' } });
+                            var data = await response.json();
+                            if (!response.ok || data.status !== 'success') throw new Error(data.message || 'Giả lập thất bại');
+                            await pollVerificationStatus();
+                        } catch (error) {
+                            if (typeof toast === 'function') toast(error.message, 'danger');
+                        } finally {
+                            simulateButton.disabled = false;
+                        }
+                    });
+
+                    document.addEventListener('click', function (event) {
+                        var closeButton = event.target.closest('#mobileVerifyModal [data-adm-close]');
+                        if (!closeButton) return;
+                        if (verificationPoll) clearInterval(verificationPoll);
+                        verificationPoll = null;
                     });
 
                     /* --- Preview ảnh --- */

@@ -45,7 +45,9 @@ public class VNPayService {
         vnp_Params.put("vnp_Amount", String.valueOf(amount));
         vnp_Params.put("vnp_CurrCode", "VND");
         vnp_Params.put("vnp_TxnRef", vnp_TxnRef);
-        vnp_Params.put("vnp_OrderInfo", "Dat coc 10% phong MAY HOTEL - HD #" + invoice.getId());
+        boolean fullPayment = "VNPAY_FULL".equalsIgnoreCase(invoice.getPayMethod());
+        vnp_Params.put("vnp_OrderInfo", (fullPayment ? "Thanh toan phong MAY HOTEL - HD #"
+                : "Dat coc 10% phong MAY HOTEL - HD #") + invoice.getId());
         vnp_Params.put("vnp_OrderType", "other");
         vnp_Params.put("vnp_Locale", "vn");
         vnp_Params.put("vnp_ReturnUrl", vnPayConfig.getReturnUrl());

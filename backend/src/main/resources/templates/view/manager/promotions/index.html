@@ -910,7 +910,18 @@
                         if (action === 'send') openSendPromoModal(p._id || p.id);
                     });
 
-                    loadData();
+                    loadData().catch(function (error) {
+                        console.error('[promotions] loadData failed', error);
+                        var tbody = document.getElementById('table-body');
+                        if (tbody) {
+                            tbody.innerHTML = '<tr><td colspan="6"><div class="adm-empty">' +
+                                '<i class="bi bi-exclamation-triangle"></i>' +
+                                '<h4>Không tải được danh sách khuyến mãi</h4>' +
+                                '<p>' + esc(error.message || 'Vui lòng kiểm tra kết nối và thử lại.') + '</p>' +
+                                '</div></td></tr>';
+                        }
+                        if (typeof toast === 'function') toast(error.message || 'Không tải được khuyến mãi', 'danger');
+                    });
                 });
 
             })();
