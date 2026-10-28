@@ -26,6 +26,14 @@
                 border-bottom: 1px solid #e3e8ee;
                 color: #5f6f7f;
             }
+            .upload-preview {
+                width: 120px;
+                height: 80px;
+                object-fit: cover;
+                border: 1px solid #d9e0e7;
+                border-radius: 8px;
+                background: #f8fafc;
+            }
         </style>
     </th:block>
 </head>
@@ -39,6 +47,10 @@
         </div>
         <div th:if="${error}" class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="bi bi-exclamation-triangle-fill me-2"></i><span th:text="${error}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${warning}" class="alert alert-warning alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-circle-fill me-2"></i><span th:text="${warning}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
@@ -214,7 +226,7 @@
                         </h5>
                         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <form th:action="@{/manager/rooms/edit}" method="post">
+                    <form th:action="@{/manager/rooms/edit}" method="post" enctype="multipart/form-data">
                         <input type="hidden" name="id" th:value="${r.id}" />
                         <div class="modal-body p-4">
                             <div class="row g-4">
@@ -227,8 +239,18 @@
                                     <input type="number" class="form-control" name="price" th:value="${r.price}" required min="0">
                                 </div>
                                 <div class="col-md-6">
-                                    <label class="form-label fw-bold">URL Hình ảnh</label>
-                                    <input type="text" class="form-control" name="imageUrl" th:value="${r.imageUrl}">
+                                    <label class="form-label fw-bold">Thay ảnh phòng</label>
+                                    <input type="file" class="form-control image-upload-input" name="imageFile"
+                                           accept="image/jpeg,image/png,image/gif,image/webp"
+                                           th:attr="data-preview-id=${'roomEditPreview' + r.id}"
+                                           th:disabled="${cloudinaryEnabled == false}">
+                                    <div class="form-text">JPG, PNG, GIF hoặc WebP; tối đa 5 MB. Không chọn file sẽ giữ ảnh hiện tại.</div>
+                                    <div class="form-text text-warning" th:if="${cloudinaryEnabled == false}">Cloudinary chưa được cấu hình.</div>
+                                </div>
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <img class="upload-preview" th:id="${'roomEditPreview' + r.id}"
+                                         th:src="${not #strings.isEmpty(r.imageUrl) ? (r.imageUrl.startsWith('http') ? r.imageUrl : '/images/' + r.imageUrl) : 'https://via.placeholder.com/120x80?text=No+Image'}"
+                                         alt="Xem trước ảnh phòng">
                                 </div>
                                 <div class="col-md-4">
                                     <label class="form-label fw-bold">Loại Phòng</label>
@@ -290,7 +312,7 @@
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
-                <form th:action="@{/manager/rooms/create}" method="post" th:object="${room}">
+                <form th:action="@{/manager/rooms/create}" method="post" th:object="${room}" enctype="multipart/form-data">
                     <div class="modal-body p-4">
                         <div class="row g-4">
                             <div class="col-md-6">
@@ -302,8 +324,16 @@
                                 <input type="number" class="form-control" th:field="*{price}" required placeholder="Ví dụ: 500000" min="0">
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">URL Hình ảnh</label>
-                                <input type="text" class="form-control" th:field="*{imageUrl}" placeholder="Ví dụ: /images/r1.jpg">
+                                <label class="form-label fw-bold">Ảnh phòng</label>
+                                <input type="file" class="form-control image-upload-input" name="imageFile"
+                                       accept="image/jpeg,image/png,image/gif,image/webp"
+                                       data-preview-id="roomCreatePreview"
+                                       th:disabled="${cloudinaryEnabled == false}">
+                                <div class="form-text">JPG, PNG, GIF hoặc WebP; tối đa 5 MB.</div>
+                                <div class="form-text text-warning" th:if="${cloudinaryEnabled == false}">Cloudinary chưa được cấu hình.</div>
+                            </div>
+                            <div class="col-md-6 d-flex align-items-end">
+                                <img class="upload-preview d-none" id="roomCreatePreview" alt="Xem trước ảnh phòng">
                             </div>
                             <div class="col-md-4">
                                 <label class="form-label fw-bold">Loại Phòng</label>
@@ -458,6 +488,27 @@
                 }
             });
         })();
+
+        document.querySelectorAll('.image-upload-input').forEach(input => {
+            input.addEventListener('change', () => {
+                const file = input.files && input.files[0];
+                if (!file) return;
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+                if (!allowedTypes.includes(file.type) || file.size > 5 * 1024 * 1024) {
+                    input.value = '';
+                    window.alert('Chỉ chấp nhận ảnh JPG, PNG, GIF hoặc WebP tối đa 5 MB.');
+                    return;
+                }
+                const preview = document.getElementById(input.dataset.previewId);
+                if (!preview) return;
+                const oldObjectUrl = preview.dataset.objectUrl;
+                if (oldObjectUrl) URL.revokeObjectURL(oldObjectUrl);
+                const objectUrl = URL.createObjectURL(file);
+                preview.src = objectUrl;
+                preview.dataset.objectUrl = objectUrl;
+                preview.classList.remove('d-none');
+            });
+        });
     </script>
     <script th:inline="javascript">
         (() => {
