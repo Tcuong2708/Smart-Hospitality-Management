@@ -716,6 +716,15 @@ public class BookingController extends BaseController {
                 == paidAmount;
         String responseCode = allParams.get("vnp_ResponseCode");
 
+        // VNPay luôn trả về vnp_ResponseCode ở Return URL. Nếu thiếu trường này thì
+        // request hiện tại chỉ là bộ tham số khởi tạo bị trỏ nhầm vào callback,
+        // không được ghi nhận là một giao dịch thất bại của khách hàng.
+        if (responseCode == null || responseCode.isBlank()) {
+            ra.addFlashAttribute("error",
+                    "Cấu hình cổng VNPay không hợp lệ: chưa nhận được mã phản hồi từ VNPay.");
+            return "redirect:/booking/payment-gate?id=" + invoice.getId();
+        }
+
         if (validSignature && amountMatches && "00".equals(responseCode)) {
             depositPaymentService.confirmDeposit(invoice, txnRef, paidAmount, allParams.get("vnp_BankCode"),
                     responseCode, "VNPay xác nhận thanh toán cọc thành công. Mã GD: "
@@ -729,14 +738,31 @@ public class BookingController extends BaseController {
 
         if (validSignature) {
             depositPaymentService.recordFailure(invoice, txnRef, paidAmount, allParams.get("vnp_BankCode"),
-                    responseCode, "Giao dịch cọc VNPay không thành công hoặc đã bị hủy");
+                    responseCode, "Giao dịch cọc VNPay không thành công. Mã phản hồi: " + responseCode);
         }
         String message = !validSignature
                 ? "Chữ ký thanh toán không hợp lệ."
                 : (!amountMatches ? "Số tiền thanh toán không khớp với hóa đơn."
-                : "Giao dịch chưa thành công hoặc đã bị hủy.");
+                : vnpayFailureMessage(responseCode));
         ra.addFlashAttribute("error", message);
         return "redirect:/booking/payment-gate?id=" + invoice.getId();
+    }
+
+    private String vnpayFailureMessage(String responseCode) {
+        return switch (responseCode) {
+            case "07" -> "Giao dịch bị nghi ngờ gian lận hoặc cần xác minh thêm (mã VNPay 07).";
+            case "09" -> "Thẻ hoặc tài khoản chưa đăng ký Internet Banking (mã VNPay 09).";
+            case "10" -> "Thông tin xác thực thanh toán không đúng (mã VNPay 10).";
+            case "11" -> "Giao dịch đã hết thời gian chờ thanh toán (mã VNPay 11).";
+            case "12" -> "Thẻ hoặc tài khoản đang bị khóa (mã VNPay 12).";
+            case "13" -> "Mã OTP không chính xác (mã VNPay 13).";
+            case "24" -> "Bạn đã hủy giao dịch thanh toán trên VNPay (mã VNPay 24).";
+            case "51" -> "Tài khoản không đủ số dư để thanh toán (mã VNPay 51).";
+            case "65" -> "Tài khoản đã vượt quá hạn mức giao dịch trong ngày (mã VNPay 65).";
+            case "75" -> "Ngân hàng thanh toán đang bảo trì (mã VNPay 75).";
+            case "79" -> "Bạn đã nhập sai mật khẩu thanh toán quá số lần cho phép (mã VNPay 79).";
+            default -> "Giao dịch chưa thành công. Mã phản hồi VNPay: " + responseCode + ".";
+        };
     }
 
     private Long parseInvoiceId(String transactionReference) {
