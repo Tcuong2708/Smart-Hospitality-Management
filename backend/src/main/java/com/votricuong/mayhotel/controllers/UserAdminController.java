@@ -23,16 +23,16 @@ public class UserAdminController extends BaseController {
     public String index(Model model) {
         List<User> users = userService.getAllUsers();
         setPageTitle(model, "Quản lý Người dùng");
-        setExtraCSS(model, "view/Admin/User/index :: extra_css");
+        setExtraCSS(model, "view/admin/user/index :: extra_css");
         model.addAttribute("users", users);
-        return render(model, "view/Admin/User/index");
+        return render(model, "view/admin/user/index");
     }
 
     @GetMapping("/create")
     public String createView(Model model) {
         setPageTitle(model, "Thêm Người dùng");
         model.addAttribute("user", new User());
-        return render(model, "view/Admin/User/create");
+        return render(model, "view/admin/user/create");
     }
 
     @PostMapping("/create")
@@ -55,7 +55,7 @@ public class UserAdminController extends BaseController {
         }
         setPageTitle(model, "Chỉnh sửa Người dùng");
         model.addAttribute("user", user);
-        return render(model, "view/Admin/User/edit");
+        return render(model, "view/admin/user/edit");
     }
 
     @PostMapping("/edit/{id}")

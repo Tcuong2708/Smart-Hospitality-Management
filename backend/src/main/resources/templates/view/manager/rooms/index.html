@@ -1,0 +1,862 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css">
+        <!-- SheetJS để xuất Excel -->
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    </th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page header -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Danh mục phòng</span>
+                <h1 class="adm-page-title">Quản lý phòng</h1>
+                <p class="adm-page-sub">Quản lý danh sách, giá và trạng thái của từng phòng trong khách sạn.</p>
+            </div>
+
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-outline" id="btnExport">
+                    <i class="bi bi-download"></i> Xuất Excel
+                </button>
+                <button type="button" class="adm-btn adm-btn-gold" data-adm-open="modalCreate">
+                    <i class="bi bi-plus-lg"></i> Thêm phòng mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="adm-card adm-room-list-card">
+
+            <!-- Toolbar -->
+            <div class="adm-toolbar">
+                <form th:action="@{/manager/rooms}" method="get" class="adm-date-filter">
+                    <label for="roomStatusDate"><i class="bi bi-calendar3"></i> Trạng thái ngày</label>
+                    <input id="roomStatusDate" type="date" name="date" th:value="${selectedDate}">
+                    <button type="submit" class="adm-filter-btn"><i class="bi bi-arrow-repeat"></i> Xem</button>
+                    <span class="adm-date-note" th:text="'Đang xem ' + ${selectedDateText} + ' · cập nhật ' + ${refreshedAtText}"></span>
+                </form>
+                <div class="adm-search" id="searchWrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchRoom" placeholder="Tìm theo tên phòng...">
+                    <button type="button" class="adm-search-clear" id="searchClear" aria-label="Xóa tìm kiếm">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterCategory">
+                        <i class="bi bi-collection"></i>
+                        <span>Loại phòng</span>
+                        <span class="adm-filter-badge" id="badgeCategory" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Loại phòng</strong>
+                            <button type="button" data-clear="category">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterCategory"></div>
+                    </div>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterStatus">
+                        <i class="bi bi-circle-half"></i>
+                        <span>Trạng thái</span>
+                        <span class="adm-filter-badge" id="badgeStatus" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Trạng thái</strong>
+                            <button type="button" data-clear="status">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterStatus"></div>
+                    </div>
+                </div>
+
+                <button type="button" class="adm-btn adm-btn-ghost" id="btnClearAll" style="display:none;">
+                    <i class="bi bi-arrow-counterclockwise"></i> Xóa lọc
+                </button>
+
+                <div class="adm-result-count">
+                    <i class="bi bi-door-closed" style="color:var(--gold-hover);"></i>
+                    <strong id="roomCount" th:text="${#lists.size(rooms)}">0</strong> phòng
+                </div>
+            </div>
+
+            <div class="adm-chips" id="filterChips"></div>
+
+            <!-- Table -->
+            <div class="adm-table-wrap">
+                <table class="adm-table" id="roomTable">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">ID</th>
+                            <th style="width:90px;">Ảnh</th>
+                            <th>Tên phòng</th>
+                            <th>Loại phòng</th>
+                            <th>Hướng</th>
+                            <th class="col-right">Giá / đêm</th>
+                            <th class="col-center">Trạng thái</th>
+                            <th class="col-center" style="width:140px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roomTbody">
+                        <tr th:if="${rooms == null or rooms.isEmpty()}">
+                            <td colspan="8">
+                                <div class="adm-empty">
+                                    <i class="bi bi-door-closed"></i>
+                                    <h4>Chưa có phòng nào</h4>
+                                    <p>Bấm nút "Thêm phòng mới" để tạo phòng đầu tiên.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:each="r : ${rooms}" class="room-row" th:attr="data-id=${r.id},
+                                 data-name=${r.name},
+                                 data-price=${r.price},
+                                 data-image=${r.imageUrl},
+                                 data-category=${r.roomType != null ? r.roomType.name : 'Chưa phân loại'},
+                                 data-type-id=${r.roomTypeId},
+                                 data-view=${r.viewDirection},
+                                 data-status=${r.displayStatus},
+                                 data-max-beds=${r.maxExtraBeds},
+                                 data-detail=${r.detail},
+                                 data-note=${r.note}">
+
+                            <td class="cell-id" th:text="${r.id}">1</td>
+
+                            <td>
+                                <img th:if="${not #strings.isEmpty(r.imageUrl)}" th:src="${r.imageUrl}" class="cell-img"
+                                    alt="room" style="width:68px;height:48px;object-fit:cover;border-radius:6px;">
+                                <span th:if="${#strings.isEmpty(r.imageUrl)}"
+                                    style="display:inline-flex;width:68px;height:48px;border-radius:6px;background:var(--bg);color:var(--muted);align-items:center;justify-content:center;font-size:18px;">
+                                    <i class="bi bi-image"></i>
+                                </span>
+                            </td>
+
+                            <td class="cell-name room-name" th:text="${r.name}">P101</td>
+
+                            <td>
+                                <span class="adm-badge adm-badge-cat room-category"
+                                    th:text="${r.roomType != null ? r.roomType.name : 'Chưa phân loại'}">
+                                    Standard
+                                </span>
+                            </td>
+
+                            <td class="room-view"
+                                th:text="${r.viewDirection != null ? r.viewDirection : 'Không xác định'}">
+                                Hướng Thành Phố
+                            </td>
+
+                            <td class="cell-price col-right"
+                                th:text="${#numbers.formatDecimal(r.price, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+                                500,000 đ
+                            </td>
+
+                            <td class="col-center room-status">
+                                <span class="adm-badge"
+                                    th:classappend="${r.displayStatus == 'Trống' ? 'adm-badge-success' : (r.displayStatus == 'Đang ở' ? 'adm-badge-danger' : 'adm-badge-warning')}">
+                                    <span class="dot"></span>
+                                    <span th:text="${r.displayStatus}">Trống</span>
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <button type="button" class="adm-action view" title="Chi tiết" data-action="view">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button type="button" class="adm-action edit" title="Sửa" data-action="edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="adm-action delete" title="Xóa" data-action="delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="adm-pagination" id="roomPagination" aria-label="Phân trang danh sách phòng"></div>
+        </div>
+
+
+        <!-- ==================== MODAL: DETAIL ==================== -->
+        <div class="adm-modal-backdrop" id="modalDetail">
+            <div class="adm-modal lg">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-info-circle"></i> Chi tiết phòng</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="adm-modal-body">
+                    <div style="display:grid;grid-template-columns:200px 1fr;gap:24px;align-items:start;">
+                        <img id="dImg" src="" class="w-100"
+                            style="border-radius:10px;border:1px solid var(--border);width:200px;height:150px;object-fit:cover;"
+                            alt="">
+                        <div>
+                            <h2 id="dName"
+                                style="font-family:var(--font-heading);font-size:24px;color:var(--navy);margin-bottom:16px;">
+                                —
+                            </h2>
+                            <table style="width:100%;font-size:14px;line-height:1.9;">
+                                <tr>
+                                    <td style="color:var(--muted);width:130px;">Mã phòng</td>
+                                    <td id="dId" style="font-weight:700;font-family:monospace;">—</td>
+                                </tr>
+                                <tr>
+                                    <td style="color:var(--muted);">Loại phòng</td>
+                                    <td id="dCategory" style="font-weight:600;">—</td>
+                                </tr>
+                                <tr>
+                                    <td style="color:var(--muted);">Giá / đêm</td>
+                                    <td id="dPrice" style="font-weight:700;color:var(--navy);">—</td>
+                                </tr>
+                                <tr>
+                                    <td style="color:var(--muted);">Hướng nhìn</td>
+                                    <td id="dView">—</td>
+                                </tr>
+                                <tr>
+                                    <td style="color:var(--muted);">Trạng thái</td>
+                                    <td id="dStatus">—</td>
+                                </tr>
+                                <tr>
+                                    <td style="color:var(--muted);">Giường phụ</td>
+                                    <td id="dExtraBeds">—</td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div style="margin-top:24px;padding-top:20px;border-top:1px solid var(--border-soft);">
+                        <h4
+                            style="font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">
+                            Mô tả
+                        </h4>
+                        <p id="dDetail" style="font-size:14px;line-height:1.75;color:var(--text-soft);">—</p>
+
+                        <h4
+                            style="font-size:12px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);margin-top:16px;margin-bottom:8px;">
+                            Ghi chú nội bộ
+                        </h4>
+                        <p id="dNote" style="font-size:14px;line-height:1.75;color:var(--text-soft);">—</p>
+                    </div>
+                </div>
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Đóng</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: EDIT ==================== -->
+        <div class="adm-modal-backdrop" id="modalEdit">
+            <div class="adm-modal lg">
+                <form th:action="@{/manager/rooms/edit}" method="post" enctype="multipart/form-data">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <input type="hidden" name="id" id="eId">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-pencil-square"></i> Chỉnh sửa phòng</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div class="adm-modal-body">
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Tên phòng <span class="req">*</span></label>
+                                <input type="text" name="name" id="eName" required>
+                            </div>
+                            <div class="adm-field">
+                                <label>Giá / đêm (VNĐ) <span class="req">*</span></label>
+                                <input type="number" name="price" id="ePrice" required min="0">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row full">
+                            <div class="adm-field">
+                                <label>Ảnh phòng</label>
+                                <div style="display:flex;gap:16px;align-items:flex-start;">
+                                    <img id="eImagePreview" src="" alt=""
+                                        style="width:140px;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:var(--bg);display:none;">
+                                    <div style="flex:1;">
+                                        <input type="file" name="imageFile" id="eImageFile" accept="image/*"
+                                            style="font-size:13px;">
+                                        <small
+                                            style="display:block;color:var(--muted);font-size:11.5px;margin-top:6px;">
+                                            Bỏ trống nếu muốn giữ ảnh hiện tại. Chỉ chấp nhận jpg, png, gif, webp (tối
+                                            đa 10MB).
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row" style="grid-template-columns:1fr 1fr 1fr;">
+                            <div class="adm-field">
+                                <label>Loại phòng <span class="req">*</span></label>
+                                <select name="roomTypeId" id="eType" required>
+                                    <option th:each="t : ${roomTypes}" th:value="${t.id}" th:text="${t.name}"></option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label>Hướng phòng</label>
+                                <select name="viewDirection" id="eView">
+                                    <option value="Không xác định">Không xác định</option>
+                                    <option value="Hướng Thành Phố">Hướng Thành Phố</option>
+                                    <option value="Hướng Biển">Hướng Biển</option>
+                                    <option value="Hướng Núi">Hướng Núi</option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label>Trạng thái</label>
+                                <select name="status" id="eStatus">
+                                    <option value="Trống">Trống</option>
+                                    <option value="Đang ở">Đang ở</option>
+                                    <option value="Bảo trì">Bảo trì</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Giường phụ tối đa</label>
+                                <input type="number" name="maxExtraBeds" id="eMaxBeds" min="0" value="0">
+                            </div>
+                            <div class="adm-field">
+                                <label>Ghi chú nội bộ</label>
+                                <input type="text" name="note" id="eNote">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row full">
+                            <div class="adm-field">
+                                <label>Mô tả phòng</label>
+                                <textarea name="detail" id="eDetail" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-lg"></i> Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: DELETE ==================== -->
+        <div class="adm-modal-backdrop" id="modalDelete">
+            <div class="adm-modal" style="max-width:440px;">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-exclamation-triangle" style="color:var(--red);"></i> Xác nhận xóa</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="adm-modal-body" style="text-align:center;">
+                    <p style="font-size:14px;color:var(--text-soft);margin-bottom:12px;">
+                        Bạn có chắc chắn muốn xóa phòng
+                    </p>
+                    <p id="delRoomName"
+                        style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:var(--navy);">—</p>
+                    <p style="font-size:13px;color:var(--muted);margin-top:8px;">
+                        Hành động này không thể hoàn tác. Ảnh cũng sẽ bị xóa khỏi Cloudinary.
+                    </p>
+                </div>
+                <div class="adm-modal-foot" style="justify-content:center;">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <form id="deleteForm" method="post" style="display:inline;">
+                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}">
+                        <button type="submit" class="adm-btn adm-btn-danger">
+                            <i class="bi bi-trash"></i> Xóa phòng
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: CREATE ==================== -->
+        <div class="adm-modal-backdrop" id="modalCreate">
+            <div class="adm-modal lg">
+                <form th:action="@{/manager/rooms/create}" method="post" enctype="multipart/form-data">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-plus-circle"></i> Thêm phòng mới</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div class="adm-modal-body">
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Tên phòng <span class="req">*</span></label>
+                                <input type="text" name="name" id="cName" required placeholder="Ví dụ: P101">
+                            </div>
+                            <div class="adm-field">
+                                <label>Giá / đêm (VNĐ) <span class="req">*</span></label>
+                                <input type="number" name="price" id="cPrice" required min="0" placeholder="500000">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row full">
+                            <div class="adm-field">
+                                <label>Ảnh phòng</label>
+                                <div style="display:flex;gap:16px;align-items:flex-start;">
+                                    <div style="flex-shrink:0;">
+                                        <img id="cImagePreview" src="" alt=""
+                                            style="width:140px;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--gold);display:none;">
+                                        <div id="cImagePlaceholder"
+                                            style="width:140px;height:100px;border-radius:8px;border:1px dashed var(--border);background:var(--bg-cream);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:24px;">
+                                            <i class="bi bi-image"></i>
+                                        </div>
+                                    </div>
+                                    <div style="flex:1;">
+                                        <input type="file" name="imageFile" id="cImageFile" accept="image/*"
+                                            style="font-size:13px;">
+                                        <small
+                                            style="display:block;color:var(--muted);font-size:11.5px;margin-top:6px;">
+                                            Chọn ảnh phòng (jpg, png, gif, webp — tối đa 10MB).
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row" style="grid-template-columns:1fr 1fr 1fr;">
+                            <div class="adm-field">
+                                <label>Loại phòng <span class="req">*</span></label>
+                                <select name="roomTypeId" id="cType" required>
+                                    <option th:each="t : ${roomTypes}" th:value="${t.id}" th:text="${t.name}"></option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label>Hướng phòng</label>
+                                <select name="viewDirection" id="cView">
+                                    <option value="Không xác định">Không xác định</option>
+                                    <option value="Hướng Thành Phố">Hướng Thành Phố</option>
+                                    <option value="Hướng Biển">Hướng Biển</option>
+                                    <option value="Hướng Núi">Hướng Núi</option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label>Trạng thái</label>
+                                <select name="status" id="cStatus">
+                                    <option value="Trống">Trống</option>
+                                    <option value="Đang ở">Đang ở</option>
+                                    <option value="Bảo trì">Bảo trì</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Giường phụ tối đa</label>
+                                <input type="number" name="maxExtraBeds" id="cMaxBeds" min="0" value="0">
+                            </div>
+                            <div class="adm-field">
+                                <label>Ghi chú nội bộ</label>
+                                <input type="text" name="note" id="cNote">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row full">
+                            <div class="adm-field">
+                                <label>Mô tả phòng</label>
+                                <textarea name="detail" id="cDetail" rows="3"></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-plus-lg"></i> Tạo phòng
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                var rows = Array.from(document.querySelectorAll('.room-row'));
+
+                var searchWrap = document.getElementById('searchWrap');
+                var searchInput = document.getElementById('searchRoom');
+                var searchClear = document.getElementById('searchClear');
+                var chipsBox = document.getElementById('filterChips');
+                var clearAllBtn = document.getElementById('btnClearAll');
+                var roomPager = null;
+
+                function countBy(selector) {
+                    var map = {};
+                    rows.forEach(function (r) {
+                        var el = r.querySelector(selector);
+                        if (!el) return;
+                        var v = el.innerText.trim();
+                        map[v] = (map[v] || 0) + 1;
+                    });
+                    return map;
+                }
+
+                function renderFilter(containerId, counts, cls) {
+                    var box = document.getElementById(containerId);
+                    if (!box) return;
+
+                    var values = Object.keys(counts).sort();
+                    if (!values.length) {
+                        box.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12.5px;">Không có dữ liệu</div>';
+                        return;
+                    }
+
+                    box.innerHTML = values.map(function (v, i) {
+                        var id = cls + '_' + i;
+                        var safe = v.replace(/"/g, '&quot;');
+                        return '<label class="adm-filter-option" for="' + id + '">' +
+                            '<input type="checkbox" class="' + cls + '" value="' + safe + '" id="' + id + '">' +
+                            '<span class="adm-filter-option-label">' + v + '</span>' +
+                            '<span class="adm-filter-option-count">' + counts[v] + '</span>' +
+                            '</label>';
+                    }).join('');
+
+                    box.querySelectorAll('input').forEach(function (cb) {
+                        cb.addEventListener('change', applyFilters);
+                    });
+                }
+
+                renderFilter('filterCategory', countBy('.room-category'), 'filter-category');
+                renderFilter('filterStatus', countBy('.room-status'), 'filter-status');
+
+                searchInput.addEventListener('input', function () {
+                    searchWrap.classList.toggle('has-value', this.value.length > 0);
+                    applyFilters();
+                });
+
+                searchClear.addEventListener('click', function () {
+                    searchInput.value = '';
+                    searchWrap.classList.remove('has-value');
+                    applyFilters();
+                    searchInput.focus();
+                });
+
+                function updateBadge(badgeId, btnId, count) {
+                    var badge = document.getElementById(badgeId);
+                    var btn = document.getElementById(btnId);
+                    if (!badge || !btn) return;
+
+                    if (count > 0) {
+                        badge.textContent = count;
+                        badge.style.display = 'inline-flex';
+                        btn.classList.add('is-active');
+                    } else {
+                        badge.style.display = 'none';
+                        btn.classList.remove('is-active');
+                    }
+                }
+
+                function chipHtml(type, value) {
+                    return '<span class="adm-chip">' +
+                        '<span>' + value + '</span>' +
+                        '<button type="button" data-remove-type="' + type + '" data-remove-value="' + value.replace(/"/g, '&quot;') + '">×</button>' +
+                        '</span>';
+                }
+
+                function renderChips(cats, sts) {
+                    var html = '';
+                    cats.forEach(function (c) { html += chipHtml('category', c); });
+                    sts.forEach(function (s) { html += chipHtml('status', s); });
+                    chipsBox.innerHTML = html;
+
+                    chipsBox.querySelectorAll('button[data-remove-type]').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var type = btn.dataset.removeType;
+                            var value = btn.dataset.removeValue;
+                            var cls = type === 'category' ? 'filter-category' : 'filter-status';
+                            var cb = document.querySelector('.' + cls + '[value="' + value.replace(/"/g, '\\"') + '"]');
+                            if (cb) {
+                                cb.checked = false;
+                                applyFilters();
+                            }
+                        });
+                    });
+                }
+
+                function applyFilters() {
+                    var keyword = (searchInput.value || '').toLowerCase().trim();
+                    var cats = Array.from(document.querySelectorAll('.filter-category:checked')).map(function (c) { return c.value; });
+                    var sts = Array.from(document.querySelectorAll('.filter-status:checked')).map(function (c) { return c.value; });
+
+                    var count = 0;
+                    rows.forEach(function (row) {
+                        var name = row.querySelector('.room-name').innerText.toLowerCase();
+                        var cat = row.querySelector('.room-category').innerText.trim();
+                        var st = row.querySelector('.room-status').innerText.trim();
+
+                        var ok = (!keyword || name.indexOf(keyword) >= 0)
+                            && (!cats.length || cats.indexOf(cat) >= 0)
+                            && (!sts.length || sts.indexOf(st) >= 0);
+
+                        row.dataset.paginationHidden = ok ? 'false' : 'true';
+                        row.style.display = ok ? '' : 'none';
+                        if (ok) count++;
+                    });
+
+                    document.getElementById('roomCount').textContent = count;
+
+                    updateBadge('badgeCategory', 'btnFilterCategory', cats.length);
+                    updateBadge('badgeStatus', 'btnFilterStatus', sts.length);
+
+                    renderChips(cats, sts);
+
+                    clearAllBtn.style.display = (cats.length + sts.length) > 0 ? 'inline-flex' : 'none';
+                    if (roomPager) roomPager.page = 1;
+                    if (roomPager) roomPager.refresh();
+                }
+
+                document.querySelectorAll('[data-clear]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var type = btn.dataset.clear;
+                        var cls = type === 'category' ? '.filter-category' : '.filter-status';
+                        document.querySelectorAll(cls).forEach(function (cb) { cb.checked = false; });
+                        applyFilters();
+                    });
+                });
+
+                clearAllBtn.addEventListener('click', function () {
+                    document.querySelectorAll('.filter-category, .filter-status').forEach(function (cb) {
+                        cb.checked = false;
+                    });
+                    searchInput.value = '';
+                    searchWrap.classList.remove('has-value');
+                    applyFilters();
+                });
+
+                function getRowData(row) {
+                    var d = row.dataset;
+                    return {
+                        id: d.id,
+                        name: d.name,
+                        price: parseFloat(d.price) || 0,
+                        image: d.image,
+                        category: d.category,
+                        typeId: d.typeId,
+                        view: d.view,
+                        status: d.status,
+                        maxBeds: d.maxBeds,
+                        detail: d.detail,
+                        note: d.note
+                    };
+                }
+
+                function fmtPrice(n) {
+                    return Math.round(n).toLocaleString('vi-VN') + ' đ';
+                }
+
+                document.addEventListener('click', function (e) {
+                    var btn = e.target.closest('[data-action]');
+                    if (!btn) return;
+
+                    var row = btn.closest('.room-row');
+                    if (!row) return;
+
+                    var d = getRowData(row);
+                    var action = btn.dataset.action;
+
+                    if (action === 'view') {
+                        var img = document.getElementById('dImg');
+                        if (d.image) {
+                            img.src = d.image;
+                            img.style.display = 'block';
+                        } else {
+                            img.style.display = 'none';
+                        }
+                        document.getElementById('dName').textContent = d.name;
+                        document.getElementById('dId').textContent = d.id;
+                        document.getElementById('dCategory').textContent = d.category;
+                        document.getElementById('dPrice').textContent = fmtPrice(d.price);
+                        document.getElementById('dView').textContent = d.view || 'Không xác định';
+                        document.getElementById('dStatus').textContent = d.status;
+                        document.getElementById('dExtraBeds').textContent = d.maxBeds != null ? d.maxBeds : '0';
+                        document.getElementById('dDetail').textContent = d.detail || 'Chưa có mô tả.';
+                        document.getElementById('dNote').textContent = d.note || 'Chưa có ghi chú.';
+                        document.getElementById('modalDetail').classList.add('is-open');
+                        document.body.style.overflow = 'hidden';
+                    }
+
+                    if (action === 'edit') {
+                        document.getElementById('eId').value = d.id;
+                        document.getElementById('eName').value = d.name;
+                        document.getElementById('ePrice').value = d.price;
+                        document.getElementById('eType').value = d.typeId || '';
+                        document.getElementById('eView').value = d.view || 'Không xác định';
+                        document.getElementById('eStatus').value = d.status || 'Trống';
+                        document.getElementById('eMaxBeds').value = d.maxBeds || 0;
+                        document.getElementById('eNote').value = d.note || '';
+                        document.getElementById('eDetail').value = d.detail || '';
+                        document.getElementById('eImageFile').value = '';
+
+                        var preview = document.getElementById('eImagePreview');
+                        if (d.image) {
+                            preview.src = d.image;
+                            preview.style.display = 'block';
+                        } else {
+                            preview.style.display = 'none';
+                        }
+
+                        document.getElementById('modalEdit').classList.add('is-open');
+                        document.body.style.overflow = 'hidden';
+                    }
+
+                    if (action === 'delete') {
+                        document.getElementById('delRoomName').textContent = d.name;
+                        document.getElementById('deleteForm').action = '/manager/rooms/delete/' + d.id;
+                        document.getElementById('modalDelete').classList.add('is-open');
+                        document.body.style.overflow = 'hidden';
+                    }
+                });
+
+                // Preview ảnh create
+                var cImageFile = document.getElementById('cImageFile');
+                if (cImageFile) {
+                    cImageFile.addEventListener('change', function (e) {
+                        var file = e.target.files[0];
+                        if (!file) return;
+                        var reader = new FileReader();
+                        reader.onload = function (ev) {
+                            var img = document.getElementById('cImagePreview');
+                            var ph = document.getElementById('cImagePlaceholder');
+                            img.src = ev.target.result;
+                            img.style.display = 'block';
+                            if (ph) ph.style.display = 'none';
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+
+                // Preview ảnh edit
+                var eImageFile = document.getElementById('eImageFile');
+                if (eImageFile) {
+                    eImageFile.addEventListener('change', function (e) {
+                        var file = e.target.files[0];
+                        if (!file) return;
+                        var reader = new FileReader();
+                        reader.onload = function (ev) {
+                            var img = document.getElementById('eImagePreview');
+                            img.src = ev.target.result;
+                            img.style.display = 'block';
+                        };
+                        reader.readAsDataURL(file);
+                    });
+                }
+
+                // Reset modal create khi mở
+                document.querySelector('[data-adm-open="modalCreate"]')?.addEventListener('click', function () {
+                    var form = document.querySelector('#modalCreate form');
+                    if (form) form.reset();
+                    var img = document.getElementById('cImagePreview');
+                    var ph = document.getElementById('cImagePlaceholder');
+                    if (img) { img.src = ''; img.style.display = 'none'; }
+                    if (ph) ph.style.display = 'flex';
+                });
+
+                // ============================================================
+                // EXPORT EXCEL — SheetJS
+                // ============================================================
+                var btnExport = document.getElementById('btnExport');
+                if (btnExport) {
+                    btnExport.addEventListener('click', function () {
+                        if (typeof XLSX === 'undefined') {
+                            if (typeof toast === 'function') toast('Thư viện Excel chưa load, thử lại', 'danger');
+                            return;
+                        }
+
+                        var allRows = Array.from(document.querySelectorAll('.room-row'));
+                        if (!allRows.length) {
+                            if (typeof toast === 'function') toast('Không có dữ liệu để xuất', 'warning');
+                            return;
+                        }
+
+                        var data = [
+                            ['ID', 'Tên phòng', 'Loại phòng', 'Hướng', 'Giá/đêm (VNĐ)', 'Trạng thái', 'Mô tả', 'Ghi chú']
+                        ];
+
+                        allRows.forEach(function (row) {
+                            var d = row.dataset;
+                            data.push([
+                                d.id || '',
+                                d.name || '',
+                                d.category || '',
+                                d.view || 'Không xác định',
+                                parseFloat(d.price) || 0,
+                                d.status || '',
+                                d.detail || '',
+                                d.note || ''
+                            ]);
+                        });
+
+                        var ws = XLSX.utils.aoa_to_sheet(data);
+                        ws['!cols'] = [
+                            { wch: 8 }, { wch: 15 }, { wch: 20 }, { wch: 18 },
+                            { wch: 15 }, { wch: 12 }, { wch: 40 }, { wch: 30 }
+                        ];
+
+                        var wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, 'Danh sách phòng');
+
+                        var now = new Date();
+                        var dateStr = now.getFullYear()
+                            + String(now.getMonth() + 1).padStart(2, '0')
+                            + String(now.getDate()).padStart(2, '0')
+                            + '_'
+                            + String(now.getHours()).padStart(2, '0')
+                            + String(now.getMinutes()).padStart(2, '0');
+
+                        XLSX.writeFile(wb, 'danh-sach-phong_' + dateStr + '.xlsx');
+
+                        if (typeof toast === 'function') {
+                            toast('Đã xuất ' + allRows.length + ' phòng ra Excel');
+                        }
+                    });
+                }
+
+                applyFilters();
+
+                window.addEventListener('load', function () {
+                    roomPager = window.AdmPagination && window.AdmPagination.init({
+                        table: '#roomTable',
+                        rowSelector: '.room-row',
+                        container: '#roomPagination',
+                        count: '#roomCount',
+                        pageSize: 10
+                    });
+                    if (roomPager) roomPager.refresh();
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

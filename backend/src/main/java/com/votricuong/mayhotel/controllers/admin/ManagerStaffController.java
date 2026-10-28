@@ -84,11 +84,11 @@ public class ManagerStaffController extends BaseController {
         }).collect(Collectors.toList());
 
         setPageTitle(model, "Quản Lý Nhân Viên");
-        setExtraCSS(model, "view/Manager/Staff/index :: extra_css");
-        setExtraJS(model, "view/Manager/Staff/index :: extra_js");
+        setExtraCSS(model, "view/manager/staff/index :: extra_css");
+        setExtraJS(model, "view/manager/staff/index :: extra_js");
         model.addAttribute("staffs", dtoList);
         
-        return render(model, "view/Manager/Staff/index");
+        return render(model, "view/manager/staff/index");
     }
 
     @PostMapping("/create")

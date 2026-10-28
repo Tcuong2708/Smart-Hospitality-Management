@@ -30,7 +30,7 @@ public class BackupController extends BaseController {
         model.addAttribute("backupSettings", backupService.settings());
         model.addAttribute("backupEnabled", backupService.isBackupEnabled());
         model.addAttribute("restoreEnabled", backupService.isRestoreEnabled());
-        return render(model, "view/Admin/Backup/index");
+        return render(model, "view/admin/backup/index");
     }
 
     @PostMapping("/create")

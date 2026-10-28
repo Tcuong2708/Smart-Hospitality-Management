@@ -44,7 +44,7 @@ public class AccountPointsController {
             return "redirect:/account/login";
         }
 
-        return "forward:/frontend/account/points.html";
+        return "view/account/points";
     }
 
     @GetMapping("/account/api/v1/points")

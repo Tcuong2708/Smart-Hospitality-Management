@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${pageTitle} ?: 'Chi tiết phòng — MAY HOTEL'">Chi tiết phòng</title>
+    <th:block layout:fragment="additional-css">
+        <link rel="stylesheet" th:href="@{/css/booking.css(v='20261028-5')}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700;800&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    </th:block>
+</head>
+
+<body>
+
+    <section layout:fragment="content">
+        <div class="mh-container">
+
+            <nav class="mh-breadcrumb">
+                <a th:href="@{/}"><i class="fa-solid fa-house"></i> Trang chủ</a>
+                <i class="fa-solid fa-chevron-right mh-sep"></i>
+                <a th:href="@{/rooms}">Phòng nghỉ</a>
+                <i class="fa-solid fa-chevron-right mh-sep"></i>
+                <span class="mh-current" th:text="${loaiPhong.name}">Hạng phòng</span>
+            </nav>
+
+            <div class="mh-room-detail">
+
+                <!-- Gallery -->
+                <div class="mh-room-gallery">
+                    <div class="mh-room-gallery-main">
+                        <img loading="lazy"
+                            th:src="${!#strings.isEmpty(loaiPhong.imageUrl) ? (loaiPhong.imageUrl.startsWith('http') or loaiPhong.imageUrl.startsWith('/') ? loaiPhong.imageUrl : '/images/' + loaiPhong.imageUrl) : '/images/a1.jpg'}"
+                            th:alt="${loaiPhong.name}">
+                        <span class="mh-room-status-badge" th:if="${soPhongTrong > 0}">
+                            <i class="fa-solid fa-circle-check"></i> Còn phòng
+                        </span>
+                        <span class="mh-room-status-badge" th:if="${soPhongTrong == 0}"
+                            style="background:rgba(192,57,43,0.92); color:#fff;">
+                            <i class="fa-solid fa-circle-xmark"></i> Hết phòng
+                        </span>
+                    </div>
+                    <div class="mh-room-gallery-side">
+                        <div><img loading="lazy" th:src="@{/images/gallery/gallery2.jpg}" alt="Phòng nghỉ"></div>
+                        <div><img loading="lazy" th:src="@{/images/gallery/gallery3.jpg}" alt="Phòng nghỉ"></div>
+                    </div>
+                </div>
+
+                <div class="mh-room-layout">
+
+                    <!-- LEFT: Thông tin phòng -->
+                    <div>
+                        <h1 class="mh-room-title" th:text="${loaiPhong.name}">Tên hạng phòng</h1>
+                        <div class="mh-room-location">
+                            <i class="fa-solid fa-location-dot"></i>
+                            <span>MAY HOTEL — Khu vực trung tâm</span>
+                        </div>
+
+                        <div class="mh-room-meta">
+                            <span class="mh-room-chip"><i class="fa-solid fa-user-group"></i> 2 khách</span>
+                            <span class="mh-room-chip"><i class="fa-solid fa-bed"></i> Giường King</span>
+                            <span class="mh-room-chip"><i class="fa-solid fa-ruler-combined"></i> 35 m²</span>
+                            <span class="mh-room-chip"><i class="fa-solid fa-eye"></i> View thành phố</span>
+                        </div>
+
+                        <p class="mh-room-desc"
+                            th:text="${loaiPhong.phongs != null and !loaiPhong.phongs.isEmpty() ? loaiPhong.phongs[0].detail : 'Không gian nghỉ dưỡng sang trọng với thiết kế tinh tế, đầy đủ tiện nghi hiện đại, mang lại cảm giác thư thái trọn vẹn cho kỳ nghỉ của bạn.'}">
+                            Mô tả phòng
+                        </p>
+
+                        <div class="mh-amenity-grid">
+                            <div class="mh-amenity-item"><i class="fa-solid fa-wifi"></i> Wifi tốc độ cao miễn phí</div>
+                            <div class="mh-amenity-item"><i class="fa-solid fa-tv"></i> Smart TV 55 inch</div>
+                            <div class="mh-amenity-item"><i class="fa-solid fa-snowflake"></i> Điều hòa 2 chiều</div>
+                            <div class="mh-amenity-item"><i class="fa-solid fa-mug-hot"></i> Ăn sáng buffet</div>
+                            <div class="mh-amenity-item"><i class="fa-solid fa-bath"></i> Bồn tắm cao cấp</div>
+                            <div class="mh-amenity-item"><i class="fa-solid fa-vault"></i> Két an toàn</div>
+                        </div>
+
+                        <!-- Tabs -->
+                        <div class="mh-tabs">
+                            <button type="button" class="mh-tab active" data-mh-tab="desc">Mô tả chi tiết</button>
+                            <button type="button" class="mh-tab" data-mh-tab="policy">Chính sách & Quy định</button>
+                        </div>
+
+                        <div class="mh-tab-content active" data-mh-content="desc">
+                            <p style="font-size:14.5px;color:#454f5e;line-height:1.85;"
+                                th:text="${loaiPhong.phongs != null and !loaiPhong.phongs.isEmpty() ? loaiPhong.phongs[0].detail : ''}">
+                                Mô tả dài
+                            </p>
+                        </div>
+
+                        <div class="mh-tab-content" data-mh-content="policy">
+                            <ul class="mh-policy-list">
+                                <li><strong>Giờ nhận phòng:</strong> 14:00 — <strong>Trả phòng:</strong> 12:00 hôm sau
+                                </li>
+                                <li>Trẻ em dưới 6 tuổi miễn phí khi ngủ chung giường với bố mẹ</li>
+                                <li>Hủy phòng trước 24 giờ: hoàn tiền 100%</li>
+                                <li>Hủy trong vòng 24 giờ trước check-in: phí 50% tiền cọc</li>
+                                <li>Không mang vật nuôi vào khu vực lưu trú</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: Booking box -->
+                    <aside>
+                        <form class="mh-booking-box" th:action="@{/booking/checkout}" method="post" id="mhBookingForm">
+
+                            <input type="hidden" name="maLoai" th:value="${loaiPhong.maLoai}">
+
+                            <div class="mh-booking-box-head">
+                                <small>Giá chỉ từ</small>
+                                <span class="mh-price">
+                                    <span
+                                        th:text="${#numbers.formatDecimal(loaiPhong.price, 0, 'POINT', 0, 'COMMA')}">0</span>
+                                    <small>đ / đêm</small>
+                                </span>
+                            </div>
+
+                            <div class="mh-booking-box-body">
+
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Số lượng phòng</label>
+                                    <div class="mh-qty-stepper">
+                                        <button type="button" class="mh-qty-btn" data-mh-qty="-1">
+                                            <i class="fa-solid fa-minus"></i>
+                                        </button>
+                                        <input type="number" name="soLuong" id="mhSoLuong" class="mh-qty-input"
+                                            value="1" min="1" th:max="${soPhongTrong}"
+                                            th:attr="data-price=${loaiPhong.price}">
+                                        <button type="button" class="mh-qty-btn" data-mh-qty="1">
+                                            <i class="fa-solid fa-plus"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Người lớn (12+)</label>
+                                    <input type="number" name="adultCount" min="1" th:value="${adults}" required>
+                                </div>
+
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Trẻ em (6–11 tuổi)</label>
+                                    <input type="number" name="childCount" min="0" th:value="${children}" required>
+                                </div>
+
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Em bé (0–5 tuổi)</label>
+                                    <input type="number" name="infantCount" min="0" th:value="${infants}" required>
+                                </div>
+
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Ngày nhận phòng</label>
+                                    <input type="date" name="ngayNhan" id="mhNgayNhan" th:value="${checkin}" required>
+                                </div>
+
+                                <div class="mh-form-group" style="margin-bottom:16px;">
+                                    <label>Ngày trả phòng</label>
+                                    <input type="date" name="ngayTra" id="mhNgayTra" th:value="${checkout}" required>
+                                </div>
+
+                                <div class="mh-price-breakdown">
+                                    <div class="mh-price-row">
+                                        <span>Tạm tính <span id="mhSoDem">1</span> đêm</span>
+                                        <strong id="mhTienPhong">0 đ</strong>
+                                    </div>
+                                    <div class="mh-price-total">
+                                        <span>Tổng cộng</span>
+                                        <strong id="mhTongCong">0 đ</strong>
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="mh-btn mh-btn-gold mh-btn-lg mh-btn-block"
+                                    th:disabled="${soPhongTrong == 0}">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                    ĐẶT PHÒNG NGAY
+                                </button>
+
+                                <p class="mh-booking-note">
+                                    <i class="fa-solid fa-shield-halved" style="color:var(--gold);"></i>
+                                    Miễn phí hủy trước 24 giờ. Không phát sinh chi phí ẩn.
+                                </p>
+                            </div>
+                        </form>
+                    </aside>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <th:block layout:fragment="additional-scripts">
+        <script th:inline="javascript">
+            (function () {
+                var giaPhong = /*[[${loaiPhong.price}]]*/ 0;
+                var soPhongToiDa = /*[[${soPhongTrong}]]*/ 0;
+
+                var inputSoLuong = document.getElementById('mhSoLuong');
+                var inputNgayNhan = document.getElementById('mhNgayNhan');
+                var inputNgayTra = document.getElementById('mhNgayTra');
+                var elSoDem = document.getElementById('mhSoDem');
+                var elTienPhong = document.getElementById('mhTienPhong');
+                var elTongCong = document.getElementById('mhTongCong');
+
+                function formatTien(n) {
+                    return Number(n).toLocaleString('vi-VN') + ' đ';
+                }
+
+                function tinhSoDem() {
+                    if (!inputNgayNhan.value || !inputNgayTra.value) return 1;
+                    var d1 = new Date(inputNgayNhan.value);
+                    var d2 = new Date(inputNgayTra.value);
+                    var diff = Math.ceil((d2 - d1) / (1000 * 60 * 60 * 24));
+                    return diff > 0 ? diff : 1;
+                }
+
+                function capNhatGia() {
+                    var soDem = tinhSoDem();
+                    var soLuong = Math.max(1, Math.min(soPhongToiDa || 1, parseInt(inputSoLuong.value) || 1));
+                    inputSoLuong.value = soLuong;
+
+                    var tienPhong = giaPhong * soLuong * soDem;
+                    elSoDem.textContent = soDem;
+                    elTienPhong.textContent = formatTien(tienPhong);
+                    elTongCong.textContent = formatTien(tienPhong);
+                }
+
+                document.querySelectorAll('[data-mh-qty]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var delta = parseInt(btn.dataset.mhQty);
+                        var val = parseInt(inputSoLuong.value) + delta;
+                        if (val < 1) val = 1;
+                        if (soPhongToiDa && val > soPhongToiDa) val = soPhongToiDa;
+                        inputSoLuong.value = val;
+                        capNhatGia();
+                    });
+                });
+
+                inputSoLuong.addEventListener('input', capNhatGia);
+                inputNgayNhan.addEventListener('change', capNhatGia);
+                inputNgayTra.addEventListener('change', capNhatGia);
+
+                // Tabs
+                document.querySelectorAll('.mh-tab').forEach(function (tab) {
+                    tab.addEventListener('click', function () {
+                        var target = tab.dataset.mhTab;
+                        document.querySelectorAll('.mh-tab').forEach(function (t) { t.classList.remove('active'); });
+                        document.querySelectorAll('.mh-tab-content').forEach(function (c) { c.classList.remove('active'); });
+                        tab.classList.add('active');
+                        document.querySelector('[data-mh-content="' + target + '"]').classList.add('active');
+                    });
+                });
+
+                // Mặc định ngày nhận = hôm nay, ngày trả = mai
+                if (!inputNgayNhan.value) {
+                    var today = new Date();
+                    var tomorrow = new Date(today.getTime() + 86400000);
+                    inputNgayNhan.valueAsDate = today;
+                    inputNgayTra.valueAsDate = tomorrow;
+                }
+                capNhatGia();
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

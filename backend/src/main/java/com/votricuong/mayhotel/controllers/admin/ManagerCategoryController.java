@@ -88,8 +88,9 @@ public class ManagerCategoryController extends BaseController {
         model.addAttribute("isToday", selectedDate.equals(LocalDate.now(HOTEL_ZONE)));
         model.addAttribute("refreshedAtText", ZonedDateTime.now(HOTEL_ZONE).format(DISPLAY_TIMESTAMP));
         model.addAttribute("cloudinaryEnabled", cloudinaryService.isConfigured());
-        setExtraCSS(model, "view/Admin/Category/index :: extra_css");
-        return render(model, "view/Admin/Category/index");
+        setExtraCSS(model, "view/manager/categories/index :: extra_css");
+        setExtraJS(model, "view/manager/categories/index :: extra_js");
+        return render(model, "view/manager/categories/index");
     }
 
     @GetMapping("/categories/create")
@@ -97,7 +98,7 @@ public class ManagerCategoryController extends BaseController {
         setPageTitle(model, "Thêm Loại Phòng - Manager");
         model.addAttribute("category", new RoomType());
         model.addAttribute("cloudinaryEnabled", cloudinaryService.isConfigured());
-        return render(model, "view/Admin/Category/create");
+        return render(model, "view/admin/category/create");
     }
 
     @PostMapping("/categories/create")

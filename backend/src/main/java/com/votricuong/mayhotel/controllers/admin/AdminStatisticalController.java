@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.format.DateTimeFormatter;
 
 @Controller
-@RequestMapping("/admin/statistical")
+@RequestMapping({"/admin/statistical", "/manager/statistical"})
 public class AdminStatisticalController extends BaseController {
     private final RevenueReportService reportService;
     private final RevenueExportService exportService;
@@ -35,8 +35,9 @@ public class AdminStatisticalController extends BaseController {
             model.addAttribute("error", ex.getMessage());
             addReport(model, reportService.build(null, null));
         }
-        setExtraCSS(model, "view/Admin/Statistical/index :: extra_css");
-        return render(model, "view/Admin/Statistical/index");
+        setExtraCSS(model, "view/manager/statistical/index :: extra_css");
+        setExtraJS(model, "view/manager/statistical/index :: extra_js");
+        return render(model, "view/manager/statistical/index");
     }
 
     private void addReport(Model model, RevenueReportService.Report report) {

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Nghiệp vụ lễ tân</span>
+                <h1 class="adm-page-title">Trả phòng &amp; kết toán</h1>
+                <p class="adm-page-sub">Xử lý thủ tục trả phòng, thu phụ thu và giải phóng phòng về trạng thái trống.
+                </p>
+            </div>
+            <div class="adm-page-head-actions">
+                <a th:href="@{/receptionist/check-out}" class="adm-btn adm-btn-outline">
+                    <i class="bi bi-arrow-clockwise"></i> Làm mới
+                </a>
+            </div>
+        </div>
+
+        <!-- Flash alerts -->
+        <div th:if="${success}" class="adm-alert adm-alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${success}"></span>
+        </div>
+        <div th:if="${error}" class="adm-alert adm-alert-danger">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- Card -->
+        <div class="adm-card">
+
+            <!-- Toolbar -->
+            <div class="adm-toolbar">
+                <div class="adm-search" style="flex:1;max-width:360px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="checkoutSearch" placeholder="Tìm theo mã HĐ, tên khách, phòng..."
+                        autocomplete="off">
+                </div>
+
+                <div class="adm-result-count">
+                    <i class="bi bi-door-open" style="color:var(--gold-hover);"></i>
+                    <strong id="checkoutCount" th:text="${invoices == null ? 0 : #lists.size(invoices)}">0</strong>
+                    phòng chờ trả
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th style="width:100px;">Mã HĐ</th>
+                            <th>Khách lưu trú</th>
+                            <th class="col-center" style="width:150px;">Phòng</th>
+                            <th style="width:170px;">Thời gian lưu trú</th>
+                            <th class="col-center" style="width:320px;">Kết toán &amp; phụ thu</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checkout-table-body">
+
+                        <tr th:if="${invoices == null or #lists.isEmpty(invoices)}">
+                            <td colspan="5">
+                                <div class="adm-empty">
+                                    <i class="bi bi-door-open"></i>
+                                    <h4>Không có phòng nào chờ trả</h4>
+                                    <p>Tất cả phòng đang ở đã được xử lý. Danh sách sẽ cập nhật khi có khách trả phòng.
+                                    </p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:unless="${invoices == null or #lists.isEmpty(invoices)}" th:each="item : ${invoices}">
+
+                            <td class="cell-id" th:text="'#' + ${item.id}">#1</td>
+
+                            <td>
+                                <div class="adm-guest-cell">
+                                    <strong th:text="${item.hoTen}">Tên khách</strong>
+                                    <span th:if="${item.ghiChu != null and item.ghiChu.contains('CHATBOT')}"
+                                        class="badge-bot">
+                                        <i class="bi bi-robot"></i> Đặt qua Bot
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td class="col-center">
+                                <span class="adm-room-badge">
+                                    <i class="bi bi-door-open-fill"></i>
+                                    <span th:text="${#strings.startsWith(item.tenPhong, 'Phòng')
+                                            ? item.tenPhong
+                                            : 'Phòng ' + item.tenPhong}">Phòng 101</span>
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="adm-stay-period">
+                                    <span class="line">
+                                        <i class="bi bi-box-arrow-in-right"></i>
+                                        <span th:text="${item.ngayCheckIn}">01/01</span>
+                                    </span>
+                                    <span class="line">
+                                        <i class="bi bi-box-arrow-left"></i>
+                                        <span th:text="${item.ngayCheckOut}">02/01</span>
+                                    </span>
+                                </div>
+                            </td>
+
+                            <td class="col-center">
+                                <form th:action="@{/receptionist/checkout-room/execute}" method="post"
+                                    class="adm-checkout-form">
+                                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                        th:value="${_csrf.token}">
+                                    <input type="hidden" name="maHD" th:value="${item.id}">
+
+                                    <div class="adm-surcharge-input">
+                                        <input type="number" name="phuThu" value="0" min="0" step="10000"
+                                            placeholder="0" required>
+                                        <span class="unit">đ</span>
+                                    </div>
+
+                                    <button type="submit" class="adm-btn adm-btn-gold"
+                                        onclick="return confirm('Xác nhận thu phụ thu, cập nhật ngày ở thực tế và giải phóng phòng về trạng thái TRỐNG?')">
+                                        <i class="bi bi-check-lg"></i> Trả phòng
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- extra_js NGOÀI body_content -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+                var searchInput = document.getElementById('checkoutSearch');
+                var tableBody = document.getElementById('checkout-table-body');
+                var countEl = document.getElementById('checkoutCount');
+
+                if (searchInput && tableBody) {
+                    searchInput.addEventListener('input', function () {
+                        var kw = this.value.trim().toLowerCase();
+                        var visible = 0;
+
+                        tableBody.querySelectorAll('tr').forEach(function (tr) {
+                            if (tr.querySelector('.adm-empty')) return;
+                            if (tr.querySelectorAll('td').length < 2) return;
+
+                            var text = tr.textContent.toLowerCase();
+                            var show = !kw || text.indexOf(kw) >= 0;
+                            tr.style.display = show ? '' : 'none';
+                            if (show) visible++;
+                        });
+
+                        if (countEl) countEl.textContent = visible;
+                    });
+                }
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

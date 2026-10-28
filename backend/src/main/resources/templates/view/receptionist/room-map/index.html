@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Nghiệp vụ lễ tân</span>
+                <h1 class="adm-page-title">Sơ đồ phòng</h1>
+                <p class="adm-page-sub">Theo dõi trạng thái phòng theo từng tầng và xử lý nghiệp vụ nhanh chóng.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <a th:href="@{/receptionist/booking}" class="adm-btn adm-btn-outline">
+                    <i class="bi bi-plus-circle"></i> Thêm đặt phòng
+                </a>
+                <a th:href="@{/receptionist/check-in}" class="adm-btn adm-btn-outline">
+                    <i class="bi bi-journal-bookmark"></i> DS chờ Check-in
+                </a>
+            </div>
+        </div>
+
+        <div class="adm-card adm-room-map-card" id="roomMapCard">
+
+            <!-- Toolbar filters -->
+            <div class="adm-toolbar">
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterFloor">
+                        <i class="bi bi-building"></i>
+                        <span>Tầng</span>
+                        <span class="adm-filter-badge" id="badgeFloor" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Tầng</strong>
+                            <button type="button" data-clear="floor">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterFloorList"></div>
+                    </div>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterType">
+                        <i class="bi bi-tags"></i>
+                        <span>Loại phòng</span>
+                        <span class="adm-filter-badge" id="badgeType" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Loại phòng</strong>
+                            <button type="button" data-clear="type">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterTypeList"></div>
+                    </div>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterCapacity">
+                        <i class="bi bi-people"></i>
+                        <span>Sức chứa</span>
+                        <span class="adm-filter-badge" id="badgeCapacity" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Sức chứa</strong>
+                            <button type="button" data-clear="capacity">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterCapacityList"></div>
+                    </div>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterStatus">
+                        <i class="bi bi-circle-half"></i>
+                        <span>Trạng thái</span>
+                        <span class="adm-filter-badge" id="badgeStatus" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Trạng thái</strong>
+                            <button type="button" data-clear="status">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterStatusList"></div>
+                    </div>
+                </div>
+
+                <div class="adm-result-count">
+                    <i class="bi bi-door-closed" style="color:var(--gold-hover);"></i>
+                    <strong id="roomCount">0</strong> phòng
+                </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="adm-room-map-legend">
+                <span class="adm-room-map-legend-item">
+                    <span class="legend-dot" style="background:var(--green);"></span> Trống
+                </span>
+                <span class="adm-room-map-legend-item">
+                    <span class="legend-dot" style="background:var(--red);"></span> Đang ở
+                </span>
+                <span class="adm-room-map-legend-item">
+                    <span class="legend-dot" style="background:var(--yellow);"></span> Chờ dọn
+                </span>
+                <span class="adm-room-map-legend-item">
+                    <span class="legend-dot" style="background:var(--blue);"></span> Đã đặt
+                </span>
+                <span class="adm-room-map-legend-item">
+                    <span class="legend-dot" style="background:var(--muted);"></span> Bảo trì
+                </span>
+            </div>
+
+            <!-- Body -->
+            <div class="adm-card-body">
+                <div id="roomMapBody" class="adm-map-page">
+
+                    <!-- Empty state toàn bộ -->
+                    <div th:if="${rooms == null or rooms.isEmpty()}" class="adm-empty">
+                        <i class="bi bi-door-closed"></i>
+                        <h4>Chưa có phòng nào</h4>
+                        <p>Danh sách phòng sẽ xuất hiện khi được tạo trong hệ thống.</p>
+                    </div>
+
+                    <!-- Render theo tầng -->
+                    <th:block th:unless="${rooms == null or rooms.isEmpty()}" th:each="floorEntry : ${rooms}">
+
+                        <div class="adm-floor-section" th:attr="data-floor=${floorEntry.key}">
+                            <div class="adm-floor-head">
+                                <h4>
+                                    <i class="bi bi-building" style="color:var(--gold);margin-right:8px;"></i>
+                                    <span th:text="${floorEntry.key == 0
+                                    ? 'Tầng trệt / Khác'
+                                    : 'Tầng ' + floorEntry.key}">Tầng 1</span>
+                                </h4>
+                                <span th:text="${#lists.size(floorEntry.value)} + ' phòng'">0 phòng</span>
+                            </div>
+
+                            <div class="adm-room-grid">
+
+                                <th:block th:each="room : ${floorEntry.value}">
+
+                                    <div class="adm-room-card" th:classappend="${room.maTrangThai == 1 ? 'status-empty'
+                                            : (room.maTrangThai == 2 ? 'status-occupied'
+                                            : (room.maTrangThai == 3 ? 'status-dirty'
+                                            : (room.maTrangThai == 4 ? 'status-reserved'
+                                            : 'status-maintenance')))}" th:attr="data-floor=${floorEntry.key},
+                                                  data-type=${room.maLoai},
+                                                  data-capacity=${room.sucChua},
+                                                  data-status=${room.maTrangThai}">
+
+                                        <!-- Head: mã phòng + badge loại phòng -->
+                                        <div class="adm-room-card-head">
+                                            <h5 th:text="'P.' + ${#strings.replace(room.name, 'P', '')}">P.101</h5>
+                                            <span class="adm-badge adm-badge-cat" th:text="${room.maLoai}">Loại</span>
+                                        </div>
+
+                                        <!-- Meta: sức chứa + HƯỚNG NHÌN -->
+                                        <div class="adm-room-card-meta">
+                                            <span>
+                                                <i class="bi bi-people-fill"></i>
+                                                <span th:text="${room.sucChua}">2</span> khách
+                                            </span>
+                                            <span th:if="${room.view != null and !room.view.isEmpty()}"
+                                                title="Hướng nhìn">
+                                                <i class="bi" th:classappend="${#strings.contains(room.view, 'Biển') ? 'bi-water'
+                                                        : (#strings.contains(room.view, 'Núi') ? 'bi-tree'
+                                                        : 'bi-buildings')}"></i>
+                                                <span th:text="${room.view}">Hướng Thành Phố</span>
+                                            </span>
+
+                                            <!-- Fallback nếu chưa có dữ liệu hướng -->
+                                            <span th:if="${room.view == null or room.view.isEmpty()}">
+                                                <i class="bi bi-building"></i>
+                                                <span>Đang cập nhật</span>
+                                            </span>
+                                        </div>
+
+                                        <!-- Actions -->
+                                        <div class="adm-room-card-actions">
+
+                                            <!-- ✅ TRỐNG: chỉ hiện badge xanh, không phải button -->
+                                            <span th:if="${room.maTrangThai == 1}" class="adm-badge adm-badge-success"
+                                                style="flex:1; height:34px; justify-content:center; border-radius:8px; text-transform:uppercase; letter-spacing:0.4px; font-size:11.5px;">
+                                                <i class="bi bi-check-circle-fill"></i> Trống
+                                            </span>
+
+                                            <!-- ĐANG Ở: check-out + đổi phòng -->
+                                            <th:block th:if="${room.maTrangThai == 2}">
+                                                <a th:href="@{/receptionist/check-out(roomId=${room.id})}"
+                                                    class="adm-btn adm-btn-outline" title="Check-out">
+                                                    <i class="bi bi-box-arrow-left"></i> Out
+                                                </a>
+                                                <button type="button" class="adm-btn adm-btn-outline"
+                                                    style="flex:0 0 34px;padding:0;" title="Đổi phòng"
+                                                    th:attr="data-room-id=${room.id}, data-room-name=${room.name}"
+                                                    onclick="openChangeRoomModal(this.dataset.roomId, this.dataset.roomName)">
+                                                    <i class="bi bi-arrow-left-right"></i>
+                                                </button>
+                                            </th:block>
+
+                                            <!-- CHỜ DỌN -->
+                                            <button th:if="${room.maTrangThai == 3}" type="button"
+                                                class="adm-btn adm-btn-outline" disabled>
+                                                <i class="bi bi-hourglass-split"></i> Chờ dọn
+                                            </button>
+
+                                            <!-- ĐÃ ĐẶT -->
+                                            <button th:if="${room.maTrangThai == 4}" type="button"
+                                                class="adm-btn adm-btn-outline" disabled>
+                                                <i class="bi bi-calendar-check"></i> Đã đặt
+                                            </button>
+
+                                            <!-- BẢO TRÌ -->
+                                            <button
+                                                th:if="${room.maTrangThai == 5 or (room.maTrangThai != 1 and room.maTrangThai != 2 and room.maTrangThai != 3 and room.maTrangThai != 4)}"
+                                                type="button" class="adm-btn adm-btn-outline" disabled>
+                                                <i class="bi bi-tools"></i> Bảo trì
+                                            </button>
+                                        </div>
+                                    </div>
+                                </th:block>
+
+                            </div>
+                        </div>
+                    </th:block>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ==================== MODAL: ĐỔI PHÒNG ==================== -->
+        <div class="adm-modal-backdrop" id="changeRoomModal">
+            <div class="adm-modal">
+                <form th:action="@{/receptionist/change-room/execute}" method="post" id="changeRoomForm">
+
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <input type="hidden" name="oldRoomId" id="changeOldRoomId">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-arrow-left-right"></i> Xử lý đổi phòng</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body">
+
+                        <div class="adm-transfer-current">
+                            <div class="adm-transfer-current-icon"><i class="bi bi-door-open-fill"></i></div>
+                            <div class="adm-transfer-current-body">
+                                <span class="adm-transfer-current-label">Phòng hiện tại</span>
+                                <strong id="current-room-id">—</strong>
+                            </div>
+                        </div>
+
+                        <div class="adm-field">
+                            <label>Chọn phòng mới <span class="req">*</span></label>
+                            <select name="newRoomId" id="new-room-select" required>
+                                <option value="" selected disabled>— Vui lòng chọn phòng trống —</option>
+                                <th:block th:each="er : ${emptyRooms}">
+                                    <option th:value="${er.id}" th:text="'Phòng ' + ${#strings.replace(er.name, 'P', '')}
+                                                 + ' — ' + ${#numbers.formatDecimal(er.price, 0, 'POINT', 0, 'COMMA')}
+                                                 + ' đ'"></option>
+                                </th:block>
+                            </select>
+                        </div>
+
+                        <div class="adm-field" style="margin-top:16px;">
+                            <label>Lý do đổi phòng <span class="req">*</span></label>
+                            <select id="transfer-reason" name="reason" required>
+                                <option value="Khách yêu cầu nâng hạng">Khách yêu cầu nâng hạng</option>
+                                <option value="Sự cố kỹ thuật">Sự cố kỹ thuật</option>
+                                <option value="Lý do khác">Lý do khác</option>
+                            </select>
+                        </div>
+
+                        <div id="other-reason-container" style="display:none;margin-top:16px;">
+                            <div class="adm-field">
+                                <label>Nhập lý do cụ thể <span class="req">*</span></label>
+                                <input type="text" id="other-reason" name="otherReason"
+                                    placeholder="VD: Khách dị ứng mùi sơn phòng cũ...">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-circle"></i> Xác nhận đổi phòng
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function ready(fn) {
+                    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+                    else fn();
+                }
+
+                ready(function () {
+                    window.ADM_PAGE_MODULE = 'room-map';
+
+                    initFilterLists();
+                    initFilterEvents();
+                    initClearButtons();
+                    initTransferModal();
+                    updateRoomCount();
+
+                    var reload = document.getElementById('btnReloadRoomMap');
+                    if (reload) reload.addEventListener('click', function () { window.location.reload(); });
+                });
+
+                /* ============================================================
+                   BUILD FILTER LISTS — từ data-* của các .adm-room-card
+                   ============================================================ */
+                function initFilterLists() {
+                    var cards = document.querySelectorAll('.adm-room-card');
+                    var floors = new Set(), types = new Set(), caps = new Set(), statuses = new Set();
+
+                    cards.forEach(function (c) {
+                        if (c.dataset.floor) floors.add(c.dataset.floor);
+                        if (c.dataset.type) types.add(c.dataset.type);
+                        if (c.dataset.capacity) caps.add(c.dataset.capacity);
+                        if (c.dataset.status) statuses.add(c.dataset.status);
+                    });
+
+                    renderList('filterFloorList', Array.from(floors).sort(numericSort), 'filter-floor', function (v) {
+                        return Number(v) === 0 ? 'Tầng trệt / Khác' : 'Tầng ' + v;
+                    });
+
+                    renderList('filterTypeList', Array.from(types).sort(), 'filter-type', function (v) {
+                        return v;
+                    });
+
+                    renderList('filterCapacityList', Array.from(caps).sort(numericSort), 'filter-capacity', function (v) {
+                        return 'Tối đa ' + v + ' khách';
+                    });
+
+                    var statusMap = { '1': 'Trống', '2': 'Đang ở', '3': 'Chờ dọn', '4': 'Đã đặt', '5': 'Bảo trì' };
+                    renderList('filterStatusList', Array.from(statuses).sort(numericSort), 'filter-status', function (v) {
+                        return statusMap[v] || ('Trạng thái ' + v);
+                    });
+                }
+
+                function numericSort(a, b) { return Number(a) - Number(b); }
+
+                function renderList(containerId, values, cls, labelFn) {
+                    var box = document.getElementById(containerId);
+                    if (!box) return;
+                    if (!values.length) {
+                        box.innerHTML = '<div style="padding:14px;text-align:center;color:var(--muted);font-size:12px;">Không có dữ liệu</div>';
+                        return;
+                    }
+                    box.innerHTML = values.map(function (v, i) {
+                        var id = cls + '_' + i;
+                        return '<label class="adm-filter-option" for="' + id + '">' +
+                            '<input type="checkbox" class="' + cls + '" value="' + escapeHtml(v) + '" id="' + id + '">' +
+                            '<span class="adm-filter-option-label">' + escapeHtml(labelFn(v)) + '</span>' +
+                            '</label>';
+                    }).join('');
+                }
+
+                /* ============================================================
+                   FILTER EVENTS
+                   ============================================================ */
+                function initFilterEvents() {
+                    document.querySelectorAll('.filter-floor, .filter-type, .filter-capacity, .filter-status')
+                        .forEach(function (cb) {
+                            cb.addEventListener('change', applyFilters);
+                        });
+                }
+
+                function initClearButtons() {
+                    document.querySelectorAll('[data-clear]').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var type = btn.dataset.clear;
+                            document.querySelectorAll('.filter-' + type).forEach(function (cb) {
+                                cb.checked = false;
+                            });
+                            applyFilters();
+                        });
+                    });
+                }
+
+                /* ============================================================
+                   APPLY FILTERS — ẩn/hiện card + floor section
+                   ============================================================ */
+                function applyFilters() {
+                    var floors = pickValues('.filter-floor');
+                    var types = pickValues('.filter-type');
+                    var caps = pickValues('.filter-capacity');
+                    var sts = pickValues('.filter-status');
+
+                    var visibleCount = 0;
+
+                    document.querySelectorAll('.adm-room-card').forEach(function (card) {
+                        var matchFloor = !floors.length || floors.indexOf(card.dataset.floor) >= 0;
+                        var matchType = !types.length || types.indexOf(card.dataset.type) >= 0;
+                        var matchCap = !caps.length || caps.indexOf(card.dataset.capacity) >= 0;
+                        var matchSt = !sts.length || sts.indexOf(card.dataset.status) >= 0;
+
+                        var show = matchFloor && matchType && matchCap && matchSt;
+                        card.style.display = show ? '' : 'none';
+                        if (show) visibleCount++;
+                    });
+
+                    document.querySelectorAll('.adm-floor-section').forEach(function (sec) {
+                        var hasVisible = sec.querySelector('.adm-room-card:not([style*="display: none"])');
+                        sec.style.display = hasVisible ? '' : 'none';
+                    });
+
+                    updateRoomCount(visibleCount);
+                    updateBadges();
+                }
+
+                function pickValues(sel) {
+                    return Array.prototype.slice.call(document.querySelectorAll(sel + ':checked'))
+                        .map(function (cb) { return cb.value; });
+                }
+
+                function updateRoomCount(count) {
+                    if (typeof count !== 'number') {
+                        count = document.querySelectorAll('.adm-room-card:not([style*="display: none"])').length;
+                    }
+                    var el = document.getElementById('roomCount');
+                    if (el) el.textContent = count;
+                }
+
+                function updateBadges() {
+                    var maps = [
+                        { badge: 'badgeFloor', btn: 'btnFilterFloor', cls: '.filter-floor' },
+                        { badge: 'badgeType', btn: 'btnFilterType', cls: '.filter-type' },
+                        { badge: 'badgeCapacity', btn: 'btnFilterCapacity', cls: '.filter-capacity' },
+                        { badge: 'badgeStatus', btn: 'btnFilterStatus', cls: '.filter-status' }
+                    ];
+                    maps.forEach(function (m) {
+                        var count = document.querySelectorAll(m.cls + ':checked').length;
+                        var badge = document.getElementById(m.badge);
+                        var btn = document.getElementById(m.btn);
+                        if (!badge || !btn) return;
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.style.display = 'inline-flex';
+                            btn.classList.add('is-active');
+                        } else {
+                            badge.style.display = 'none';
+                            btn.classList.remove('is-active');
+                        }
+                    });
+                }
+
+                /* ============================================================
+                   TRANSFER MODAL
+                   ============================================================ */
+                function initTransferModal() {
+                    var reason = document.getElementById('transfer-reason');
+                    var otherBox = document.getElementById('other-reason-container');
+                    if (reason) {
+                        reason.addEventListener('change', function () {
+                            if (otherBox) otherBox.style.display = reason.value === 'Lý do khác' ? 'block' : 'none';
+                        });
+                    }
+
+                    var form = document.getElementById('changeRoomForm');
+                    if (form) {
+                        form.addEventListener('submit', function (e) {
+                            var sel = document.getElementById('new-room-select');
+                            if (!sel || !sel.value) {
+                                e.preventDefault();
+                                if (typeof toast === 'function') toast('Vui lòng chọn phòng mới', 'warning');
+                                return;
+                            }
+                            if (reason && reason.value === 'Lý do khác') {
+                                var other = document.getElementById('other-reason');
+                                if (!other || !other.value.trim()) {
+                                    e.preventDefault();
+                                    if (typeof toast === 'function') toast('Vui lòng nhập lý do cụ thể', 'warning');
+                                }
+                            }
+                        });
+                    }
+                }
+
+                function escapeHtml(s) {
+                    if (s == null) return '';
+                    var d = document.createElement('div');
+                    d.textContent = String(s);
+                    return d.innerHTML;
+                }
+            })();
+
+            /* ============================================================
+               GLOBAL — mở modal đổi phòng (gọi từ onclick)
+               ============================================================ */
+            function openChangeRoomModal(roomId, roomName) {
+                document.getElementById('changeOldRoomId').value = roomId || '';
+                var label = (roomName || '').replace(/^P\s*[.\-]?\s*/i, '');
+                document.getElementById('current-room-id').textContent = 'P.' + (label || roomId);
+
+                var sel = document.getElementById('new-room-select');
+                if (sel) sel.value = '';
+
+                var reason = document.getElementById('transfer-reason');
+                if (reason) reason.value = 'Khách yêu cầu nâng hạng';
+
+                var otherBox = document.getElementById('other-reason-container');
+                if (otherBox) otherBox.style.display = 'none';
+
+                var otherInput = document.getElementById('other-reason');
+                if (otherInput) otherInput.value = '';
+
+                if (typeof AdmModal !== 'undefined') AdmModal.open('changeRoomModal');
+            }
+        </script>
+    </th:block>
+
+</body>
+
+</html>

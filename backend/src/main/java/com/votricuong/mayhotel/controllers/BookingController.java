@@ -141,8 +141,8 @@ public class BookingController extends BaseController {
         model.addAttribute("children", children);
         model.addAttribute("infants", infants);
 
-        setExtraCSS(model, "view/Booking/booking :: extra_css");
-        return "view/Booking/booking";
+        setExtraCSS(model, "view/booking/booking :: extra_css");
+        return "view/booking/booking";
     }
 
     // 3. XỬ LÝ NHẤN "ĐẶT NGAY" -> ĐẨY SANG CHECKOUT
@@ -356,8 +356,8 @@ public class BookingController extends BaseController {
         model.addAttribute("currentUser", dummyUser);
         model.addAttribute("availablePoints", availablePoints);
 
-        setExtraCSS(model, "view/Booking/checkout :: extra_css");
-        return "view/Booking/checkout";
+        setExtraCSS(model, "view/booking/checkout :: extra_css");
+        return "view/booking/checkout";
     }
 
     private Long parseRoomTypeId(String value) {
@@ -636,7 +636,7 @@ public class BookingController extends BaseController {
                 .equalsIgnoreCase(invoice.getDepositStatus())) {
             model.addAttribute("vnpayPaymentUrl", vnPayService.createPaymentUrl(invoice, request));
         }
-        return "view/Booking/payment";
+        return "view/booking/payment";
     }
 
     @GetMapping("/vnpay-return")
@@ -794,7 +794,7 @@ public class BookingController extends BaseController {
                         .ifPresent(customer -> model.addAttribute("customer", customer));
             });
         }
-        return "view/Booking/success";
+        return "view/booking/success";
     }
 
     // 9. HISTORY
@@ -870,8 +870,8 @@ public class BookingController extends BaseController {
         model.addAttribute("reviewStateMap", reviewStateMap);
         
         setPageTitle(model, "Lịch sử đặt phòng");
-        setExtraCSS(model, "view/Booking/history :: extra_css");
-        return "view/Booking/history";
+        setExtraCSS(model, "view/booking/history :: extra_css");
+        return "view/booking/history";
     }
 
     // 10. HISTORY DETAIL
@@ -907,8 +907,8 @@ public class BookingController extends BaseController {
         model.addAttribute("reviewState", reviewService.reviewState(order));
         model.addAttribute("myReview", reviewService.findReview(order.getId()).orElse(null));
 
-        setExtraCSS(model, "view/Booking/historydetail :: extra_css");
-        return "view/Booking/historydetail";
+        setExtraCSS(model, "view/booking/historydetail :: extra_css");
+        return "view/booking/historydetail";
     }
 
     // 11. CANCEL BOOKING (UC03)

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title>Tra cứu điểm thưởng</title>
+    <th:block layout:fragment="additional-css">
+    </th:block>
+</head>
+
+<body>
+    <section layout:fragment="content">
+        <div class="mh-pt">
+
+            <!-- ══════════ BREADCRUMB ══════════ -->
+            <nav class="mh-pt-crumb" aria-label="Đường dẫn">
+                <a th:href="@{/}">Trang chủ</a>
+                <i class="fa-solid fa-chevron-right"></i>
+                <a th:href="@{/account/profile}">Tài khoản</a>
+                <i class="fa-solid fa-chevron-right"></i>
+                <span>Điểm thưởng</span>
+            </nav>
+
+            <!-- ═══════════════════════════════════════════════════
+                 HERO — 2 CỘT: HẠNG HIỆN TẠI + HÀNH TRÌNH
+                 ═══════════════════════════════════════════════════ -->
+            <section class="mh-pt-hero">
+
+                <!-- LEFT: Hạng hiện tại -->
+                <div class="mh-pt-current-card">
+                    <div class="mh-pt-current-glow" aria-hidden="true"></div>
+
+                    <span class="mh-pt-current-label">
+                        <i class="fa-solid fa-crown"></i> Hạng hiện tại của bạn
+                    </span>
+
+                    <div class="mh-pt-current-tier">
+                        <span class="mh-pt-tier" id="user-tier">
+                            <img id="user-tier-icon" class="mh-pt-tier-image" th:src="@{/images/icons/bronze.png}"
+                                alt="Biểu tượng hạng Đồng">
+                            <b>Hạng Đồng</b>
+                        </span>
+                    </div>
+
+                    <div class="mh-pt-current-points">
+                        <h1 class="mh-pt-points" id="user-points">0 <small>điểm</small></h1>
+                        <p class="mh-pt-worth">
+                            Giá trị quy đổi tương đương
+                            <strong id="user-vnd">0 đ</strong>
+                        </p>
+                    </div>
+
+                    <div class="mh-pt-stats">
+                        <div class="mh-pt-stat">
+                            <span>Số dư hiện tại</span>
+                            <strong id="hero-points">0</strong>
+                        </div>
+                        <div class="mh-pt-stat">
+                            <span>Quy đổi</span>
+                            <strong id="hero-value">0 đ</strong>
+                        </div>
+                        <div class="mh-pt-stat">
+                            <span>Giao dịch</span>
+                            <strong id="hero-transactions">0</strong>
+                        </div>
+                    </div>
+
+                    <a th:href="@{/rooms}" class="mh-pt-cta">
+                        <i class="fa-solid fa-calendar-check"></i>
+                        Đặt phòng để tích điểm
+                    </a>
+                </div>
+
+                <!-- RIGHT: Hành trình lên hạng -->
+                <div class="mh-pt-journey-card">
+                    <div class="mh-pt-journey-head">
+                        <div>
+                            <h3>Hành trình nâng hạng</h3>
+                            <p>Chinh phục đặc quyền cao cấp hơn</p>
+                        </div>
+                        <i class="fa-solid fa-route mh-pt-journey-icon"></i>
+                    </div>
+
+                    <!-- Progress bar -->
+                    <div class="mh-pt-progress">
+                        <div class="mh-pt-progress-head">
+                            <span class="points-progress-text">0 / 0 điểm</span>
+                        </div>
+                        <div class="mh-pt-bar">
+                            <span class="points-progress-bar" style="width:0%"></span>
+                        </div>
+                        <p class="mh-pt-progress-msg points-next-message">
+                            Đang tải điều kiện hạng tiếp theo...
+                        </p>
+                    </div>
+
+                    <!-- Preview perks sắp mở khóa -->
+                    <div class="mh-pt-journey-perks">
+                        <span class="mh-pt-journey-perks-label">
+                            <i class="fa-solid fa-gift"></i> Ưu đãi sắp mở khóa
+                        </span>
+                        <ul>
+                            <li><i class="fa-solid fa-lock"></i> Giảm giá đặt phòng cao hơn</li>
+                            <li><i class="fa-solid fa-lock"></i> Nâng hạng phòng VIP miễn phí</li>
+                            <li><i class="fa-solid fa-lock"></i> Xe đưa đón sân bay</li>
+                        </ul>
+                    </div>
+
+                    <p class="mh-pt-journey-note">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Điểm chỉ được cộng sau khi thanh toán thành công.
+                    </p>
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════
+                 ROADMAP TIMELINE — 4 HẠNG THÀNH VIÊN
+                 ═══════════════════════════════════════════════════ -->
+            <section class="mh-pt-roadmap">
+                <header class="mh-pt-section-head">
+                    <div>
+                        <h2>
+                            <i class="fa-solid fa-award"></i>
+                            Lộ trình thăng hạng
+                        </h2>
+                        <p>4 hạng thành viên — mỗi hạng mở khóa đặc quyền cao cấp hơn</p>
+                    </div>
+                </header>
+
+                <div class="mh-pt-timeline">
+
+                    <!-- BRONZE -->
+                    <article class="mh-pt-timeline-item" data-tier-card="bronze">
+                        <div class="mh-pt-timeline-dot">
+                            <img th:src="@{/images/icons/bronze.png}" alt="Hạng Đồng">
+                        </div>
+                        <div class="mh-pt-timeline-content">
+                            <div class="mh-pt-timeline-head">
+                                <div>
+                                    <h3>Hạng Đồng</h3>
+                                    <span class="mh-pt-timeline-range">0 – 999 điểm</span>
+                                </div>
+                                <span class="mh-pt-timeline-badge">
+                                    <i class="fa-solid fa-seedling"></i> Khởi đầu
+                                </span>
+                            </div>
+                            <ul class="mh-pt-timeline-perks">
+                                <li><i class="fa-solid fa-circle-check"></i> Tích 1% tổng hóa đơn</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Quà tặng sinh nhật</li>
+                            </ul>
+                        </div>
+                    </article>
+
+                    <!-- SILVER -->
+                    <article class="mh-pt-timeline-item" data-tier-card="silver">
+                        <div class="mh-pt-timeline-dot">
+                            <img th:src="@{/images/icons/iron.png}" alt="Hạng Bạc">
+                        </div>
+                        <div class="mh-pt-timeline-content">
+                            <div class="mh-pt-timeline-head">
+                                <div>
+                                    <h3>Hạng Bạc</h3>
+                                    <span class="mh-pt-timeline-range">1.000 – 4.999 điểm</span>
+                                </div>
+                                <span class="mh-pt-timeline-badge">
+                                    <i class="fa-solid fa-medal"></i> Thăng hạng
+                                </span>
+                            </div>
+                            <ul class="mh-pt-timeline-perks">
+                                <li><i class="fa-solid fa-circle-check"></i> Tích 3% tổng hóa đơn</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Giảm 5% dịch vụ ăn uống</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Ưu tiên nhận phòng sớm</li>
+                            </ul>
+                        </div>
+                    </article>
+
+                    <!-- GOLD -->
+                    <article class="mh-pt-timeline-item" data-tier-card="gold">
+                        <div class="mh-pt-timeline-dot">
+                            <img th:src="@{/images/icons/gold.png}" alt="Hạng Vàng">
+                        </div>
+                        <div class="mh-pt-timeline-content">
+                            <div class="mh-pt-timeline-head">
+                                <div>
+                                    <h3>Hạng Vàng</h3>
+                                    <span class="mh-pt-timeline-range">5.000 – 9.999 điểm</span>
+                                </div>
+                                <span class="mh-pt-timeline-badge">
+                                    <i class="fa-solid fa-star"></i> Cao cấp
+                                </span>
+                            </div>
+                            <ul class="mh-pt-timeline-perks">
+                                <li><i class="fa-solid fa-circle-check"></i> Tích 5% tổng hóa đơn</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Giảm 10% tổng hóa đơn đặt phòng</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Miễn phí đồ uống đón tiếp</li>
+                            </ul>
+                        </div>
+                    </article>
+
+                    <!-- PLATINUM -->
+                    <article class="mh-pt-timeline-item" data-tier-card="platinum">
+                        <div class="mh-pt-timeline-dot">
+                            <img th:src="@{/images/icons/platinum.png}" alt="Hạng Bạch Kim">
+                        </div>
+                        <div class="mh-pt-timeline-content">
+                            <div class="mh-pt-timeline-head">
+                                <div>
+                                    <h3>Hạng Bạch Kim</h3>
+                                    <span class="mh-pt-timeline-range">Từ 10.000 điểm</span>
+                                </div>
+                                <span class="mh-pt-timeline-badge">
+                                    <i class="fa-solid fa-gem"></i> Đỉnh cao
+                                </span>
+                            </div>
+                            <ul class="mh-pt-timeline-perks">
+                                <li><i class="fa-solid fa-circle-check"></i> Tích 10% tổng hóa đơn</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Giảm 15% tổng hóa đơn phòng</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Miễn phí nâng hạng phòng VIP</li>
+                                <li><i class="fa-solid fa-circle-check"></i> Xe đưa đón sân bay miễn phí</li>
+                            </ul>
+                        </div>
+                    </article>
+                </div>
+            </section>
+
+            <!-- ═══════════════════════════════════════════════════
+                 LỊCH SỬ GIAO DỊCH
+                 ═══════════════════════════════════════════════════ -->
+            <section class="mh-pt-history">
+                <header class="mh-pt-history-head">
+                    <div>
+                        <h2>
+                            <i class="fa-solid fa-clock-rotate-left"></i>
+                            Lịch sử giao dịch điểm thưởng
+                        </h2>
+                        <p>Theo dõi mọi biến động số dư điểm của bạn</p>
+                    </div>
+
+                    <div class="mh-pt-tools">
+                        <div class="mh-pt-filters" role="group" aria-label="Lọc giao dịch">
+                            <button type="button" class="filter-btn active" data-filter="all">Tất cả</button>
+                            <button type="button" class="filter-btn" data-filter="EARN">Tích điểm</button>
+                            <button type="button" class="filter-btn" data-filter="REDEEM">Đổi điểm</button>
+                        </div>
+                        <label class="mh-pt-search">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input type="text" id="search-history" placeholder="Tìm theo mã hóa đơn...">
+                        </label>
+                    </div>
+                </header>
+
+                <div class="mh-pt-table-wrap">
+                    <table class="mh-pt-table">
+                        <thead>
+                            <tr>
+                                <th>Mã hóa đơn / Nội dung</th>
+                                <th class="center">Ngày thực hiện</th>
+                                <th class="center">Loại</th>
+                                <th class="right">Số điểm</th>
+                            </tr>
+                        </thead>
+                        <tbody id="points-history-body">
+                            <!-- points.js đổ dữ liệu -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+        </div>
+    </section>
+
+    <th:block layout:fragment="additional-scripts">
+        <script th:src="@{/js/account/points.js}"></script>
+    </th:block>
+</body>
+
+</html>

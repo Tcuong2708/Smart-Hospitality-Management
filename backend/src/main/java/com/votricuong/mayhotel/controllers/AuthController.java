@@ -27,8 +27,8 @@ public class AuthController extends BaseController {
     @GetMapping("/login")
     public String showLoginForm(Model model, HttpSession session, @RequestParam(value = "error", required = false) String urlError) {
         setPageTitle(model, "Đăng nhập");
-        setExtraCSS(model, "view/Account/login :: extra_css");
-        setExtraJS(model, "view/Account/login :: extra_js");
+        setExtraCSS(model, "view/account/login :: extra_css");
+        setExtraJS(model, "view/account/login :: extra_js");
         
         if ("timeout".equals(urlError)) {
             model.addAttribute("error", "Phiên đăng nhập của bạn đã hết hạn!");
@@ -43,7 +43,7 @@ public class AuthController extends BaseController {
             session.removeAttribute("error");
         }
         
-        return "view/Account/login";
+        return "view/account/login";
     }
 
     /**
@@ -87,9 +87,9 @@ public class AuthController extends BaseController {
     @GetMapping("/register")
     public String showRegisterForm(Model model) {
         setPageTitle(model, "Đăng ký tài khoản");
-        setExtraCSS(model, "view/Account/register :: extra_css");
-        setExtraJS(model, "view/Account/register :: extra_js");
-        return "view/Account/register";
+        setExtraCSS(model, "view/account/register :: extra_css");
+        setExtraJS(model, "view/account/register :: extra_js");
+        return "view/account/register";
     }
 
     /**
@@ -140,7 +140,7 @@ public class AuthController extends BaseController {
     public String showVerifyOtpForm(@RequestParam("email") String email, Model model) {
         setPageTitle(model, "Xác thực OTP");
         model.addAttribute("email", email);
-        return "view/Account/verify_register_otp";
+        return "view/account/verify_register_otp";
     }
 
     /**
@@ -162,7 +162,7 @@ public class AuthController extends BaseController {
 
     @GetMapping("/find_account")
     public String showFindAccount() {
-        return "view/Account/find_account";
+        return "view/account/find_account";
     }
 
     @PostMapping("/find_account")
@@ -182,7 +182,7 @@ public class AuthController extends BaseController {
     @GetMapping("/verify_otp")
     public String showPasswordReset(@RequestParam("keyword") String keyword, Model model) {
         model.addAttribute("keyword", keyword);
-        return "view/Account/verify_otp";
+        return "view/account/verify_otp";
     }
 
     @PostMapping("/verify_otp")
@@ -236,6 +236,16 @@ public class AuthController extends BaseController {
      */
     @GetMapping("/logout")
     public String handleLogout(HttpSession session) {
+        session.invalidate();
+        return "redirect:/";
+    }
+
+    /**
+     * Layout quản trị dùng form POST để tránh trình duyệt/prefetch vô tình đăng xuất.
+     * Giữ GET để tương thích các menu cũ, đồng thời hỗ trợ POST cho layout mới.
+     */
+    @PostMapping("/logout")
+    public String handleLogoutPost(HttpSession session) {
         session.invalidate();
         return "redirect:/";
     }

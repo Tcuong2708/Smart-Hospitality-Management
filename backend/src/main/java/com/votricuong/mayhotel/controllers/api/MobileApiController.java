@@ -664,6 +664,12 @@ public class MobileApiController {
                             invoice -> invoice,
                             (first, ignored) -> first,
                             LinkedHashMap::new));
+            Date now = new Date();
+            orders = orders.stream()
+                    .filter(order -> isDisplayableCustomerBooking(
+                            order, invoicesByBooking.get(order.getId()), now))
+                    .toList();
+            bookingIds = orders.stream().map(BookingOrder::getId).toList();
             Map<Long, BookingDetail> detailsByBooking = bookingIds.isEmpty()
                     ? Map.of()
                     : bookingDetailRepository.findByBookingIdIn(bookingIds).stream()
@@ -779,6 +785,29 @@ public class MobileApiController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(ApiResponse.error(e.getMessage()));
         }
+    }
+
+    private boolean isDisplayableCustomerBooking(BookingOrder order, Invoice invoice, Date now) {
+        String status = Optional.ofNullable(order.getStatus())
+                .orElse("")
+                .trim()
+                .toLowerCase(Locale.ROOT);
+        boolean pending = status.isBlank()
+                || status.contains("chờ xử lý")
+                || status.contains("chờ thanh toán")
+                || status.contains("pending");
+        if (!pending) {
+            return true;
+        }
+
+        boolean paid = invoice != null && (Boolean.TRUE.equals(invoice.getIsPaid())
+                || Optional.ofNullable(invoice.getDepositPaidAmount()).orElse(0L) > 0L);
+        boolean expired = order.getPaymentExpiresAt() != null
+                && order.getPaymentExpiresAt().before(now);
+        boolean missedUnconfirmedArrival = order.getPaymentExpiresAt() == null
+                && order.getExpectedIn() != null
+                && order.getExpectedIn().before(now);
+        return paid || (!expired && !missedUnconfirmedArrival);
     }
     
     @GetMapping("/booking/active")

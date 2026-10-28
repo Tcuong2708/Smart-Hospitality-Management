@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${pageTitle} ?: 'Đặt phòng thành công — MAY HOTEL'">Đặt phòng thành công</title>
+    <th:block layout:fragment="extra_css">
+        <link rel="stylesheet" th:href="@{/css/booking.css}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,700&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    </th:block>
+</head>
+
+<body>
+
+    <section layout:fragment="content">
+        <div class="mh-sc-page">
+            <div class="mh-sc-container">
+
+                <!-- ===== HERO ===== -->
+                <div class="mh-sc-hero">
+                    <div class="mh-sc-check">
+                        <i class="fa-solid fa-check"></i>
+                    </div>
+                    <span class="mh-sc-eyebrow">Hoàn tất</span>
+                    <h1>Đặt phòng <em>thành công</em></h1>
+                    <p>
+                        Cảm ơn bạn đã tin tưởng và lựa chọn <strong>MAY HOTEL</strong>.
+                        Yêu cầu đặt phòng của bạn đã được ghi nhận và đang chờ xác nhận.
+                    </p>
+
+                    <div class="mh-sc-ref" th:if="${maDatPhong != null}">
+                        <i class="fa-solid fa-hashtag"></i>
+                        <span th:text="'DP-' + ${maDatPhong}">DP-0000</span>
+                    </div>
+                </div>
+
+                <!-- ===== LAYOUT 2 CỘT ===== -->
+                <div class="mh-sc-layout" th:if="${order != null}">
+
+                    <!-- Cột trái: Thông tin đơn đặt -->
+                    <div class="mh-sc-card">
+                        <div class="mh-sc-card-head">
+                            <div class="mh-sc-card-icon">
+                                <i class="fa-regular fa-calendar-check"></i>
+                            </div>
+                            <h3>Thông tin đơn đặt phòng</h3>
+                        </div>
+
+                        <div class="mh-sc-info">
+                            <div class="mh-sc-info-row">
+                                <span class="label"><i class="fa-solid fa-hashtag"></i> Mã đơn</span>
+                                <span class="value mono" th:text="'#DP-' + ${order.id}">#DP-0000</span>
+                            </div>
+                            <div class="mh-sc-info-row">
+                                <span class="label"><i class="fa-regular fa-clock"></i> Ngày đặt</span>
+                                <span class="value" th:text="${order.bookingDate != null
+                                        ? #dates.format(order.bookingDate, 'dd/MM/yyyy HH:mm')
+                                        : '--'}">--</span>
+                            </div>
+                            <div class="mh-sc-info-row" th:if="${customer != null}">
+                                <span class="label"><i class="fa-solid fa-user"></i> Khách hàng</span>
+                                <span class="value" th:text="${customer.fullName} ?: '--'">--</span>
+                            </div>
+                            <div class="mh-sc-info-row" th:if="${customer != null and customer.phone != null}">
+                                <span class="label"><i class="fa-solid fa-phone"></i> Số điện thoại</span>
+                                <span class="value" th:text="${customer.phone}">--</span>
+                            </div>
+                            <div class="mh-sc-info-row" th:if="${loaiPhong != null}">
+                                <span class="label"><i class="fa-solid fa-bed"></i> Loại phòng</span>
+                                <span class="value" th:text="${loaiPhong.name}">--</span>
+                            </div>
+                            <div class="mh-sc-info-row" th:if="${phong != null}">
+                                <span class="label"><i class="fa-solid fa-door-closed"></i> Phòng</span>
+                                <span class="value" th:text="${phong.name}">--</span>
+                            </div>
+                            <div class="mh-sc-info-row">
+                                <span class="label"><i class="fa-solid fa-right-to-bracket"></i> Nhận phòng</span>
+                                <span class="value" th:text="${order.expectedIn != null
+                                        ? #dates.format(order.expectedIn, 'dd/MM/yyyy')
+                                        : '--'}">--</span>
+                            </div>
+                            <div class="mh-sc-info-row">
+                                <span class="label"><i class="fa-solid fa-right-from-bracket"></i> Trả phòng</span>
+                                <span class="value" th:text="${order.expectedOut != null
+                                        ? #dates.format(order.expectedOut, 'dd/MM/yyyy')
+                                        : '--'}">--</span>
+                            </div>
+                            <div class="mh-sc-info-row">
+                                <span class="label"><i class="fa-solid fa-moon"></i> Số đêm</span>
+                                <span class="value" th:text="${soDem != null ? soDem + ' đêm' : '--'}">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Cột phải: Hóa đơn -->
+                    <div class="mh-sc-card">
+                        <div class="mh-sc-card-head">
+                            <div class="mh-sc-card-icon">
+                                <i class="fa-regular fa-receipt"></i>
+                            </div>
+                            <h3>Chi tiết thanh toán</h3>
+                        </div>
+
+                        <div th:if="${hoaDon != null}">
+                            <div class="mh-sc-info-row" style="border-bottom: 1px solid #f2efe8;">
+                                <span class="label"><i class="fa-solid fa-file-invoice"></i> Mã hóa đơn</span>
+                                <span class="value mono" th:text="'#HD-' + ${hoaDon.id}">#HD-0000</span>
+                            </div>
+
+                            <div style="padding-top: 12px;">
+                                <div class="mh-sc-price-row">
+                                    <span>Tiền phòng &amp; dịch vụ</span>
+                                    <strong th:text="${hoaDon.totalAmount != null
+                                        ? #numbers.formatDecimal(hoaDon.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                        : '0 đ'}">0 đ</strong>
+                                </div>
+
+                                <div class="mh-sc-price-row"
+                                    th:if="${hoaDon.surcharge != null and hoaDon.surcharge > 0}">
+                                    <span>Phụ thu</span>
+                                    <strong
+                                        th:text="'+ ' + ${#numbers.formatDecimal(hoaDon.surcharge, 0, 'POINT', 0, 'COMMA')} + ' đ'">+
+                                        0 đ</strong>
+                                </div>
+
+                                <div class="mh-sc-price-row">
+                                    <span>Thuế &amp; phí</span>
+                                    <strong style="color:var(--success);">Đã bao gồm</strong>
+                                </div>
+
+                                <!-- Đã cọc -->
+                                <div class="mh-sc-price-row"
+                                    th:if="${hoaDon.depositAmount != null and hoaDon.depositAmount > 0}">
+                                    <span style="color:var(--gold-hover);font-weight:700;">
+                                        <i class="fa-solid fa-shield-halved"></i> Đã đặt cọc
+                                    </span>
+                                    <strong style="color:var(--gold-hover);"
+                                        th:text="${#numbers.formatDecimal(hoaDon.depositAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                        đ</strong>
+                                </div>
+
+                                <!-- Còn lại -->
+                                <div class="mh-sc-price-row"
+                                    th:if="${hoaDon.remainingAmount != null and hoaDon.remainingAmount > 0}">
+                                    <span style="color:var(--red);font-weight:700;">
+                                        <i class="fa-solid fa-hourglass-half"></i> Còn lại tại KS
+                                    </span>
+                                    <strong style="color:var(--red);"
+                                        th:text="${#numbers.formatDecimal(hoaDon.remainingAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                        đ</strong>
+                                </div>
+                            </div>
+
+                            <div class="mh-sc-price-total">
+                                <span>Tổng thanh toán</span>
+                                <strong th:text="${hoaDon.totalAmount != null
+                                    ? #numbers.formatDecimal(hoaDon.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                    : '0 đ'}">0 đ</strong>
+                            </div>
+
+                            <!-- Phương thức thanh toán -->
+                            <div class="mh-sc-pay-box">
+                                <i class="fa-solid fa-credit-card"></i>
+                                <div>
+                                    <small>Phương thức thanh toán</small>
+                                    <strong th:if="${hoaDon.payMethod == 'DEPOSIT'}">
+                                        Đặt cọc 1 đêm — VNPay
+                                    </strong>
+                                    <strong th:if="${hoaDon.payMethod == 'ONLINE' or hoaDon.payMethod == 'VNPAY'}">
+                                        Thanh toán toàn bộ — VNPay
+                                    </strong>
+                                    <strong th:if="${hoaDon.payMethod == 'COD'}">
+                                        Thanh toán tại khách sạn
+                                    </strong>
+                                    <strong th:if="${hoaDon.payMethod == null}">
+                                        Chưa chọn phương thức
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <!-- Trạng thái -->
+                            <div style="margin-top: 16px; text-align: center;">
+                                <span class="mh-sc-status paid"
+                                    th:if="${hoaDon.paymentStage == 'PAID' or (hoaDon.isPaid != null and hoaDon.isPaid)}">
+                                    <i class="fa-solid fa-circle-check"></i> Đã thanh toán toàn bộ
+                                </span>
+                                <span class="mh-sc-status" th:if="${hoaDon.paymentStage == 'DEPOSITED'}"
+                                    style="background:#fff7e6;color:#a05a00;border:1px solid #ffe1a1;">
+                                    <i class="fa-solid fa-shield-halved"></i> Đã cọc — chờ nhận phòng
+                                </span>
+                                <span class="mh-sc-status pending"
+                                    th:if="${hoaDon.paymentStage != 'PAID' and hoaDon.paymentStage != 'DEPOSITED' and (hoaDon.isPaid == null or !hoaDon.isPaid)}">
+                                    <i class="fa-solid fa-hourglass-half"></i> Chờ thanh toán tại KS
+                                </span>
+                            </div>
+
+                            <!-- Thông báo chi tiết khi cọc -->
+                            <div th:if="${hoaDon.paymentStage == 'DEPOSITED'}"
+                                style="margin-top: 14px; padding: 12px 16px; background: #fff7e6; border-left: 4px solid var(--gold); border-radius: 8px; font-size: 13px; line-height: 1.6; color: #6b5200;">
+                                <i class="fa-solid fa-circle-info" style="color:var(--gold-hover);"></i>
+                                Bạn đã đặt cọc thành công. Khi đến nhận phòng, vui lòng thanh toán nốt
+                                <strong
+                                    th:text="${#numbers.formatDecimal(hoaDon.remainingAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'"></strong>
+                                tại quầy lễ tân.
+                            </div>
+                        </div>
+
+                        <div th:if="${hoaDon == null}"
+                            style="text-align:center; padding: 24px 0; color: var(--muted); font-size: 13.5px;">
+                            <i class="fa-regular fa-clock"
+                                style="font-size: 28px; opacity: .35; display:block; margin-bottom: 8px;"></i>
+                            Thông tin hóa đơn sẽ được cập nhật sau khi hệ thống xử lý.
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- ===== NEXT STEPS ===== -->
+                <div class="mh-sc-steps" th:if="${order != null}">
+                    <h3><i class="fa-solid fa-list-check"></i> Các bước tiếp theo</h3>
+                    <div class="mh-sc-steps-list">
+                        <div class="mh-sc-step-item">
+                            <div class="mh-sc-step-num">I</div>
+                            <div class="mh-sc-step-body">
+                                <strong>Xác nhận từ lễ tân</strong>
+                                <span>Nhân viên sẽ liên hệ qua số điện thoại của bạn trong vòng 30 phút.</span>
+                            </div>
+                        </div>
+                        <div class="mh-sc-step-item">
+                            <div class="mh-sc-step-num">II</div>
+                            <div class="mh-sc-step-body">
+                                <strong>Chuẩn bị giấy tờ</strong>
+                                <span>Mang theo CCCD/Hộ chiếu khi nhận phòng để xác minh danh tính.</span>
+                            </div>
+                        </div>
+                        <div class="mh-sc-step-item">
+                            <div class="mh-sc-step-num">III</div>
+                            <div class="mh-sc-step-body">
+                                <strong>Check-in tại khách sạn</strong>
+                                <span>Nhận phòng từ 14:00. Liên hệ hotline nếu đến sớm hơn.</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ACTIONS ===== -->
+                <div class="mh-sc-actions">
+                    <a th:href="@{/booking/history}" class="mh-sc-btn outline">
+                        <i class="fa-solid fa-clock-rotate-left"></i>
+                        Xem lịch sử đặt phòng
+                    </a>
+                    <a th:href="@{/rooms}" class="mh-sc-btn primary">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Tiếp tục chọn phòng
+                    </a>
+                </div>
+
+                <!-- ===== SUPPORT ===== -->
+                <div class="mh-sc-support">
+                    <p>
+                        <i class="fa-solid fa-headset"></i>
+                        Cần hỗ trợ? Gọi <strong>1800 9327</strong> hoặc email
+                        <strong>MayHotel.hotel@gmail.com</strong>
+                    </p>
+                    <p style="margin-top: 4px;">Chúng tôi hỗ trợ 24/7 để phục vụ quý khách.</p>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+</body>
+
+</html>

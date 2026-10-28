@@ -138,9 +138,9 @@ public class ReceptionistInvoiceController extends BaseController {
         model.addAttribute("keyword", keyword);
         model.addAttribute("status", status);
 
-        setExtraCSS(model, "view/Admin/Invoice/index :: extra_css");
-        setExtraJS(model, "view/Admin/Invoice/index :: extra_js");
-        return render(model, "view/Admin/Invoice/index");
+        setExtraCSS(model, "view/receptionist/invoice/index :: extra_css");
+        setExtraJS(model, "view/receptionist/invoice/index :: extra_js");
+        return render(model, "view/receptionist/invoice/index");
     }
 
     // 2. GET /details/{id}: Xem chi tiết hóa đơn (TruyXuatChiTiet / HienThiChiTietHoaDon)
@@ -157,9 +157,9 @@ public class ReceptionistInvoiceController extends BaseController {
         FullInvoiceDTO dto = mapToFullDTO(invoiceOpt.get());
         model.addAttribute("invoice", dto);
 
-        setExtraCSS(model, "view/Admin/Invoice/details :: extra_css");
-        setExtraJS(model, "view/Admin/Invoice/details :: extra_js");
-        return render(model, "view/Admin/Invoice/details");
+        setExtraCSS(model, "view/receptionist/invoice/details :: extra_css");
+        setExtraJS(model, "view/receptionist/invoice/details :: extra_js");
+        return render(model, "view/receptionist/invoice/details");
     }
 
     // 3. GET /print/{id}: In hóa đơn GTGT
@@ -175,7 +175,7 @@ public class ReceptionistInvoiceController extends BaseController {
         model.addAttribute("invoice", dto);
         model.addAttribute("soDem", dto.getSoDem());
 
-        return "view/Admin/Invoice/print";
+        return "view/receptionist/invoice/print";
     }
 
     // 4. GET /delete/{id}: Xóa hóa đơn

@@ -244,11 +244,11 @@ public class ReceptionistController extends BaseController {
         model.addAttribute("isToday", selectedDate.equals(today));
 
         // Nạp CSS riêng cho trang này
-        setExtraCSS(model, "view/Admin/RoomMap/room-map :: extra_css");
-        setExtraJS(model, "view/Admin/RoomMap/room-map :: extra_js");
+        setExtraCSS(model, "view/receptionist/room-map/index :: extra_css");
+        setExtraJS(model, "view/receptionist/room-map/index :: extra_js");
 
         // Render template RoomMap
-        return render(model, "view/Admin/RoomMap/room-map");
+        return render(model, "view/receptionist/room-map/index");
     }
 
     // 1. GET /check-in: Hiển thị list phòng chờ nhận
@@ -285,9 +285,9 @@ public class ReceptionistController extends BaseController {
         model.addAttribute("emptyRooms", emptyRooms);
         model.addAttribute("selectedRoomId", roomId);
 
-        setExtraCSS(model, "view/Admin/CheckIn/index :: extra_css");
-        setExtraJS(model, "view/Admin/CheckIn/index :: extra_js");
-        return render(model, "view/Admin/CheckIn/index");
+        setExtraCSS(model, "view/receptionist/check-in/index :: extra_css");
+        setExtraJS(model, "view/receptionist/check-in/index :: extra_js");
+        return render(model, "view/receptionist/check-in/index");
     }
 
     // 2. GET /checkin/execute/{id}: Xử lý nhận phòng
@@ -397,8 +397,9 @@ public class ReceptionistController extends BaseController {
         model.addAttribute("invoices", invoices);
         model.addAttribute("selectedRoomId", roomId);
 
-        setExtraCSS(model, "view/Admin/Checkout/index :: extra_css");
-        return render(model, "view/Admin/Checkout/index");
+        setExtraCSS(model, "view/receptionist/check-out/index :: extra_css");
+        setExtraJS(model, "view/receptionist/check-out/index :: extra_js");
+        return render(model, "view/receptionist/check-out/index");
     }
 
     // 4. POST /checkout-room/execute: Xử lý trả phòng

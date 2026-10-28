@@ -1,0 +1,405 @@
+let mockRooms = [];
+if (window.mockRoomMapData && Object.keys(window.mockRoomMapData).length > 0) {
+    Object.values(window.mockRoomMapData).forEach(floorRooms => mockRooms.push(...floorRooms.map(r => {
+        const roomLabel = (r.name || '').replace(/\D/g, '') || String(r.id);
+        return {
+            ...r,
+            label: roomLabel,
+            floor: Math.floor(parseInt(roomLabel, 10) / 100),
+            capacity: r.sucChua || 2,
+            view: r.view || 'Hướng Thành Phố'
+        };
+    })));
+} else {
+    mockRooms = [
+        { id: 101, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1, view: 'Hướng Thành Phố' },
+        { id: 102, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 2, view: 'Hướng Thành Phố' },
+        { id: 103, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 3, view: 'Hướng Thành Phố' },
+        { id: 104, maLoai: 'Standard', price: 500000, capacity: 2, maTrangThai: 1, view: 'Hướng Biển' },
+        { id: 201, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 2, view: 'Hướng Biển' },
+        { id: 202, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1, view: 'Hướng Núi' },
+        { id: 203, maLoai: 'Deluxe', price: 1000000, capacity: 3, maTrangThai: 1, view: 'Hướng Biển' },
+        { id: 301, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 3, view: 'Hướng Thành Phố' },
+        { id: 302, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 2, view: 'Hướng Biển' },
+        { id: 303, maLoai: 'Suite', price: 2000000, capacity: 4, maTrangThai: 1, view: 'Hướng Núi' },
+    ];
+    mockRooms = mockRooms.map(room => ({
+        ...room,
+        label: String(room.id),
+        floor: Math.floor(room.id / 100)
+    }));
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Sửa lỗi backdrop che modal
+    const modalElement = document.getElementById('transferRoomModal');
+    if (modalElement) {
+        document.body.appendChild(modalElement);
+    }
+
+    initFilters();
+    initModalListeners();
+    fetchRoomMap(mockRooms);
+    initRealtimeRoomMap();
+});
+
+function normalizeLiveRoom(room) {
+    const roomLabel = (room.label || room.name || '').toString().replace(/\D/g, '') || String(room.id);
+    return {
+        ...room,
+        label: roomLabel,
+        floor: Math.floor(parseInt(roomLabel, 10) / 100),
+        capacity: room.sucChua || room.capacity || 2,
+        view: room.view || 'Hướng Thành Phố'
+    };
+}
+
+function initRealtimeRoomMap() {
+    if (!window.roomMapIsToday || typeof EventSource === 'undefined') return;
+
+    const routePrefix = window.location.pathname.startsWith('/admin/') ? '/admin' : '/receptionist';
+    let refreshTimer = null;
+    let fallbackTimer = null;
+    let errorCount = 0;
+
+    const refreshData = async () => {
+        try {
+            const selectedDate = window.roomMapSelectedDate || '';
+            const response = await fetch(`${routePrefix}/room-map/data?date=${encodeURIComponent(selectedDate)}`, {
+                headers: { 'Accept': 'application/json' }
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            const data = await response.json();
+            mockRooms = data.map(normalizeLiveRoom);
+            applyFilters();
+        } catch (error) {
+            console.warn('Không thể làm mới sơ đồ phòng:', error);
+        }
+    };
+
+    const scheduleRefresh = () => {
+        window.clearTimeout(refreshTimer);
+        refreshTimer = window.setTimeout(refreshData, 150);
+    };
+
+    const source = new EventSource(`${routePrefix}/room-map/events`);
+    source.addEventListener('connected', () => { errorCount = 0; });
+    source.addEventListener('room-status-changed', scheduleRefresh);
+    source.onerror = () => {
+        errorCount += 1;
+        if (errorCount >= 3 && !fallbackTimer) {
+            fallbackTimer = window.setInterval(refreshData, 15000);
+        }
+    };
+
+    window.addEventListener('beforeunload', () => {
+        source.close();
+        if (fallbackTimer) window.clearInterval(fallbackTimer);
+    }, { once: true });
+}
+
+function initFilters() {
+    const filterFloorDropdown = document.getElementById('filterFloorDropdown');
+    const filterStatusDropdown = document.getElementById('filterStatusDropdown');
+    const filterRoomTypeDropdown = document.getElementById('filterRoomTypeDropdown');
+    const filterCapacityDropdown = document.getElementById('filterCapacityDropdown');
+
+    // Khởi tạo các Tầng
+    if (filterFloorDropdown) {
+        const uniqueFloors = [...new Set(mockRooms.map(room => room.floor))].sort((a, b) => a - b);
+        filterFloorDropdown.innerHTML = uniqueFloors.map((floor, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-floor-cb" type="checkbox" value="${floor}" id="cb_floor_${idx}">
+                    <label class="form-check-label" for="cb_floor_${idx}">Tầng ${floor}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Khởi tạo trạng thái
+    if (filterStatusDropdown) {
+        const statuses = [
+            { val: 1, label: 'Trống' },
+            { val: 2, label: 'Đang lưu trú' },
+            { val: 3, label: 'Chờ dọn dẹp (Check-out)' },
+            { val: 4, label: 'Đã đặt' },
+            { val: 5, label: 'Đang bảo trì' }
+        ];
+        filterStatusDropdown.innerHTML = statuses.map((st, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-status-cb" type="checkbox" value="${st.val}" id="cb_status_${idx}">
+                    <label class="form-check-label" for="cb_status_${idx}">${st.label}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Khởi tạo Loại phòng
+    if (filterRoomTypeDropdown) {
+        const uniqueTypes = [...new Set(mockRooms.map(room => room.maLoai))].sort();
+        filterRoomTypeDropdown.innerHTML = uniqueTypes.map((type, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-type-cb" type="checkbox" value="${type}" id="cb_type_${idx}">
+                    <label class="form-check-label" for="cb_type_${idx}">${type}</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Khởi tạo Sức chứa
+    if (filterCapacityDropdown) {
+        const uniqueCapacities = [...new Set(mockRooms.map(room => room.capacity))].sort((a, b) => a - b);
+        filterCapacityDropdown.innerHTML = uniqueCapacities.map((cap, idx) => `
+            <li>
+                <div class="form-check mb-1">
+                    <input class="form-check-input filter-capacity-cb" type="checkbox" value="${cap}" id="cb_cap_${idx}">
+                    <label class="form-check-label" for="cb_cap_${idx}">Tối đa ${cap} người</label>
+                </div>
+            </li>
+        `).join('');
+    }
+
+    // Ngăn chặn dropdown đóng khi click vào checkbox
+    if (filterFloorDropdown) filterFloorDropdown.addEventListener('click', e => e.stopPropagation());
+    if (filterStatusDropdown) filterStatusDropdown.addEventListener('click', e => e.stopPropagation());
+    if (filterRoomTypeDropdown) filterRoomTypeDropdown.addEventListener('click', e => e.stopPropagation());
+    if (filterCapacityDropdown) filterCapacityDropdown.addEventListener('click', e => e.stopPropagation());
+
+    // Gắn event onChange
+    document.querySelectorAll('.filter-floor-cb, .filter-status-cb, .filter-type-cb, .filter-capacity-cb').forEach(cb => {
+        cb.addEventListener('change', applyFilters);
+    });
+}
+
+function applyFilters() {
+    const selectedFloors = Array.from(document.querySelectorAll('.filter-floor-cb:checked')).map(cb => parseInt(cb.value));
+    const selectedStatuses = Array.from(document.querySelectorAll('.filter-status-cb:checked')).map(cb => parseInt(cb.value));
+    const selectedTypes = Array.from(document.querySelectorAll('.filter-type-cb:checked')).map(cb => cb.value);
+    const selectedCapacities = Array.from(document.querySelectorAll('.filter-capacity-cb:checked')).map(cb => parseInt(cb.value));
+
+    const filtered = mockRooms.filter(room => {
+        const floor = room.floor;
+        const matchFloor = selectedFloors.length === 0 || selectedFloors.includes(floor);
+        const matchStatus = selectedStatuses.length === 0 || selectedStatuses.includes(room.maTrangThai);
+        const matchType = selectedTypes.length === 0 || selectedTypes.includes(room.maLoai);
+        const matchCapacity = selectedCapacities.length === 0 || selectedCapacities.includes(room.capacity);
+        return matchFloor && matchStatus && matchType && matchCapacity;
+    });
+
+    fetchRoomMap(filtered);
+}
+
+function fetchRoomMap(roomsToRender) {
+    const container = document.getElementById('room-map-container');
+    const spinner = document.getElementById('loading-spinner');
+
+    spinner.style.display = 'none';
+
+    if (!roomsToRender || roomsToRender.length === 0) {
+        container.innerHTML = `<div class="w-100 text-center py-5 text-muted">Không tìm thấy phòng nào phù hợp với bộ lọc.</div>`;
+        return;
+    }
+
+    // Nhóm phòng theo tầng
+    const floors = {};
+    roomsToRender.forEach(room => {
+        const floorNum = room.floor;
+        if (!floors[floorNum]) {
+            floors[floorNum] = [];
+        }
+        floors[floorNum].push(room);
+    });
+
+    let html = '';
+
+    Object.keys(floors).sort((a, b) => a - b).forEach(floorNum => {
+        html += `
+            <div class="floor-section mb-4">
+                <h4 class="fw-bold text-navy mb-3 pb-2 border-bottom border-warning border-2" style="color: var(--navy-color);">Tầng ${floorNum}</h4>
+                <div class="room-grid" style="padding: 10px 0;">
+        `;
+
+        floors[floorNum].forEach(room => {
+            let statusClass = '';
+            let actionHtml = '';
+
+            if (room.maTrangThai === 1) { // Trống
+                statusClass = 'status-empty';
+                actionHtml = `
+                    <div class="room-status-label bg-success-subtle text-success border border-success-subtle">
+                        <i class="bi bi-check-circle me-1"></i>Trống tại ngày chọn
+                    </div>
+                `;
+            } else if (room.maTrangThai === 2) { // Đang ở
+                statusClass = 'status-occupied';
+                const todayActions = window.roomMapIsToday ? `
+                    <div class="d-flex gap-1 mt-2">
+                        <a href="/receptionist/check-out?roomId=${room.id}" class="btn btn-danger btn-action py-1 flex-grow-1" style="font-size: 0.8rem;">
+                            <i class="bi bi-box-arrow-left me-1"></i>Check-Out
+                        </a>
+                        <button class="btn btn-info text-white btn-action py-1 btn-transfer" style="font-size: 0.8rem;"
+                            data-id="${room.id}" data-label="${room.label}" data-type="${room.maLoai}" data-price="${room.price}">
+                            <i class="bi bi-arrow-left-right"></i> Đổi
+                        </button>
+                    </div>` : '';
+                actionHtml = `
+                    <div class="room-status-label bg-danger-subtle text-danger border border-danger-subtle">
+                        <i class="bi bi-person-fill-check me-1"></i>Đang lưu trú
+                    </div>
+                    ${todayActions}
+                `;
+            } else if (room.maTrangThai === 4) { // Đã đặt theo ngày
+                statusClass = 'status-reserved';
+                actionHtml = `
+                    <div class="room-status-label bg-primary-subtle text-primary border border-primary-subtle">
+                        <i class="bi bi-calendar-check me-1"></i>Đã đặt tại ngày chọn
+                    </div>
+                `;
+            } else if (room.maTrangThai === 5) { // Bảo trì
+                statusClass = 'status-maintenance';
+                const note = room.statusNote ? `<div class="small text-muted mt-1">${escapeHtml(room.statusNote)}</div>` : '';
+                actionHtml = `
+                    <div class="room-status-label bg-secondary-subtle text-secondary border border-secondary-subtle">
+                        <i class="bi bi-tools me-1"></i>Đang bảo trì
+                    </div>
+                    ${note}
+                `;
+            } else { // Chờ dọn dẹp
+                statusClass = 'status-dirty';
+                actionHtml = `
+                    <div class="room-status-label bg-warning-subtle text-dark border border-warning-subtle">
+                        <i class="bi bi-hourglass-split me-1"></i>Chờ dọn dẹp
+                    </div>
+                `;
+            }
+
+            const capacityStr = `${room.capacity || 2} người`;
+
+            let viewIcon = 'bi-compass';
+            if (room.view === 'Hướng Biển') viewIcon = 'bi-water text-primary';
+            else if (room.view === 'Hướng Thành Phố') viewIcon = 'bi-buildings text-secondary';
+            else if (room.view === 'Hướng Núi') viewIcon = 'bi-tree text-success';
+
+            html += `
+            <div class="room-card p-3 d-flex flex-column justify-content-between ${statusClass}">
+                <div>
+                    <div class="d-flex justify-content-between align-items-start">
+                        <h5 class="fw-bold text-dark m-0">Phòng ${room.label}</h5>
+                        <span class="badge bg-light text-dark border fw-bold">${room.maLoai || 'Loại 1'}</span>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-1 mb-2">
+                        <span class="text-muted small"><i class="bi bi-people-fill me-1"></i>Tối đa: ${capacityStr}</span>
+                        <span class="text-muted small fw-bold" style="font-size: 0.75rem;"><i class="bi ${viewIcon} me-1"></i>${room.view}</span>
+                    </div>
+                </div>
+                <div>
+                    ${actionHtml}
+                </div>
+            </div>
+            `;
+        });
+
+        html += `
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+
+    // Bắt sự kiện mở modal cho các nút "Đổi" vừa được render
+    document.querySelectorAll('.btn-transfer').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const btnTarget = e.currentTarget;
+            const rId = btnTarget.dataset.id;
+            const rLabel = btnTarget.dataset.label || rId;
+            const rType = btnTarget.dataset.type;
+            currentTransferRoomPrice = parseInt(btnTarget.dataset.price) || 0;
+            document.getElementById('transfer-old-room-id').value = rId;
+
+            document.getElementById('current-room-id').textContent = `Phòng ${rLabel}`;
+            document.getElementById('current-room-type').textContent = rType;
+            document.getElementById('current-price-disp').textContent = formatMoney(currentTransferRoomPrice);
+            document.getElementById('new-price-disp').textContent = '0 đ';
+            document.getElementById('price-diff-disp').textContent = '0 đ';
+            document.getElementById('price-diff-disp').className = 'fw-bold text-dark fs-5';
+
+            // Đổ danh sách phòng trống
+            const newRoomSelect = document.getElementById('new-room-select');
+            newRoomSelect.innerHTML = '<option value="">-- Danh sách phòng trống --</option>';
+            mockRooms.filter(r => r.maTrangThai === 1 && String(r.id) !== String(rId)).forEach(r => {
+                const opt = document.createElement('option');
+                opt.value = r.id;
+                opt.dataset.price = r.price;
+                opt.textContent = `Phòng ${r.label} (${r.maLoai}) - ${formatMoney(r.price)}`;
+                newRoomSelect.appendChild(opt);
+            });
+
+            document.getElementById('transfer-reason').value = 'Khách yêu cầu nâng hạng';
+            document.getElementById('other-reason-container').style.display = 'none';
+
+            if (!transferModalInstance) {
+                transferModalInstance = new bootstrap.Modal(document.getElementById('transferRoomModal'));
+            }
+            transferModalInstance.show();
+        });
+    });
+}
+
+let transferModalInstance = null;
+let currentTransferRoomPrice = 0;
+const formatMoney = (val) => new Intl.NumberFormat('vi-VN').format(val) + ' đ';
+
+function initModalListeners() {
+    const newRoomSelect = document.getElementById('new-room-select');
+    const transferReason = document.getElementById('transfer-reason');
+    const otherReasonContainer = document.getElementById('other-reason-container');
+    const newPriceDisp = document.getElementById('new-price-disp');
+    const diffDisp = document.getElementById('price-diff-disp');
+
+    // Bắt sự kiện chọn phòng mới để tính tiền chênh lệch
+    newRoomSelect.addEventListener('change', (e) => {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        const newPrice = parseInt(selectedOption?.dataset.price) || 0;
+        if (newPrice === 0) {
+            newPriceDisp.textContent = '0 đ';
+            diffDisp.textContent = '0 đ';
+            return;
+        }
+
+        newPriceDisp.textContent = formatMoney(newPrice);
+        const diff = newPrice - currentTransferRoomPrice;
+
+        diffDisp.textContent = formatMoney(Math.abs(diff)) + (diff > 0 ? ' (Thu thêm)' : (diff < 0 ? ' (Hoàn lại)' : ''));
+        diffDisp.className = 'fw-bold fs-5 ' + (diff > 0 ? 'text-danger' : (diff < 0 ? 'text-success' : 'text-dark'));
+    });
+
+    transferReason.addEventListener('change', (e) => {
+        if (e.target.value === 'Lý do khác') {
+            otherReasonContainer.style.display = 'block';
+        } else {
+            otherReasonContainer.style.display = 'none';
+        }
+    });
+
+    document.getElementById('transfer-room-form').addEventListener('submit', (event) => {
+        if (!newRoomSelect.value) {
+            event.preventDefault();
+            alert('Vui lòng chọn phòng mới!');
+            return;
+        }
+        if (transferReason.value === 'Lý do khác' && !document.getElementById('other-reason').value.trim()) {
+            event.preventDefault();
+            alert('Vui lòng nhập lý do đổi phòng!');
+        }
+    });
+}
+
+function escapeHtml(value) {
+    const element = document.createElement('div');
+    element.textContent = value == null ? '' : String(value);
+    return element.innerHTML;
+}

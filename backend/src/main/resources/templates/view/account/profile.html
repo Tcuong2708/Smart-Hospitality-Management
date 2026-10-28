@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org"
+    xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/auth}">
+
+<head>
+    <title layout:fragment="content-title">Hồ sơ tài khoản</title>
+</head>
+
+<body>
+
+    <div layout:fragment="content">
+
+        <section class="mh-profile">
+            <div class="container">
+                <div class="mh-profile-wrap">
+
+                    <!-- Sidebar -->
+                    <aside class="mh-profile-side">
+                        <div class="mh-profile-card">
+                            <div class="mh-profile-avatar">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <h3 class="mh-profile-name" th:text="${user.hoTen}">Họ tên</h3>
+                            <p class="mh-profile-role" th:if="${user.roleID == 1}">Quản trị viên</p>
+                            <p class="mh-profile-role" th:if="${user.roleID == 2}">Nhân viên</p>
+                            <p class="mh-profile-role" th:if="${user.roleID != 1 and user.roleID != 2}">Thành viên VIP
+                            </p>
+
+                            <div class="mh-profile-quote">
+                                <i class="fa-solid fa-quote-left"></i>
+                                <span>Trải nghiệm đẳng cấp thượng lưu</span>
+                            </div>
+                        </div>
+
+                        <nav class="mh-profile-nav">
+                            <a th:href="@{/account/profile}" class="active">
+                                <i class="fa-regular fa-user"></i> Hồ sơ cá nhân
+                            </a>
+                            <a th:href="@{/booking/history}">
+                                <i class="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt phòng
+                            </a>
+                            <a th:href="@{/account/points}">
+                                <i class="fa-solid fa-star"></i> Điểm thưởng
+                            </a>
+                        </nav>
+                    </aside>
+
+                    <!-- Form -->
+                    <main class="mh-profile-main">
+                        <div class="mh-profile-card mh-profile-card--form">
+
+                            <header class="mh-profile-head">
+                                <h2><i class="fa-solid fa-gear"></i> Cập nhật hồ sơ</h2>
+                                <p>Thông tin này sẽ được dùng cho việc đặt phòng và liên hệ với bạn.</p>
+                            </header>
+
+                            <div th:if="${success != null}" class="mh-auth-alert success">
+                                <i class="fa-solid fa-circle-check"></i>
+                                <span th:text="${success}"></span>
+                            </div>
+                            <div th:if="${error != null}" class="mh-auth-alert error">
+                                <i class="fa-solid fa-circle-exclamation"></i>
+                                <span th:text="${error}"></span>
+                            </div>
+
+                            <form th:action="@{/account/update-profile}" method="post" class="mh-profile-form">
+                                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                    th:value="${_csrf.token}" />
+                                <input type="hidden" name="idTaiKhoan" th:value="${user.idTaiKhoan}" />
+
+                                <div class="mh-grid-2">
+                                    <div class="mh-field">
+                                        <label>Tên đăng nhập</label>
+                                        <div class="mh-field-input mh-field-input--locked">
+                                            <i class="fa-solid fa-at"></i>
+                                            <input type="text" th:value="${user.tenDangNhap}" readonly />
+                                        </div>
+                                    </div>
+
+                                    <div class="mh-field">
+                                        <label for="hoTen">Họ và tên</label>
+                                        <div class="mh-field-input">
+                                            <i class="fa-regular fa-user"></i>
+                                            <input id="hoTen" type="text" name="hoTen" th:value="${user.hoTen}"
+                                                required />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mh-grid-2">
+                                    <div class="mh-field">
+                                        <label for="soDienThoai">Số điện thoại</label>
+                                        <div class="mh-field-input">
+                                            <i class="fa-solid fa-phone"></i>
+                                            <input id="soDienThoai" type="tel" name="soDienThoai"
+                                                th:value="${user.soDienThoai}" />
+                                        </div>
+                                    </div>
+
+                                    <div class="mh-field">
+                                        <label for="quocTich">Quốc tịch</label>
+                                        <div class="mh-field-input">
+                                            <i class="fa-solid fa-flag"></i>
+                                            <input id="quocTich" type="text" name="quocTich" th:value="${user.quocTich}"
+                                                placeholder="Việt Nam" />
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mh-field">
+                                    <label for="diaChi">Địa chỉ</label>
+                                    <div class="mh-field-input mh-field-input--textarea">
+                                        <i class="fa-solid fa-location-dot"></i>
+                                        <textarea id="diaChi" name="diaChi" rows="3"
+                                            th:text="${user.diaChi}"></textarea>
+                                    </div>
+                                </div>
+
+                                <div class="mh-profile-actions">
+                                    <button type="submit" class="mh-auth-submit">
+                                        <i class="fa-solid fa-floppy-disk"></i>
+                                        Lưu thông tin
+                                    </button>
+                                </div>
+                            </form>
+
+                        </div>
+                    </main>
+
+                </div>
+            </div>
+        </section>
+
+    </div>
+
+</body>
+
+</html>

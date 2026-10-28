@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+    <div th:fragment="body_content" class="manager-page-shell">
+        <div class="adm-loyalty-page">
+
+            <!-- HEADER -->
+            <div class="adm-page-head">
+                <div class="adm-page-head-text">
+                    <span class="adm-page-eyebrow">KHÁCH HÀNG THÂN THIẾT</span>
+                    <h1 class="adm-page-title">Điểm &amp; Hạng</h1>
+                    <p class="adm-page-sub">Cấu hình tỷ lệ tích điểm và mốc thăng hạng tự động cho khách hàng</p>
+                </div>
+            </div>
+
+            <!-- CONFIG CARD -->
+            <div class="adm-card">
+                <div class="adm-card-head">
+                    <h3><i class="bi bi-sliders"></i> Cấu hình tích điểm &amp; thăng hạng</h3>
+                </div>
+                <form th:action="@{/manager/loyalty/update}" method="post">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <div class="adm-card-body">
+
+                        <div class="adm-loyalty-stats">
+
+                            <div class="adm-loyalty-stat">
+                                <div class="adm-loyalty-stat-head">
+                                    <div class="adm-loyalty-stat-icon"><i class="bi bi-coin"></i></div>
+                                    <div class="adm-loyalty-stat-label">Tỷ lệ tích điểm</div>
+                                </div>
+                                <input type="number" name="moneyPerPoint" th:value="${policy.moneyPerPoint}" required
+                                    min="1">
+                                <div class="adm-loyalty-stat-suffix">VNĐ = 1 điểm</div>
+                            </div>
+
+                            <div class="adm-loyalty-stat bronze">
+                                <div class="adm-loyalty-stat-head">
+                                    <div class="adm-loyalty-stat-icon"><i class="bi bi-shield-fill"></i></div>
+                                    <div class="adm-loyalty-stat-label">Mốc lên Bạc</div>
+                                </div>
+                                <input type="number" name="silverThreshold" th:value="${policy.silverThreshold}"
+                                    required min="0">
+                                <div class="adm-loyalty-stat-suffix">điểm tích lũy</div>
+                            </div>
+
+                            <div class="adm-loyalty-stat gold">
+                                <div class="adm-loyalty-stat-head">
+                                    <div class="adm-loyalty-stat-icon"><i class="bi bi-star-fill"></i></div>
+                                    <div class="adm-loyalty-stat-label">Mốc lên Vàng</div>
+                                </div>
+                                <input type="number" name="goldThreshold" th:value="${policy.goldThreshold}" required
+                                    min="0">
+                                <div class="adm-loyalty-stat-suffix">điểm tích lũy</div>
+                            </div>
+
+                            <div class="adm-loyalty-stat platinum">
+                                <div class="adm-loyalty-stat-head">
+                                    <div class="adm-loyalty-stat-icon"><i class="bi bi-gem"></i></div>
+                                    <div class="adm-loyalty-stat-label">Mốc lên Bạch Kim</div>
+                                </div>
+                                <input type="number" name="platinumThreshold" th:value="${policy.platinumThreshold}"
+                                    required min="0">
+                                <div class="adm-loyalty-stat-suffix">điểm tích lũy</div>
+                            </div>
+
+                        </div>
+
+                        <div class="adm-loyalty-actions">
+                            <div class="adm-loyalty-note">
+                                <i class="bi bi-info-circle"></i>
+                                <span>Sau khi cập nhật, hệ thống sẽ tự động phân hạng lại toàn bộ khách hàng theo thông
+                                    số mới.</span>
+                            </div>
+                            <button type="submit" class="adm-btn adm-btn-gold">
+                                <i class="bi bi-check-lg"></i> Lưu cấu hình
+                            </button>
+                        </div>
+
+                    </div>
+                </form>
+            </div>
+
+            <!-- CUSTOMER LIST -->
+            <div class="adm-card manager-fill-card">
+                <div class="adm-card-head">
+                    <h3><i class="bi bi-people-fill"></i> Tra cứu hạng khách hàng</h3>
+                </div>
+
+                <div class="adm-toolbar">
+
+                    <div class="adm-search" id="loyaltySearchWrap">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="loyaltySearchInput" autocomplete="off"
+                            placeholder="Tìm theo tên, SĐT hoặc email...">
+                        <button type="button" class="adm-search-clear" id="loyaltySearchClear"
+                            aria-label="Xoá tìm kiếm">
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-dropdown" id="tierFilterDropdown">
+                        <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterTier">
+                            <i class="bi bi-award-fill"></i>
+                            <span>Hạng</span>
+                            <span class="adm-filter-badge" id="badgeTier" style="display:none;">0</span>
+                            <i class="bi bi-chevron-down chev"></i>
+                        </button>
+                        <div class="adm-filter-popover">
+                            <div class="adm-filter-popover-head">
+                                <strong>Chọn hạng</strong>
+                                <button type="button" data-clear="tier">Bỏ chọn</button>
+                            </div>
+                            <div class="adm-filter-popover-list" id="tierFilterList">
+                                <label class="adm-filter-option" for="tier_cb_4">
+                                    <input type="checkbox" class="filter-tier-cb" value="4" id="tier_cb_4">
+                                    <span class="adm-filter-option-label">
+                                        <i class="bi bi-gem" style="color:#4A7AAB;"></i> Bạch Kim
+                                    </span>
+                                    <span class="adm-filter-option-count" id="cnt_tier_4">0</span>
+                                </label>
+                                <label class="adm-filter-option" for="tier_cb_3">
+                                    <input type="checkbox" class="filter-tier-cb" value="3" id="tier_cb_3">
+                                    <span class="adm-filter-option-label">
+                                        <i class="bi bi-star-fill" style="color:var(--gold-hover);"></i> Vàng
+                                    </span>
+                                    <span class="adm-filter-option-count" id="cnt_tier_3">0</span>
+                                </label>
+                                <label class="adm-filter-option" for="tier_cb_2">
+                                    <input type="checkbox" class="filter-tier-cb" value="2" id="tier_cb_2">
+                                    <span class="adm-filter-option-label">
+                                        <i class="bi bi-shield-fill" style="color:#5A6B7F;"></i> Bạc
+                                    </span>
+                                    <span class="adm-filter-option-count" id="cnt_tier_2">0</span>
+                                </label>
+                                <label class="adm-filter-option" for="tier_cb_1">
+                                    <input type="checkbox" class="filter-tier-cb" value="1" id="tier_cb_1">
+                                    <span class="adm-filter-option-label">
+                                        <i class="bi bi-award" style="color:#8B6B4A;"></i> Đồng
+                                    </span>
+                                    <span class="adm-filter-option-count" id="cnt_tier_1">0</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-chips" id="loyaltyChips" style="margin-left:auto;"></div>
+
+                    <div class="adm-result-count">
+                        <i class="bi bi-people-fill" style="color:var(--gold-hover);"></i>
+                        <strong id="loyaltyCount" th:text="${#lists.size(customers)}">0</strong> khách hàng
+                    </div>
+                </div>
+
+                <div class="adm-table-wrap manager-fill-body">
+                    <table class="adm-table" id="loyaltyCustomerTable">
+                        <thead>
+                            <tr>
+                                <th class="col-center" style="width:80px;">ID</th>
+                                <th>Họ tên</th>
+                                <th>Số điện thoại</th>
+                                <th class="col-center" style="width:160px;">Điểm tích lũy</th>
+                                <th class="col-center" style="width:150px;">Hạng hiện tại</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+
+                            <tr th:if="${#lists.isEmpty(customers)}">
+                                <td colspan="5">
+                                    <div class="adm-empty">
+                                        <i class="bi bi-people"></i>
+                                        <h4>Chưa có khách hàng nào</h4>
+                                        <p>Dữ liệu khách hàng sẽ xuất hiện sau khi có người đăng ký hoặc đặt phòng.</p>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr id="loyaltyNoMatchRow" style="display:none;">
+                                <td colspan="5">
+                                    <div class="adm-empty">
+                                        <i class="bi bi-search"></i>
+                                        <h4>Không tìm thấy kết quả</h4>
+                                        <p>Không có khách hàng nào khớp với bộ lọc hiện tại.</p>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr th:each="cus : ${customers}" class="loyalty-customer-row" th:with="tier=${cus.tierId != null ? cus.tierId : 1},
+                                         chuDau=${cus.fullName != null and !cus.fullName.isEmpty()
+                                            ? #strings.substring(cus.fullName, 0, 1).toUpperCase()
+                                            : 'K'}" th:attr="data-tier=${tier}">
+
+                                <td class="col-center cell-id" th:text="${cus.id}">1</td>
+
+                                <td>
+                                    <div class="adm-cus-cell">
+                                        <div class="adm-cus-avatar" th:classappend="${tier == 4} ? 'av-platinum'
+                                                : (${tier == 3} ? 'av-gold'
+                                                : (${tier == 2} ? 'av-silver' : 'av-bronze'))" th:text="${chuDau}">A
+                                        </div>
+                                        <div class="adm-cus-info">
+                                            <strong th:text="${cus.fullName} ?: 'Khách hàng'">Nguyễn Văn A</strong>
+                                            <small th:if="${cus.email != null and !cus.email.isEmpty()}"
+                                                th:text="${cus.email}">email@example.com</small>
+                                        </div>
+                                    </div>
+                                </td>
+
+                                <td class="text-muted" th:text="${cus.phone} ?: '—'">0912345678</td>
+
+                                <td class="col-center">
+                                    <span class="adm-points">
+                                        <strong th:text="${cus.points != null
+                                            ? #numbers.formatInteger(cus.points, 1, 'POINT')
+                                            : '0'}">0</strong>
+                                        <small>điểm</small>
+                                    </span>
+                                </td>
+
+                                <td class="col-center">
+                                    <span th:if="${tier == 4}" class="adm-tier tier-platinum">
+                                        <i class="bi bi-gem"></i> Bạch Kim
+                                    </span>
+                                    <span th:if="${tier == 3}" class="adm-tier tier-gold">
+                                        <i class="bi bi-star-fill"></i> Vàng
+                                    </span>
+                                    <span th:if="${tier == 2}" class="adm-tier tier-silver">
+                                        <i class="bi bi-shield-fill"></i> Bạc
+                                    </span>
+                                    <span th:if="${tier == 1}" class="adm-tier tier-bronze">
+                                        <i class="bi bi-award"></i> Đồng
+                                    </span>
+                                </td>
+
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="adm-pagination" id="loyaltyPagination" style="display:none;"></div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- EXTRA JS -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function init() {
+                    var table = document.getElementById('loyaltyCustomerTable');
+                    if (!table) return;
+
+                    var tbody = table.tBodies[0];
+                    var searchInput = document.getElementById('loyaltySearchInput');
+                    var searchClear = document.getElementById('loyaltySearchClear');
+                    var searchWrap = document.getElementById('loyaltySearchWrap');
+                    var countEl = document.getElementById('loyaltyCount');
+                    var noMatchRow = document.getElementById('loyaltyNoMatchRow');
+                    var chipsBox = document.getElementById('loyaltyChips');
+                    var badgeTier = document.getElementById('badgeTier');
+                    var btnFilterTier = document.getElementById('btnFilterTier');
+                    var paginationContainer = document.getElementById('loyaltyPagination');
+
+                    var TIER_LABEL = { 1: 'Đồng', 2: 'Bạc', 3: 'Vàng', 4: 'Bạch Kim' };
+                    var TIER_ICON = { 1: 'bi-award', 2: 'bi-shield-fill', 3: 'bi-star-fill', 4: 'bi-gem' };
+
+                    var allRows = Array.from(tbody.querySelectorAll('tr.loyalty-customer-row'));
+
+                    // Đếm số khách mỗi tier cho dropdown
+                    var tierCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+                    allRows.forEach(function (r) {
+                        var t = parseInt(r.dataset.tier || '1', 10);
+                        if (tierCounts[t] != null) tierCounts[t]++;
+                    });
+                    ['1', '2', '3', '4'].forEach(function (k) {
+                        var el = document.getElementById('cnt_tier_' + k);
+                        if (el) el.textContent = tierCounts[k];
+                    });
+
+                    // State
+                    var filteredRows = allRows.slice();
+                    var currentPage = 1;
+                    var pageSize = 10;
+                    var timer = null;
+
+                    /* ════════ Apply filter + render ════════ */
+                    function applyFilter() {
+                        var q = (searchInput.value || '').trim().toLowerCase();
+                        var selectedTiers = Array.from(
+                            document.querySelectorAll('.filter-tier-cb:checked')
+                        ).map(function (c) { return parseInt(c.value, 10); });
+
+                        // Lọc rows
+                        filteredRows = allRows.filter(function (row) {
+                            var text = row.textContent.toLowerCase();
+                            var rowTier = parseInt(row.dataset.tier || '1', 10);
+                            var matchText = !q || text.indexOf(q) !== -1;
+                            var matchTier = selectedTiers.length === 0
+                                || selectedTiers.indexOf(rowTier) !== -1;
+                            return matchText && matchTier;
+                        });
+
+                        // Reset về trang 1
+                        currentPage = 1;
+
+                        // Toggle nút X search
+                        searchWrap.classList.toggle('has-value', q.length > 0);
+
+                        // Update badge
+                        if (badgeTier) {
+                            if (selectedTiers.length > 0) {
+                                badgeTier.textContent = selectedTiers.length;
+                                badgeTier.style.display = 'inline-flex';
+                                btnFilterTier.classList.add('is-active');
+                            } else {
+                                badgeTier.style.display = 'none';
+                                btnFilterTier.classList.remove('is-active');
+                            }
+                        }
+
+                        renderChips(selectedTiers);
+                        renderPage();
+                    }
+
+                    /* ════════ Render 1 trang ════════ */
+                    function renderPage() {
+                        // Ẩn HẾT rows trước
+                        allRows.forEach(function (r) { r.style.display = 'none'; });
+
+                        // Hiện rows của trang hiện tại
+                        var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+                        if (currentPage > totalPages) currentPage = totalPages;
+                        var start = (currentPage - 1) * pageSize;
+                        filteredRows.slice(start, start + pageSize).forEach(function (r) {
+                            r.style.display = '';
+                        });
+
+                        // Count
+                        if (countEl) countEl.textContent = filteredRows.length;
+
+                        // Empty state
+                        var hasFilter = (searchInput.value || '').trim().length > 0
+                            || document.querySelectorAll('.filter-tier-cb:checked').length > 0;
+                        if (noMatchRow) {
+                            noMatchRow.style.display =
+                                (filteredRows.length === 0 && hasFilter) ? '' : 'none';
+                        }
+
+                        renderPagination(totalPages);
+                    }
+
+                    /* ════════ Render nút phân trang ════════ */
+                    function renderPagination(totalPages) {
+                        if (!paginationContainer) return;
+
+                        // Không cần phân trang khi ≤ 1 trang hoặc không có data
+                        if (totalPages <= 1 || filteredRows.length === 0) {
+                            paginationContainer.innerHTML = '';
+                            paginationContainer.style.display = 'none';
+                            return;
+                        }
+
+                        paginationContainer.style.display = 'flex';
+                        var html = '';
+
+                        html += '<button type="button" class="adm-pagination-btn" data-page="prev"'
+                            + (currentPage === 1 ? ' disabled' : '')
+                            + ' aria-label="Trang trước">'
+                            + '<i class="bi bi-chevron-left"></i></button>';
+
+                        for (var i = 1; i <= totalPages; i++) {
+                            html += '<button type="button" class="adm-pagination-btn'
+                                + (i === currentPage ? ' is-active' : '')
+                                + '" data-page="' + i + '">' + i + '</button>';
+                        }
+
+                        html += '<button type="button" class="adm-pagination-btn" data-page="next"'
+                            + (currentPage === totalPages ? ' disabled' : '')
+                            + ' aria-label="Trang sau">'
+                            + '<i class="bi bi-chevron-right"></i></button>';
+
+                        paginationContainer.innerHTML = html;
+
+                        paginationContainer.querySelectorAll('[data-page]').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                if (btn.disabled) return;
+                                var v = btn.dataset.page;
+                                if (v === 'prev') currentPage--;
+                                else if (v === 'next') currentPage++;
+                                else currentPage = parseInt(v, 10);
+                                renderPage();
+                            });
+                        });
+                    }
+
+                    /* ════════ Chip bar ════════ */
+                    function renderChips(selectedTiers) {
+                        if (!chipsBox) return;
+                        chipsBox.innerHTML = selectedTiers.map(function (t) {
+                            return '<span class="adm-chip">'
+                                + '<i class="bi ' + (TIER_ICON[t] || 'bi-award') + '"></i>'
+                                + '<span>' + (TIER_LABEL[t] || t) + '</span>'
+                                + '<button type="button" data-chip-tier="' + t + '">×</button>'
+                                + '</span>';
+                        }).join('');
+
+                        chipsBox.querySelectorAll('button[data-chip-tier]').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                var t = btn.dataset.chipTier;
+                                var cb = document.querySelector('.filter-tier-cb[value="' + t + '"]');
+                                if (cb) { cb.checked = false; applyFilter(); }
+                            });
+                        });
+                    }
+
+                    /* ════════ Sự kiện ════════ */
+
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function () {
+                            clearTimeout(timer);
+                            timer = setTimeout(applyFilter, 150);
+                        });
+                        searchInput.addEventListener('keydown', function (e) {
+                            if (e.key === 'Escape') {
+                                searchInput.value = '';
+                                applyFilter();
+                            }
+                        });
+                    }
+
+                    if (searchClear) {
+                        searchClear.addEventListener('click', function () {
+                            searchInput.value = '';
+                            applyFilter();
+                            searchInput.focus();
+                        });
+                    }
+
+                    document.querySelectorAll('.filter-tier-cb').forEach(function (cb) {
+                        cb.addEventListener('change', applyFilter);
+                    });
+
+                    var clearBtn = document.querySelector('[data-clear="tier"]');
+                    if (clearBtn) {
+                        clearBtn.addEventListener('click', function () {
+                            document.querySelectorAll('.filter-tier-cb').forEach(function (cb) {
+                                cb.checked = false;
+                            });
+                            applyFilter();
+                        });
+                    }
+
+                    // Init: render lần đầu (page 1, 10 rows)
+                    renderPage();
+                }
+
+                // Chạy sau khi tất cả script (bao gồm admin_main.js) load xong
+                if (document.readyState === 'complete') {
+                    init();
+                } else {
+                    window.addEventListener('load', init);
+                }
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

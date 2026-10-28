@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Nghiệp vụ lễ tân</span>
+                <h1 class="adm-page-title">Nhận phòng</h1>
+                <p class="adm-page-sub">Xác thực giấy tờ, gán phòng và duyệt check-in cho khách đến nhận phòng.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <a th:href="@{/receptionist/check-in}" class="adm-btn adm-btn-outline">
+                    <i class="bi bi-arrow-clockwise"></i> Làm mới
+                </a>
+            </div>
+        </div>
+
+        <!-- Flash alerts -->
+        <div th:if="${success}" class="adm-alert adm-alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${success}"></span>
+        </div>
+        <div th:if="${error}" class="adm-alert adm-alert-danger">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- Card -->
+        <div class="adm-card">
+
+            <div class="adm-toolbar">
+                <div class="adm-search" style="flex:1;max-width:360px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="checkinSearch" placeholder="Tìm theo mã HĐ, tên khách, SĐT, phòng..."
+                        autocomplete="off">
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-receipt" style="color:var(--gold-hover);"></i>
+                    <strong id="checkinCount" th:text="${invoices != null ? #lists.size(invoices) : 0}">0</strong> phiếu
+                </div>
+            </div>
+
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th style="width:80px;">Mã HĐ</th>
+                            <th>Khách hàng</th>
+                            <th style="width:130px;">Điện thoại</th>
+                            <th class="col-center" style="width:150px;">Phòng</th>
+                            <th style="width:170px;">Lưu trú</th>
+                            <th class="col-right" style="width:130px;">Tạm tính</th>
+                            <th class="col-center adm-ci-action-cell">Nghiệp vụ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="checkin-table-body">
+
+                        <tr th:if="${invoices == null or #lists.isEmpty(invoices)}">
+                            <td colspan="7">
+                                <div class="adm-empty">
+                                    <i class="bi bi-inbox"></i>
+                                    <h4>Chưa có phiếu chờ check-in</h4>
+                                    <p>Đơn đặt phòng sẽ xuất hiện ở đây khi khách đến nhận phòng.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:unless="${invoices == null or #lists.isEmpty(invoices)}" th:each="item : ${invoices}">
+
+                            <td class="cell-id" th:text="'#' + ${item.id}">#1</td>
+
+                            <td>
+                                <strong
+                                    style="display:block;font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.35;"
+                                    th:text="${item.hoTen}">Tên khách</strong>
+                                <span th:if="${#strings.equalsIgnoreCase(item.hoTen, 'Khách vãng lai')}"
+                                    class="adm-badge adm-badge-neutral"
+                                    style="margin-top:4px;font-size:10.5px;padding:3px 8px;">
+                                    Khách vãng lai
+                                </span>
+                            </td>
+
+                            <td class="text-muted" th:text="${item.sdt}">0901234567</td>
+
+                            <td class="col-center">
+                                <span th:if="${item.maPhong != null}" class="adm-badge adm-badge-success">
+                                    <i class="bi bi-door-open-fill"></i>
+                                    <span
+                                        th:text="${#strings.startsWith(item.tenPhong, 'Phòng') ? item.tenPhong : 'Phòng ' + item.tenPhong}">P.101</span>
+                                </span>
+                                <span th:unless="${item.maPhong != null}" class="adm-badge adm-badge-warning">
+                                    <i class="bi bi-exclamation-triangle-fill"></i>
+                                    Chưa xếp
+                                </span>
+                            </td>
+
+                            <td style="font-size:12.5px;">
+                                <div class="text-muted">Nhận:
+                                    <strong class="text-navy" th:text="${item.ngayCheckIn}">01/01</strong>
+                                </div>
+                                <div class="text-muted" style="margin-top:2px;">Trả:
+                                    <strong class="text-navy" th:text="${item.ngayCheckOut}">02/01</strong>
+                                </div>
+                            </td>
+
+                            <td class="cell-price col-right"
+                                th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+                                0 đ
+                            </td>
+
+                            <td class="col-center">
+                                <form th:action="@{/receptionist/checkin/execute/{id}(id=${item.id})}" method="get"
+                                    class="adm-checkin-actions">
+
+                                    <div class="adm-field" style="gap:0;">
+                                        <select name="maPhong" required>
+                                            <option value="">— Gán phòng —</option>
+                                            <option th:if="${item.maPhong != null}" th:value="${item.maPhong}"
+                                                th:text="${#strings.startsWith(item.tenPhong, 'Phòng') ? item.tenPhong : 'Phòng ' + item.tenPhong}"
+                                                selected></option>
+                                            <option th:each="p : ${emptyRooms}" th:value="${p.id}"
+                                                th:text="${#strings.startsWith(p.name, 'Phòng') ? p.name : 'Phòng ' + p.name}"
+                                                th:if="${(item.maLoaiPhong == null or p.roomTypeId == item.maLoaiPhong) and (item.maPhong == null or p.id != item.maPhong)}">
+                                            </option>
+                                        </select>
+                                    </div>
+
+                                    <div class="adm-ci-quick-btns">
+                                        <button type="button" class="adm-btn adm-btn-outline" data-ci-action="nfc"
+                                            th:attr="data-ci-id=${item.id}, data-ci-name=${item.hoTen}">
+                                            <i class="bi bi-phone-vibrate"></i> NFC
+                                        </button>
+                                        <button type="button" class="adm-btn adm-btn-outline" data-ci-action="cccd"
+                                            th:attr="data-ci-id=${item.id}">
+                                            <i class="bi bi-person-vcard"></i> CCCD
+                                        </button>
+                                    </div>
+
+                                    <label class="adm-switch">
+                                        <input type="checkbox" name="isPaidUpfront" value="true"
+                                            th:id="'checkPaid-' + ${item.id}" th:checked="${item.idTaiKhoan == null}">
+                                        <span>Thu trước 1 đêm (TM)</span>
+                                    </label>
+
+                                    <button type="submit" class="adm-btn adm-btn-gold adm-ci-submit"
+                                        onclick="return confirm('Xác nhận số phòng bàn giao và tiến hành Check-in?')">
+                                        <i class="bi bi-check-circle"></i> Duyệt nhận phòng
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: XÁC THỰC CCCD ==================== -->
+        <div class="adm-modal-backdrop" id="verifyIdModal">
+            <div class="adm-modal lg">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-person-vcard"></i> Xác thực giấy tờ tuỳ thân</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+
+                <div class="adm-modal-body">
+                    <div class="adm-tabs-wrapper">
+                        <div class="adm-tabs-nav">
+                            <button type="button" class="adm-tab-btn is-active" data-adm-tab="upload">
+                                <i class="bi bi-upload"></i> Tải ảnh
+                            </button>
+                            <button type="button" class="adm-tab-btn" data-adm-tab="webcam">
+                                <i class="bi bi-camera-video"></i> Camera
+                            </button>
+                            <button type="button" class="adm-tab-btn" data-adm-tab="manual">
+                                <i class="bi bi-keyboard"></i> Nhập tay
+                            </button>
+                        </div>
+
+                        <div class="adm-tab-panel is-active" data-adm-panel="upload">
+                            <div class="adm-form-row">
+                                <div class="adm-field">
+                                    <label>Mặt trước CCCD</label>
+                                    <label class="adm-ci-preview" for="ci-cccd-front" id="ci-preview-front">
+                                        <div>
+                                            <i class="bi bi-card-image placeholder-icon"></i>
+                                            <span class="placeholder-text">Bấm để tải ảnh</span>
+                                        </div>
+                                        <img alt="">
+                                        <input type="file" id="ci-cccd-front" accept="image/*">
+                                    </label>
+                                </div>
+                                <div class="adm-field">
+                                    <label>Mặt sau CCCD</label>
+                                    <label class="adm-ci-preview" for="ci-cccd-back" id="ci-preview-back">
+                                        <div>
+                                            <i class="bi bi-card-image placeholder-icon"></i>
+                                            <span class="placeholder-text">Bấm để tải ảnh</span>
+                                        </div>
+                                        <img alt="">
+                                        <input type="file" id="ci-cccd-back" accept="image/*">
+                                    </label>
+                                </div>
+                            </div>
+                            <div style="text-align:center;margin-top:16px;">
+                                <button type="button" class="adm-btn adm-btn-outline" id="ci-extract-btn">
+                                    <i class="bi bi-qr-code-scan"></i> Trích xuất AI Vision
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="adm-tab-panel" data-adm-panel="webcam">
+                            <div class="adm-ci-cam-wrap">
+                                <div id="ci-cam-placeholder">
+                                    <i class="bi bi-camera-video placeholder-icon"></i>
+                                    <p>Hướng camera về phía khách hàng để chụp ảnh khuôn mặt</p>
+                                    <button type="button" class="adm-btn adm-btn-primary" id="ci-cam-start">
+                                        <i class="bi bi-camera"></i> Bật camera
+                                    </button>
+                                </div>
+                                <video id="ci-cam-video" class="adm-ci-cam-video" autoplay playsinline></video>
+                                <canvas id="ci-cam-canvas" class="adm-ci-cam-canvas"></canvas>
+                                <div id="ci-cam-actions" style="display:none;margin-top:12px;">
+                                    <button type="button" class="adm-btn adm-btn-gold" id="ci-cam-capture">
+                                        <i class="bi bi-camera-fill"></i> Chụp ảnh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="adm-tab-panel" data-adm-panel="manual">
+                            <div class="adm-form-row">
+                                <div class="adm-field">
+                                    <label>Họ và tên</label>
+                                    <input type="text" id="ci-manual-name" placeholder="VD: NGUYỄN VĂN A">
+                                </div>
+                                <div class="adm-field">
+                                    <label>Số CCCD / Hộ chiếu</label>
+                                    <input type="text" id="ci-manual-id" placeholder="Nhập số giấy tờ">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-field" style="margin-top:20px;">
+                        <label><i class="bi bi-file-earmark-text" style="color:var(--gold);"></i> Dữ liệu trích
+                            xuất</label>
+                        <textarea class="adm-ci-raw-result" id="ci-raw-result" rows="5" readonly
+                            placeholder="Dữ liệu sẽ hiển thị ở đây sau khi quét hoặc nhập tay..."></textarea>
+                    </div>
+                </div>
+
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <button type="button" class="adm-btn adm-btn-gold"
+                        onclick="alert('Xác nhận lưu thông tin giấy tờ thành công!'); AdmModal.close('verifyIdModal');">
+                        <i class="bi bi-check-circle"></i> Xác nhận đính kèm
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: XÁC THỰC NFC THẬT ==================== -->
+        <div class="adm-modal-backdrop" id="mobileVerifyModal">
+            <div class="adm-modal">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-phone-vibrate"></i> Đọc thẻ NFC</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+
+                <div class="adm-modal-body">
+
+                    <!-- Trạng thái 1: Chờ quét -->
+                    <div id="ci-nfc-waiting" class="adm-ci-waiting" style="text-align:center;">
+                        <div class="adm-ci-waiting-spinner"></div>
+                        <h5>Đang chờ quét thẻ NFC</h5>
+                        <p>Đưa mặt sau điện thoại lại gần sticker NFC và giữ yên 1-2 giây.</p>
+
+                        <div class="adm-ci-connect-code">
+                            <i class="bi bi-upc-scan"></i>
+                            <div class="label">
+                                <small>Trạng thái</small>
+                                <strong id="ci-nfc-status">Sẵn sàng quét</strong>
+                            </div>
+                        </div>
+
+                        <div id="ci-nfc-support-warning" class="adm-alert adm-alert-warning"
+                            style="display:none;margin-top:20px;text-align:left;">
+                            <i class="bi bi-exclamation-triangle-fill"></i>
+                            <span>Thiết bị / trình duyệt này không hỗ trợ Web NFC. Cần <strong>Chrome trên
+                                    Android</strong> và trang chạy <strong>HTTPS</strong>.</span>
+                        </div>
+                    </div>
+
+                    <!-- Trạng thái 2: Đọc thành công -->
+                    <div id="ci-nfc-success" class="adm-ci-success" style="display:none;">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <h5>Đọc thẻ NFC thành công</h5>
+                        <p id="ci-nfc-success-msg">Dữ liệu đã được trích xuất.</p>
+                    </div>
+
+                    <!-- Trạng thái 3: Lỗi -->
+                    <div id="ci-nfc-error" class="adm-alert adm-alert-danger" style="display:none;margin-top:20px;">
+                        <i class="bi bi-x-circle-fill"></i>
+                        <span id="ci-nfc-error-msg">Lỗi không xác định.</span>
+                    </div>
+
+                    <!-- Kết quả thô -->
+                    <div id="ci-nfc-result-box" class="adm-field" style="margin-top:20px;display:none;">
+                        <label><i class="bi bi-file-earmark-text" style="color:var(--gold);"></i> Dữ liệu từ thẻ</label>
+                        <textarea class="adm-ci-raw-result" id="ci-nfc-raw" rows="5" readonly></textarea>
+                    </div>
+
+                </div>
+
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Đóng</button>
+                    <button type="button" class="adm-btn adm-btn-gold" id="ci-nfc-sync">
+                        <i class="bi bi-upc-scan"></i> Bắt đầu quét
+                    </button>
+                    <button type="button" class="adm-btn adm-btn-gold" id="ci-mobile-continue" style="display:none;"
+                        onclick="AdmModal.close('mobileVerifyModal');">
+                        Tiếp tục <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+
+        <!-- Thư viện OCR thật -->
+        <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+        <script>
+            window.ADM_PAGE_MODULE = 'checkin';
+        </script>
+
+        <script>
+            (function () {
+                'use strict';
+
+                /* ===== SEARCH ===== */
+                function initSearch() {
+                    var searchInput = document.getElementById('checkinSearch');
+                    var tableBody = document.getElementById('checkin-table-body');
+                    var countEl = document.getElementById('checkinCount');
+                    if (!searchInput || !tableBody) return;
+
+                    searchInput.addEventListener('input', function () {
+                        var kw = this.value.trim().toLowerCase();
+                        var visible = 0;
+                        tableBody.querySelectorAll('tr').forEach(function (tr) {
+                            if (tr.querySelector('.adm-empty')) return;
+                            if (tr.querySelectorAll('td').length < 2) return;
+                            var text = tr.textContent.toLowerCase();
+                            var show = !kw || text.indexOf(kw) >= 0;
+                            tr.style.display = show ? '' : 'none';
+                            if (show) visible++;
+                        });
+                        if (countEl) countEl.textContent = visible;
+                    });
+                }
+
+                /* ===== MODAL HANDLERS ===== */
+                function initModalHandlers() {
+                    if (typeof AdmModal === 'undefined') return;
+
+                    var rawResult = document.getElementById('ci-raw-result');
+
+                    /* --- Tabs --- */
+                    document.querySelectorAll('[data-adm-tab]').forEach(function (tab) {
+                        tab.addEventListener('click', function () {
+                            var wrapper = tab.closest('.adm-tabs-wrapper');
+                            if (!wrapper) return;
+                            var target = tab.dataset.admTab;
+                            wrapper.querySelectorAll('.adm-tab-btn').forEach(function (t) { t.classList.remove('is-active'); });
+                            tab.classList.add('is-active');
+                            wrapper.querySelectorAll('.adm-tab-panel').forEach(function (p) { p.classList.remove('is-active'); });
+                            var panel = wrapper.querySelector('[data-adm-panel="' + target + '"]');
+                            if (panel) panel.classList.add('is-active');
+                        });
+                    });
+
+                    /* --- Open modal --- */
+                    document.addEventListener('click', function (e) {
+                        var btn = e.target.closest('[data-ci-action]');
+                        if (!btn) return;
+                        var action = btn.dataset.ciAction;
+                        var id = btn.dataset.ciId;
+
+                        if (action === 'nfc') {
+                            // Reset modal
+                            document.getElementById('ci-nfc-waiting').style.display = '';
+                            document.getElementById('ci-nfc-success').style.display = 'none';
+                            document.getElementById('ci-nfc-error').style.display = 'none';
+                            document.getElementById('ci-nfc-result-box').style.display = 'none';
+                            document.getElementById('ci-nfc-raw').value = '';
+                            document.getElementById('ci-mobile-continue').style.display = 'none';
+                            document.getElementById('ci-nfc-sync').style.display = '';
+
+                            // Kiểm tra hỗ trợ Web NFC
+                            var supportWarn = document.getElementById('ci-nfc-support-warning');
+                            var supported = ('NDEFReader' in window) && window.isSecureContext;
+                            supportWarn.style.display = supported ? 'none' : 'flex';
+
+                            // Đổi label nút
+                            var syncBtn = document.getElementById('ci-nfc-sync');
+                            if (syncBtn) {
+                                syncBtn.innerHTML = supported
+                                    ? '<i class="bi bi-upc-scan"></i> Bắt đầu quét'
+                                    : '<i class="bi bi-x-circle"></i> Không hỗ trợ';
+                                syncBtn.disabled = !supported;
+                            }
+
+                            AdmModal.open('mobileVerifyModal');
+                        }
+
+                        if (action === 'cccd') {
+                            if (rawResult) rawResult.value = '';
+                            ['ci-preview-front', 'ci-preview-back'].forEach(function (pid) {
+                                var p = document.getElementById(pid);
+                                if (!p) return;
+                                p.classList.remove('has-img');
+                                var img = p.querySelector('img');
+                                if (img) img.src = '';
+                                var file = p.querySelector('input[type="file"]');
+                                if (file) file.value = '';
+                            });
+                            var mn = document.getElementById('ci-manual-name');
+                            var mi = document.getElementById('ci-manual-id');
+                            if (mn) mn.value = '';
+                            if (mi) mi.value = '';
+                            document.querySelectorAll('.adm-tab-btn').forEach(function (t) { t.classList.remove('is-active'); });
+                            document.querySelectorAll('.adm-tab-panel').forEach(function (p) { p.classList.remove('is-active'); });
+                            var uploadBtn = document.querySelector('[data-adm-tab="upload"]');
+                            var uploadPanel = document.querySelector('[data-adm-panel="upload"]');
+                            if (uploadBtn) uploadBtn.classList.add('is-active');
+                            if (uploadPanel) uploadPanel.classList.add('is-active');
+                            AdmModal.open('verifyIdModal');
+                        }
+                    });
+
+                    /* --- Preview ảnh --- */
+                    function bindPreview(inputId, previewId) {
+                        var input = document.getElementById(inputId);
+                        var preview = document.getElementById(previewId);
+                        if (!input || !preview) return;
+                        input.addEventListener('change', function () {
+                            var file = input.files && input.files[0];
+                            if (!file) return;
+                            var reader = new FileReader();
+                            reader.onload = function (e) {
+                                var img = preview.querySelector('img');
+                                if (img) img.src = e.target.result;
+                                preview.classList.add('has-img');
+                            };
+                            reader.readAsDataURL(file);
+                        });
+                    }
+                    bindPreview('ci-cccd-front', 'ci-preview-front');
+                    bindPreview('ci-cccd-back', 'ci-preview-back');
+
+                    /* --- OCR thật --- */
+                    var extractBtn = document.getElementById('ci-extract-btn');
+                    if (extractBtn) {
+                        extractBtn.addEventListener('click', async function () {
+                            var frontInput = document.getElementById('ci-cccd-front');
+                            var file = frontInput && frontInput.files && frontInput.files[0];
+                            if (!file) {
+                                if (typeof toast === 'function') toast('Vui lòng tải ảnh mặt trước CCCD', 'warning');
+                                return;
+                            }
+                            if (typeof Tesseract === 'undefined') {
+                                if (typeof toast === 'function') toast('Thư viện OCR chưa load', 'danger');
+                                return;
+                            }
+
+                            var originalHtml = extractBtn.innerHTML;
+                            extractBtn.disabled = true;
+                            extractBtn.innerHTML = '<span class="adm-spinner"></span> Đang đọc CCCD...';
+
+                            try {
+                                var result = await Tesseract.recognize(file, 'vie', {
+                                    logger: function (m) {
+                                        if (m.status === 'recognizing text') {
+                                            var pct = Math.round(m.progress * 100);
+                                            extractBtn.innerHTML = '<span class="adm-spinner"></span> Đang đọc... ' + pct + '%';
+                                        }
+                                    }
+                                });
+                                var rawText = result.data.text || '';
+                                if (rawResult) {
+                                    rawResult.value = '=== Văn bản OCR đọc được ===\n' + rawText.trim() +
+                                        '\n\n=== Độ tin cậy: ' + Math.round(result.data.confidence || 0) + '% ===';
+                                }
+                                if (typeof toast === 'function') toast('OCR xong (' + Math.round(result.data.confidence || 0) + '%)');
+                            } catch (err) {
+                                console.error('[checkin] OCR error:', err);
+                                if (typeof toast === 'function') toast('Lỗi OCR: ' + err.message, 'danger');
+                            } finally {
+                                extractBtn.disabled = false;
+                                extractBtn.innerHTML = originalHtml;
+                            }
+                        });
+                    }
+
+                    /* --- Camera --- */
+                    var camStream = null;
+                    var camVideo = document.getElementById('ci-cam-video');
+                    var camCanvas = document.getElementById('ci-cam-canvas');
+                    var camPlaceholder = document.getElementById('ci-cam-placeholder');
+                    var camActions = document.getElementById('ci-cam-actions');
+
+                    var camStartBtn = document.getElementById('ci-cam-start');
+                    if (camStartBtn) {
+                        camStartBtn.addEventListener('click', async function () {
+                            try {
+                                camStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+                                camVideo.srcObject = camStream;
+                                camVideo.classList.add('is-active');
+                                camPlaceholder.style.display = 'none';
+                                camActions.style.display = 'block';
+                            } catch (err) {
+                                if (typeof toast === 'function') toast('Không truy cập được camera: ' + err.message, 'danger');
+                            }
+                        });
+                    }
+
+                    var camCaptureBtn = document.getElementById('ci-cam-capture');
+                    if (camCaptureBtn) {
+                        camCaptureBtn.addEventListener('click', function () {
+                            if (!camStream || !camVideo) return;
+                            camCanvas.width = camVideo.videoWidth;
+                            camCanvas.height = camVideo.videoHeight;
+                            camCanvas.getContext('2d').drawImage(camVideo, 0, 0, camCanvas.width, camCanvas.height);
+                            camVideo.classList.remove('is-active');
+                            camCanvas.classList.add('is-active');
+                            if (camStream) {
+                                camStream.getTracks().forEach(function (t) { t.stop(); });
+                                camStream = null;
+                            }
+                            if (rawResult) {
+                                rawResult.value = JSON.stringify({
+                                    'Nguồn': 'Camera',
+                                    'Kích thước ảnh': camCanvas.width + 'x' + camCanvas.height,
+                                    'Trạng thái': 'Đã chụp'
+                                }, null, 2);
+                            }
+                            if (typeof toast === 'function') toast('Đã chụp ảnh khuôn mặt');
+                        });
+                    }
+
+                    var verifyModal = document.getElementById('verifyIdModal');
+                    if (verifyModal) {
+                        verifyModal.addEventListener('adm:modal-closed', function () {
+                            if (camStream) {
+                                camStream.getTracks().forEach(function (t) { t.stop(); });
+                                camStream = null;
+                            }
+                            if (camVideo) camVideo.classList.remove('is-active');
+                            if (camCanvas) camCanvas.classList.remove('is-active');
+                            if (camPlaceholder) camPlaceholder.style.display = '';
+                            if (camActions) camActions.style.display = 'none';
+                        });
+                    }
+
+                    /* --- Nhập tay --- */
+                    var manualName = document.getElementById('ci-manual-name');
+                    var manualId = document.getElementById('ci-manual-id');
+
+                    function updateManualData() {
+                        var name = manualName ? manualName.value.trim() : '';
+                        var idNum = manualId ? manualId.value.trim() : '';
+                        if (!name && !idNum) {
+                            if (rawResult) rawResult.value = '';
+                            return;
+                        }
+                        var data = { 'Nguồn': 'Nhập tay' };
+                        if (name) data['Họ và tên'] = name;
+                        if (idNum) data['Số CCCD / Hộ chiếu'] = idNum;
+                        if (rawResult) rawResult.value = JSON.stringify(data, null, 2);
+                    }
+                    if (manualName) manualName.addEventListener('input', updateManualData);
+                    if (manualId) manualId.addEventListener('input', updateManualData);
+
+                    /* ============================================================
+                       NFC THẬT — Web NFC API
+                       ============================================================ */
+                    var nfcSyncBtn = document.getElementById('ci-nfc-sync');
+                    if (nfcSyncBtn) {
+                        nfcSyncBtn.addEventListener('click', async function () {
+                            if (!('NDEFReader' in window)) {
+                                if (typeof toast === 'function') toast('Thiết bị không hỗ trợ Web NFC', 'danger');
+                                return;
+                            }
+
+                            var statusEl = document.getElementById('ci-nfc-status');
+                            var errorBox = document.getElementById('ci-nfc-error');
+                            var errorMsg = document.getElementById('ci-nfc-error-msg');
+                            var successBox = document.getElementById('ci-nfc-success');
+                            var successMsg = document.getElementById('ci-nfc-success-msg');
+                            var resultBox = document.getElementById('ci-nfc-result-box');
+                            var rawArea = document.getElementById('ci-nfc-raw');
+                            var waiting = document.getElementById('ci-nfc-waiting');
+
+                            errorBox.style.display = 'none';
+                            successBox.style.display = 'none';
+                            resultBox.style.display = 'none';
+
+                            try {
+                                var ndef = new NDEFReader();
+                                if (statusEl) statusEl.textContent = 'Đang khởi động...';
+
+                                await ndef.scan();
+                                if (statusEl) statusEl.textContent = 'Đưa thẻ lại gần điện thoại...';
+                                if (typeof toast === 'function') toast('Đưa sticker NFC lại gần điện thoại', 'info');
+
+                                ndef.addEventListener('reading', function (event) {
+                                    var message = event.message;
+                                    var serialNumber = event.serialNumber;
+
+                                    var textData = '';
+                                    var decoder = new TextDecoder();
+
+                                    for (var i = 0; i < message.records.length; i++) {
+                                        var record = message.records[i];
+                                        if (record.recordType === 'text') {
+                                            textData += new TextDecoder(record.encoding || 'utf-8').decode(record.data);
+                                        } else if (record.recordType === 'url') {
+                                            textData += decoder.decode(record.data);
+                                        } else if (record.recordType === 'mime') {
+                                            textData += decoder.decode(record.data);
+                                        }
+                                    }
+
+                                    // Hiển thị success
+                                    waiting.style.display = 'none';
+                                    successBox.style.display = '';
+                                    successMsg.textContent = 'Serial: ' + (serialNumber || 'N/A') + ' — Đã đọc dữ liệu.';
+                                    resultBox.style.display = '';
+                                    rawArea.value = textData;
+
+                                    // Parse dữ liệu → hiển thị JSON đẹp
+                                    var parsed = parseNfcData(textData);
+                                    rawArea.value = '=== Dữ liệu thô ===\n' + textData + '\n\n=== Dữ liệu parse ===\n' + JSON.stringify(parsed, null, 2);
+
+                                    // Hiện nút Tiếp tục
+                                    document.getElementById('ci-mobile-continue').style.display = '';
+                                    document.getElementById('ci-nfc-sync').style.display = 'none';
+
+                                    if (typeof toast === 'function') toast('Đọc thẻ NFC thành công');
+                                });
+
+                                // Lỗi khi đọc
+                                ndef.addEventListener('readingerror', function () {
+                                    errorBox.style.display = 'flex';
+                                    errorMsg.textContent = 'Không đọc được thẻ. Thử đưa sát hơn hoặc dùng sticker khác.';
+                                });
+
+                            } catch (err) {
+                                errorBox.style.display = 'flex';
+                                errorMsg.textContent = 'Lỗi: ' + err.message + '. Kiểm tra quyền NFC hoặc HTTPS.';
+                                console.error('[checkin] NFC error:', err);
+                            }
+                        });
+                    }
+
+                    /* --- Parse dữ liệu sticker --- */
+                    function parseNfcData(text) {
+                        if (!text) return { raw: '' };
+                        text = text.trim();
+
+                        // Thử parse JSON
+                        if (text.charAt(0) === '{') {
+                            try {
+                                return JSON.parse(text);
+                            } catch (e) {
+                                // không phải JSON, thử pipe
+                            }
+                        }
+
+                        // Pipe-separated: MAYHOTEL|CCCD|Tên|DOB|Giới tính|Quốc tịch
+                        var parts = text.split('|');
+                        if (parts.length >= 3) {
+                            return {
+                                prefix: parts[0] || '',
+                                cccd: parts[1] || '',
+                                name: parts[2] || '',
+                                dob: parts[3] || '',
+                                gender: parts[4] || '',
+                                nationality: parts[5] || ''
+                            };
+                        }
+
+                        return { raw: text };
+                    }
+
+                }
+
+                function init() {
+                    initSearch();
+                    initModalHandlers();
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', init);
+                } else {
+                    init();
+                }
+            })();
+        </script>
+
+    </th:block>
+
+</body>
+
+</html>

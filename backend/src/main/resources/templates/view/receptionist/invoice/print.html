@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hóa đơn #<th:block th:text="${invoice.id}"></th:block> — MAY HOTEL</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+  <link rel="stylesheet" th:href="@{/css/admin-styles.css}">
+
+  <style>
+    /* ---------- SHELL ---------- */
+    body {
+      background: var(--bg);
+      padding-bottom: 40px;
+    }
+
+    /* ---------- TOOLBAR ---------- */
+    .inv-toolbar {
+      max-width: 820px;
+      margin: 24px auto 16px;
+      padding: 0 24px;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    /* ---------- SHEET A4 ---------- */
+    .inv-sheet {
+      background: #fff;
+      max-width: 820px;
+      margin: 0 auto;
+      padding: 48px 52px;
+      box-shadow: 0 4px 24px rgba(15, 41, 66, 0.08);
+      border-radius: 4px;
+      color: var(--text);
+      font-family: var(--font-body);
+      font-size: 13.5px;
+      line-height: 1.55;
+    }
+
+    /* ---------- HEADER ---------- */
+    .inv-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 24px;
+      padding-bottom: 22px;
+      border-bottom: 2px solid var(--navy);
+    }
+
+    .inv-brand h1 {
+      font-family: var(--font-heading);
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: 1.5px;
+      margin: 0 0 8px;
+      line-height: 1;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .inv-brand h1 i {
+      color: var(--gold-hover);
+      font-size: 20px;
+    }
+
+    .inv-brand-addr {
+      font-size: 11.5px;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .inv-meta {
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    .inv-meta-title {
+      font-family: var(--font-heading);
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--navy);
+      letter-spacing: 1px;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+
+    .inv-meta-code {
+      display: inline-block;
+      font-family: monospace;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--red);
+      background: var(--red-bg);
+      padding: 4px 12px;
+      border-radius: 5px;
+      margin-bottom: 6px;
+    }
+
+    .inv-meta-date {
+      font-size: 11.5px;
+      color: var(--muted);
+    }
+
+    /* ---------- INFO GRID ---------- */
+    .inv-info {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 32px;
+      padding: 26px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .inv-info h3 {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin: 0 0 10px;
+      padding-bottom: 6px;
+      border-bottom: 1px dashed var(--border);
+    }
+
+    .inv-info-name {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+      line-height: 1.3;
+    }
+
+    .inv-info-line {
+      font-size: 12.5px;
+      color: var(--text-soft);
+      margin-bottom: 2px;
+    }
+
+    .inv-info-line b {
+      color: var(--navy);
+      font-weight: 700;
+    }
+
+    .inv-info-nights {
+      font-size: 12px;
+      color: var(--blue);
+      font-style: italic;
+      margin-top: 4px;
+    }
+
+    .inv-info.right {
+      text-align: right;
+    }
+
+    .inv-info.right h3 {
+      text-align: right;
+    }
+
+    /* ---------- SECTION ---------- */
+    .inv-section {
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      margin: 24px 0 12px;
+    }
+
+    /* ---------- TABLE ---------- */
+    .inv-table {
+      width: 100%;
+      border-collapse: collapse;
+      border: 1px solid var(--border);
+      font-size: 12.5px;
+    }
+
+    .inv-table thead th {
+      background: var(--bg-cream);
+      color: var(--navy);
+      font-size: 10.5px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border);
+      text-align: left;
+    }
+
+    .inv-table thead th.text-center {
+      text-align: center;
+    }
+
+    .inv-table thead th.text-right {
+      text-align: right;
+    }
+
+    .inv-table tbody td {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border-soft);
+      vertical-align: middle;
+    }
+
+    .inv-table tbody td.text-center {
+      text-align: center;
+    }
+
+    .inv-table tbody td.text-right {
+      text-align: right;
+    }
+
+    .inv-table .cell-name {
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    .inv-table .cell-price {
+      font-weight: 700;
+      color: var(--navy);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    /* ---------- TOTAL ---------- */
+    .inv-total-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      margin-top: 26px;
+      padding-top: 20px;
+      border-top: 2px solid var(--navy);
+    }
+
+    .inv-thanks {
+      font-size: 12px;
+      color: var(--muted);
+      font-style: italic;
+      max-width: 50%;
+      line-height: 1.55;
+    }
+
+    .inv-total {
+      text-align: right;
+    }
+
+    .inv-total-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--navy);
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    .inv-total-value {
+      font-family: var(--font-heading);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--gold-hover);
+      line-height: 1;
+    }
+
+    /* ---------- SIGNATURE ---------- */
+    .inv-sign {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 44px;
+      padding-top: 20px;
+      text-align: center;
+    }
+
+    .inv-sign-role {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--navy);
+      margin-bottom: 4px;
+    }
+
+    .inv-sign-note {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .inv-sign-space {
+      height: 60px;
+    }
+
+    /* ---------- PRINT ---------- */
+    @page {
+      size: A4;
+      margin: 12mm;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+
+      .inv-toolbar {
+        display: none !important;
+      }
+
+      .inv-sheet {
+        max-width: 100%;
+        margin: 0;
+        padding: 0;
+        box-shadow: none;
+        border-radius: 0;
+      }
+
+      .inv-table thead th {
+        background: #F5F6F8 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .inv-meta-code {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+
+      .inv-total-value {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+
+    /* ---------- RESPONSIVE ---------- */
+    @media (max-width: 768px) {
+      .inv-sheet {
+        margin: 0 12px;
+        padding: 28px 22px;
+      }
+
+      .inv-header,
+      .inv-total-wrap {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .inv-meta,
+      .inv-total {
+        text-align: left;
+      }
+
+      .inv-info,
+      .inv-sign {
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .inv-info.right,
+      .inv-info.right h3 {
+        text-align: left;
+      }
+
+      .inv-thanks {
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- Toolbar (ẩn khi in) -->
+  <div class="inv-toolbar">
+    <button type="button" class="adm-btn adm-btn-outline" onclick="window.print()">
+      <i class="bi bi-printer-fill"></i> In hóa đơn
+    </button>
+    <a th:href="@{/receptionist/invoices}" class="adm-btn adm-btn-primary">
+      <i class="bi bi-arrow-left"></i> Quay lại
+    </a>
+  </div>
+
+  <!-- Sheet A4 -->
+  <div class="inv-sheet">
+
+    <!-- Header -->
+    <div class="inv-header">
+      <div class="inv-brand">
+        <h1>
+          <i class="bi bi-building"></i>
+          MAY HOTEL
+        </h1>
+        <div class="inv-brand-addr">
+          CN1: 140 Lê Trọng Tấn, TP. HCM<br>
+          CN2: 86 Tân Hòa Đông, Q.6, TP. HCM<br>
+          Hotline: 1800 9327 &middot; Email: MayHotel.hotel@gmail.com
+        </div>
+      </div>
+      <div class="inv-meta">
+        <div class="inv-meta-title">HÓA ĐƠN GTGT</div>
+        <div class="inv-meta-code" th:text="'#HD-' + ${invoice.id}">#HD-0</div>
+        <div class="inv-meta-date">
+          Ngày xuất:
+          <th:block th:text="${#dates.format(new java.util.Date(), 'dd/MM/yyyy HH:mm')}"></th:block>
+        </div>
+      </div>
+    </div>
+
+    <!-- Info -->
+    <div class="inv-info">
+      <div>
+        <h3>Khách hàng</h3>
+        <div class="inv-info-name" th:text="${invoice.hoTen}">Tên khách</div>
+        <div class="inv-info-line" th:text="'SĐT: ' + ${invoice.sdt}">SĐT</div>
+        <div class="inv-info-line" th:text="${invoice.diaChi != null ? invoice.diaChi : 'Địa chỉ: Việt Nam'}">Địa chỉ
+        </div>
+      </div>
+      <div class="inv-info right">
+        <h3>Thông tin lưu trú</h3>
+        <div class="inv-info-line">
+          Check-in: <b th:text="${#dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy')}">01/01/2026</b>
+        </div>
+        <div class="inv-info-line">
+          Check-out: <b th:text="${#dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy')}">02/01/2026</b>
+        </div>
+        <div class="inv-info-nights" th:text="'(' + ${soDem} + ' đêm)'">(1 đêm)</div>
+      </div>
+    </div>
+
+    <!-- Table -->
+    <h3 class="inv-section">I. Tiền phòng lưu trú</h3>
+    <table class="inv-table">
+      <thead>
+        <tr>
+          <th>Tên phòng đặt</th>
+          <th class="text-center" style="width:90px;">Số lượng</th>
+          <th class="text-center" style="width:90px;">Số đêm</th>
+          <th class="text-right" style="width:150px;">Đơn giá / Đêm</th>
+          <th class="text-right" style="width:160px;">Thành tiền</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="cell-name" th:text="${invoice.tenPhong}">Tên phòng</td>
+          <td class="text-center">1</td>
+          <td class="text-center" th:text="${soDem}">1</td>
+          <td class="text-right cell-price" th:text="${invoice.phong != null
+                            ? #numbers.formatDecimal(invoice.phong.price, 0, 'POINT', 0, 'COMMA') + ' đ'
+                            : '-'}">0 đ</td>
+          <td class="text-right cell-price"
+            th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+            0 đ</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Total -->
+    <div class="inv-total-wrap">
+      <div class="inv-thanks">
+        Cảm ơn quý khách đã tin tưởng chọn May Hotel Luxury!
+      </div>
+      <div class="inv-total">
+        <div class="inv-total-label">Tổng thanh toán</div>
+        <div class="inv-total-value"
+          th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+          0 đ</div>
+      </div>
+    </div>
+
+    <!-- Signature -->
+    <div class="inv-sign">
+      <div>
+        <div class="inv-sign-role">Khách hàng</div>
+        <div class="inv-sign-note">(Ký, ghi rõ họ tên)</div>
+        <div class="inv-sign-space"></div>
+      </div>
+      <div>
+        <div class="inv-sign-role">Nhân viên thu ngân</div>
+        <div class="inv-sign-note">(Ký, đóng dấu)</div>
+        <div class="inv-sign-space"></div>
+      </div>
+    </div>
+
+  </div>
+
+</body>
+
+</html>

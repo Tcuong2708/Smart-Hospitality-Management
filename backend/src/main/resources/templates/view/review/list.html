@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title>Đánh giá khách hàng</title>
+</head>
+
+<body>
+    <section layout:fragment="content">
+
+        <!-- ══════════════ HERO ══════════════ -->
+        <section class="mh-rv-hero">
+            <div class="container">
+                <div class="mh-rv-hero-inner">
+
+                    <div class="mh-rv-hero-head">
+                        <span class="mh-rv-eyebrow">CẢM NHẬN TỪ KHÁCH HÀNG</span>
+                        <h1>Khách hàng nói gì về <em>May Hotel</em></h1>
+                        <p>Những đánh giá chân thực từ khách đã lưu trú tại May Hotel</p>
+                    </div>
+
+                    <!-- Thống kê tổng quan -->
+                    <div class="mh-rv-summary">
+
+                        <div class="mh-rv-summary-score">
+                            <div class="mh-rv-score-big">
+                                <strong th:text="${avgRating}">4.8</strong>
+                                <div class="mh-rv-score-stars">
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star"></i>
+                                    <i class="fa-solid fa-star"></i>
+                                </div>
+                                <span th:text="${totalReviews} + ' đánh giá'">0 đánh giá</span>
+                            </div>
+                        </div>
+
+                        <div class="mh-rv-summary-bars">
+                            <!-- 5 sao -->
+                            <a th:href="@{/review(stars=5)}" class="mh-rv-bar-row"
+                                th:classappend="${starFilter == 5} ? 'is-active'">
+                                <span class="mh-rv-bar-label">5 <i class="fa-solid fa-star"></i></span>
+                                <div class="mh-rv-bar-track">
+                                    <div class="mh-rv-bar-fill"
+                                        th:style="'width:' + ${totalReviews > 0 ? (count5 * 100.0 / totalReviews) : 0} + '%'">
+                                    </div>
+                                </div>
+                                <span class="mh-rv-bar-count" th:text="${count5}">0</span>
+                            </a>
+                            <!-- 4 sao -->
+                            <a th:href="@{/review(stars=4)}" class="mh-rv-bar-row"
+                                th:classappend="${starFilter == 4} ? 'is-active'">
+                                <span class="mh-rv-bar-label">4 <i class="fa-solid fa-star"></i></span>
+                                <div class="mh-rv-bar-track">
+                                    <div class="mh-rv-bar-fill"
+                                        th:style="'width:' + ${totalReviews > 0 ? (count4 * 100.0 / totalReviews) : 0} + '%'">
+                                    </div>
+                                </div>
+                                <span class="mh-rv-bar-count" th:text="${count4}">0</span>
+                            </a>
+                            <!-- 3 sao -->
+                            <a th:href="@{/review(stars=3)}" class="mh-rv-bar-row"
+                                th:classappend="${starFilter == 3} ? 'is-active'">
+                                <span class="mh-rv-bar-label">3 <i class="fa-solid fa-star"></i></span>
+                                <div class="mh-rv-bar-track">
+                                    <div class="mh-rv-bar-fill"
+                                        th:style="'width:' + ${totalReviews > 0 ? (count3 * 100.0 / totalReviews) : 0} + '%'">
+                                    </div>
+                                </div>
+                                <span class="mh-rv-bar-count" th:text="${count3}">0</span>
+                            </a>
+                            <!-- 2 sao -->
+                            <a th:href="@{/review(stars=2)}" class="mh-rv-bar-row"
+                                th:classappend="${starFilter == 2} ? 'is-active'">
+                                <span class="mh-rv-bar-label">2 <i class="fa-solid fa-star"></i></span>
+                                <div class="mh-rv-bar-track">
+                                    <div class="mh-rv-bar-fill"
+                                        th:style="'width:' + ${totalReviews > 0 ? (count2 * 100.0 / totalReviews) : 0} + '%'">
+                                    </div>
+                                </div>
+                                <span class="mh-rv-bar-count" th:text="${count2}">0</span>
+                            </a>
+                            <!-- 1 sao -->
+                            <a th:href="@{/review(stars=1)}" class="mh-rv-bar-row"
+                                th:classappend="${starFilter == 1} ? 'is-active'">
+                                <span class="mh-rv-bar-label">1 <i class="fa-solid fa-star"></i></span>
+                                <div class="mh-rv-bar-track">
+                                    <div class="mh-rv-bar-fill"
+                                        th:style="'width:' + ${totalReviews > 0 ? (count1 * 100.0 / totalReviews) : 0} + '%'">
+                                    </div>
+                                </div>
+                                <span class="mh-rv-bar-count" th:text="${count1}">0</span>
+                            </a>
+                        </div>
+
+                    </div>
+
+                    <!-- CTA viết đánh giá -->
+                    <div class="mh-rv-hero-cta">
+                        <i class="fa-solid fa-quote-left"></i>
+                        <div>
+                            <strong>Bạn đã lưu trú tại May Hotel?</strong>
+                            <span>Đăng nhập và chia sẻ cảm nhận về kỳ nghỉ của bạn</span>
+                        </div>
+                        <a th:href="${session.user == null ? '/account/login' : '/booking/history'}"
+                            class="mh-rv-hero-btn">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                            <span th:text="${session.user == null ? 'Đăng nhập để đánh giá' : 'Đơn của tôi'}">Viết đánh
+                                giá</span>
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ FILTER BAR ══════════════ -->
+        <section class="mh-rv-toolbar-section">
+            <div class="container">
+                <div class="mh-rv-toolbar">
+
+                    <div class="mh-rv-toolbar-tabs">
+                        <a th:href="@{/review}" class="mh-rv-tab" th:classappend="${starFilter == 0} ? 'is-active'">
+                            Tất cả <span th:text="'(' + ${totalReviews} + ')'"></span>
+                        </a>
+                        <a th:href="@{/review(stars=5)}" class="mh-rv-tab"
+                            th:classappend="${starFilter == 5} ? 'is-active'">
+                            5 sao <span th:text="'(' + ${count5} + ')'"></span>
+                        </a>
+                        <a th:href="@{/review(stars=4)}" class="mh-rv-tab"
+                            th:classappend="${starFilter == 4} ? 'is-active'">
+                            4 sao <span th:text="'(' + ${count4} + ')'"></span>
+                        </a>
+                        <a th:href="@{/review(stars=3)}" class="mh-rv-tab"
+                            th:classappend="${starFilter == 3} ? 'is-active'">
+                            3 sao <span th:text="'(' + ${count3} + ')'"></span>
+                        </a>
+                    </div>
+
+                    <form th:action="@{/review}" method="get" class="mh-rv-search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" name="q" th:value="${keyword}" placeholder="Tìm theo tên hoặc nội dung...">
+                        <input type="hidden" name="stars" th:value="${starFilter > 0 ? starFilter : ''}">
+                        <button type="submit">Tìm</button>
+                    </form>
+
+                </div>
+            </div>
+        </section>
+
+        <!-- ══════════════ LIST REVIEW ══════════════ -->
+        <section class="mh-rv-list-section">
+            <div class="container">
+
+                <!-- Empty state -->
+                <div th:if="${#lists.isEmpty(reviews)}" class="mh-rv-empty">
+                    <i class="fa-regular fa-comment-dots"></i>
+                    <h3>Chưa có đánh giá nào</h3>
+                    <p th:if="${starFilter > 0}">
+                        Không có đánh giá <strong th:text="${starFilter} + ' sao'"></strong> nào.
+                        <a th:href="@{/review}">Xem tất cả đánh giá</a>
+                    </p>
+                    <p th:if="${starFilter == 0 and !keyword.isEmpty()}">
+                        Không tìm thấy đánh giá khớp với từ khóa
+                        "<strong th:text="${keyword}"></strong>".
+                    </p>
+                    <p th:if="${starFilter == 0 and keyword.isEmpty()}">
+                        Hãy là người đầu tiên chia sẻ trải nghiệm của bạn!
+                    </p>
+                </div>
+
+                <!-- Grid review -->
+                <div th:if="${!#lists.isEmpty(reviews)}" class="mh-rv-grid">
+
+                    <article th:each="rv : ${reviews}" class="mh-rv-card">
+
+                        <div class="mh-rv-card-head">
+                            <div class="mh-rv-avatar" th:text="${#strings.substring(rv.name,0,1).toUpperCase()}">K</div>
+                            <div class="mh-rv-meta">
+                                <strong th:text="${rv.name}">Khách hàng</strong>
+                                <small>
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Đã lưu trú tại May Hotel
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="mh-rv-stars">
+                            <i class="fa-solid fa-star" th:each="i : ${#numbers.sequence(1, rv.stars)}"></i>
+                            <i class="fa-regular fa-star" th:each="i : ${#numbers.sequence(1, 5 - rv.stars)}"></i>
+                        </div>
+
+                        <div class="mh-rv-body">
+                            <p th:if="${!#strings.isEmpty(rv.text)}" th:text="${rv.text}">
+                                Nội dung đánh giá...
+                            </p>
+                            <p th:if="${#strings.isEmpty(rv.text)}" class="mh-rv-body-empty">
+                                <em>Khách hàng không để lại nội dung, chỉ chấm điểm.</em>
+                            </p>
+                        </div>
+
+                        <div th:if="${!#strings.isEmpty(rv.reply)}" class="mh-rv-reply">
+                            <div class="mh-rv-reply-head">
+                                <i class="fa-solid fa-hotel"></i>
+                                <strong>Phản hồi từ May Hotel</strong>
+                            </div>
+                            <p th:text="${rv.reply}">Cảm ơn quý khách...</p>
+                        </div>
+
+                        <div class="mh-rv-footer">
+                            <span>
+                                <i class="fa-regular fa-calendar"></i>
+                                <span th:text="${rv.date}">01/01/2026</span>
+                            </span>
+                        </div>
+
+                    </article>
+
+                </div>
+
+                <!-- Count -->
+                <div th:if="${!#lists.isEmpty(reviews)}" class="mh-rv-count">
+                    Hiển thị <strong th:text="${filteredCount}"></strong>
+                    / <strong th:text="${totalReviews}"></strong> đánh giá
+                </div>
+
+            </div>
+        </section>
+
+    </section>
+</body>
+
+</html>

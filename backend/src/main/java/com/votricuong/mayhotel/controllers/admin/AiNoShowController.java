@@ -79,7 +79,30 @@ public class AiNoShowController extends BaseController {
         });
 
         model.addAttribute("bookings", displayList);
-        return render(model, "view/Receptionist/AiNoShow/index");
+        // Chỉ kiểm tra kết nối nhanh; AI offline không được làm trang quản trị lỗi 500.
+        model.addAttribute("aiAvailable", noShowPredictionService.isAvailable());
+        return render(model, "view/receptionist/ai_noshow/index");
+    }
+
+    @PostMapping("/ai-no-show/retrain")
+    public String retrain(RedirectAttributes redirectAttributes) {
+        int success = 0;
+        int failed = 0;
+        for (BookingOrder order : bookingOrderRepository.findAll()) {
+            if (!isPendingCheckIn(order.getStatus()) || order.getId() == null) continue;
+            BookingOrder analyzed = noShowPredictionService.analyzeAndSave(order.getId());
+            if ("SUCCESS".equals(analyzed.getRiskAnalysisStatus())) success++;
+            else failed++;
+        }
+        if (failed == 0) {
+            redirectAttributes.addFlashAttribute("success",
+                    "Đã phân tích lại " + success + " phiếu đang chờ nhận phòng.");
+        } else {
+            redirectAttributes.addFlashAttribute("warning",
+                    "Đã phân tích " + success + " phiếu; " + failed
+                            + " phiếu dùng mốc an toàn mặc định vì AI chưa phản hồi.");
+        }
+        return "redirect:/receptionist/ai-no-show";
     }
 
     @PostMapping("/ai-no-show/retry")

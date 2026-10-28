@@ -66,9 +66,9 @@ public class ReviewAdminController extends BaseController {
 
         setPageTitle(model, "Quản lý Đánh giá");
         model.addAttribute("reviews", reviews);
-        setExtraCSS(model, "view/Manager/reviews/index :: extra_css");
-        setExtraJS(model, "view/Manager/reviews/index :: extra_js");
-        return render(model, "view/Manager/reviews/index");
+        setExtraCSS(model, "view/manager/reviews/index :: extra_css");
+        setExtraJS(model, "view/manager/reviews/index :: extra_js");
+        return render(model, "view/manager/reviews/index");
     }
 
     // Ẩn/Hiện đánh giá (UC34)
