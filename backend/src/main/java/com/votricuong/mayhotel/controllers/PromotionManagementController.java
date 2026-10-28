@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.stereotype.Controller;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -26,7 +27,23 @@ public class PromotionManagementController extends BaseController {
             return "redirect:/account/login?error=forbidden";
         }
         setPageTitle(model, "Quản lý khuyến mãi");
+        setExtraCSS(model, "view/manager/promotions/index :: extra_css");
+        setExtraJS(model, "view/manager/promotions/index :: extra_js");
         return render(model, "view/manager/promotions/index");
+    }
+
+    @GetMapping("/api/types")
+    @ResponseBody
+    public ResponseEntity<?> types(HttpSession session) {
+        if (!isManager(session)) return forbidden();
+        return ResponseEntity.ok(List.of(
+                promotionType("GROUP", "Khách đoàn / Công ty", "bi-people-fill", "blue"),
+                promotionType("EARLY_BIRD", "Đặt phòng sớm", "bi-clock-history", "gold"),
+                promotionType("LOW_SEASON", "Mùa thấp điểm", "bi-cloud-sun", "green"),
+                promotionType("SPECIAL_DATE", "Ngày / Sự kiện đặc biệt", "bi-star-fill", "red"),
+                promotionType("LONG_STAY", "Lưu trú dài ngày", "bi-calendar-range", "yellow"),
+                promotionType("VOUCHER", "Voucher", "bi-ticket-perforated", "navy")
+        ));
     }
 
     @GetMapping("/api")
@@ -90,6 +107,10 @@ public class PromotionManagementController extends BaseController {
     private ResponseEntity<Map<String, String>> forbidden() {
         return ResponseEntity.status(403)
                 .body(Map.of("message", "Bạn không có quyền quản lý khuyến mãi. Chỉ ADMIN hoặc MANAGER được phép truy cập."));
+    }
+
+    private Map<String, String> promotionType(String code, String name, String icon, String color) {
+        return Map.of("code", code, "name", name, "icon", icon, "color", color);
     }
 
     private boolean isManager(HttpSession session) {

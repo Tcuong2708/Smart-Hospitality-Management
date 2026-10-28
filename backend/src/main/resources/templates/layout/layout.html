@@ -317,11 +317,11 @@
     <input type="hidden" id="backendErrorMsg" th:value="${error}" th:if="${error}" />
 
     <!-- CHATBOT_HTML from layout.js -->
-    <div id="chat-circle" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
+    <div id="chat-circle">
         <i class="bi bi-chat-dots-fill fs-3"></i>
     </div>
 
-    <div class="chat-box" id="chat-box" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
+    <div class="chat-box" id="chat-box">
         <div class="chat-box-header">
             <div>
                 <i class="bi bi-robot me-2 fs-5"></i>
