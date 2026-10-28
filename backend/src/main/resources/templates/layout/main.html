@@ -6,7 +6,7 @@
     <title layout:title-pattern="$LAYOUT_TITLE - $CONTENT_TITLE">MAY HOTEL</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <!-- CSRF meta — null-safe: chỉ render khi Spring Security đã bật CSRF -->
+    <!-- CSRF meta — null-safe -->
     <meta th:if="${_csrf != null}" name="_csrf" th:content="${_csrf.token}" />
     <meta th:if="${_csrf != null}" name="_csrf_header" th:content="${_csrf.headerName}" />
 
@@ -17,7 +17,8 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" th:href="@{/css/styles.css(v='20261027-booking-guests-2')}">
+    <link rel="stylesheet" th:href="@{/css/styles.css(v='20261028-5')}">
+
     <th:block layout:fragment="additional-css"></th:block>
 </head>
 
@@ -43,13 +44,16 @@
             <nav class="mh-nav" aria-label="Menu chính">
                 <a th:href="@{/}"><i class="fa-solid fa-house"></i> Trang chủ</a>
                 <a th:href="@{/rooms}"><i class="fa-solid fa-bed"></i> Phòng nghỉ</a>
-                <a th:href="@{/#services}"><i class="fa-solid fa-bell-concierge"></i> Dịch vụ</a>
+                <a th:href="@{/review}"><i class="fa-solid fa-star"></i> Đánh giá</a>
                 <a th:href="@{/info}"><i class="fa-solid fa-circle-info"></i> Giới thiệu</a>
             </nav>
 
             <div class="mh-header-actions">
-                <a th:href="@{/info}" class="mh-help" aria-label="Liên hệ" title="Liên hệ hỗ trợ">
-                    <i class="fa-solid fa-question"></i>
+                <!-- Bell thông báo — chỉ hiện khi đăng nhập -->
+                <a th:if="${false}" th:href="@{/customer/notifications}" class="mh-help mh-notif-bell"
+                    aria-label="Thông báo" title="Thông báo">
+                    <i class="fa-solid fa-bell"></i>
+                    <span id="mhNotifBadge" class="mh-notif-badge">0</span>
                 </a>
 
                 <div class="mh-auth-actions" th:if="${session.user == null}">
@@ -68,6 +72,7 @@
                         <a th:href="@{/booking/history}"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt
                             phòng</a>
                         <a th:href="@{/account/points}"><i class="fa-solid fa-star"></i> Điểm thưởng</a>
+                        <!-- Chỉ bật thông báo/voucher sau khi ghép đủ repository và API tương ứng. -->
                         <a href="#" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
                             <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
                         </a>
@@ -164,7 +169,7 @@
     <div id="chat-circle" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
         <i class="fa-solid fa-comments"></i>
     </div>
-    <div class="chat-box" id="chat-box" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
+    <div class="chat-box" id="chat-box">
         <div class="chat-box-header">
             <div><i class="fa-solid fa-robot me-2"></i><span>May Hotel Assistant</span></div>
             <span id="chat-box-close" style="cursor:pointer"><i class="fa-solid fa-xmark"></i></span>
@@ -178,15 +183,45 @@
         </div>
     </div>
 
-    <form id="logoutForm" th:action="@{/account/logout}" method="get" style="display:none">
+    <form id="logoutForm" th:action="@{/account/logout}" method="post" style="display:none">
         <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}" />
     </form>
 
-    <script>
-        window.CHAT_API_URL = window.location.origin + '/api/v1/ai/chat';
-    </script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script th:src="@{/js/main.js}"></script>
+
+    <!-- Bell thông báo — fetch + poll -->
+    <script th:if="${false}">
+        (function () {
+            'use strict';
+
+            function updateNotifBadge() {
+                fetch('/customer/notifications/api/count', { headers: { 'Accept': 'application/json' } })
+                    .then(function (r) { return r.ok ? r.json() : null; })
+                    .then(function (data) {
+                        var badge = document.getElementById('mhNotifBadge');
+                        if (!badge) return;
+                        var count = data && data.count ? data.count : 0;
+                        if (count > 0) {
+                            badge.textContent = count > 99 ? '99+' : count;
+                            badge.style.display = 'inline-flex';
+                        } else {
+                            badge.style.display = 'none';
+                        }
+                    })
+                    .catch(function () { });
+            }
+
+            // Expose cho template con gọi lại sau khi mark read
+            window.updateNotifBadge = updateNotifBadge;
+
+            document.addEventListener('DOMContentLoaded', function () {
+                updateNotifBadge();
+                setInterval(updateNotifBadge, 60000);   // refresh mỗi 1 phút
+            });
+        })();
+    </script>
+
     <th:block layout:fragment="additional-scripts"></th:block>
 </body>
 

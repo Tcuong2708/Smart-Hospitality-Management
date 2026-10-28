@@ -34,15 +34,16 @@ public class ManagerServiceController extends BaseController {
         List<Service> services = serviceRepository.findAll();
         model.addAttribute("services", services);
         model.addAttribute("serviceObj", new Service());
-        setExtraCSS(model, "view/Admin/Service/index :: extra_css");
-        return render(model, "view/Admin/Service/index");
+        setExtraCSS(model, "view/manager/services/index :: extra_css");
+        setExtraJS(model, "view/manager/services/index :: extra_js");
+        return render(model, "view/manager/services/index");
     }
 
     @GetMapping("/services/create")
     public String createService(Model model) {
         setPageTitle(model, "Thêm Dịch Vụ - Manager");
         model.addAttribute("serviceObj", new Service());
-        return render(model, "view/Admin/Service/create");
+        return render(model, "view/admin/service/create");
     }
 
     @PostMapping("/services/edit")

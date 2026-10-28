@@ -33,9 +33,9 @@ public class ManagerCustomerController extends BaseController {
         model.addAttribute("totalCustomers", rows.size());
         model.addAttribute("loyalCustomers", rows.stream().filter(item -> item.getPoints() > 0).count());
         model.addAttribute("linkedCustomers", rows.stream().filter(CustomerRow::isLinkedAccount).count());
-        setExtraCSS(model, "view/Manager/customers/index :: extra_css");
-        setExtraJS(model, "view/Manager/customers/index :: extra_js");
-        return render(model, "view/Manager/customers/index");
+        setExtraCSS(model, "view/manager/customers/index :: extra_css");
+        setExtraJS(model, "view/manager/customers/index :: extra_js");
+        return render(model, "view/manager/customers/index");
     }
 
     @PostMapping("/create")

@@ -1,6 +1,41 @@
 /* ============================================================
-   MAY HOTEL — AUTH PAGES (Login · Register · OTP · Profile)
+   MAY HOTEL — AUTH PAGES
 ============================================================ */
+:root {
+    /* ==== Màu chủ đạo ==== */
+    --navy-color: #0F2942;
+    --navy-deep: #0A192F;
+    --navy-hover: #112240;
+    --gold-color: #C5A017;
+    --gold-hover: #A68512;
+    --gold-soft: rgba(197, 160, 23, 0.12);
+    --gold-glow: rgba(197, 160, 23, 0.28);
+    --primary-navy: var(--navy-color);
+    --accent-gold: var(--gold-color);
+    --color-navy: var(--navy-color);
+    --color-gold: var(--gold-color);
+    --color-gold-hover: var(--gold-hover);
+
+    /* ==== Nền & chữ ==== */
+    --bg-light: #f8f9fa;
+    --bg-warning: #fff9e6;
+    --text-muted: #6c757d;
+    --text-warning: #856404;
+    --danger-red: #dc3545;
+    --danger-hover: #bb2d3b;
+    --border-soft: #e5e7eb;
+
+    /* ==== Shadow & motion ==== */
+    --card-shadow: 0 5px 20px rgba(15, 41, 66, 0.10);
+    --card-shadow-lg: 0 10px 30px rgba(15, 41, 66, 0.15);
+    --transition: all 0.3s ease-in-out;
+}
+
+/* ==================== BASE ==================== */
+body {
+    background-color: var(--bg-light);
+    font-family: 'Inter', sans-serif;
+}
 
 /* ---------- SPLIT LAYOUT ---------- */
 .mh-auth {

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+    <div th:fragment="body_content" class="manager-page-shell manager-fill-page">
+
+        <!-- Page header -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">QUẢN TRỊ HỆ THỐNG</span>
+                <h1 class="adm-page-title">Phân quyền &amp; Vai trò</h1>
+                <p class="adm-page-sub">Danh mục vai trò người dùng và phạm vi quyền hạn trong hệ thống</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <a th:href="@{/admin/users}" class="adm-btn adm-btn-outline">
+                    <i class="bi bi-people"></i> Quản lý tài khoản
+                </a>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="adm-card manager-fill-card">
+
+            <!-- Toolbar -->
+            <div class="adm-toolbar">
+                <div class="adm-search" id="searchWrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchRole" autocomplete="off" placeholder="Tìm theo tên vai trò, mã...">
+                    <button type="button" class="adm-search-clear" id="searchClear" aria-label="Xóa tìm kiếm">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-shield-lock" style="color:var(--gold-hover);"></i>
+                    <strong id="roleCount" th:text="${#lists.size(roles)}">0</strong> vai trò
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="adm-table-wrap manager-fill-body">
+                <table class="adm-table" id="roleTable">
+                    <thead>
+                        <tr>
+                            <th style="width:70px;">Mã</th>
+                            <th style="width:140px;">Mã vai trò</th>
+                            <th style="width:200px;">Tên vai trò</th>
+                            <th>Mô tả chức năng</th>
+                            <th>Phạm vi quyền hạn</th>
+                            <th class="col-center" style="width:130px;">Số người dùng</th>
+                            <th class="col-center" style="width:100px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="roleTbody">
+
+                        <tr th:if="${#lists.isEmpty(roles)}">
+                            <td colspan="7">
+                                <div class="adm-empty">
+                                    <i class="bi bi-shield-lock"></i>
+                                    <h4>Chưa có vai trò nào</h4>
+                                    <p>Dữ liệu vai trò sẽ được seed tự động khi khởi động lần đầu.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:each="r : ${roles}" class="role-row" th:attr="data-role-id=${r.id}">
+
+                            <td class="cell-id" th:text="${r.id}">1</td>
+
+                            <td>
+                                <span class="adm-role" th:classappend="${r.badgeClass}"
+                                    style="font-size:11.5px;padding:5px 10px;" th:text="${r.code}">ADMIN</span>
+                            </td>
+
+                            <td>
+                                <strong class="text-navy" th:text="${r.name}">Quản trị viên</strong>
+                            </td>
+
+                            <td class="text-muted" style="font-size:13px;line-height:1.55;" th:text="${r.description}">
+                                Mô tả vai trò</td>
+
+                            <td style="max-width:340px;">
+                                <span class="adm-badge adm-badge-cat"
+                                    style="font-size:12px;line-height:1.5;padding:6px 12px;white-space:normal;"
+                                    th:text="${r.permissions}">Quyền hạn</span>
+                            </td>
+
+                            <td class="col-center">
+                                <span class="adm-badge adm-badge-info" style="font-size:12.5px;">
+                                    <i class="bi bi-person-fill"></i>
+                                    <strong th:text="${r.userCount}">0</strong>
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <a th:href="@{/admin/users(role=${r.id})}" class="adm-action edit"
+                                    th:title="'Xem người dùng thuộc vai trò ' + ${r.name}">
+                                    <i class="bi bi-people"></i>
+                                </a>
+                            </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- EXTRA JS -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function init() {
+                    var rows = Array.from(document.querySelectorAll('.role-row'));
+                    var searchInput = document.getElementById('searchRole');
+                    var searchWrap = document.getElementById('searchWrap');
+                    var searchClear = document.getElementById('searchClear');
+                    var countEl = document.getElementById('roleCount');
+
+                    if (!searchInput) return;
+
+                    var timer = null;
+
+                    function filter() {
+                        var kw = searchInput.value.toLowerCase().trim();
+                        var count = 0;
+                        rows.forEach(function (row) {
+                            var text = row.innerText.toLowerCase();
+                            var ok = !kw || text.indexOf(kw) >= 0;
+                            row.style.display = ok ? '' : 'none';
+                            if (ok) count++;
+                        });
+                        if (countEl) countEl.textContent = count;
+                    }
+
+                    searchInput.addEventListener('input', function () {
+                        searchWrap.classList.toggle('has-value', this.value.length > 0);
+                        clearTimeout(timer);
+                        timer = setTimeout(filter, 150);
+                    });
+
+                    searchInput.addEventListener('keydown', function (e) {
+                        if (e.key === 'Escape') {
+                            searchInput.value = '';
+                            searchWrap.classList.remove('has-value');
+                            filter();
+                        }
+                    });
+
+                    searchClear.addEventListener('click', function () {
+                        searchInput.value = '';
+                        searchWrap.classList.remove('has-value');
+                        filter();
+                        searchInput.focus();
+                    });
+
+                    if (countEl) countEl.textContent = rows.length;
+                }
+
+                if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', init);
+                } else {
+                    init();
+                }
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

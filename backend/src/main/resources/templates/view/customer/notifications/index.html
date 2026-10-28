@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block layout:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <section layout:fragment="content">
+
+        <div class="mh-detail-page">
+            <div class="container">
+
+                <!-- Breadcrumb -->
+                <div class="mh-detail-breadcrumb">
+                    <a th:href="@{/}">Trang chủ</a>
+                    <i class="fa-solid fa-chevron-right"></i>
+                    <span>Thông báo</span>
+                </div>
+
+                <div class="mh-notif-list">
+
+                    <div class="mh-notif-head">
+                        <h2>
+                            <i class="bi bi-bell-fill"></i>
+                            Thông báo của bạn
+                        </h2>
+
+                        <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;">
+                            <span class="mh-notif-count">
+                                <i class="bi bi-envelope-paper-fill"></i>
+                                <span th:text="${notifications != null ? #lists.size(notifications) : 0}">0</span> thông
+                                báo
+                            </span>
+
+                            <button type="button" class="mh-notif-btn-outline" id="btnReadAll"
+                                th:disabled="${unreadCount == 0}">
+                                <i class="bi bi-check2-all"></i>
+                                Đánh dấu tất cả đã đọc
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Empty -->
+                    <div th:if="${notifications == null or #lists.isEmpty(notifications)}" class="mh-list-empty"
+                        style="border:none;box-shadow:none;">
+                        <i class="bi bi-bell-slash"></i>
+                        <h3>Chưa có thông báo</h3>
+                        <p>Khi bạn nhận được ưu đãi hoặc cập nhật đặt phòng, thông báo sẽ xuất hiện tại đây.</p>
+                    </div>
+
+                    <!-- List -->
+                    <th:block th:unless="${notifications == null or #lists.isEmpty(notifications)}">
+                        <div th:each="n : ${notifications}" class="mh-notif-item"
+                            th:classappend="${n.isRead} ? 'read' : 'unread'" th:attr="data-id=${n.id}">
+
+                            <div class="mh-notif-icon">
+                                <i th:class="'bi ' + ${n.icon != null ? n.icon : 'bi-bell-fill'}"></i>
+                            </div>
+
+                            <div class="mh-notif-body">
+                                <div class="mh-notif-header">
+                                    <strong class="mh-notif-title" th:text="${n.title}">Tiêu đề</strong>
+                                    <span th:if="${n.isRead == false}" class="mh-notif-dot"></span>
+                                </div>
+                                <p class="mh-notif-message" th:text="${n.message}">Nội dung</p>
+                                <div class="mh-notif-meta">
+                                    <span class="mh-notif-time"
+                                        th:text="${#dates.format(n.createdAt, 'dd/MM/yyyy HH:mm')}">—</span>
+                                    <a th:if="${n.link != null and !n.link.isEmpty()}" th:href="${n.link}"
+                                        class="mh-notif-link">
+                                        <span>Xem chi tiết</span>
+                                        <i class="bi bi-arrow-right"></i>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <button type="button" class="mh-notif-read-btn" th:if="${n.isRead == false}"
+                                th:attr="data-id=${n.id}" title="Đánh dấu đã đọc">
+                                <i class="bi bi-check-lg"></i>
+                            </button>
+                        </div>
+                    </th:block>
+
+                </div>
+            </div>
+        </div>
+
+    </section>
+
+
+    <th:block layout:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function getCsrf() {
+                    var t = document.querySelector('meta[name="_csrf"]');
+                    var h = document.querySelector('meta[name="_csrf_header"]');
+                    var headers = { 'Accept': 'application/json' };
+                    if (t && h) headers[h.content] = t.content;
+                    return headers;
+                }
+
+                function showToast(msg, type) {
+                    type = type || 'success';
+                    if (typeof window.toast === 'function') { window.toast(msg, type); return; }
+
+                    var container = document.querySelector('.mh-toast-container');
+                    if (!container) {
+                        container = document.createElement('div');
+                        container.className = 'mh-toast-container';
+                        document.body.appendChild(container);
+                    }
+                    var t = document.createElement('div');
+                    t.className = 'mh-toast toast-' + type;
+                    var icon = type === 'danger' ? 'bi-x-circle-fill' : 'bi-check-circle-fill';
+                    t.innerHTML = '<i class="bi ' + icon + '"></i><span class="mh-toast-text">' + msg + '</span>';
+                    container.appendChild(t);
+                    setTimeout(function () { t.remove(); }, 3500);
+                }
+
+                document.addEventListener('DOMContentLoaded', function () {
+
+                    /* Đánh dấu từng cái */
+                    document.querySelectorAll('.mh-notif-read-btn').forEach(function (btn) {
+                        btn.addEventListener('click', async function () {
+                            var id = btn.dataset.id;
+                            if (!id) return;
+                            try {
+                                var res = await fetch('/customer/notifications/api/' + id + '/read', {
+                                    method: 'POST',
+                                    headers: getCsrf()
+                                });
+                                if (!res.ok) throw new Error('HTTP ' + res.status);
+
+                                var item = btn.closest('.mh-notif-item');
+                                if (item) {
+                                    item.classList.remove('unread');
+                                    item.classList.add('read');
+                                    var dot = item.querySelector('.mh-notif-dot');
+                                    if (dot) dot.remove();
+                                }
+                                btn.remove();
+                            } catch (err) {
+                                showToast('Lỗi đánh dấu đã đọc', 'danger');
+                            }
+                        });
+                    });
+
+                    /* Đánh dấu tất cả */
+                    var btnAll = document.getElementById('btnReadAll');
+                    if (btnAll) {
+                        btnAll.addEventListener('click', async function () {
+                            try {
+                                var res = await fetch('/customer/notifications/api/read-all', {
+                                    method: 'POST',
+                                    headers: getCsrf()
+                                });
+                                if (!res.ok) throw new Error('HTTP ' + res.status);
+                                showToast('Đã đánh dấu tất cả đã đọc');
+                                setTimeout(function () { location.reload(); }, 600);
+                            } catch (err) {
+                                showToast('Lỗi đánh dấu', 'danger');
+                            }
+                        });
+                    }
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

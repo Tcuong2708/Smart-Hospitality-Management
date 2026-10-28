@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${pageTitle} ?: 'Chi tiết đặt phòng — MAY HOTEL'">Chi tiết đặt phòng</title>
+    <th:block layout:fragment="extra_css">
+        <link rel="stylesheet" th:href="@{/css/booking.css}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,700&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    </th:block>
+</head>
+
+<body>
+
+    <section layout:fragment="content">
+        <div class="mh-dt-page">
+            <div class="mh-dt-container">
+
+                <!-- BACK -->
+                <a th:href="@{/booking/history}" class="mh-dt-back">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    Quay lại lịch sử
+                </a>
+
+                <!-- ===== HERO ===== -->
+                <div class="mh-dt-hero" th:with="anhPhong=${phong != null and phong.imageUrl != null and !#strings.isEmpty(phong.imageUrl)
+                                        ? '/images/' + phong.imageUrl
+                                        : '/images/default.png'}">
+                    <img th:src="@{${anhPhong}}" th:alt="${phong != null ? phong.name : 'Phòng'}">
+
+                    <div class="mh-dt-hero-content">
+                        <div class="mh-dt-hero-left">
+                            <span class="mh-dt-hero-code">
+                                <i class="fa-solid fa-hashtag"></i>
+                                <span th:text="'DP-' + ${order.id}">DP-0000</span>
+                            </span>
+
+                            <h1 class="mh-dt-hero-title" th:text="${phong != null ? phong.name : 'Đơn đặt phòng'}">
+                                P701
+                            </h1>
+
+                            <div class="mh-dt-hero-location">
+                                <span th:if="${phong != null and phong.locationZone != null}">
+                                    <i class="fa-solid fa-location-dot"></i>
+                                    <span th:text="${phong.locationZone}">Cánh Trái</span>
+                                </span>
+                                <span th:if="${phong != null and phong.viewDirection != null}">
+                                    <i class="fa-solid fa-mountain-sun"></i>
+                                    <span th:text="${phong.viewDirection}">Hướng Thành Phố</span>
+                                </span>
+                                <span>
+                                    <i class="fa-solid fa-hotel"></i>
+                                    MAY HOTEL
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- Status -->
+                        <span class="mh-dt-status pending"
+                            th:if="${order.status == 'Pending' or order.status == 'Chờ xác nhận'}">
+                            <span class="dot"></span> Chờ xác nhận
+                        </span>
+                        <span class="mh-dt-status confirmed"
+                            th:if="${order.status == 'Confirmed' or order.status == 'Đã xác nhận'}">
+                            <span class="dot"></span> Đã xác nhận
+                        </span>
+                        <span class="mh-dt-status checkin" th:if="${order.status == 'Đã nhận phòng'}">
+                            <span class="dot"></span> Đang ở
+                        </span>
+                        <span class="mh-dt-status done"
+                            th:if="${order.status == 'Hoàn tất' or order.status == 'Đã hoàn thành'}">
+                            <span class="dot"></span> Hoàn thành
+                        </span>
+                        <span class="mh-dt-status cancelled"
+                            th:if="${order.status == 'Đã hủy' or order.status == 'Đã Hủy'}">
+                            <span class="dot"></span> Đã hủy
+                        </span>
+                    </div>
+                </div>
+
+                <!-- ===== META STRIP ===== -->
+                <div class="mh-dt-meta">
+                    <div class="mh-dt-meta-cell">
+                        <span class="mh-dt-meta-label">Nhận phòng</span>
+                        <div class="mh-dt-meta-value">
+                            <span class="big"
+                                th:text="${order.expectedIn != null ? #dates.format(order.expectedIn, 'dd') : '--'}">--</span>
+                            <span class="small"
+                                th:text="${order.expectedIn != null ? 'Tháng ' + #dates.format(order.expectedIn, 'MM') : '---'}">---</span>
+                        </div>
+                        <span class="mh-dt-meta-sub"
+                            th:text="${order.expectedIn != null ? #dates.format(order.expectedIn, 'yyyy') : '----'}">----</span>
+                    </div>
+
+                    <div class="mh-dt-meta-cell">
+                        <span class="mh-dt-meta-label">Số đêm</span>
+                        <div class="mh-dt-meta-value is-nights">
+                            <span class="big" th:text="${soDem != null ? soDem : 0}">0</span>
+                            <span class="small">đêm</span>
+                        </div>
+                        <span class="mh-dt-meta-sub">lưu trú</span>
+                    </div>
+
+                    <div class="mh-dt-meta-cell">
+                        <span class="mh-dt-meta-label">Trả phòng</span>
+                        <div class="mh-dt-meta-value">
+                            <span class="big"
+                                th:text="${order.expectedOut != null ? #dates.format(order.expectedOut, 'dd') : '--'}">--</span>
+                            <span class="small"
+                                th:text="${order.expectedOut != null ? 'Tháng ' + #dates.format(order.expectedOut, 'MM') : '---'}">---</span>
+                        </div>
+                        <span class="mh-dt-meta-sub"
+                            th:text="${order.expectedOut != null ? #dates.format(order.expectedOut, 'yyyy') : '----'}">----</span>
+                    </div>
+
+                    <div class="mh-dt-meta-cell">
+                        <span class="mh-dt-meta-label">Ngày đặt</span>
+                        <div class="mh-dt-meta-value">
+                            <span class="big"
+                                th:text="${order.bookingDate != null ? #dates.format(order.bookingDate, 'dd') : '--'}">--</span>
+                            <span class="small"
+                                th:text="${order.bookingDate != null ? 'Tháng ' + #dates.format(order.bookingDate, 'MM') : '---'}">---</span>
+                        </div>
+                        <span class="mh-dt-meta-sub"
+                            th:text="${order.bookingDate != null ? #dates.format(order.bookingDate, 'HH:mm') : '--:--'}">--:--</span>
+                    </div>
+                </div>
+
+                <!-- ===== GRID 2 CỘT ===== -->
+                <div class="mh-dt-grid">
+
+                    <!-- Guest info -->
+                    <div class="mh-dt-card">
+                        <div class="mh-dt-card-head">
+                            <i class="fa-solid fa-user"></i>
+                            <h3>Thông tin khách hàng</h3>
+                        </div>
+
+                        <div class="mh-dt-info" th:if="${customer != null}">
+                            <div class="mh-dt-info-row">
+                                <span class="lbl"><i class="fa-solid fa-signature"></i> Họ tên</span>
+                                <span class="val" th:text="${customer.fullName} ?: '--'">--</span>
+                            </div>
+                            <div class="mh-dt-info-row" th:if="${customer.phone != null and !customer.phone.isEmpty()}">
+                                <span class="lbl"><i class="fa-solid fa-phone"></i> Điện thoại</span>
+                                <span class="val">
+                                    <a th:href="'tel:' + ${customer.phone}" th:text="${customer.phone}">--</a>
+                                </span>
+                            </div>
+                            <div class="mh-dt-info-row" th:if="${customer.email != null and !customer.email.isEmpty()}">
+                                <span class="lbl"><i class="fa-regular fa-envelope"></i> Email</span>
+                                <span class="val">
+                                    <a th:href="'mailto:' + ${customer.email}" th:text="${customer.email}">--</a>
+                                </span>
+                            </div>
+                            <div class="mh-dt-info-row" th:if="${customer.phone == null or customer.phone.isEmpty()}">
+                                <span class="lbl"><i class="fa-solid fa-circle-info"></i> Ghi chú</span>
+                                <span class="val muted">Không có thông tin liên hệ</span>
+                            </div>
+                        </div>
+
+                        <div class="mh-dt-info" th:unless="${customer != null}">
+                            <div class="mh-dt-info-row">
+                                <span class="lbl"><i class="fa-solid fa-circle-info"></i> Khách hàng</span>
+                                <span class="val muted">Không có thông tin</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Room info -->
+                    <div class="mh-dt-card" th:if="${phong != null}">
+                        <div class="mh-dt-card-head">
+                            <i class="fa-solid fa-bed"></i>
+                            <h3>Phòng được xếp</h3>
+                        </div>
+
+                        <div class="mh-dt-info">
+                            <div class="mh-dt-info-row">
+                                <span class="lbl"><i class="fa-solid fa-door-closed"></i> Số phòng</span>
+                                <span class="val mono" th:text="${phong.name}">--</span>
+                            </div>
+                            <div class="mh-dt-info-row" th:if="${phong.locationZone != null}">
+                                <span class="lbl"><i class="fa-solid fa-map-pin"></i> Vị trí</span>
+                                <span class="val" th:text="${phong.locationZone}">--</span>
+                            </div>
+                            <div class="mh-dt-info-row" th:if="${phong.viewDirection != null}">
+                                <span class="lbl"><i class="fa-solid fa-eye"></i> Hướng nhìn</span>
+                                <span class="val" th:text="${phong.viewDirection}">--</span>
+                            </div>
+                            <div class="mh-dt-info-row" th:if="${phong.price != null}">
+                                <span class="lbl"><i class="fa-solid fa-tag"></i> Giá / đêm</span>
+                                <span class="val"
+                                    th:text="${#numbers.formatDecimal(phong.price, 0, 'POINT', 0, 'COMMA')} + ' đ'">--</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Chưa xếp phòng -->
+                    <div class="mh-dt-card" th:unless="${phong != null}">
+                        <div class="mh-dt-card-head">
+                            <i class="fa-solid fa-hourglass-half"></i>
+                            <h3>Phòng chờ xếp</h3>
+                        </div>
+                        <div class="mh-dt-info">
+                            <div class="mh-dt-info-row">
+                                <span class="lbl"><i class="fa-solid fa-circle-info"></i> Trạng thái</span>
+                                <span class="val muted">Lễ tân sẽ xếp phòng trước khi bạn nhận phòng</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== NOTES ===== -->
+                <div class="mh-dt-notes">
+                    <span class="mh-dt-notes-label">Ghi chú &amp; Yêu cầu đặc biệt</span>
+                    <div class="mh-dt-notes-content" th:if="${order.notes != null and !order.notes.isEmpty()}"
+                        th:text="${order.notes}">
+                        Ghi chú của khách hàng
+                    </div>
+                    <div class="mh-dt-notes-content empty"
+                        th:unless="${order.notes != null and !order.notes.isEmpty()}">
+                        Không có ghi chú từ khách hàng.
+                    </div>
+                </div>
+
+                <!-- ===== FOLIO / COST (Phase B) ===== -->
+                <div class="mh-dt-folio">
+
+                    <div class="mh-dt-folio-head">
+                        <div class="mh-dt-folio-head-left">
+                            <i class="fa-solid fa-receipt"></i>
+                            <div>
+                                <h3>Chi tiết thanh toán</h3>
+                                <span th:if="${hoaDon != null}" th:text="'#HD-' + ${hoaDon.id}">#HD-0000</span>
+                                <span th:unless="${hoaDon != null}">Chưa xuất hóa đơn</span>
+                            </div>
+                        </div>
+
+                        <span class="mh-dt-folio-head-status paid"
+                            th:if="${hoaDon != null and hoaDon.paymentStage == 'PAID'}">
+                            <span class="dot"></span> Đã thanh toán
+                        </span>
+                        <span class="mh-dt-folio-head-status"
+                            th:if="${hoaDon != null and hoaDon.paymentStage == 'DEPOSITED'}" style="color: #ffe08a;">
+                            <span class="dot"></span> Đã cọc
+                        </span>
+                        <span class="mh-dt-folio-head-status pending"
+                            th:if="${hoaDon == null or (hoaDon.paymentStage != 'PAID' and hoaDon.paymentStage != 'DEPOSITED')}">
+                            <span class="dot"></span> Chờ thanh toán
+                        </span>
+                    </div>
+
+                    <div class="mh-dt-folio-body">
+
+                        <div class="mh-dt-folio-row">
+                            <span class="lbl">Tiền phòng &amp; dịch vụ</span>
+                            <span class="val" th:text="${hoaDon != null and hoaDon.totalAmount != null
+                                            ? #numbers.formatDecimal(hoaDon.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                            : '—'}">—</span>
+                        </div>
+
+                        <div class="mh-dt-folio-row surcharge"
+                            th:if="${hoaDon != null and hoaDon.surcharge != null and hoaDon.surcharge > 0}">
+                            <span class="lbl">Phụ thu</span>
+                            <span class="val"
+                                th:text="'+ ' + ${#numbers.formatDecimal(hoaDon.surcharge, 0, 'POINT', 0, 'COMMA')} + ' đ'">+
+                                0 đ</span>
+                        </div>
+
+                        <!-- Đã cọc -->
+                        <div class="mh-dt-folio-row"
+                            th:if="${hoaDon != null and hoaDon.depositAmount != null and hoaDon.depositAmount > 0}"
+                            style="background: rgba(212,175,55,.06); padding-left: 12px; padding-right: 12px; border-radius: 6px; margin: 4px 0;">
+                            <span class="lbl" style="color:var(--gold-hover);font-weight:700;">
+                                <i class="fa-solid fa-shield-halved"></i> Đã đặt cọc
+                            </span>
+                            <span class="val" style="color:var(--gold-hover);font-weight:800;"
+                                th:text="${#numbers.formatDecimal(hoaDon.depositAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                đ</span>
+                        </div>
+
+                        <!-- Còn lại -->
+                        <div class="mh-dt-folio-row"
+                            th:if="${hoaDon != null and hoaDon.remainingAmount != null and hoaDon.remainingAmount > 0}"
+                            style="background: rgba(192,57,43,.06); padding-left: 12px; padding-right: 12px; border-radius: 6px; margin: 4px 0;">
+                            <span class="lbl" style="color:var(--red);font-weight:700;">
+                                <i class="fa-solid fa-hourglass-half"></i> Còn lại tại KS
+                            </span>
+                            <span class="val" style="color:var(--red);font-weight:800;"
+                                th:text="${#numbers.formatDecimal(hoaDon.remainingAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                đ</span>
+                        </div>
+
+                        <div class="mh-dt-folio-row free">
+                            <span class="lbl">Thuế &amp; phí dịch vụ</span>
+                            <span class="val">Đã bao gồm</span>
+                        </div>
+
+                        <div class="mh-dt-folio-total">
+                            <span class="lbl">Tổng cộng</span>
+                            <span class="val" th:text="${hoaDon != null and hoaDon.totalAmount != null
+                                            ? #numbers.formatDecimal(hoaDon.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                            : 'Chờ cập nhật'}">—</span>
+                        </div>
+
+                        <!-- Payment method -->
+                        <div class="mh-dt-folio-pay" th:if="${hoaDon != null}">
+                            <i class="fa-solid fa-credit-card"></i>
+                            <div>
+                                <small>Phương thức thanh toán</small>
+                                <strong th:if="${hoaDon.payMethod == 'DEPOSIT'}">
+                                    Đặt cọc 1 đêm — VNPay
+                                </strong>
+                                <strong th:if="${hoaDon.payMethod == 'ONLINE' or hoaDon.payMethod == 'VNPAY'}">
+                                    Thanh toán toàn bộ — VNPay
+                                </strong>
+                                <strong th:if="${hoaDon.payMethod == 'COD' or hoaDon.payMethod == 'Tại quầy'}">
+                                    Thanh toán tại khách sạn
+                                </strong>
+                                <strong th:if="${hoaDon.payMethod == null}">
+                                    Chưa chọn phương thức
+                                </strong>
+                            </div>
+                        </div>
+
+                        <!-- Badge cọc -->
+                        <div th:if="${hoaDon != null and hoaDon.paymentStage == 'DEPOSITED'}"
+                            style="margin-top: 14px; padding: 12px 16px; background: #fff7e6; border-left: 4px solid var(--gold); border-radius: 8px; font-size: 13px; line-height: 1.6; color: #6b5200;">
+                            <i class="fa-solid fa-circle-info" style="color:var(--gold-hover);"></i>
+                            Đơn đã được cọc. Vui lòng thanh toán nốt
+                            <strong
+                                th:text="${#numbers.formatDecimal(hoaDon.remainingAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'"></strong>
+                            khi đến nhận phòng.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ===== ACTIONS ===== -->
+                <div class="mh-dt-actions">
+
+                    <a th:if="${order.status == 'Hoàn tất' or order.status == 'Đã xác nhận'}"
+                        th:href="@{/booking/history/export-pdf(id=${order.id})}" class="mh-dt-btn outline">
+                        <i class="fa-solid fa-file-pdf"></i> Xuất hóa đơn PDF
+                    </a>
+
+                    <button type="button" th:if="${order.status == 'Pending' or order.status == 'Chờ xác nhận'}"
+                        class="mh-dt-btn danger" data-mh-open-cancel>
+                        <i class="fa-solid fa-xmark"></i> Yêu cầu hủy phòng
+                    </button>
+
+                    <a th:href="@{/rooms}"
+                        th:if="${order.status == 'Đã hủy' or order.status == 'Đã Hủy' or order.status == 'Hoàn tất'}"
+                        class="mh-dt-btn gold">
+                        <i class="fa-solid fa-rotate-right"></i> Đặt phòng lại
+                    </a>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ===== MODAL HỦY ===== -->
+        <div class="mh-modal-backdrop" id="mhDetailCancelModal">
+            <div class="mh-modal">
+                <div class="mh-modal-head">
+                    <h3><i class="fa-solid fa-triangle-exclamation"></i> Xác nhận hủy đặt phòng</h3>
+                    <button type="button" class="mh-modal-close" data-mh-modal-close>
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="mh-modal-body">
+                    <p>Bạn đang yêu cầu hủy đơn đặt phòng
+                        <strong th:text="'#DP-' + ${order.id}" style="color:var(--navy);">#DP-0000</strong>.
+                    </p>
+
+                    <div class="mh-policy-warning">
+                        <h4><i class="fa-solid fa-circle-info"></i> Chính sách hủy phòng</h4>
+                        <ul>
+                            <li>Hủy trước 24 giờ: miễn phí, hoàn 100% cọc</li>
+                            <li>Hủy trong vòng 24 giờ: phí 50% cọc</li>
+                            <li>Sau check-in hoặc no-show: không hoàn cọc</li>
+                        </ul>
+                    </div>
+
+                    <form th:action="@{/booking/cancel/{id}(id=${order.id})}" method="post" id="mhDetailCancelForm">
+                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}">
+                        <div class="mh-form-group">
+                            <label>Lý do hủy <span class="mh-req">*</span></label>
+                            <textarea name="lyDoHuy" rows="3" required maxlength="300"
+                                placeholder="Vui lòng cho chúng tôi biết lý do..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="mh-modal-foot">
+                    <button type="button" class="mh-btn mh-btn-outline" data-mh-modal-close>Đóng</button>
+                    <button type="submit" form="mhDetailCancelForm" class="mh-btn mh-btn-danger">
+                        <i class="fa-solid fa-check"></i> Xác nhận hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <th:block layout:fragment="extra_js">
+        <script>
+            (function () {
+                var modal = document.getElementById('mhDetailCancelModal');
+                var btnOpen = document.querySelector('[data-mh-open-cancel]');
+                if (btnOpen) {
+                    btnOpen.addEventListener('click', function () {
+                        modal.classList.add('open');
+                    });
+                }
+                modal.querySelectorAll('[data-mh-modal-close]').forEach(function (el) {
+                    el.addEventListener('click', function () { modal.classList.remove('open'); });
+                });
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) modal.classList.remove('open');
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

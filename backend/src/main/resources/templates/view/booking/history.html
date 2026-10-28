@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${pageTitle} ?: 'Lịch sử đặt phòng — MAY HOTEL'">Lịch sử đặt phòng</title>
+    <th:block layout:fragment="extra_css">
+        <link rel="stylesheet" th:href="@{/css/booking.css}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,700&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    </th:block>
+</head>
+
+<body>
+
+    <section layout:fragment="content">
+        <div class="mh-hist-page">
+            <div class="mh-hist-container">
+
+                <!-- ===== HEADER ===== -->
+                <header class="mh-hist-head">
+                    <span class="mh-hist-eyebrow">Hành trình của bạn</span>
+                    <h1>Lịch sử <em>đặt phòng</em></h1>
+                    <p>Xem lại những kỳ nghỉ đã qua và quản lý các đơn đặt phòng sắp tới.</p>
+                </header>
+
+                <!-- ===== FILTER TABS ===== -->
+                <nav class="mh-hist-tabs">
+                    <button type="button" class="mh-hist-tab active" data-mh-filter="all">
+                        Tất cả
+                        <span class="mh-hist-count" th:text="${#lists.size(dsDatPhong)}">0</span>
+                    </button>
+                    <button type="button" class="mh-hist-tab" data-mh-filter="pending">Chờ xác nhận</button>
+                    <button type="button" class="mh-hist-tab" data-mh-filter="checkin">Đang ở</button>
+                    <button type="button" class="mh-hist-tab" data-mh-filter="done">Hoàn thành</button>
+                    <button type="button" class="mh-hist-tab" data-mh-filter="cancelled">Đã hủy</button>
+                </nav>
+
+                <!-- ===== EMPTY STATE ===== -->
+                <div class="mh-hist-empty" th:if="${#lists.isEmpty(dsDatPhong)}">
+                    <div class="mh-hist-empty-icon">
+                        <i class="fa-solid fa-suitcase-rolling"></i>
+                    </div>
+                    <h3>Chưa có kỳ nghỉ nào</h3>
+                    <p>Khám phá những không gian lưu trú tuyệt vời và bắt đầu hành trình của bạn cùng MAY HOTEL.</p>
+                    <a th:href="@{/rooms}" class="mh-hist-empty-cta">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        Khám phá phòng
+                    </a>
+                </div>
+
+                <!-- ===== LIST ===== -->
+                <div class="mh-hist-list" th:unless="${#lists.isEmpty(dsDatPhong)}">
+
+                    <article th:each="d : ${dsDatPhong}" class="mh-hist-card" th:attr="data-status=${d.status}" th:with="phongCuaDon=${phongMap != null ? phongMap[d.id] : null},
+                                 hoaDonCuaDon=${hoaDonMap != null ? hoaDonMap[d.id] : null},
+                                 soDem=${soDemMap != null ? soDemMap[d.id] : 0}">
+
+                        <!-- ===== DATE BLOCK ===== -->
+                        <div class="mh-hist-date">
+                            <span class="day"
+                                th:text="${d.expectedIn != null ? #dates.format(d.expectedIn, 'dd') : '--'}">--</span>
+                            <span class="month"
+                                th:text="${d.expectedIn != null ? 'Tháng ' + #dates.format(d.expectedIn, 'MM') : '---'}">Tháng</span>
+                            <span class="year"
+                                th:text="${d.expectedIn != null ? #dates.format(d.expectedIn, 'yyyy') : '----'}">----</span>
+                            <span class="weekday"
+                                th:text="${d.expectedIn != null ? #dates.format(d.expectedIn, 'EEEE') : '--'}">--</span>
+                        </div>
+
+                        <!-- ===== BODY ===== -->
+                        <div class="mh-hist-body">
+
+                            <!-- Top row -->
+                            <div class="mh-hist-body-top">
+                                <div style="min-width:0;">
+                                    <h3 class="mh-hist-room-name"
+                                        th:text="${phongCuaDon != null ? phongCuaDon.name : 'Phòng chờ xếp'}">
+                                        Phòng Deluxe
+                                    </h3>
+                                    <div class="mh-hist-room-meta">
+                                        <span th:if="${phongCuaDon != null and phongCuaDon.locationZone != null}">
+                                            <i class="fa-solid fa-location-dot"></i>
+                                            <span th:text="${phongCuaDon.locationZone}">Vị trí</span>
+                                        </span>
+                                        <span class="sep"
+                                            th:if="${phongCuaDon != null and phongCuaDon.locationZone != null and phongCuaDon.viewDirection != null}">●</span>
+                                        <span th:if="${phongCuaDon != null and phongCuaDon.viewDirection != null}">
+                                            <i class="fa-solid fa-mountain-sun"></i>
+                                            <span th:text="${phongCuaDon.viewDirection}">Hướng</span>
+                                        </span>
+                                        <span class="sep" th:if="${soDem != null and soDem > 0}">●</span>
+                                        <span th:if="${soDem != null and soDem > 0}">
+                                            <i class="fa-solid fa-moon"></i>
+                                            <span th:text="${soDem} + ' đêm'">0 đêm</span>
+                                        </span>
+                                    </div>
+                                </div>
+
+                                <!-- Status -->
+                                <span class="mh-hist-status pending"
+                                    th:if="${d.status == 'Pending' or d.status == 'Chờ xác nhận'}">
+                                    <span class="dot"></span> Chờ xác nhận
+                                </span>
+                                <span class="mh-hist-status confirmed"
+                                    th:if="${d.status == 'Confirmed' or d.status == 'Đã xác nhận'}">
+                                    <span class="dot"></span> Đã xác nhận
+                                </span>
+                                <span class="mh-hist-status checkin" th:if="${d.status == 'Đã nhận phòng'}">
+                                    <span class="dot"></span> Đang ở
+                                </span>
+                                <span class="mh-hist-status done"
+                                    th:if="${d.status == 'Hoàn tất' or d.status == 'Đã hoàn thành'}">
+                                    <span class="dot"></span> Hoàn thành
+                                </span>
+                                <span class="mh-hist-status cancelled"
+                                    th:if="${d.status == 'Đã hủy' or d.status == 'Đã Hủy'}">
+                                    <span class="dot"></span> Đã hủy
+                                </span>
+                            </div>
+
+                            <!-- Timeline -->
+                            <div class="mh-hist-timeline" th:with="isCancelled=${d.status == 'Đã hủy' or d.status == 'Đã Hủy'},
+                                         isPending=${d.status == 'Pending' or d.status == 'Chờ xác nhận'},
+                                         isConfirmed=${d.status == 'Confirmed' or d.status == 'Đã xác nhận'},
+                                         isCheckin=${d.status == 'Đã nhận phòng'},
+                                         isDone=${d.status == 'Hoàn tất' or d.status == 'Đã hoàn thành'}">
+
+                                <!-- Step 1: Đặt phòng (luôn done) -->
+                                <div class="mh-hist-step done">
+                                    <span class="step-dot"></span>
+                                    <span class="step-label">Đặt phòng</span>
+                                    <span class="step-date"
+                                        th:text="${d.bookingDate != null ? #dates.format(d.bookingDate, 'dd/MM') : '--'}">--/--</span>
+                                </div>
+
+                                <div class="mh-hist-step-line" th:classappend="${isPending} ? '' : 'done'"></div>
+
+                                <!-- Step 2: Xác nhận -->
+                                <div class="mh-hist-step"
+                                    th:classappend="${isCancelled} ? 'cancelled' : (${isPending} ? 'active' : 'done')">
+                                    <span class="step-dot"></span>
+                                    <span class="step-label">Xác nhận</span>
+                                    <span class="step-date"
+                                        th:text="${isPending} ? 'Đang chờ' : (${isCancelled} ? 'Đã hủy' : 'Đã xác nhận')">--</span>
+                                </div>
+
+                                <div class="mh-hist-step-line"
+                                    th:classappend="${isConfirmed or isCheckin or isDone} ? 'done' : ''"></div>
+
+                                <!-- Step 3: Nhận phòng -->
+                                <div class="mh-hist-step"
+                                    th:classappend="${isCheckin or isDone} ? 'done' : (${isCancelled} ? 'cancelled' : '')">
+                                    <span class="step-dot"></span>
+                                    <span class="step-label">Nhận phòng</span>
+                                    <span class="step-date"
+                                        th:text="${d.expectedIn != null ? #dates.format(d.expectedIn, 'dd/MM') : '--'}">--/--</span>
+                                </div>
+
+                                <div class="mh-hist-step-line" th:classappend="${isDone} ? 'done' : ''"></div>
+
+                                <!-- Step 4: Trả phòng -->
+                                <div class="mh-hist-step"
+                                    th:classappend="${isDone} ? 'done' : (${isCancelled} ? 'cancelled' : '')">
+                                    <span class="step-dot"></span>
+                                    <span class="step-label">Trả phòng</span>
+                                    <span class="step-date"
+                                        th:text="${d.expectedOut != null ? #dates.format(d.expectedOut, 'dd/MM') : '--'}">--/--</span>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- ===== ASIDE ===== -->
+                        <div class="mh-hist-aside">
+
+                            <div class="mh-hist-price-block">
+                                <span class="mh-hist-price-label">Tổng cộng</span>
+                                <span class="mh-hist-price-value"
+                                    th:if="${hoaDonCuaDon != null and hoaDonCuaDon.totalAmount != null}"
+                                    th:text="${#numbers.formatDecimal(hoaDonCuaDon.totalAmount, 0, 'POINT', 0, 'COMMA')}">0</span>
+                                <span class="mh-hist-price-value"
+                                    th:unless="${hoaDonCuaDon != null and hoaDonCuaDon.totalAmount != null}">—</span>
+                                <span class="mh-hist-order-code" th:text="'#DP-' + ${d.id}">#DP-0000</span>
+                            </div>
+
+                            <div class="mh-hist-actions">
+                                <a th:href="@{/booking/history/detail(id=${d.id})}" class="mh-hist-btn primary">
+                                    <i class="fa-solid fa-eye"></i>
+                                    Chi tiết
+                                </a>
+                                <button type="button" class="mh-hist-btn danger"
+                                    th:if="${d.status == 'Pending' or d.status == 'Chờ xác nhận'}"
+                                    th:attr="data-mh-cancel-id=${d.id}">
+                                    <i class="fa-solid fa-xmark"></i>
+                                    Hủy đơn
+                                </button>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== MODAL HỦY ĐƠN ===== -->
+        <div class="mh-modal-backdrop" id="mhCancelModal">
+            <div class="mh-modal">
+                <div class="mh-modal-head">
+                    <h3><i class="fa-solid fa-triangle-exclamation"></i> Xác nhận hủy đặt phòng</h3>
+                    <button type="button" class="mh-modal-close" data-mh-modal-close>
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+                <div class="mh-modal-body">
+                    <p>Bạn đang yêu cầu hủy đơn đặt phòng
+                        <strong id="mhCancelId" style="color:var(--navy);">#DP-0000</strong>.
+                    </p>
+
+                    <div class="mh-policy-warning">
+                        <h4><i class="fa-solid fa-circle-info"></i> Chính sách hủy phòng</h4>
+                        <ul>
+                            <li>Hủy trước 24 giờ: miễn phí, hoàn 100% tiền cọc</li>
+                            <li>Hủy trong vòng 24 giờ: phí phạt 50% tiền cọc</li>
+                            <li>Sau giờ check-in hoặc không đến: không hoàn cọc</li>
+                        </ul>
+                    </div>
+
+                    <form id="mhCancelForm" method="post" action="">
+                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}">
+                        <div class="mh-form-group">
+                            <label>Lý do hủy <span class="mh-req">*</span></label>
+                            <textarea name="lyDoHuy" rows="3" required maxlength="300"
+                                placeholder="Vui lòng cho chúng tôi biết lý do bạn hủy đơn..."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="mh-modal-foot">
+                    <button type="button" class="mh-btn mh-btn-outline" data-mh-modal-close>Đóng</button>
+                    <button type="submit" form="mhCancelForm" class="mh-btn mh-btn-danger">
+                        <i class="fa-solid fa-check"></i> Xác nhận hủy
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <th:block layout:fragment="extra_js">
+        <script>
+            (function () {
+                // Filter tabs
+                document.querySelectorAll('.mh-hist-tab').forEach(function (tab) {
+                    tab.addEventListener('click', function () {
+                        document.querySelectorAll('.mh-hist-tab').forEach(function (t) { t.classList.remove('active'); });
+                        tab.classList.add('active');
+
+                        var filter = tab.dataset.mhFilter;
+                        document.querySelectorAll('.mh-hist-card').forEach(function (card) {
+                            var status = card.dataset.status || '';
+                            var show = filter === 'all';
+                            if (!show) {
+                                if (filter === 'pending') show = (status === 'Pending' || status === 'Chờ xác nhận');
+                                if (filter === 'checkin') show = (status === 'Đã nhận phòng');
+                                if (filter === 'done') show = (status === 'Hoàn tất' || status === 'Đã hoàn thành');
+                                if (filter === 'cancelled') show = (status === 'Đã hủy' || status === 'Đã Hủy');
+                            }
+                            card.style.display = show ? '' : 'none';
+                        });
+                    });
+                });
+
+                // Cancel modal
+                var modal = document.getElementById('mhCancelModal');
+                var cancelIdEl = document.getElementById('mhCancelId');
+                var form = document.getElementById('mhCancelForm');
+
+                document.querySelectorAll('[data-mh-cancel-id]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var maDP = btn.dataset.mhCancelId;
+                        cancelIdEl.textContent = '#DP-' + maDP;
+                        form.action = '/booking/cancel/' + maDP;
+                        modal.classList.add('open');
+                    });
+                });
+
+                modal.querySelectorAll('[data-mh-modal-close]').forEach(function (el) {
+                    el.addEventListener('click', function () { modal.classList.remove('open'); });
+                });
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) modal.classList.remove('open');
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

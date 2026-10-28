@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Hóa đơn</span>
+                <h1 class="adm-page-title">
+                    Đơn đặt #<span th:text="${invoice.id}"></span>
+                </h1>
+                <p class="adm-page-sub">Chi tiết đơn đặt phòng và kết toán hóa đơn</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <a th:href="@{/receptionist/invoices}" class="adm-btn adm-btn-outline">
+                    <i class="bi bi-arrow-left"></i> Quay lại
+                </a>
+                <a th:href="@{/receptionist/invoices/print/{id}(id=${invoice.id})}" target="_blank"
+                    class="adm-btn adm-btn-primary">
+                    <i class="bi bi-printer-fill"></i> In hóa đơn
+                </a>
+            </div>
+        </div>
+
+        <!-- Alerts -->
+        <div th:if="${success}" class="adm-alert adm-alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${success}"></span>
+        </div>
+        <div th:if="${error}" class="adm-alert adm-alert-danger">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- ============ CARD 1: THÔNG TIN ĐƠN ============ -->
+        <div class="adm-card">
+            <div class="adm-card-head">
+                <h3><i class="bi bi-receipt"></i> Thông tin đơn hàng</h3>
+                <span class="adm-badge adm-badge-info">
+                    <i class="bi bi-calendar3"></i>
+                    <span th:text="${#dates.format(invoice.ngayDat, 'dd/MM/yyyy HH:mm')}"></span>
+                </span>
+            </div>
+            <div class="adm-card-body">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px 32px;">
+
+                    <div>
+                        <div
+                            style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;">
+                            <i class="bi bi-hash" style="color:var(--gold);"></i> Mã đơn
+                        </div>
+                        <div style="font-family:monospace;font-weight:700;font-size:14px;color:var(--navy);"
+                            th:text="${invoice.id}">—</div>
+                    </div>
+
+                    <div>
+                        <div
+                            style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;">
+                            <i class="bi bi-person-fill" style="color:var(--gold);"></i> Khách hàng
+                        </div>
+                        <div style="font-weight:700;font-size:14px;color:var(--navy);" th:text="${invoice.hoTen}">—
+                        </div>
+                    </div>
+
+                    <div>
+                        <div
+                            style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;">
+                            <i class="bi bi-telephone-fill" style="color:var(--gold);"></i> Số điện thoại
+                        </div>
+                        <div style="font-weight:600;font-size:14px;color:var(--navy);" th:text="${invoice.sdt}">—</div>
+                    </div>
+
+                    <div>
+                        <div
+                            style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.6px;text-transform:uppercase;margin-bottom:6px;">
+                            <i class="bi bi-geo-alt-fill" style="color:var(--gold);"></i> Địa chỉ
+                        </div>
+                        <div style="font-weight:600;font-size:14px;color:var(--navy);" th:text="${invoice.diaChi}">—
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============ CARD 2: DANH SÁCH PHÒNG ============ -->
+        <div class="adm-card mt-16">
+            <div class="adm-card-head">
+                <h3><i class="bi bi-door-closed"></i> Danh sách phòng đã đặt</h3>
+            </div>
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>Phòng / Thời gian lưu trú</th>
+                            <th class="col-center" style="width:110px;">Số lượng</th>
+                            <th class="col-right" style="width:170px;">Đơn giá / Đêm</th>
+                            <th class="col-right" style="width:180px;">Thành tiền</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <strong class="cell-name" th:text="${invoice.tenPhong}">Phòng 101</strong>
+                                <div style="font-size:11.5px;color:var(--muted);margin-top:4px;">
+                                    <i class="bi bi-calendar-event" style="color:var(--gold);"></i>
+                                    <span th:text="${#dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy')}"></span>
+                                    <i class="bi bi-arrow-right" style="margin:0 4px;font-size:10px;"></i>
+                                    <span th:text="${#dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy')}"></span>
+                                </div>
+                            </td>
+                            <td class="col-center fw-bold" style="color:var(--navy);">1</td>
+                            <td class="col-right cell-price" th:text="${invoice.phong != null
+                                    ? #numbers.formatDecimal(invoice.phong.price, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                    : '-'}">—</td>
+                            <td class="col-right cell-price" style="color:var(--red);"
+                                th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+                                —</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- ============ CARD 3: KẾT TOÁN ============ -->
+        <div class="adm-card mt-16">
+            <div class="adm-card-head">
+                <h3><i class="bi bi-calculator"></i> Kết toán hóa đơn</h3>
+            </div>
+            <div class="adm-card-body">
+
+                <!-- Summary -->
+                <div class="adm-transfer-summary" style="margin-top:0;">
+                    <div class="adm-transfer-line">
+                        <span>
+                            <i class="bi bi-stars" style="color:var(--gold);"></i>
+                            Giảm giá (Điểm thưởng)
+                        </span>
+                        <div class="d-flex align-center gap-12">
+                            <strong id="discount-amount" style="color:var(--red);">- 0 đ</strong>
+                            <button type="button" class="adm-btn adm-btn-outline adm-btn-sm"
+                                data-adm-open="usePointsModal">
+                                <i class="bi bi-stars"></i> Đổi điểm
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="adm-transfer-line total">
+                        <span>Tổng cộng cần trả</span>
+                        <strong th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+                            —</strong>
+                    </div>
+                </div>
+
+                <!-- Tiền mặt -->
+                <div class="adm-form-row" style="margin-top:22px;margin-bottom:0;">
+                    <div class="adm-field">
+                        <label>
+                            <i class="bi bi-cash-coin" style="color:var(--gold);"></i>
+                            Khách đưa (tiền mặt)
+                        </label>
+                        <div class="adm-surcharge-input" style="max-width:none;">
+                            <input type="number" id="cash-received" min="0" step="1000" placeholder="0">
+                            <span class="unit">đ</span>
+                        </div>
+                    </div>
+
+                    <div class="adm-field">
+                        <label>
+                            <i class="bi bi-arrow-return-left" style="color:var(--green);"></i>
+                            Tiền thừa trả khách
+                        </label>
+                        <div
+                            style="padding:11px 14px;background:var(--green-bg);border:1.5px solid #C5E9D4;border-radius:8px;font-size:16px;font-weight:800;color:var(--green);text-align:right;font-variant-numeric:tabular-nums;min-height:44px;display:flex;align-items:center;justify-content:flex-end;">
+                            <span id="change-amount">0 đ</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tích điểm -->
+                <div class="adm-alert adm-alert-success" style="margin-top:22px;margin-bottom:0;">
+                    <i class="bi bi-star-fill" style="color:var(--gold);"></i>
+                    <span>
+                        Khách hàng sẽ tích lũy được <strong>+ 50 điểm</strong>
+                        sau khi thanh toán hóa đơn này.
+                    </span>
+                </div>
+
+            </div>
+        </div>
+
+        <!-- ============ MODAL: ĐỔI ĐIỂM ============ -->
+        <div class="adm-modal-backdrop" id="usePointsModal">
+            <div class="adm-modal">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-stars"></i> Quy đổi điểm thưởng</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close>
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="adm-modal-body">
+
+                    <div
+                        style="text-align:center;margin-bottom:22px;padding:20px;background:var(--bg-cream);border:1px dashed var(--gold);border-radius:12px;">
+                        <p
+                            style="font-size:11px;font-weight:700;color:var(--muted);letter-spacing:1.2px;text-transform:uppercase;margin-bottom:6px;">
+                            Số điểm khả dụng
+                        </p>
+                        <div
+                            style="font-family:var(--font-heading);font-size:36px;font-weight:700;color:var(--gold-hover);line-height:1;">
+                            5,420
+                        </div>
+                        <div style="font-size:12px;color:var(--muted);font-weight:600;margin-top:4px;">
+                            điểm thưởng
+                        </div>
+                    </div>
+
+                    <div class="adm-field">
+                        <label>Nhập số điểm muốn đổi (1 điểm = 1.000 VNĐ)</label>
+                        <input type="number" id="points-to-use" min="0" max="5420" value="0"
+                            style="text-align:center;font-size:16px;font-weight:700;">
+                    </div>
+
+                    <div class="adm-alert adm-alert-success" style="margin-top:16px;margin-bottom:0;">
+                        <i class="bi bi-tag-fill"></i>
+                        <span>Giảm tương ứng: <strong id="discount-preview-amount" style="color:var(--red);">0
+                                VNĐ</strong></span>
+                    </div>
+
+                </div>
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <button type="button" class="adm-btn adm-btn-gold" data-adm-close
+                        onclick="alert('Đã áp dụng mã giảm giá từ điểm thưởng!')">
+                        <i class="bi bi-check-circle"></i> Áp dụng
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+    <!-- ============ EXTRA JS (ngoài body_content) ============ -->
+    <th:block th:fragment="extra_js">
+        <script th:inline="javascript">
+            (function () {
+                'use strict';
+
+                var totalAmount = /*[[${invoice.totalPrice}]]*/ 0;
+
+                var cashInput = document.getElementById('cash-received');
+                var changeEl = document.getElementById('change-amount');
+
+                function calculateChange() {
+                    if (!cashInput || !changeEl) return;
+                    var received = parseFloat(cashInput.value) || 0;
+                    var change = received - totalAmount;
+                    changeEl.innerText = change > 0
+                        ? new Intl.NumberFormat('vi-VN').format(change) + ' đ'
+                        : '0 đ';
+                }
+
+                if (cashInput) {
+                    cashInput.addEventListener('input', calculateChange);
+                }
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

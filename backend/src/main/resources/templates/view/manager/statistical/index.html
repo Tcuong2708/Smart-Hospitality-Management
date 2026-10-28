@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content" class="manager-page-shell">
+        <div class="adm-stat-page">
+
+            <!-- ═════════ HEADER ═════════ -->
+            <div class="adm-page-head">
+                <div class="adm-page-head-text">
+                    <span class="adm-page-eyebrow">BÁO CÁO KINH DOANH</span>
+                    <h1 class="adm-page-title">Thống kê doanh thu</h1>
+                    <p class="adm-page-sub">
+                        Dữ liệu thanh toán từ <strong th:text="${report.fromDisplay}"></strong>
+                        đến <strong th:text="${report.toDisplay}"></strong>
+                    </p>
+                </div>
+
+                <form class="adm-stat-filter" method="get" action="" id="revenueFilter">
+                    <div class="adm-stat-field">
+                        <label for="fromDatePicker">Từ ngày</label>
+                        <input type="date" id="fromDatePicker" th:attr="data-vn=${report.fromDisplay}" required>
+                        <input type="hidden" name="from" id="fromDate" th:value="${report.fromDisplay}">
+                    </div>
+                    <div class="adm-stat-field">
+                        <label for="toDatePicker">Đến ngày</label>
+                        <input type="date" id="toDatePicker" th:attr="data-vn=${report.toDisplay}" required>
+                        <input type="hidden" name="to" id="toDate" th:value="${report.toDisplay}">
+                    </div>
+                    <button class="adm-btn adm-btn-primary" type="submit" id="btnApplyReport">
+                        <i class="bi bi-funnel-fill"></i> Xem báo cáo
+                    </button>
+
+                    <div class="adm-dropdown">
+                        <button type="button" class="adm-btn adm-btn-gold" data-adm-dropdown id="btnExportReport">
+                            <i class="bi bi-download"></i> Xuất báo cáo
+                            <i class="bi bi-chevron-down adm-stat-chev"></i>
+                        </button>
+                        <div class="adm-dropdown-menu">
+                            <a href="#" class="export-link" data-type="xlsx">
+                                <i class="bi bi-file-earmark-excel" style="color:#1A7A3F;"></i>
+                                Excel (.xlsx)
+                            </a>
+                            <a href="#" class="export-link" data-type="pdf">
+                                <i class="bi bi-file-earmark-pdf" style="color:#C0392B;"></i>
+                                PDF (.pdf)
+                            </a>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- ═════════ ERROR ═════════ -->
+            <div th:if="${error}" class="adm-alert adm-alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span th:text="${error}"></span>
+            </div>
+
+            <!-- ═════════ QUICK PERIODS ═════════ -->
+            <div class="adm-stat-quick">
+                <button type="button" data-period="today">Hôm nay</button>
+                <button type="button" data-period="month">Tháng này</button>
+                <button type="button" data-period="quarter">Quý này</button>
+                <button type="button" data-period="year">Năm nay</button>
+            </div>
+
+            <!-- ═════════ KPI ═════════ -->
+            <div class="adm-stat-kpis">
+                <article class="adm-stat-kpi is-primary">
+                    <div class="adm-stat-kpi-icon"><i class="bi bi-wallet2"></i></div>
+                    <span class="adm-stat-kpi-label">Doanh thu thực nhận</span>
+                    <strong class="adm-stat-kpi-value"
+                        th:text="${#numbers.formatDecimal(report.netRevenue,0,'POINT',0,'COMMA')} + ' đ'"></strong>
+                    <small class="adm-stat-kpi-note">Sau khi trừ hoàn tiền</small>
+                </article>
+
+                <article class="adm-stat-kpi">
+                    <div class="adm-stat-kpi-icon"><i class="bi bi-cash-stack"></i></div>
+                    <span class="adm-stat-kpi-label">Doanh thu gộp</span>
+                    <strong class="adm-stat-kpi-value"
+                        th:text="${#numbers.formatDecimal(report.grossRevenue,0,'POINT',0,'COMMA')} + ' đ'"></strong>
+                    <small class="adm-stat-kpi-note">Tổng đã thanh toán</small>
+                </article>
+
+                <article class="adm-stat-kpi is-danger">
+                    <div class="adm-stat-kpi-icon"><i class="bi bi-arrow-return-left"></i></div>
+                    <span class="adm-stat-kpi-label">Tiền hoàn</span>
+                    <strong class="adm-stat-kpi-value"
+                        th:text="${#numbers.formatDecimal(report.refundAmount,0,'POINT',0,'COMMA')} + ' đ'"></strong>
+                    <small class="adm-stat-kpi-note">Đã trừ khỏi thực nhận</small>
+                </article>
+
+                <article class="adm-stat-kpi is-gold">
+                    <div class="adm-stat-kpi-icon"><i class="bi bi-receipt"></i></div>
+                    <span class="adm-stat-kpi-label">Booking / Hóa đơn</span>
+                    <strong class="adm-stat-kpi-value"
+                        th:text="${report.bookingCount + ' / ' + report.paidInvoiceCount}"></strong>
+                    <small class="adm-stat-kpi-note"
+                        th:text="'TB ' + ${#numbers.formatDecimal(report.averageInvoice,0,'POINT',0,'COMMA')} + ' đ/hóa đơn'"></small>
+                </article>
+            </div>
+
+            <!-- ═════════ CHART + PERIOD ═════════ -->
+            <div class="adm-stat-grid">
+                <section class="adm-stat-card">
+                    <header class="adm-stat-card-head">
+                        <div>
+                            <h2><i class="bi bi-graph-up-arrow"></i> Diễn biến doanh thu</h2>
+                            <p>Doanh thu thực nhận và số booking theo từng kỳ</p>
+                        </div>
+                    </header>
+                    <div class="adm-stat-chart-wrap">
+                        <canvas id="revenueChart"></canvas>
+                    </div>
+                </section>
+
+                <section class="adm-stat-card">
+                    <header class="adm-stat-card-head">
+                        <div>
+                            <h2><i class="bi bi-calendar3"></i> Theo kỳ</h2>
+                            <p>Tổng hợp từ bộ lọc hiện tại</p>
+                        </div>
+                    </header>
+                    <div class="adm-stat-periods">
+                        <div th:each="bucket : ${report.buckets}" class="adm-stat-period-item">
+                            <span class="adm-stat-period-label" th:text="${bucket.label}"></span>
+                            <strong class="adm-stat-period-revenue"
+                                th:text="${#numbers.formatDecimal(bucket.revenue,0,'POINT',0,'COMMA')} + ' đ'"></strong>
+                            <small class="adm-stat-period-count" th:text="${bucket.bookingCount} + ' booking'"></small>
+                        </div>
+                        <div th:if="${report.buckets.isEmpty()}" class="adm-empty" style="padding:32px 16px;">
+                            <i class="bi bi-calendar-x"></i>
+                            <p>Không có dữ liệu</p>
+                        </div>
+                    </div>
+                </section>
+            </div>
+
+            <!-- ═════════ INVOICE TABLE ═════════ -->
+            <section class="adm-stat-card adm-stat-invoice-card">
+                <header class="adm-stat-card-head">
+                    <div>
+                        <h2><i class="bi bi-receipt-cutoff"></i> Hóa đơn đã thanh toán</h2>
+                        <p><span th:text="${report.paidInvoiceCount}"></span> hóa đơn trong khoảng đã chọn</p>
+                    </div>
+                    <div class="adm-stat-search">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="invoiceSearch" placeholder="Tìm mã HĐ, khách, SĐT...">
+                    </div>
+                </header>
+
+                <div class="adm-table-wrap">
+                    <table class="adm-table" id="invoiceTable">
+                        <thead>
+                            <tr>
+                                <th>Mã HĐ</th>
+                                <th>Booking</th>
+                                <th>Ngày</th>
+                                <th>Khách hàng</th>
+                                <th>Thanh toán</th>
+                                <th class="col-right">Tổng tiền</th>
+                                <th class="col-right">Hoàn</th>
+                                <th class="col-right">Thực nhận</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${report.invoices.isEmpty()}">
+                                <td colspan="8">
+                                    <div class="adm-empty">
+                                        <i class="bi bi-inbox"></i>
+                                        <h4>Chưa có hóa đơn</h4>
+                                        <p>Không có hóa đơn thanh toán trong khoảng thời gian này.</p>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr th:each="invoice : ${report.invoices}" class="invoice-row">
+                                <td>
+                                    <span class="adm-invoice-code">
+                                        <i class="bi bi-hash"></i>
+                                        <span th:text="${invoice.id}"></span>
+                                    </span>
+                                </td>
+                                <td class="text-muted" th:text="${invoice.bookingId}"></td>
+                                <td class="text-muted" th:text="${invoice.dateDisplay}"></td>
+                                <td>
+                                    <strong class="text-navy"
+                                        th:text="${invoice.guestName.isEmpty() ? 'Khách lẻ' : invoice.guestName}"></strong>
+                                    <small class="text-muted" style="display:block;" th:text="${invoice.phone}"></small>
+                                </td>
+                                <td>
+                                    <span class="adm-badge adm-badge-neutral"
+                                        th:text="${invoice.payMethod.isEmpty() ? 'Chưa ghi nhận' : invoice.payMethod}"></span>
+                                </td>
+                                <td class="col-right"
+                                    th:text="${#numbers.formatDecimal(invoice.grossAmount,0,'POINT',0,'COMMA')} + ' đ'">
+                                </td>
+                                <td class="col-right text-danger"
+                                    th:text="${#numbers.formatDecimal(invoice.refundAmount,0,'POINT',0,'COMMA')} + ' đ'">
+                                </td>
+                                <td class="col-right fw-bold text-success"
+                                    th:text="${#numbers.formatDecimal(invoice.netAmount,0,'POINT',0,'COMMA')} + ' đ'">
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="invoicePagination" class="adm-pagination"></div>
+            </section>
+
+            <div id="chartData" hidden th:attr="data-labels=${#strings.listJoin(chartLabels,'|')},
+                       data-revenue=${#strings.listJoin(chartRevenue,'|')},
+                       data-bookings=${#strings.listJoin(chartBookings,'|')}"></div>
+        </div>
+    </div>
+
+    <!-- ═════════ EXTRA JS ═════════ -->
+    <th:block th:fragment="extra_js">
+        <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+        <script>
+            (function () {
+                'use strict';
+
+                // ─── Date helpers (ISO ⇄ dd-MM-yyyy) ─────────
+                // Input type="date" dùng ISO (yyyy-MM-dd)
+                // Backend nhận dd-MM-yyyy → cần convert qua hidden
+                function vnToIso(vn) {
+                    if (!vn) return '';
+                    var p = String(vn).trim().split('-');
+                    if (p.length !== 3) return '';
+                    return p[2] + '-' + p[1] + '-' + p[0];
+                }
+                function isoToVn(iso) {
+                    if (!iso) return '';
+                    var p = iso.split('-');
+                    if (p.length !== 3) return '';
+                    return p[2] + '-' + p[1] + '-' + p[0];
+                }
+                function isoFromDate(d) {
+                    var m = String(d.getMonth() + 1).padStart(2, '0');
+                    var day = String(d.getDate()).padStart(2, '0');
+                    return d.getFullYear() + '-' + m + '-' + day;
+                }
+
+                // ─── Elements ────────────────────────────────
+                var form = document.getElementById('revenueFilter');
+                var fromPicker = document.getElementById('fromDatePicker');
+                var toPicker = document.getElementById('toDatePicker');
+                var fromHidden = document.getElementById('fromDate');
+                var toHidden = document.getElementById('toDate');
+                var btnApply = document.getElementById('btnApplyReport');
+
+                // ─── Khởi tạo picker từ data-vn (dd-MM-yyyy) ─
+                if (fromPicker) fromPicker.value = vnToIso(fromPicker.dataset.vn);
+                if (toPicker) toPicker.value = vnToIso(toPicker.dataset.vn);
+
+                // ─── Sync hidden khi user chọn lịch ──────────
+                function syncDates() {
+                    if (fromHidden) fromHidden.value = isoToVn(fromPicker.value);
+                    if (toHidden) toHidden.value = isoToVn(toPicker.value);
+                }
+                if (fromPicker) fromPicker.addEventListener('change', syncDates);
+                if (toPicker) toPicker.addEventListener('change', syncDates);
+
+                // ─── Quick periods ───────────────────────────
+                document.querySelectorAll('[data-period]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var now = new Date(), type = btn.dataset.period;
+                        var from = new Date(now), to = new Date(now);
+                        if (type === 'month') from = new Date(now.getFullYear(), now.getMonth(), 1);
+                        if (type === 'quarter') from = new Date(now.getFullYear(), Math.floor(now.getMonth() / 3) * 3, 1);
+                        if (type === 'year') {
+                            from = new Date(now.getFullYear(), 0, 1);
+                            to = new Date(now.getFullYear(), 11, 31);
+                        }
+                        fromPicker.value = isoFromDate(from);
+                        toPicker.value = isoFromDate(to);
+                        syncDates();
+                        form.submit();
+                    });
+                });
+
+                // ─── Submit: validate + loading ──────────────
+                form.addEventListener('submit', function (e) {
+                    // Validate khoảng ngày
+                    if (fromPicker.value && toPicker.value && fromPicker.value > toPicker.value) {
+                        e.preventDefault();
+                        alert('"Từ ngày" phải nhỏ hơn hoặc bằng "Đến ngày".');
+                        fromPicker.focus();
+                        return;
+                    }
+                    syncDates();
+                    if (btnApply) {
+                        btnApply.disabled = true;
+                        btnApply.innerHTML = '<span class="adm-spinner"></span> Đang tải...';
+                    }
+                });
+
+                // ─── Export Excel / PDF ──────────────────────
+                document.querySelectorAll('.export-link').forEach(function (link) {
+                    link.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        var from = fromHidden.value;
+                        var to = toHidden.value;
+                        var type = link.dataset.type;
+
+                        if (!from || !to) {
+                            alert('Vui lòng chọn khoảng ngày trước khi xuất báo cáo.');
+                            return;
+                        }
+
+                        var basePath = window.location.pathname.replace(/\/+$/, '');
+                        var url = basePath + '/export.' + type
+                            + '?from=' + encodeURIComponent(from)
+                            + '&to=' + encodeURIComponent(to);
+
+                        var dropBtn = document.getElementById('btnExportReport');
+                        var original = dropBtn.innerHTML;
+                        dropBtn.disabled = true;
+                        dropBtn.innerHTML = '<span class="adm-spinner"></span> Đang xuất...';
+
+                        document.querySelectorAll('.adm-dropdown.is-open')
+                            .forEach(function (d) { d.classList.remove('is-open'); });
+
+                        window.location.href = url;
+
+                        setTimeout(function () {
+                            dropBtn.disabled = false;
+                            dropBtn.innerHTML = original;
+                        }, 2500);
+                    });
+                });
+
+                // ─── Invoice search + pagination ─────────────
+                var table = document.getElementById('invoiceTable');
+                var tbody = table ? table.querySelector('tbody') : null;
+                var paginationEl = document.getElementById('invoicePagination');
+                var searchInput = document.getElementById('invoiceSearch');
+                var allRows = tbody ? Array.from(tbody.querySelectorAll('tr.invoice-row')) : [];
+                var filtered = allRows.slice();
+                var page = 1, pageSize = 10;
+
+                function render() {
+                    allRows.forEach(function (r) { r.style.display = 'none'; });
+                    var total = Math.max(1, Math.ceil(filtered.length / pageSize));
+                    if (page > total) page = total;
+                    var start = (page - 1) * pageSize;
+                    filtered.slice(start, start + pageSize).forEach(function (r) {
+                        r.style.display = '';
+                    });
+                    renderPagination(total);
+                }
+
+                function renderPagination(total) {
+                    if (!paginationEl) return;
+                    if (total <= 1 || filtered.length === 0) {
+                        paginationEl.innerHTML = '';
+                        paginationEl.style.display = 'none';
+                        return;
+                    }
+                    paginationEl.style.display = 'flex';
+                    var html = '<button type="button" class="adm-pagination-btn" data-page="prev"'
+                        + (page === 1 ? ' disabled' : '') + '><i class="bi bi-chevron-left"></i></button>';
+                    for (var i = 1; i <= total; i++) {
+                        html += '<button type="button" class="adm-pagination-btn'
+                            + (i === page ? ' is-active' : '')
+                            + '" data-page="' + i + '">' + i + '</button>';
+                    }
+                    html += '<button type="button" class="adm-pagination-btn" data-page="next"'
+                        + (page === total ? ' disabled' : '') + '><i class="bi bi-chevron-right"></i></button>';
+                    paginationEl.innerHTML = html;
+                    paginationEl.querySelectorAll('[data-page]').forEach(function (b) {
+                        b.addEventListener('click', function () {
+                            if (b.disabled) return;
+                            var v = b.dataset.page;
+                            if (v === 'prev') page--;
+                            else if (v === 'next') page++;
+                            else page = Number(v);
+                            render();
+                        });
+                    });
+                }
+
+                if (searchInput) {
+                    var timer;
+                    searchInput.addEventListener('input', function () {
+                        clearTimeout(timer);
+                        timer = setTimeout(function () {
+                            var q = searchInput.value.trim().toLowerCase();
+                            filtered = q
+                                ? allRows.filter(function (r) {
+                                    return r.textContent.toLowerCase().indexOf(q) !== -1;
+                                })
+                                : allRows.slice();
+                            page = 1;
+                            render();
+                        }, 200);
+                    });
+                }
+                if (allRows.length) render();
+
+                // ─── Chart ───────────────────────────────────
+                var chartData = document.getElementById('chartData');
+                if (!chartData) return;
+
+                var labels = (chartData.dataset.labels || '').split('|').filter(Boolean);
+                var revenue = (chartData.dataset.revenue || '').split('|').map(Number);
+                var bookings = (chartData.dataset.bookings || '').split('|').map(Number);
+                var canvas = document.getElementById('revenueChart');
+
+                if (!canvas || labels.length === 0) {
+                    if (canvas) {
+                        canvas.parentElement.innerHTML =
+                            '<div class="adm-empty" style="padding:60px 16px;">'
+                            + '<i class="bi bi-graph-up"></i>'
+                            + '<h4>Không có dữ liệu</h4>'
+                            + '<p>Chưa có thanh toán trong khoảng thời gian đã chọn.</p>'
+                            + '</div>';
+                    }
+                    return;
+                }
+
+                var ctx = canvas.getContext('2d');
+                var grad = ctx.createLinearGradient(0, 0, 0, 350);
+                grad.addColorStop(0, 'rgba(15, 41, 66, 0.95)');
+                grad.addColorStop(1, 'rgba(15, 41, 66, 0.55)');
+
+                new Chart(ctx, {
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                type: 'bar',
+                                label: 'Doanh thu',
+                                data: revenue,
+                                backgroundColor: grad,
+                                hoverBackgroundColor: 'rgba(15, 41, 66, 1)',
+                                borderRadius: 6,
+                                borderSkipped: false,
+                                maxBarThickness: 56,
+                                yAxisID: 'y'
+                            },
+                            {
+                                type: 'line',
+                                label: 'Booking',
+                                data: bookings,
+                                borderColor: '#D4AF37',
+                                backgroundColor: '#D4AF37',
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointHoverRadius: 7,
+                                pointBackgroundColor: '#D4AF37',
+                                pointBorderColor: '#fff',
+                                pointBorderWidth: 2,
+                                tension: 0.3,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                                align: 'end',
+                                labels: {
+                                    boxWidth: 10, boxHeight: 10,
+                                    usePointStyle: true, pointStyle: 'rectRounded',
+                                    font: { family: 'Inter, sans-serif', size: 12, weight: '600' }
+                                }
+                            },
+                            tooltip: {
+                                backgroundColor: '#0F2942',
+                                titleColor: '#fff',
+                                bodyColor: '#fff',
+                                padding: 12,
+                                cornerRadius: 8,
+                                titleFont: { family: 'Inter, sans-serif', weight: '700', size: 12 },
+                                bodyFont: { family: 'Inter, sans-serif', size: 12 },
+                                callbacks: {
+                                    label: function (c) {
+                                        return c.dataset.yAxisID === 'y'
+                                            ? c.dataset.label + ': ' + new Intl.NumberFormat('vi-VN').format(c.raw) + ' đ'
+                                            : c.dataset.label + ': ' + c.raw;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: {
+                                    color: '#6C7A89',
+                                    font: { family: 'Inter, sans-serif', size: 11, weight: '600' }
+                                }
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: 'rgba(15, 41, 66, 0.06)' },
+                                border: { display: false },
+                                ticks: {
+                                    color: '#6C7A89',
+                                    font: { family: 'Inter, sans-serif', size: 11 },
+                                    callback: function (v) {
+                                        return new Intl.NumberFormat('vi-VN', { notation: 'compact' }).format(v) + ' đ';
+                                    }
+                                }
+                            },
+                            y1: {
+                                beginAtZero: true,
+                                position: 'right',
+                                grid: { drawOnChartArea: false },
+                                border: { display: false },
+                                ticks: {
+                                    precision: 0, color: '#A05A00',
+                                    font: { family: 'Inter, sans-serif', size: 11 }
+                                }
+                            }
+                        }
+                    }
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

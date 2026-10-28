@@ -1,0 +1,712 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <title th:text="${pageTitle} ?: 'Xác nhận đặt phòng — MAY HOTEL'">Xác nhận đặt phòng</title>
+    <th:block layout:fragment="additional-css">
+        <link rel="stylesheet" th:href="@{/css/booking.css(v='20261028-5')}">
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400;1,700&display=swap"
+            rel="stylesheet">
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    </th:block>
+</head>
+
+<body>
+
+    <section layout:fragment="content">
+        <div class="mh-co-page">
+            <div class="mh-co-container">
+
+                <!-- HEAD -->
+                <div class="mh-co-head">
+                    <span class="mh-co-head-eyebrow">Bước cuối cùng</span>
+                    <h1>Hoàn tất <em>đặt phòng</em> của bạn</h1>
+                    <p>Chỉ còn vài bước nữa là bạn đã sẵn sàng cho kỳ nghỉ tại MAY HOTEL.</p>
+                </div>
+
+                <!-- STEPPER -->
+                <div class="mh-co-stepper">
+                    <div class="mh-co-step done">
+                        <div class="mh-co-step-num"><i class="fa-solid fa-check"></i></div>
+                        <span class="mh-co-step-label">Chọn phòng</span>
+                    </div>
+                    <div class="mh-co-step-line done"></div>
+                    <div class="mh-co-step active">
+                        <div class="mh-co-step-num">II</div>
+                        <span class="mh-co-step-label">Thông tin</span>
+                    </div>
+                    <div class="mh-co-step-line"></div>
+                    <div class="mh-co-step">
+                        <div class="mh-co-step-num">III</div>
+                        <span class="mh-co-step-label">Hoàn tất</span>
+                    </div>
+                </div>
+
+                <form th:action="@{/booking/process-checkout}" method="post" id="mhCheckoutForm">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="mh-co-layout">
+
+                        <!-- ===== LEFT ===== -->
+                        <div class="mh-co-main">
+
+                            <!-- Thông tin khách hàng -->
+                            <section class="mh-co-section">
+                                <div class="mh-co-section-head">
+                                    <div class="mh-co-section-icon">
+                                        <i class="fa-solid fa-user"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Thông tin khách hàng</h2>
+                                        <p>Chúng tôi sẽ dùng thông tin này để liên hệ xác nhận đặt phòng.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mh-co-grid">
+                                    <div class="mh-co-field">
+                                        <label>Họ và tên <span class="req">*</span></label>
+                                        <input type="text" name="guestName" required placeholder="Nguyễn Văn A"
+                                            th:value="${currentUser != null ? currentUser.username : ''}">
+                                    </div>
+                                    <div class="mh-co-field">
+                                        <label>Số điện thoại <span class="req">*</span></label>
+                                        <input type="tel" name="phone" required pattern="[0-9]{10}" maxlength="10"
+                                            inputmode="numeric" placeholder="0901234567"
+                                            th:value="${currentUser != null and currentUser.phone != null ? currentUser.phone : ''}">
+                                    </div>
+                                    <div class="mh-co-field full">
+                                        <label>Email
+                                            <span
+                                                style="color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;">
+                                                (tùy chọn)
+                                            </span>
+                                        </label>
+                                        <input type="email" name="email" placeholder="email@example.com"
+                                            th:value="${currentUser != null and currentUser.email != null ? currentUser.email : ''}">
+                                        <small>Hóa đơn điện tử và thông tin đặt phòng sẽ được gửi tới email này.</small>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <!-- Thông tin lưu trú (Phase A: 3 input số khách) -->
+                            <section class="mh-co-section">
+                                <div class="mh-co-section-head">
+                                    <div class="mh-co-section-icon">
+                                        <i class="fa-regular fa-calendar-days"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Thông tin lưu trú</h2>
+                                        <p>Xác nhận ngày và số khách lưu trú.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mh-co-grid">
+                                    <div class="mh-co-field">
+                                        <label>Ngày nhận phòng <span class="req">*</span></label>
+                                        <input type="date" name="ngayNhan" id="mhNgayNhan" required
+                                            th:value="${currentBooking != null and currentBooking.ngayNhan != null ? currentBooking.ngayNhan : ''}">
+                                    </div>
+                                    <div class="mh-co-field">
+                                        <label>Ngày trả phòng <span class="req">*</span></label>
+                                        <input type="date" name="ngayTra" id="mhNgayTra" required
+                                            th:value="${currentBooking != null and currentBooking.ngayTra != null ? currentBooking.ngayTra : ''}">
+                                    </div>
+                                </div>
+                                <small id="mhDateWarn" style="display:none;color:#c0392b;margin-top:8px;">
+                                    Ngày trả phòng phải sau ngày nhận phòng ít nhất 1 đêm.
+                                </small>
+
+                                <!-- SỐ KHÁCH -->
+                                <div class="mh-co-grid"
+                                    style="grid-template-columns: 1fr 1fr 1fr; margin-top: 18px; gap: 14px;">
+                                    <div class="mh-co-field">
+                                        <label>Người lớn <span class="req">*</span>
+                                            <small
+                                                style="color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;">(≥12
+                                                tuổi)</small>
+                                        </label>
+                                        <input type="number" name="adults" id="mhAdults" min="1" max="20" required
+                                            th:value="${currentBooking != null ? currentBooking.adults : 2}">
+                                    </div>
+                                    <div class="mh-co-field">
+                                        <label>Trẻ em
+                                            <small
+                                                style="color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;">(6–11
+                                                tuổi · 50%)</small>
+                                        </label>
+                                        <input type="number" name="children" id="mhChildren" min="0" max="10"
+                                            th:value="${currentBooking != null ? currentBooking.children : 0}">
+                                    </div>
+                                    <div class="mh-co-field">
+                                        <label>Em bé
+                                            <small
+                                                style="color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;">(&lt;5
+                                                tuổi · Miễn phí)</small>
+                                        </label>
+                                        <input type="number" name="infants" id="mhInfants" min="0" max="5"
+                                            th:value="${currentBooking != null ? currentBooking.infants : 0}">
+                                    </div>
+                                </div>
+                                <small id="mhGuestWarn" style="display:none;color:#c0392b;margin-top:8px;"></small>
+                            </section>
+
+                            <!-- Yêu cầu đặc biệt -->
+                            <section class="mh-co-section">
+                                <div class="mh-co-section-head">
+                                    <div class="mh-co-section-icon">
+                                        <i class="fa-regular fa-comment-dots"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Yêu cầu đặc biệt</h2>
+                                        <p>Cho chúng tôi biết nếu bạn cần hỗ trợ gì thêm.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mh-co-field">
+                                    <label>Ghi chú cho khách sạn</label>
+                                    <textarea name="ghiChu" rows="4"
+                                        placeholder="Ví dụ: Tôi muốn phòng yên tĩnh, gần thang máy, nhận phòng sớm..."></textarea>
+                                    <small>Yêu cầu đặc biệt không bắt buộc — khách sạn sẽ cố gắng sắp xếp theo khả
+                                        năng.</small>
+                                </div>
+                            </section>
+
+                            <!-- Phương thức thanh toán (Phase B: 3 radio) -->
+                            <section class="mh-co-section">
+                                <div class="mh-co-section-head">
+                                    <div class="mh-co-section-icon">
+                                        <i class="fa-regular fa-credit-card"></i>
+                                    </div>
+                                    <div>
+                                        <h2>Phương thức thanh toán</h2>
+                                        <p>Chọn cách thức phù hợp với bạn.</p>
+                                    </div>
+                                </div>
+
+                                <div class="mh-co-pay-list">
+
+                                    <!-- 1. COD -->
+                                    <input type="radio" name="phuongThucThanhToan" id="mhPayCOD" value="COD"
+                                        class="mh-co-pay-radio" checked>
+                                    <label for="mhPayCOD" class="mh-co-pay-card">
+                                        <span class="mh-co-pay-dot"></span>
+                                        <div class="mh-co-pay-info">
+                                            <strong>Thanh toán toàn bộ tại khách sạn</strong>
+                                            <small>Giữ phòng trước, trả tiền mặt hoặc thẻ khi nhận phòng.</small>
+                                        </div>
+                                        <div class="mh-co-pay-logo-img">
+                                            <img th:src="@{/images/payment/cash.svg}" alt="Thanh toán tại khách sạn">
+                                        </div>
+                                    </label>
+
+                                    <!-- 2. DEPOSIT -->
+                                    <input type="radio" name="phuongThucThanhToan" id="mhPayDeposit" value="DEPOSIT"
+                                        class="mh-co-pay-radio">
+                                    <label for="mhPayDeposit" class="mh-co-pay-card">
+                                        <span class="mh-co-pay-dot"></span>
+                                        <div class="mh-co-pay-info">
+                                            <strong>Đặt cọc 1 đêm qua VNPay <span
+                                                    style="color:var(--gold-hover);font-weight:800;">· Khuyến
+                                                    nghị</span></strong>
+                                            <small>Chỉ thanh toán trước 1 đêm để giữ phòng. Phần còn lại trả tại KS khi
+                                                nhận phòng.</small>
+                                        </div>
+                                        <div class="mh-co-pay-logo-img">
+                                            <img th:src="@{/images/payment/vnpay.svg}" alt="VNPay">
+                                        </div>
+                                    </label>
+
+                                    <!-- 3. FULL ONLINE -->
+                                    <input type="radio" name="phuongThucThanhToan" id="mhPayOnline" value="ONLINE"
+                                        class="mh-co-pay-radio">
+                                    <label for="mhPayOnline" class="mh-co-pay-card">
+                                        <span class="mh-co-pay-dot"></span>
+                                        <div class="mh-co-pay-info">
+                                            <strong>Thanh toán toàn bộ online qua VNPay</strong>
+                                            <small>Quét mã QR, dùng thẻ ATM nội địa hoặc Visa/Mastercard. Bảo đảm
+                                                100%.</small>
+                                        </div>
+                                        <div class="mh-co-pay-logo-img">
+                                            <img th:src="@{/images/payment/vnpay.svg}" alt="VNPay">
+                                        </div>
+                                    </label>
+
+                                    <!-- Panel COD -->
+                                    <div class="mh-co-qr-panel mh-co-qr-cod">
+                                        <div class="mh-co-panel-inner">
+                                            <div class="mh-co-panel-icon cod">
+                                                <i class="fa-solid fa-hand-holding-dollar"></i>
+                                            </div>
+                                            <div class="mh-co-panel-body">
+                                                <h4>Thanh toán toàn bộ tại khách sạn</h4>
+                                                <p>Quý khách thanh toán <strong id="mhFullAmount"
+                                                        style="color:var(--red);">0 đ</strong> trực tiếp tại quầy lễ
+                                                    tân khi nhận phòng. Vui lòng mang CCCD/Hộ chiếu để xác minh danh
+                                                    tính.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Panel DEPOSIT -->
+                                    <div class="mh-co-qr-panel mh-co-qr-deposit">
+                                        <div class="mh-co-panel-inner">
+                                            <div class="mh-co-panel-icon"
+                                                style="background: linear-gradient(135deg, rgba(212,175,55,.15), rgba(212,175,55,.06)); color: var(--gold-hover);">
+                                                <i class="fa-solid fa-shield-halved"></i>
+                                            </div>
+                                            <div class="mh-co-panel-body">
+                                                <h4>Đặt cọc 1 đêm qua VNPay</h4>
+                                                <p>Quý khách chỉ cần thanh toán trước <strong id="mhDepositAmount"
+                                                        style="color:var(--gold-hover);">0 đ</strong> để giữ phòng.
+                                                    Phần còn lại <strong id="mhRemainingAmount"
+                                                        style="color:var(--navy);">0 đ</strong> sẽ thanh toán tại KS
+                                                    khi nhận phòng.</p>
+                                                <p class="mh-co-panel-amount">
+                                                    <span>Cọc hôm nay:</span>
+                                                    <strong id="mhDepositQrAmount" style="color:var(--gold-hover);">0
+                                                        đ</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Panel FULL ONLINE -->
+                                    <div class="mh-co-qr-panel mh-co-qr-vnpay">
+                                        <div class="mh-co-panel-inner">
+                                            <div class="mh-co-panel-icon vnpay">
+                                                <i class="fa-solid fa-qrcode"></i>
+                                            </div>
+                                            <div class="mh-co-panel-body">
+                                                <h4>Thanh toán toàn bộ qua cổng VNPay</h4>
+                                                <p>Bấm <strong>Xác nhận &amp; Đặt phòng</strong> để chuyển sang VNPay
+                                                    và thanh toán toàn bộ. Phòng được bảo đảm 100% ngay khi giao dịch
+                                                    thành công.</p>
+                                                <p class="mh-co-panel-amount">
+                                                    <span>Số tiền:</span>
+                                                    <strong id="mhCoQrAmount" th:text="${finalTotal != null
+                                                        ? #numbers.formatDecimal(finalTotal, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                                        : '0 đ'}">0 đ</strong>
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </section>
+
+                        </div>
+
+                        <!-- ===== RIGHT: SUMMARY ===== -->
+                        <aside class="mh-co-aside">
+                            <div class="mh-co-summary">
+
+                                <!-- Ảnh phòng -->
+                                <div class="mh-co-room-media">
+                                    <img loading="lazy" th:src="@{${currentBooking != null and currentBooking.loaiPhong != null and !#strings.isEmpty(currentBooking.loaiPhong.imageUrl)
+                                        ? '/images/' + currentBooking.loaiPhong.imageUrl
+                                        : '/images/default.png'}}"
+                                        th:alt="${currentBooking != null and currentBooking.loaiPhong != null ? currentBooking.loaiPhong.name : 'Phòng'}">
+
+                                    <span class="mh-co-room-badge">
+                                        <i class="fa-solid fa-shield-halved"></i>
+                                        Còn phòng
+                                    </span>
+
+                                    <div class="mh-co-room-title">
+                                        <small>Đơn đặt của bạn</small>
+                                        <strong
+                                            th:text="${currentBooking != null and currentBooking.loaiPhong != null ? currentBooking.loaiPhong.name : 'Phòng'}">
+                                            Phòng Deluxe
+                                        </strong>
+                                    </div>
+                                </div>
+
+                                <!-- Body -->
+                                <div class="mh-co-sum-body">
+
+                                    <!-- Ngày nhận/trả -->
+                                    <div class="mh-co-sum-meta">
+                                        <div>
+                                            <span>Nhận phòng</span>
+                                            <strong id="mhSumNgayNhan" th:text="${currentBooking != null and currentBooking.ngayNhan != null
+                                            ? #temporals.format(currentBooking.ngayNhan, 'dd/MM/yyyy')
+                                            : '--'}">--</strong>
+                                        </div>
+                                        <div>
+                                            <span>Trả phòng</span>
+                                            <strong id="mhSumNgayTra" th:text="${currentBooking != null and currentBooking.ngayTra != null
+                                            ? #temporals.format(currentBooking.ngayTra, 'dd/MM/yyyy')
+                                            : '--'}">--</strong>
+                                        </div>
+                                    </div>
+
+                                    <!-- Features -->
+                                    <div class="mh-co-sum-features">
+                                        <div>
+                                            <i class="fa-solid fa-moon"></i>
+                                            <span><strong id="mhSumSoDem"
+                                                    th:text="${currentBooking != null ? currentBooking.soDem : 0}">0</strong>
+                                                đêm lưu trú</span>
+                                        </div>
+                                        <div>
+                                            <i class="fa-solid fa-door-open"></i>
+                                            <span><strong
+                                                    th:text="${currentBooking != null ? currentBooking.soLuong : 1}">1</strong>
+                                                phòng</span>
+                                        </div>
+                                        <div>
+                                            <i class="fa-solid fa-user-group"></i>
+                                            <span id="mhSumGuestsText">
+                                                <strong
+                                                    th:text="${currentBooking != null ? currentBooking.adults : 2}">2</strong>
+                                                người lớn
+                                            </span>
+                                        </div>
+                                        <div>
+                                            <i class="fa-solid fa-wifi"></i>
+                                            <span>Wifi tốc độ cao miễn phí</span>
+                                        </div>
+                                        <div>
+                                            <i class="fa-solid fa-circle-check"></i>
+                                            <span>Hủy miễn phí trước 24 giờ</span>
+                                        </div>
+                                    </div>
+
+                                    <!-- Price breakdown -->
+                                    <div class="mh-co-sum-prices">
+                                        <div class="mh-co-price-row">
+                                            <span>Tiền phòng</span>
+                                            <strong id="mhSumTienPhong" th:text="${currentBooking != null
+                                            ? #numbers.formatDecimal(currentBooking.thanhTien, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                            : '0 đ'}">0 đ</strong>
+                                        </div>
+
+                                        <div class="mh-co-price-row" th:if="${totalDichVu != null and totalDichVu > 0}">
+                                            <span>Dịch vụ thêm</span>
+                                            <strong
+                                                th:text="${#numbers.formatDecimal(totalDichVu, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
+                                                đ</strong>
+                                        </div>
+
+                                        <div class="mh-co-price-row">
+                                            <span>Thuế &amp; phí</span>
+                                            <strong style="color:var(--success);">Đã bao gồm</strong>
+                                        </div>
+
+                                        <!-- Đổi điểm -->
+                                        <div class="mh-co-redeem"
+                                            th:if="${currentUser != null and availablePoints != null and availablePoints > 0}">
+                                            <div class="mh-co-redeem-head">
+                                                <span class="mh-co-redeem-title"><i class="ic ic-gift"></i> Đổi điểm
+                                                    thanh toán</span>
+                                                <span class="mh-co-redeem-avail"
+                                                    th:text="${'Bạn có ' + availablePoints + ' điểm'}">Bạn có 0
+                                                    điểm</span>
+                                            </div>
+                                            <div class="mh-co-redeem-body">
+                                                <div class="mh-co-redeem-input">
+                                                    <input type="number" name="diemDoi" id="mhPointsToUse" min="0"
+                                                        th:max="${availablePoints}" value="0" inputmode="numeric"
+                                                        aria-label="Số điểm muốn dùng">
+                                                    <span>điểm</span>
+                                                    <button type="button" class="mh-co-redeem-max" id="mhPointsMax">Tối
+                                                        đa</button>
+                                                </div>
+                                                <strong class="mh-co-redeem-value" id="mhPointsDiscount">- 0 đ</strong>
+                                            </div>
+                                            <small class="mh-co-redeem-note">1 điểm = 1.000 đ · điểm dùng không vượt
+                                                quá tổng tiền.</small>
+                                        </div>
+
+                                        <!-- Voucher -->
+                                        <div class="mh-co-voucher">
+                                            <label for="mhVoucher"><i class="ic ic-ticket"></i> Mã voucher</label>
+                                            <input type="text" name="voucherCode" id="mhVoucher" maxlength="50"
+                                                placeholder="Nhập mã nếu có" autocomplete="off">
+                                            <small id="mhVoucherMessage" style="display:none;margin-top:6px;"></small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Total -->
+                                    <div class="mh-co-sum-total">
+                                        <span>Tổng cộng</span>
+                                        <strong id="mhSumTong" th:text="${finalTotal != null
+                                        ? #numbers.formatDecimal(finalTotal, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                        : '0 đ'}">0 đ</strong>
+                                    </div>
+
+                                    <!-- CTA -->
+                                    <button type="submit" class="mh-co-cta">
+                                        Xác nhận &amp; Đặt phòng
+                                        <i class="fa-solid fa-arrow-right"></i>
+                                    </button>
+
+                                    <!-- Trust -->
+                                    <div class="mh-co-trust">
+                                        <div>
+                                            <i class="fa-solid fa-lock"></i>
+                                            <span>Thanh toán được mã hóa <strong>SSL 256-bit</strong></span>
+                                        </div>
+                                        <div>
+                                            <i class="fa-solid fa-bolt"></i>
+                                            <span>Xác nhận tức thì qua <strong>Email &amp; SMS</strong></span>
+                                        </div>
+                                        <div>
+                                            <i class="fa-solid fa-headset"></i>
+                                            <span>Hỗ trợ 24/7 — <strong>1800 9327</strong></span>
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </aside>
+
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ===== SCRIPT STATE ===== -->
+        <script th:inline="javascript">
+            window.MH_GIA_PHONG = /*[[${currentBooking != null and currentBooking.loaiPhong != null
+                                    ? currentBooking.loaiPhong.price : 0}]]*/ 0;
+            window.MH_SO_LUONG = /*[[${currentBooking != null ? currentBooking.soLuong : 1}]]*/ 1;
+            window.MH_SO_NGUOI_PER_ROOM = /*[[${currentBooking != null and currentBooking.loaiPhong != null
+                                            and currentBooking.loaiPhong.soNguoi != null
+                                            ? currentBooking.loaiPhong.soNguoi : 2}]]*/ 2;
+            window.MH_DICH_VU = /*[[${totalDichVu != null ? totalDichVu : 0}]]*/ 0;
+        </script>
+
+        <script>
+            (function () {
+                'use strict';
+
+                var $ = function (id) { return document.getElementById(id); };
+                var inNhan = $('mhNgayNhan'), inTra = $('mhNgayTra');
+                var elNhan = $('mhSumNgayNhan'), elTra = $('mhSumNgayTra'), elSoDem = $('mhSumSoDem');
+                var elTienPhong = $('mhSumTienPhong'), elTong = $('mhSumTong'), elQrAmount = $('mhCoQrAmount');
+                var elPointsDiscount = $('mhPointsDiscount');
+                var elWarn = $('mhDateWarn');
+                var elGuestWarn = $('mhGuestWarn');
+                var pointsInput = $('mhPointsToUse');
+                var voucherInput = $('mhVoucher');
+                var voucherMessage = $('mhVoucherMessage');
+                var voucherDiscount = 0;
+                var voucherTimer = null;
+
+                // Số khách
+                var elAdults = $('mhAdults');
+                var elChildren = $('mhChildren');
+                var elInfants = $('mhInfants');
+                var elSumGuestsText = $('mhSumGuestsText');
+
+                // Phase B: deposit elements
+                var elFullAmount = $('mhFullAmount');
+                var elDepositAmount = $('mhDepositAmount');
+                var elRemainingAmount = $('mhRemainingAmount');
+                var elDepositQrAmount = $('mhDepositQrAmount');
+
+                if (!inNhan || !inTra) return;
+
+                function parse(v) {
+                    if (!v) return null;
+                    var p = v.split('-');
+                    return new Date(+p[0], +p[1] - 1, +p[2]);
+                }
+                function pad(n) { return String(n).padStart(2, '0'); }
+                function toIso(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+                function addDays(d, n) { var x = new Date(d.getTime()); x.setDate(x.getDate() + n); return x; }
+                function fmtDate(d) { return pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(); }
+                function fmtTien(n) { return Math.round(n).toLocaleString('vi-VN') + ' đ'; }
+
+                /* ========== Validate + warn số khách ========== */
+                function validateGuests() {
+                    if (!elAdults) return { valid: true, adults: 2, children: 0, infants: 0 };
+                    var adults = Math.max(1, parseInt(elAdults.value) || 1);
+                    var children = Math.max(0, parseInt(elChildren.value) || 0);
+                    var infants = Math.max(0, parseInt(elInfants.value) || 0);
+
+                    var soLuong = Number(window.MH_SO_LUONG) || 1;
+                    var maxPerRoom = Number(window.MH_SO_NGUOI_PER_ROOM) || 2;
+                    var maxGuests = maxPerRoom * soLuong;
+                    var totalAdultsChildren = adults + children;
+
+                    if (totalAdultsChildren > maxGuests) {
+                        if (elGuestWarn) {
+                            elGuestWarn.textContent =
+                                'Số khách vượt sức chứa: ' + soLuong + ' phòng × ' + maxPerRoom
+                                + ' khách = tối đa ' + maxGuests + ' khách (người lớn + trẻ em, chưa tính em bé).';
+                            elGuestWarn.style.display = 'block';
+                        }
+                        return { valid: false, adults: adults, children: children, infants: infants };
+                    }
+                    if (elGuestWarn) elGuestWarn.style.display = 'none';
+                    return { valid: true, adults: adults, children: children, infants: infants };
+                }
+
+                /* ========== Update summary số khách ========== */
+                function updateSumGuests(adults, children, infants) {
+                    if (!elSumGuestsText) return;
+                    var parts = [];
+                    parts.push('<strong>' + adults + '</strong> người lớn');
+                    if (children > 0) parts.push('<strong>' + children + '</strong> trẻ em');
+                    if (infants > 0) parts.push('<strong>' + infants + '</strong> em bé');
+                    elSumGuestsText.innerHTML = parts.join(' · ');
+                }
+
+                /* ========== Render tổng tiền + cọc ========== */
+                function render() {
+                    var a = parse(inNhan.value), b = parse(inTra.value);
+                    if (a && elNhan) elNhan.textContent = fmtDate(a);
+                    if (b && elTra) elTra.textContent = fmtDate(b);
+
+                    var g = validateGuests();
+                    updateSumGuests(g.adults, g.children, g.infants);
+
+                    if (!a || !b) return;
+
+                    var soDem = Math.round((b - a) / 86400000);
+                    if (elWarn) elWarn.style.display = soDem > 0 ? 'none' : 'block';
+                    if (soDem <= 0) return;
+
+                    var basePrice = Number(window.MH_GIA_PHONG) || 0;
+                    var soLuong = Number(window.MH_SO_LUONG) || 1;
+
+                    var tienPhong = basePrice * soLuong * soDem;
+                    var phuTreEm = basePrice * 0.5 * g.children * soDem;
+                    var tongTruocGiam = tienPhong + phuTreEm + (Number(window.MH_DICH_VU) || 0);
+
+                    var tong = Math.max(0, tongTruocGiam - voucherDiscount);
+
+                    if (pointsInput) {
+                        var points = Math.max(0, Number(pointsInput.value) || 0);
+                        var cap = Math.min(Number(pointsInput.max) || 0, Math.floor(tong / 1000));
+                        if (points > cap) { points = cap; pointsInput.value = cap; }
+                        var pointsDiscount = Math.min(points * 1000, tong);
+                        tong = Math.max(0, tong - pointsDiscount);
+                        if (elPointsDiscount) elPointsDiscount.textContent = '- ' + fmtTien(pointsDiscount);
+                    }
+
+                    if (elSoDem) elSoDem.textContent = soDem;
+                    if (elTienPhong) elTienPhong.textContent = fmtTien(tienPhong + phuTreEm);
+                    if (elTong) elTong.textContent = fmtTien(tong);
+                    if (elQrAmount) elQrAmount.textContent = fmtTien(tong);
+
+                    // Phase B: cọc + còn lại
+                    if (elFullAmount) elFullAmount.textContent = fmtTien(tong);
+                    var cocMotDem = basePrice * soLuong + basePrice * 0.5 * g.children;
+                    var depositAmount = Math.min(cocMotDem, tong);
+                    var remaining = Math.max(0, tong - depositAmount);
+                    if (elDepositAmount) elDepositAmount.textContent = fmtTien(depositAmount);
+                    if (elRemainingAmount) elRemainingAmount.textContent = fmtTien(remaining);
+                    if (elDepositQrAmount) elDepositQrAmount.textContent = fmtTien(depositAmount);
+                }
+
+                /* ========== Quote voucher ========== */
+                async function refreshVoucherQuote() {
+                    if (!voucherInput) return;
+                    var code = voucherInput.value.trim();
+                    voucherDiscount = 0;
+                    if (!code) {
+                        if (voucherMessage) voucherMessage.style.display = 'none';
+                        render();
+                        return;
+                    }
+
+                    var params = new URLSearchParams({
+                        code: code,
+                        ngayNhan: inNhan.value || '',
+                        ngayTra: inTra.value || ''
+                    });
+
+                    try {
+                        var response = await fetch('/booking/quote-voucher?' + params.toString(), {
+                            headers: { 'Accept': 'application/json' }
+                        });
+                        var result = await response.json();
+                        if (result.valid) {
+                            voucherDiscount = Number(result.discount) || 0;
+                            if (voucherMessage) {
+                                voucherMessage.textContent = result.message || 'Đã áp dụng voucher.';
+                                voucherMessage.style.color = '#198754';
+                                voucherMessage.style.display = 'block';
+                            }
+                        } else if (voucherMessage) {
+                            voucherMessage.textContent = result.message || 'Mã voucher không hợp lệ.';
+                            voucherMessage.style.color = '#c0392b';
+                            voucherMessage.style.display = 'block';
+                        }
+                    } catch (error) {
+                        if (voucherMessage) {
+                            voucherMessage.textContent = 'Không thể kiểm tra voucher lúc này.';
+                            voucherMessage.style.color = '#c0392b';
+                            voucherMessage.style.display = 'block';
+                        }
+                    }
+                    render();
+                }
+
+                function scheduleVoucherQuote() {
+                    clearTimeout(voucherTimer);
+                    voucherTimer = setTimeout(refreshVoucherQuote, 350);
+                }
+
+                function onNhanChange() {
+                    var a = parse(inNhan.value);
+                    if (a) {
+                        var minTra = addDays(a, 1);
+                        inTra.min = toIso(minTra);
+                        var b = parse(inTra.value);
+                        if (!b || b < minTra) inTra.value = toIso(minTra);
+                    }
+                    render();
+                    scheduleVoucherQuote();
+                }
+
+                /* ========== Bind events ========== */
+                inNhan.min = toIso(new Date());
+                inNhan.addEventListener('change', onNhanChange);
+                inNhan.addEventListener('input', onNhanChange);
+                inTra.addEventListener('change', function () { render(); scheduleVoucherQuote(); });
+                inTra.addEventListener('input', function () { render(); scheduleVoucherQuote(); });
+
+                if (pointsInput) pointsInput.addEventListener('input', render);
+                if (voucherInput) {
+                    voucherInput.addEventListener('input', scheduleVoucherQuote);
+                    voucherInput.addEventListener('change', refreshVoucherQuote);
+                }
+
+                if (elAdults) elAdults.addEventListener('input', render);
+                if (elChildren) elChildren.addEventListener('input', render);
+                if (elInfants) elInfants.addEventListener('input', render);
+
+                var maxBtn = $('mhPointsMax');
+                if (maxBtn && pointsInput) maxBtn.addEventListener('click', function () {
+                    pointsInput.value = pointsInput.max || 0;
+                    render();
+                });
+
+                /* ========== Chặn submit nếu số khách sai ========== */
+                var form = $('mhCheckoutForm');
+                if (form) {
+                    form.addEventListener('submit', function (e) {
+                        var g = validateGuests();
+                        if (!g.valid) {
+                            e.preventDefault();
+                            alert('Vui lòng kiểm tra lại số khách — vượt quá sức chứa phòng.');
+                            return false;
+                        }
+                    });
+                }
+
+                onNhanChange();
+            })();
+        </script>
+    </section>
+</body>
+
+</html>

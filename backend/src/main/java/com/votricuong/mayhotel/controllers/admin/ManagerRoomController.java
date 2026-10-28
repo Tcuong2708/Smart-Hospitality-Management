@@ -73,6 +73,11 @@ public class ManagerRoomController extends BaseController {
             if (room.getRoomTypeId() != null && typeMap.containsKey(room.getRoomTypeId())) {
                 room.setRoomType(typeMap.get(room.getRoomTypeId()));
             }
+            String imageUrl = room.getImageUrl();
+            if ((imageUrl == null || imageUrl.isBlank()) && room.getRoomType() != null) {
+                imageUrl = room.getRoomType().getImageUrl();
+            }
+            room.setImageUrl(toDisplayImageUrl(imageUrl));
             room.setDisplayStatus(statuses.getOrDefault(room.getId(), RoomStatus.VACANT).getLabel());
             room.setStatus(RoomStatus.fromStored(room.getStatus()).getLabel());
         }
@@ -85,8 +90,16 @@ public class ManagerRoomController extends BaseController {
         model.addAttribute("isToday", selectedDate.equals(LocalDate.now(HOTEL_ZONE)));
         model.addAttribute("refreshedAtText", ZonedDateTime.now(HOTEL_ZONE).format(DISPLAY_TIMESTAMP));
         model.addAttribute("cloudinaryEnabled", cloudinaryService.isConfigured());
-        setExtraCSS(model, "view/Admin/Room/index :: extra_css");
-        return render(model, "view/Admin/Room/index");
+        setExtraCSS(model, "view/manager/rooms/index :: extra_css");
+        setExtraJS(model, "view/manager/rooms/index :: extra_js");
+        return render(model, "view/manager/rooms/index");
+    }
+
+    private String toDisplayImageUrl(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) return "/images/a1.jpg";
+        String value = imageUrl.trim();
+        if (value.startsWith("http://") || value.startsWith("https://") || value.startsWith("/")) return value;
+        return "/images/" + value;
     }
 
     @GetMapping("/rooms/create")
@@ -95,7 +108,7 @@ public class ManagerRoomController extends BaseController {
         model.addAttribute("room", new Room());
         model.addAttribute("roomTypes", roomTypeRepository.findAll());
         model.addAttribute("cloudinaryEnabled", cloudinaryService.isConfigured());
-        return render(model, "view/Admin/Room/create");
+        return render(model, "view/admin/room/create");
     }
 
     @PostMapping("/rooms/create")
@@ -198,7 +211,7 @@ public class ManagerRoomController extends BaseController {
             room.setRoomType(roomTypeRepository.findById(room.getRoomTypeId()).orElse(null));
         }
         model.addAttribute("room", room);
-        return render(model, "view/Admin/Room/details");
+        return render(model, "view/admin/room/details");
     }
 
     private void validateRoom(Room room, Long excludedId) {

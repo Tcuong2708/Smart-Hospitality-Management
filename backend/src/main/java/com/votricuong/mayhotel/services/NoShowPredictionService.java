@@ -12,6 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.temporal.ChronoUnit;
+import java.net.InetSocketAddress;
+import java.net.URI;
+import java.net.Socket;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -82,6 +85,20 @@ public class NoShowPredictionService {
             bookingOrderRepository.save(order);
             saveAlert(order, null, null, "Không kết nối được dịch vụ AI: " + safeMessage(ex), "FAILED");
             return order;
+        }
+    }
+
+    /** Kiểm tra nhanh kết nối tới AI, không gọi dự đoán và không làm thay đổi dữ liệu. */
+    public boolean isAvailable() {
+        try {
+            URI uri = URI.create(predictionUrl);
+            int port = uri.getPort() > 0 ? uri.getPort() : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
+            try (Socket socket = new Socket()) {
+                socket.connect(new InetSocketAddress(uri.getHost(), port), 700);
+                return true;
+            }
+        } catch (Exception ignored) {
+            return false;
         }
     }
 

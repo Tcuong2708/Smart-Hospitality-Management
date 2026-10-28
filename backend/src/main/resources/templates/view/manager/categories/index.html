@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css">
+        <!-- SheetJS để xuất Excel -->
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    </th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Quản lý loại phòng</span>
+                <h1 class="adm-page-title">Loại phòng</h1>
+                <p class="adm-page-sub">Quản lý danh mục loại phòng, sức chứa và tình trạng phòng.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-outline" id="btnExport">
+                    <i class="bi bi-download"></i> Xuất Excel
+                </button>
+                <button type="button" class="adm-btn adm-btn-gold" id="btnCreateCategory">
+                    <i class="bi bi-plus-lg"></i> Thêm loại phòng
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="adm-loyalty-stats" style="grid-template-columns:repeat(3, 1fr); margin-bottom:24px;">
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon"><i class="bi bi-collection"></i></div>
+                    <div class="adm-loyalty-stat-label">Tổng loại phòng</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--navy);line-height:1.1;"
+                    th:text="${categories != null ? #lists.size(categories) : 0}">0</div>
+                <div class="adm-loyalty-stat-suffix">Danh mục</div>
+            </div>
+
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon" style="background:var(--blue-bg);color:var(--blue);">
+                        <i class="bi bi-door-closed-fill"></i>
+                    </div>
+                    <div class="adm-loyalty-stat-label">Tổng số phòng</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--blue);line-height:1.1;"
+                    th:text="${categories != null and !categories.isEmpty() ? #aggregates.sum(categories.![totalRoomsCount]) : 0}">
+                    0</div>
+                <div class="adm-loyalty-stat-suffix">Trong hệ thống</div>
+            </div>
+
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon" style="background:var(--green-bg);color:var(--green);">
+                        <i class="bi bi-check-circle-fill"></i>
+                    </div>
+                    <div class="adm-loyalty-stat-label">Phòng trống</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--green);line-height:1.1;"
+                    th:text="${categories != null and !categories.isEmpty() ? #aggregates.sum(categories.![availableRoomsCount]) : 0}">
+                    0</div>
+                <div class="adm-loyalty-stat-suffix">Có thể đặt ngay</div>
+            </div>
+        </div>
+
+        <!-- Card danh sách -->
+        <div class="adm-card">
+            <div class="adm-toolbar">
+                <form th:action="@{/manager/categories}" method="get" class="adm-date-filter">
+                    <label for="categoryStatusDate"><i class="bi bi-calendar3"></i> Phòng trống ngày</label>
+                    <input id="categoryStatusDate" type="date" name="date" th:value="${selectedDate}">
+                    <button type="submit" class="adm-filter-btn"><i class="bi bi-arrow-repeat"></i> Xem</button>
+                    <span class="adm-date-note" th:text="'Đang xem ' + ${selectedDateText} + ' · cập nhật ' + ${refreshedAtText}"></span>
+                </form>
+                <div class="adm-search" style="flex:1;max-width:360px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchCategory" placeholder="Tìm loại phòng..." autocomplete="off">
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-collection" style="color:var(--gold-hover);"></i>
+                    <strong th:text="${categories != null ? #lists.size(categories) : 0}">0</strong> loại phòng
+                </div>
+            </div>
+
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th class="col-center" style="width:80px;">Mã số</th>
+                            <th class="col-center" style="width:110px;">Hình ảnh</th>
+                            <th>Tên loại phòng</th>
+                            <th class="col-center" style="width:120px;">Sức chứa</th>
+                            <th class="col-center" style="width:110px;">Tổng phòng</th>
+                            <th class="col-center" style="width:130px;">Phòng trống</th>
+                            <th class="col-center" style="width:150px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${categories == null or categories.isEmpty()}">
+                            <td colspan="7">
+                                <div class="adm-empty">
+                                    <i class="bi bi-collection"></i>
+                                    <h4>Chưa có loại phòng</h4>
+                                    <p>Bấm "Thêm loại phòng" để tạo danh mục mới.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:each="c : ${categories}" class="category-row" th:attr="data-id=${c.id},
+                                     data-name=${c.name},
+                                     data-image=${c.imageUrl},
+                                     data-max=${c.maxOccupancy},
+                                     data-total=${c.totalRoomsCount},
+                                     data-available=${c.availableRoomsCount}">
+
+                            <td class="cell-id text-center" th:text="${c.id}">1</td>
+
+                            <td class="col-center">
+                                <img th:if="${not #strings.isEmpty(c.imageUrl)}"
+                                    th:src="${c.imageUrl.startsWith('http') ? c.imageUrl : '/images/' + c.imageUrl}"
+                                    alt=""
+                                    style="width:80px;height:52px;object-fit:cover;border-radius:8px;border:1px solid var(--border);"
+                                    onerror="this.style.display='none';this.nextElementSibling.style.display='inline-flex';">
+                                <span th:if="${not #strings.isEmpty(c.imageUrl)}"
+                                    style="display:none;width:80px;height:52px;border-radius:8px;background:var(--bg);color:var(--muted);align-items:center;justify-content:center;font-size:22px;">
+                                    <i class="bi bi-image"></i>
+                                </span>
+                                <span th:if="${#strings.isEmpty(c.imageUrl)}"
+                                    style="display:inline-flex;width:80px;height:52px;border-radius:8px;background:var(--bg);color:var(--muted);align-items:center;justify-content:center;font-size:22px;">
+                                    <i class="bi bi-image"></i>
+                                </span>
+                            </td>
+
+                            <td>
+                                <strong
+                                    style="display:block;font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.35;"
+                                    class="category-name" th:text="${c.name}">Tên</strong>
+                            </td>
+
+                            <td class="col-center">
+                                <span class="adm-badge adm-badge-cat">
+                                    <i class="bi bi-people-fill"></i>
+                                    <span th:text="${c.maxOccupancy}">2</span> người
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <strong style="font-size:15px;color:var(--navy);"
+                                    th:text="${c.totalRoomsCount}">0</strong>
+                            </td>
+
+                            <td class="col-center">
+                                <span class="adm-badge adm-badge-success">
+                                    <span class="dot"></span>
+                                    <span th:text="${c.availableRoomsCount} + ' trống'">0 trống</span>
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <button type="button" class="adm-action view view-category" title="Xem chi tiết">
+                                        <i class="bi bi-eye"></i>
+                                    </button>
+                                    <button type="button" class="adm-action edit edit-category" title="Sửa">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form th:action="@{/manager/categories/delete/{id}(id=${c.id})}" method="post"
+                                        style="display:inline;" onsubmit="return confirm('Xóa loại phòng này?');">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                            th:value="${_csrf.token}">
+                                        <button type="submit" class="adm-action delete" title="Xóa">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: XEM CHI TIẾT ==================== -->
+        <div class="adm-modal-backdrop" id="viewCategoryModal">
+            <div class="adm-modal">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-eye"></i> Chi tiết loại phòng</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+
+                <div class="adm-modal-body">
+                    <div id="view-image-wrap" style="text-align:center;margin-bottom:20px;">
+                        <img id="view-image" alt=""
+                            style="max-width:100%;max-height:220px;border-radius:12px;border:1px solid var(--border);object-fit:cover;">
+                    </div>
+
+                    <div class="adm-view-facts">
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Mã loại</span>
+                            <span class="adm-view-fact-value" id="view-id">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Tên loại phòng</span>
+                            <span class="adm-view-fact-value" id="view-name">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Sức chứa tối đa</span>
+                            <span class="adm-view-fact-value" id="view-max">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Tổng số phòng</span>
+                            <span class="adm-view-fact-value" id="view-total">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Phòng trống hiện tại</span>
+                            <span class="adm-view-fact-value" id="view-available" style="color:var(--green);">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Đóng</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: SỬA ==================== -->
+        <div class="adm-modal-backdrop" id="editCategoryModal">
+            <div class="adm-modal">
+                <form id="editCategoryForm" method="post" th:action="@{/manager/categories/edit}"
+                    enctype="multipart/form-data">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <input type="hidden" name="id" id="edit-id">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-pencil-square"></i> Sửa loại phòng</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div class="adm-modal-body">
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Tên loại phòng <span class="req">*</span></label>
+                            <input type="text" name="name" id="edit-name" required placeholder="VD: Phòng Standard">
+                        </div>
+
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Số người tối đa</label>
+                            <input type="number" name="maxOccupancy" id="edit-max" min="1" value="2">
+                        </div>
+
+                        <div class="adm-field">
+                            <label>Ảnh loại phòng</label>
+                            <div style="display:flex;gap:16px;align-items:flex-start;">
+                                <img id="cate-image-preview-edit" src="" alt=""
+                                    style="width:140px;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--border);background:var(--bg);display:none;flex-shrink:0;">
+                                <div style="flex:1;">
+                                    <input type="file" name="imageFile" id="cate-image-file-edit" accept="image/*"
+                                        style="font-size:13px;">
+                                    <small style="display:block;color:var(--muted);font-size:11.5px;margin-top:6px;">
+                                        Bỏ trống nếu muốn giữ ảnh hiện tại. Chỉ chấp nhận jpg, png, gif, webp (tối đa
+                                        10MB).
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-circle"></i> Cập nhật
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: THÊM MỚI ==================== -->
+        <div class="adm-modal-backdrop" id="createCategoryModal">
+            <div class="adm-modal">
+                <form id="createCategoryForm" method="post" th:action="@{/manager/categories/create}"
+                    enctype="multipart/form-data">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-plus-circle"></i> Thêm loại phòng mới</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div class="adm-modal-body">
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Tên loại phòng <span class="req">*</span></label>
+                            <input type="text" name="name" required placeholder="VD: Phòng Standard">
+                        </div>
+
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Số người tối đa</label>
+                            <input type="number" name="maxOccupancy" min="1" value="2">
+                        </div>
+
+                        <div class="adm-field">
+                            <label>Ảnh loại phòng</label>
+                            <div style="display:flex;gap:16px;align-items:flex-start;">
+                                <div style="flex-shrink:0;">
+                                    <img id="cate-image-preview" src="" alt=""
+                                        style="width:140px;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--gold);display:none;">
+                                    <div id="cate-image-placeholder"
+                                        style="width:140px;height:100px;border-radius:8px;border:1px dashed var(--border);background:var(--bg-cream);display:flex;align-items:center;justify-content:center;color:var(--muted);font-size:24px;">
+                                        <i class="bi bi-image"></i>
+                                    </div>
+                                </div>
+                                <div style="flex:1;">
+                                    <input type="file" name="imageFile" id="cate-image-file" accept="image/*"
+                                        style="font-size:13px;">
+                                    <small style="display:block;color:var(--muted);font-size:11.5px;margin-top:6px;">
+                                        Chọn ảnh loại phòng (jpg, png, gif, webp — tối đa 10MB).
+                                    </small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-circle"></i> Lưu thông tin
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function ready(fn) {
+                    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+                    else fn();
+                }
+
+                ready(function () {
+                    window.ADM_PAGE_MODULE = 'category';
+                    var get = function (id) { return document.getElementById(id); };
+
+                    function imgSrc(url) {
+                        if (!url) return '';
+                        return url.startsWith('http') ? url : ('/images/' + url);
+                    }
+
+                    /* --- Mở modal Thêm mới --- */
+                    var btnCreate = get('btnCreateCategory');
+                    if (btnCreate) {
+                        btnCreate.addEventListener('click', function () {
+                            get('createCategoryForm').reset();
+                            var file = get('cate-image-file');
+                            if (file) file.value = '';
+                            var img = get('cate-image-preview');
+                            var ph = get('cate-image-placeholder');
+                            if (img) { img.src = ''; img.style.display = 'none'; }
+                            if (ph) ph.style.display = 'flex';
+                            if (typeof AdmModal !== 'undefined') AdmModal.open('createCategoryModal');
+                        });
+                    }
+
+                    /* --- Preview ảnh create --- */
+                    var cFile = get('cate-image-file');
+                    if (cFile) {
+                        cFile.addEventListener('change', function (e) {
+                            var f = e.target.files[0];
+                            if (!f) return;
+                            var reader = new FileReader();
+                            reader.onload = function (ev) {
+                                var img = get('cate-image-preview');
+                                var ph = get('cate-image-placeholder');
+                                if (img) { img.src = ev.target.result; img.style.display = 'block'; }
+                                if (ph) ph.style.display = 'none';
+                            };
+                            reader.readAsDataURL(f);
+                        });
+                    }
+
+                    /* --- Preview ảnh edit --- */
+                    var eFile = get('cate-image-file-edit');
+                    if (eFile) {
+                        eFile.addEventListener('change', function (e) {
+                            var f = e.target.files[0];
+                            if (!f) return;
+                            var reader = new FileReader();
+                            reader.onload = function (ev) {
+                                var img = get('cate-image-preview-edit');
+                                if (img) { img.src = ev.target.result; img.style.display = 'block'; }
+                            };
+                            reader.readAsDataURL(f);
+                        });
+                    }
+
+                    /* --- Xử lý View/Edit button (dùng row data) --- */
+                    document.addEventListener('click', function (e) {
+                        var btn = e.target.closest('.view-category, .edit-category');
+                        if (!btn) return;
+                        var row = btn.closest('.category-row');
+                        if (!row) return;
+                        var d = row.dataset;
+
+                        if (btn.classList.contains('view-category')) {
+                            get('view-id').textContent = d.id || '—';
+                            get('view-name').textContent = d.name || '—';
+                            get('view-max').textContent = (d.max || '—') + ' người';
+                            get('view-total').textContent = d.total || '0';
+                            get('view-available').textContent = (d.available || '0') + ' trống';
+
+                            var img = get('view-image');
+                            var imgWrap = get('view-image-wrap');
+                            var url = d.image || '';
+                            if (url && img && imgWrap) {
+                                img.src = imgSrc(url);
+                                imgWrap.style.display = '';
+                            } else if (imgWrap) {
+                                imgWrap.style.display = 'none';
+                            }
+
+                            if (typeof AdmModal !== 'undefined') AdmModal.open('viewCategoryModal');
+                        }
+
+                        if (btn.classList.contains('edit-category')) {
+                            get('edit-id').value = d.id || '';
+                            get('edit-name').value = d.name || '';
+                            get('edit-max').value = d.max || 2;
+
+                            var fileInput = get('cate-image-file-edit');
+                            if (fileInput) fileInput.value = '';
+
+                            var preview = get('cate-image-preview-edit');
+                            var url = d.image || '';
+                            if (preview && url) {
+                                preview.src = imgSrc(url);
+                                preview.style.display = 'block';
+                            } else if (preview) {
+                                preview.style.display = 'none';
+                            }
+
+                            if (typeof AdmModal !== 'undefined') AdmModal.open('editCategoryModal');
+                        }
+                    });
+
+                    /* --- Search --- */
+                    var searchInput = get('searchCategory');
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function (e) {
+                            var q = e.target.value.toLowerCase();
+                            document.querySelectorAll('.category-row').forEach(function (row) {
+                                var nameEl = row.querySelector('.category-name');
+                                var name = nameEl ? nameEl.innerText.toLowerCase() : '';
+                                row.style.display = name.indexOf(q) >= 0 ? '' : 'none';
+                            });
+                        });
+                    }
+
+                    /* --- Export Excel --- */
+                    var btnExport = get('btnExport');
+                    if (btnExport) {
+                        btnExport.addEventListener('click', function () {
+                            if (typeof XLSX === 'undefined') {
+                                if (typeof toast === 'function') toast('Thư viện Excel chưa load, thử lại', 'danger');
+                                return;
+                            }
+
+                            var allRows = Array.from(document.querySelectorAll('.category-row'));
+                            if (!allRows.length) {
+                                if (typeof toast === 'function') toast('Không có dữ liệu để xuất', 'warning');
+                                return;
+                            }
+
+                            var data = [
+                                ['Mã', 'Tên loại phòng', 'Sức chứa tối đa', 'Tổng phòng', 'Phòng trống', 'URL ảnh']
+                            ];
+
+                            allRows.forEach(function (row) {
+                                var d = row.dataset;
+                                data.push([
+                                    d.id || '',
+                                    d.name || '',
+                                    parseInt(d.max) || 0,
+                                    parseInt(d.total) || 0,
+                                    parseInt(d.available) || 0,
+                                    d.image || ''
+                                ]);
+                            });
+
+                            var ws = XLSX.utils.aoa_to_sheet(data);
+                            ws['!cols'] = [
+                                { wch: 8 }, { wch: 25 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 50 }
+                            ];
+
+                            var wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Loại phòng');
+
+                            var now = new Date();
+                            var dateStr = now.getFullYear()
+                                + String(now.getMonth() + 1).padStart(2, '0')
+                                + String(now.getDate()).padStart(2, '0')
+                                + '_'
+                                + String(now.getHours()).padStart(2, '0')
+                                + String(now.getMinutes()).padStart(2, '0');
+
+                            XLSX.writeFile(wb, 'loai-phong_' + dateStr + '.xlsx');
+
+                            if (typeof toast === 'function') {
+                                toast('Đã xuất ' + allRows.length + ' loại phòng ra Excel');
+                            }
+                        });
+                    }
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

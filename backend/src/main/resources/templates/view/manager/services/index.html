@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css">
+        <!-- SheetJS để xuất Excel -->
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    </th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page header -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Dịch vụ khách sạn</span>
+                <h1 class="adm-page-title">Quản lý dịch vụ</h1>
+                <p class="adm-page-sub">Quản lý danh sách, đơn giá và đơn vị tính của từng dịch vụ.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-outline" id="btnExport">
+                    <i class="bi bi-download"></i> Xuất Excel
+                </button>
+                <button type="button" class="adm-btn adm-btn-gold" data-adm-open="modalCreate">
+                    <i class="bi bi-plus-lg"></i> Thêm dịch vụ mới
+                </button>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="adm-card">
+
+            <!-- Toolbar -->
+            <div class="adm-toolbar">
+                <div class="adm-search" id="searchWrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchService" placeholder="Tìm theo tên dịch vụ...">
+                    <button type="button" class="adm-search-clear" id="searchClear" aria-label="Xóa tìm kiếm">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-briefcase" style="color:var(--gold-hover);"></i>
+                    <strong id="svcCount" th:text="${#lists.size(services)}">0</strong> dịch vụ
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="adm-table-wrap">
+                <table class="adm-table" id="svcTable">
+                    <thead>
+                        <tr>
+                            <th style="width:80px;">Mã</th>
+                            <th>Tên dịch vụ</th>
+                            <th class="col-right">Đơn giá</th>
+                            <th class="col-center">Đơn vị tính</th>
+                            <th class="col-center" style="width:140px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="svcTbody">
+                        <tr th:if="${services == null or services.isEmpty()}">
+                            <td colspan="5">
+                                <div class="adm-empty">
+                                    <i class="bi bi-briefcase"></i>
+                                    <h4>Chưa có dịch vụ nào</h4>
+                                    <p>Bấm nút "Thêm dịch vụ mới" để tạo dịch vụ đầu tiên.</p>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr th:each="s : ${services}" class="svc-row"
+                            th:attr="data-id=${s.id}, data-name=${s.name}, data-price=${s.price}, data-unit=${s.unit}">
+                            <td class="cell-id" th:text="${s.id}">1</td>
+                            <td class="cell-name svc-name fw-semibold" th:text="${s.name}">Giặt là</td>
+                            <td class="cell-price col-right fw-bold"
+                                th:text="${#numbers.formatDecimal(s.price, 0, 'POINT', 0, 'COMMA')} + ' đ'">50,000 đ
+                            </td>
+                            <td class="col-center text-muted" th:text="${s.unit}">Lần</td>
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <button type="button" class="adm-action edit" title="Sửa" data-action="edit">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <button type="button" class="adm-action delete" title="Xóa" data-action="delete">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="adm-pagination" id="svcPagination" aria-label="Phân trang danh sách dịch vụ"></div>
+        </div>
+
+
+        <!-- ==================== MODAL: CREATE ==================== -->
+        <div class="adm-modal-backdrop" id="modalCreate">
+            <div class="adm-modal">
+                <form th:action="@{/manager/services/create}" method="post">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-plus-circle"></i> Thêm dịch vụ mới</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="adm-modal-body">
+                        <div class="adm-form-row">
+                            <div class="adm-field" style="grid-column:1/-1;">
+                                <label>Tên dịch vụ <span class="req">*</span></label>
+                                <input type="text" name="name" required placeholder="Ví dụ: Giặt là, Spa...">
+                            </div>
+                        </div>
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Đơn giá (VNĐ) <span class="req">*</span></label>
+                                <input type="number" name="price" required min="0" placeholder="50000">
+                            </div>
+                            <div class="adm-field">
+                                <label>Đơn vị tính <span class="req">*</span></label>
+                                <input type="text" name="unit" required placeholder="Lần, Bữa, Chiếc...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-plus-lg"></i> Tạo dịch vụ
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: EDIT ==================== -->
+        <div class="adm-modal-backdrop" id="modalEdit">
+            <div class="adm-modal">
+                <form th:action="@{/manager/services/edit}" method="post">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <input type="hidden" name="id" id="eId">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-pencil-square"></i> Chỉnh sửa dịch vụ</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="adm-modal-body">
+                        <div class="adm-form-row">
+                            <div class="adm-field" style="grid-column:1/-1;">
+                                <label>Tên dịch vụ <span class="req">*</span></label>
+                                <input type="text" name="name" id="eName" required>
+                            </div>
+                        </div>
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Đơn giá (VNĐ) <span class="req">*</span></label>
+                                <input type="number" name="price" id="ePrice" required min="0">
+                            </div>
+                            <div class="adm-field">
+                                <label>Đơn vị tính <span class="req">*</span></label>
+                                <input type="text" name="unit" id="eUnit" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-lg"></i> Lưu thay đổi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: DELETE ==================== -->
+        <div class="adm-modal-backdrop" id="modalDelete">
+            <div class="adm-modal" style="max-width:440px;">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-exclamation-triangle" style="color:var(--red);"></i> Xác nhận xóa</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="adm-modal-body" style="text-align:center;">
+                    <p style="font-size:14px;color:var(--text-soft);margin-bottom:12px;">
+                        Bạn có chắc chắn muốn xóa dịch vụ
+                    </p>
+                    <p id="delSvcName"
+                        style="font-family:var(--font-heading);font-size:22px;font-weight:700;color:var(--navy);">—</p>
+                    <p style="font-size:13px;color:var(--muted);margin-top:8px;">Hành động này không thể hoàn tác.</p>
+                </div>
+                <div class="adm-modal-foot" style="justify-content:center;">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <form id="deleteForm" method="post" style="display:inline;">
+                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}">
+                        <button type="submit" class="adm-btn adm-btn-danger">
+                            <i class="bi bi-trash"></i> Xóa dịch vụ
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                var rows = Array.from(document.querySelectorAll('.svc-row'));
+                var searchInput = document.getElementById('searchService');
+                var searchWrap = document.getElementById('searchWrap');
+                var searchClear = document.getElementById('searchClear');
+                var svcPager = null;
+
+                /* ── Search ── */
+                searchInput.addEventListener('input', function () {
+                    searchWrap.classList.toggle('has-value', this.value.length > 0);
+                    applyFilter();
+                });
+                searchClear.addEventListener('click', function () {
+                    searchInput.value = '';
+                    searchWrap.classList.remove('has-value');
+                    applyFilter();
+                    searchInput.focus();
+                });
+
+                function applyFilter() {
+                    var kw = searchInput.value.toLowerCase().trim();
+                    var count = 0;
+                    rows.forEach(function (row) {
+                        var name = row.querySelector('.svc-name').innerText.toLowerCase();
+                        var ok = !kw || name.indexOf(kw) >= 0;
+                        row.dataset.paginationHidden = ok ? 'false' : 'true';
+                        row.style.display = ok ? '' : 'none';
+                        if (ok) count++;
+                    });
+                    document.getElementById('svcCount').textContent = count;
+                    if (svcPager) { svcPager.page = 1; svcPager.refresh(); }
+                }
+
+                /* ── Row action clicks ── */
+                document.addEventListener('click', function (e) {
+                    var btn = e.target.closest('[data-action]');
+                    if (!btn) return;
+                    var row = btn.closest('.svc-row');
+                    if (!row) return;
+                    var d = row.dataset;
+                    var act = btn.dataset.action;
+
+                    if (act === 'edit') {
+                        document.getElementById('eId').value = d.id;
+                        document.getElementById('eName').value = d.name;
+                        document.getElementById('ePrice').value = d.price;
+                        document.getElementById('eUnit').value = d.unit;
+                        document.getElementById('modalEdit').classList.add('is-open');
+                        document.body.style.overflow = 'hidden';
+                    }
+
+                    if (act === 'delete') {
+                        document.getElementById('delSvcName').textContent = d.name;
+                        document.getElementById('deleteForm').action = '/manager/services/delete/' + d.id;
+                        document.getElementById('modalDelete').classList.add('is-open');
+                        document.body.style.overflow = 'hidden';
+                    }
+                });
+
+                /* ── EXPORT EXCEL ── */
+                var btnExport = document.getElementById('btnExport');
+                if (btnExport) {
+                    btnExport.addEventListener('click', function () {
+                        if (typeof XLSX === 'undefined') {
+                            if (typeof toast === 'function') toast('Thư viện Excel chưa load, thử lại', 'danger');
+                            return;
+                        }
+
+                        var allRows = Array.from(document.querySelectorAll('.svc-row'));
+                        if (!allRows.length) {
+                            if (typeof toast === 'function') toast('Không có dữ liệu để xuất', 'warning');
+                            return;
+                        }
+
+                        var data = [
+                            ['Mã', 'Tên dịch vụ', 'Đơn giá (VNĐ)', 'Đơn vị tính']
+                        ];
+
+                        allRows.forEach(function (row) {
+                            var d = row.dataset;
+                            data.push([
+                                d.id || '',
+                                d.name || '',
+                                parseFloat(d.price) || 0,
+                                d.unit || ''
+                            ]);
+                        });
+
+                        var ws = XLSX.utils.aoa_to_sheet(data);
+                        ws['!cols'] = [
+                            { wch: 8 },
+                            { wch: 35 },
+                            { wch: 15 },
+                            { wch: 15 }
+                        ];
+
+                        var wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, 'Dịch vụ');
+
+                        var now = new Date();
+                        var dateStr = now.getFullYear()
+                            + String(now.getMonth() + 1).padStart(2, '0')
+                            + String(now.getDate()).padStart(2, '0')
+                            + '_'
+                            + String(now.getHours()).padStart(2, '0')
+                            + String(now.getMinutes()).padStart(2, '0');
+
+                        XLSX.writeFile(wb, 'danh-sach-dich-vu_' + dateStr + '.xlsx');
+
+                        if (typeof toast === 'function') {
+                            toast('Đã xuất ' + allRows.length + ' dịch vụ ra Excel');
+                        }
+                    });
+                }
+
+                /* ── Init pagination ── */
+                window.addEventListener('load', function () {
+                    svcPager = window.AdmPagination && window.AdmPagination.init({
+                        table: '#svcTable',
+                        rowSelector: '.svc-row',
+                        container: '#svcPagination',
+                        count: '#svcCount',
+                        pageSize: 10
+                    });
+                    applyFilter();
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

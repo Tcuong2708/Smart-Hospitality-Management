@@ -1,0 +1,732 @@
+﻿<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+    <div th:fragment="body_content" class="manager-page-shell manager-fill-page">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Hệ thống</span>
+                <h1 class="adm-page-title">Quản lý người dùng</h1>
+                <p class="adm-page-sub">Quản lý tài khoản, phân quyền và trạng thái hoạt động của nhân viên.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-gold" id="btnCreateUser">
+                    <i class="bi bi-person-plus"></i> Thêm người dùng
+                </button>
+            </div>
+        </div>
+
+        <div class="adm-card manager-fill-card">
+
+            <!-- Toolbar -->
+            <div class="adm-toolbar">
+                <div class="adm-search" id="searchUserWrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchUser" autocomplete="off"
+                        placeholder="Tìm theo username, email, họ tên...">
+                    <button type="button" class="adm-search-clear" id="searchUserClear" aria-label="Xóa tìm kiếm">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterRole">
+                        <i class="bi bi-shield-check"></i>
+                        <span>Vai trò</span>
+                        <span class="adm-filter-badge" id="badgeRole" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Vai trò</strong>
+                            <button type="button" data-clear="role">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterRoleDropdown"></div>
+                    </div>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterStatus">
+                        <i class="bi bi-circle-half"></i>
+                        <span>Trạng thái</span>
+                        <span class="adm-filter-badge" id="badgeStatus" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Trạng thái</strong>
+                            <button type="button" data-clear="status">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterStatusDropdown"></div>
+                    </div>
+                </div>
+
+                <div class="adm-result-count">
+                    <i class="bi bi-people" style="color:var(--gold-hover);"></i>
+                    <strong id="userCount" th:text="${#lists.size(users)}">0</strong> người dùng
+                </div>
+            </div>
+
+            <!-- Chip bar -->
+            <div class="adm-chips" id="filterChips"></div>
+
+            <!-- Table -->
+            <div class="adm-table-wrap manager-fill-body">
+                <table class="adm-table" id="userTable">
+                    <thead>
+                        <tr>
+                            <th>Người dùng</th>
+                            <th style="width:180px;">Tên đăng nhập</th>
+                            <th style="width:140px;">Quốc tịch</th>
+                            <th class="col-center" style="width:160px;">Vai trò</th>
+                            <th class="col-center" style="width:140px;">Trạng thái</th>
+                            <th class="col-center" style="width:130px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="userTbody">
+
+                        <tr th:if="${users == null or #lists.isEmpty(users)}">
+                            <td colspan="6">
+                                <div class="adm-empty">
+                                    <i class="bi bi-people"></i>
+                                    <h4>Chưa có người dùng nào</h4>
+                                    <p>Bấm "Thêm người dùng" để tạo tài khoản đầu tiên.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:unless="${users == null or #lists.isEmpty(users)}" th:each="u : ${users}"
+                            class="user-row" th:with="isActive=${u.status == 'Hoạt động' or u.status == 'Active' or u.status == 'ACTIVE'},
+                                     displayName=${u.fullName != null ? u.fullName : (u.email != null ? u.email : u.username)},
+                                     chuDau=${displayName != null and !displayName.isEmpty()
+                                            ? #strings.substring(displayName, 0, 1).toUpperCase()
+                                            : 'U'},
+                                     roleId=${u.roleId != null ? u.roleId : 5}" th:attr="data-id=${u.id},
+                                     data-username=${u.username},
+                                     data-fullname=${u.fullName},
+                                     data-email=${u.email},
+                                     data-phone=${u.phone},
+                                     data-quoctich=${u.quocTich},
+                                     data-role=${roleId},
+                                     data-status=${isActive ? 'active' : 'locked'}">
+
+                            <td>
+                                <div class="adm-user-cell">
+                                    <div class="adm-user-cell-avatar" th:classappend="${!isActive} ? 'is-locked'"
+                                        th:text="${chuDau}">A</div>
+                                    <div class="adm-user-cell-body">
+                                        <strong th:text="${displayName}">Nguyễn Văn A</strong>
+                                        <small th:if="${u.email != null and !u.email.isEmpty()}"
+                                            th:text="${u.email}">email@mayhotel.com</small>
+                                        <small th:unless="${u.email != null and !u.email.isEmpty()}"
+                                            style="font-style:italic;">Chưa cập nhật email</small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <span class="adm-username-chip">
+                                    <i class="bi bi-person-badge"></i>
+                                    <span th:text="${u.username}">admin</span>
+                                </span>
+                            </td>
+
+                            <td class="text-muted" th:text="${u.quocTich} ?: 'Việt Nam'">Việt Nam</td>
+
+                            <td class="col-center">
+                                <span th:if="${roleId == 1}" class="adm-role role-admin">
+                                    <i class="bi bi-shield-fill-check"></i> Quản trị viên
+                                </span>
+                                <span th:if="${roleId == 2}" class="adm-role role-manager">
+                                    <i class="bi bi-briefcase-fill"></i> Quản lý
+                                </span>
+                                <span th:if="${roleId == 3}" class="adm-role role-staff">
+                                    <i class="bi bi-person-badge-fill"></i> Lễ tân
+                                </span>
+                                <span th:if="${roleId == 4}" class="adm-role role-staff">
+                                    <i class="bi bi-brush-fill"></i> Buồng phòng
+                                </span>
+                                <span th:if="${roleId == 6}" class="adm-role role-staff">
+                                    <i class="bi bi-bell-fill"></i> Dịch vụ
+                                </span>
+                                <span th:if="${roleId == 7}" class="adm-role role-staff">
+                                    <i class="bi bi-calculator-fill"></i> Kế toán
+                                </span>
+                                <span th:if="${roleId == 5}" class="adm-role role-customer">
+                                    <i class="bi bi-person-fill"></i> Khách hàng
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <span th:if="${isActive}" class="adm-badge adm-badge-success">
+                                    <span class="dot"></span> Hoạt động
+                                </span>
+                                <span th:unless="${isActive}" class="adm-badge adm-badge-neutral">
+                                    <span class="dot"></span> Bị khóa
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <button type="button" class="adm-action edit" data-action="edit"
+                                        title="Sửa thông tin / Phân quyền">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+
+                                    <button type="button" class="adm-action" data-action="toggle"
+                                        th:classappend="${!isActive} ? 'view' : 'delete'"
+                                        th:title="${!isActive} ? 'Mở khóa tài khoản' : 'Khóa tài khoản'">
+                                        <i th:class="${!isActive} ? 'bi bi-unlock-fill' : 'bi bi-lock-fill'"></i>
+                                    </button>
+
+                                    <button type="button" class="adm-action delete" data-action="delete" title="Xóa">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="adm-pagination" id="userPagination" style="display:none;"></div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════════════════
+             MODAL: CREATE / EDIT
+             ═════════════════════════════════════════════════════════════ -->
+        <div class="adm-modal-backdrop" id="userModal">
+            <div class="adm-modal lg">
+                <form id="userForm" method="post" th:action="@{/admin/users/create}">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <input type="hidden" id="form-user-id">
+                    <input type="hidden" name="role" id="form-user-role-string">
+
+                    <div class="adm-modal-head">
+                        <h3>
+                            <i class="bi bi-person-plus-fill"></i>
+                            <span id="userModalTitle">Thêm người dùng</span>
+                        </h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body">
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label for="form-user-fullname">Họ tên <span class="req">*</span></label>
+                                <input type="text" id="form-user-fullname" name="fullName" required maxlength="100"
+                                    placeholder="Nguyễn Văn A">
+                            </div>
+                            <div class="adm-field">
+                                <label for="form-user-username">Tên đăng nhập <span class="req">*</span></label>
+                                <input type="text" id="form-user-username" name="username" required minlength="3"
+                                    maxlength="30" placeholder="nguyenvana">
+                                <small id="form-user-username-hint" style="display:none;">
+                                    Không thể đổi tên đăng nhập khi chỉnh sửa
+                                </small>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label for="form-user-email">Email</label>
+                                <input type="email" id="form-user-email" name="email" maxlength="100"
+                                    placeholder="email@mayhotel.com">
+                            </div>
+                            <div class="adm-field">
+                                <label for="form-user-phone">Số điện thoại</label>
+                                <input type="tel" id="form-user-phone" name="phone" maxlength="20"
+                                    placeholder="0901234567">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label for="form-user-quoctich">Quốc tịch</label>
+                                <input type="text" id="form-user-quoctich" name="quocTich" maxlength="50"
+                                    value="Việt Nam" placeholder="Việt Nam">
+                            </div>
+                            <div class="adm-field">
+                                <label for="form-user-password" id="form-user-password-label">
+                                    Mật khẩu <span class="req">*</span>
+                                </label>
+                                <input type="password" id="form-user-password" name="password" minlength="6"
+                                    maxlength="100" placeholder="Ít nhất 6 ký tự">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label for="form-user-role">Vai trò <span class="req">*</span></label>
+                                <select id="form-user-role" name="roleId" required>
+                                    <option value="1" data-role="ADMIN">Quản trị viên</option>
+                                    <option value="2" data-role="MANAGER">Quản lý</option>
+                                    <option value="3" data-role="RECEPTIONIST">Lễ tân</option>
+                                    <option value="4" data-role="HOUSEKEEPING">Buồng phòng</option>
+                                    <option value="5" data-role="CUSTOMER">Khách hàng</option>
+                                    <option value="6" data-role="SERVICE_STAFF">Dịch vụ</option>
+                                    <option value="7" data-role="ACCOUNTANT">Kế toán</option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label for="form-user-status">Trạng thái <span class="req">*</span></label>
+                                <select id="form-user-status" name="status" required>
+                                    <option value="Hoạt động">Hoạt động</option>
+                                    <option value="Bị khóa">Bị khóa</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-lg"></i> Lưu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════════════════
+             MODAL: DELETE CONFIRM
+             ═════════════════════════════════════════════════════════════ -->
+        <div class="adm-modal-backdrop" id="deleteUserModal">
+            <div class="adm-modal" style="max-width:440px;">
+                <form id="deleteUserForm" method="post" th:action="@{/admin/users/delete/0}">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3>
+                            <i class="bi bi-exclamation-triangle" style="color:var(--red);"></i>
+                            Xác nhận xóa
+                        </h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body" style="text-align:center;">
+                        <div class="adm-delete-icon-modal">
+                            <i class="bi bi-trash"></i>
+                        </div>
+                        <p style="font-size:14px;color:var(--text-soft);margin-bottom:12px;">
+                            Bạn có chắc chắn muốn xóa tài khoản
+                        </p>
+                        <p id="deleteUserName"
+                            style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--navy);">
+                            —
+                        </p>
+                        <p style="font-size:13px;color:var(--muted);margin-top:8px;">
+                            Hành động này không thể hoàn tác.
+                        </p>
+                    </div>
+
+                    <div class="adm-modal-foot" style="justify-content:center;">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-danger">
+                            <i class="bi bi-trash"></i> Xóa tài khoản
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- ═════════════════════════════════════════════════════════════
+             MODAL: TOGGLE STATUS CONFIRM
+             ═════════════════════════════════════════════════════════════ -->
+        <div class="adm-modal-backdrop" id="toggleUserModal">
+            <div class="adm-modal" style="max-width:440px;">
+                <form id="toggleUserForm" method="post" th:action="@{/admin/users/toggle-status/0}">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3>
+                            <i class="bi bi-shield-exclamation" style="color:var(--yellow);"></i>
+                            Xác nhận thay đổi trạng thái
+                        </h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body" style="text-align:center;">
+                        <div class="adm-delete-icon-modal" style="background:var(--yellow-bg);color:var(--yellow);">
+                            <i class="bi bi-lock-fill" id="toggleIcon"></i>
+                        </div>
+                        <p style="font-size:14px;color:var(--text-soft);margin-bottom:12px;">
+                            Bạn có chắc chắn muốn <strong id="toggleNewStatus">khóa</strong> tài khoản
+                        </p>
+                        <p id="toggleUserName"
+                            style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--navy);">
+                            —
+                        </p>
+                        <p style="font-size:13px;color:var(--muted);margin-top:8px;">
+                            Người dùng sẽ <strong id="toggleEffect">không thể đăng nhập</strong> sau khi thay đổi.
+                        </p>
+                    </div>
+
+                    <div class="adm-modal-foot" style="justify-content:center;">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-warning">
+                            <i class="bi bi-check-lg"></i> Xác nhận
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ═════════════════════════════════════════════════════════════
+         EXTRA JS
+         ═════════════════════════════════════════════════════════════ -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function init() {
+                    /* ════════════════ FILTER + PAGINATION ════════════════ */
+                    var rows = Array.prototype.slice.call(document.querySelectorAll('.user-row'));
+
+                    var searchInput = document.getElementById('searchUser');
+                    var searchWrap = document.getElementById('searchUserWrap');
+                    var searchClear = document.getElementById('searchUserClear');
+                    var chips = document.getElementById('filterChips');
+                    var countEl = document.getElementById('userCount');
+                    var paginationContainer = document.getElementById('userPagination');
+
+                    var ROLE_LABELS = {
+                        1: 'Quản trị viên', 2: 'Quản lý', 3: 'Lễ tân',
+                        4: 'Buồng phòng', 6: 'Dịch vụ', 7: 'Kế toán', 5: 'Khách hàng'
+                    };
+                    var STATUS_LABELS = { active: 'Hoạt động', locked: 'Bị khóa' };
+
+                    var keyword = '';
+                    var filteredRows = rows.slice();
+                    var currentPage = 1;
+                    var pageSize = 10;
+                    var timer = null;
+
+                    function buildFilter(containerId, cls, key, labelFn) {
+                        var box = document.getElementById(containerId);
+                        if (!box) return;
+                        var map = {};
+                        rows.forEach(function (r) {
+                            var v = r.dataset[key];
+                            if (v == null) return;
+                            map[v] = (map[v] || 0) + 1;
+                        });
+                        var keys = Object.keys(map).sort(function (a, b) {
+                            return String(a).localeCompare(String(b), 'vi');
+                        });
+                        if (!keys.length) {
+                            box.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12.5px;">Không có dữ liệu</div>';
+                            return;
+                        }
+                        box.innerHTML = keys.map(function (k, i) {
+                            var id = cls + '_' + i;
+                            return '<label class="adm-filter-option" for="' + id + '">'
+                                + '<input type="checkbox" class="' + cls + '" value="' + k + '" id="' + id + '">'
+                                + '<span class="adm-filter-option-label">' + labelFn(k) + '</span>'
+                                + '<span class="adm-filter-option-count">' + map[k] + '</span>'
+                                + '</label>';
+                        }).join('');
+                        box.querySelectorAll('input').forEach(function (cb) {
+                            cb.addEventListener('change', applyFilters);
+                        });
+                    }
+
+                    buildFilter('filterRoleDropdown', 'filter-role', 'role',
+                        function (k) { return ROLE_LABELS[k] || ('Vai trò ' + k); });
+                    buildFilter('filterStatusDropdown', 'filter-status', 'status',
+                        function (k) { return STATUS_LABELS[k] || k; });
+
+                    function applyFilters() {
+                        var roles = Array.prototype.slice.call(
+                            document.querySelectorAll('.filter-role:checked')
+                        ).map(function (c) { return c.value; });
+                        var statuses = Array.prototype.slice.call(
+                            document.querySelectorAll('.filter-status:checked')
+                        ).map(function (c) { return c.value; });
+
+                        filteredRows = rows.filter(function (row) {
+                            var text = row.textContent.toLowerCase();
+                            var role = row.dataset.role;
+                            var status = row.dataset.status;
+                            return (!keyword || text.indexOf(keyword) >= 0)
+                                && (!roles.length || roles.indexOf(role) >= 0)
+                                && (!statuses.length || statuses.indexOf(status) >= 0);
+                        });
+
+                        currentPage = 1;
+                        if (countEl) countEl.textContent = filteredRows.length;
+                        updateBadge('badgeRole', 'btnFilterRole', roles.length);
+                        updateBadge('badgeStatus', 'btnFilterStatus', statuses.length);
+                        renderChips(roles, statuses);
+                        renderPage();
+                    }
+
+                    function renderPage() {
+                        rows.forEach(function (r) { r.style.display = 'none'; });
+                        var totalPages = Math.max(1, Math.ceil(filteredRows.length / pageSize));
+                        if (currentPage > totalPages) currentPage = totalPages;
+                        var start = (currentPage - 1) * pageSize;
+                        filteredRows.slice(start, start + pageSize).forEach(function (r) {
+                            r.style.display = '';
+                        });
+                        renderPagination(totalPages);
+                    }
+
+                    function renderPagination(totalPages) {
+                        if (!paginationContainer) return;
+                        if (totalPages <= 1 || filteredRows.length === 0) {
+                            paginationContainer.innerHTML = '';
+                            paginationContainer.style.display = 'none';
+                            return;
+                        }
+                        paginationContainer.style.display = 'flex';
+                        var html = '<button type="button" class="adm-pagination-btn" data-page="prev"'
+                            + (currentPage === 1 ? ' disabled' : '')
+                            + '><i class="bi bi-chevron-left"></i></button>';
+                        for (var i = 1; i <= totalPages; i++) {
+                            html += '<button type="button" class="adm-pagination-btn'
+                                + (i === currentPage ? ' is-active' : '')
+                                + '" data-page="' + i + '">' + i + '</button>';
+                        }
+                        html += '<button type="button" class="adm-pagination-btn" data-page="next"'
+                            + (currentPage === totalPages ? ' disabled' : '')
+                            + '><i class="bi bi-chevron-right"></i></button>';
+                        paginationContainer.innerHTML = html;
+                        paginationContainer.querySelectorAll('[data-page]').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                if (btn.disabled) return;
+                                var v = btn.dataset.page;
+                                if (v === 'prev') currentPage--;
+                                else if (v === 'next') currentPage++;
+                                else currentPage = parseInt(v, 10);
+                                renderPage();
+                            });
+                        });
+                    }
+
+                    function updateBadge(badgeId, btnId, count) {
+                        var badge = document.getElementById(badgeId);
+                        var btn = document.getElementById(btnId);
+                        if (!badge || !btn) return;
+                        if (count > 0) {
+                            badge.textContent = count;
+                            badge.style.display = 'inline-flex';
+                            btn.classList.add('is-active');
+                        } else {
+                            badge.style.display = 'none';
+                            btn.classList.remove('is-active');
+                        }
+                    }
+
+                    function renderChips(roles, statuses) {
+                        var html = '';
+                        roles.forEach(function (r) {
+                            html += '<span class="adm-chip"><span>' + (ROLE_LABELS[r] || r)
+                                + '</span><button type="button" data-chip-role="' + r + '">×</button></span>';
+                        });
+                        statuses.forEach(function (s) {
+                            html += '<span class="adm-chip"><span>' + (STATUS_LABELS[s] || s)
+                                + '</span><button type="button" data-chip-status="' + s + '">×</button></span>';
+                        });
+                        chips.innerHTML = html;
+
+                        chips.querySelectorAll('button[data-chip-role]').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                var cb = document.querySelector('.filter-role[value="' + btn.dataset.chipRole + '"]');
+                                if (cb) { cb.checked = false; applyFilters(); }
+                            });
+                        });
+                        chips.querySelectorAll('button[data-chip-status]').forEach(function (btn) {
+                            btn.addEventListener('click', function () {
+                                var cb = document.querySelector('.filter-status[value="' + btn.dataset.chipStatus + '"]');
+                                if (cb) { cb.checked = false; applyFilters(); }
+                            });
+                        });
+                    }
+
+                    /* ════════════════ EVENTS FILTER ════════════════ */
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function () {
+                            var v = this.value.trim().toLowerCase();
+                            searchWrap.classList.toggle('has-value', !!v);
+                            clearTimeout(timer);
+                            timer = setTimeout(function () {
+                                keyword = v;
+                                applyFilters();
+                            }, 150);
+                        });
+                    }
+                    if (searchClear) {
+                        searchClear.addEventListener('click', function () {
+                            searchInput.value = '';
+                            keyword = '';
+                            searchWrap.classList.remove('has-value');
+                            applyFilters();
+                            searchInput.focus();
+                        });
+                    }
+                    document.querySelectorAll('[data-clear]').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var type = btn.dataset.clear;
+                            document.querySelectorAll('.filter-' + type).forEach(function (cb) {
+                                cb.checked = false;
+                            });
+                            applyFilters();
+                        });
+                    });
+
+                    /* ════════════════ MODAL HANDLERS ════════════════ */
+                    var roleSelect = document.getElementById('form-user-role');
+                    var roleStringInput = document.getElementById('form-user-role-string');
+
+                    function syncRoleString(roleId) {
+                        if (!roleSelect || !roleStringInput) return;
+                        roleSelect.value = String(roleId || 5);
+                        var opt = roleSelect.options[roleSelect.selectedIndex];
+                        roleStringInput.value = opt ? (opt.dataset.role || '') : '';
+                    }
+
+                    if (roleSelect) {
+                        roleSelect.addEventListener('change', function () {
+                            var opt = this.options[this.selectedIndex];
+                            if (roleStringInput) roleStringInput.value = opt ? (opt.dataset.role || '') : '';
+                        });
+                    }
+
+                    function openCreateModal() {
+                        document.getElementById('userModalTitle').textContent = 'Thêm người dùng';
+                        document.getElementById('userForm').action = '/admin/users/create';
+                        document.getElementById('form-user-id').value = '';
+
+                        var usernameEl = document.getElementById('form-user-username');
+                        usernameEl.value = '';
+                        usernameEl.readOnly = false;
+                        usernameEl.style.background = '';
+                        document.getElementById('form-user-username-hint').style.display = 'none';
+
+                        document.getElementById('form-user-fullname').value = '';
+                        document.getElementById('form-user-email').value = '';
+                        document.getElementById('form-user-phone').value = '';
+                        document.getElementById('form-user-quoctich').value = 'Việt Nam';
+
+                        var pwd = document.getElementById('form-user-password');
+                        pwd.value = '';
+                        pwd.required = true;
+                        document.getElementById('form-user-password-label').innerHTML = 'Mật khẩu <span class="req">*</span>';
+
+                        syncRoleString(5);
+                        document.getElementById('form-user-status').value = 'Hoạt động';
+
+                        AdmModal.open('userModal');
+                    }
+
+                    function openEditModal(row) {
+                        var id = row.dataset.id;
+                        document.getElementById('userModalTitle').textContent = 'Chỉnh sửa người dùng';
+                        document.getElementById('userForm').action = '/admin/users/edit/' + id;
+                        document.getElementById('form-user-id').value = id || '';
+
+                        var usernameEl = document.getElementById('form-user-username');
+                        usernameEl.value = row.dataset.username || '';
+                        usernameEl.readOnly = true;
+                        usernameEl.style.background = 'var(--bg-cream)';
+                        document.getElementById('form-user-username-hint').style.display = 'block';
+
+                        document.getElementById('form-user-fullname').value = row.dataset.fullname || '';
+                        document.getElementById('form-user-email').value = row.dataset.email || '';
+                        document.getElementById('form-user-phone').value = row.dataset.phone || '';
+                        document.getElementById('form-user-quoctich').value = row.dataset.quoctich || 'Việt Nam';
+
+                        var pwd = document.getElementById('form-user-password');
+                        pwd.value = '';
+                        pwd.required = false;
+                        document.getElementById('form-user-password-label').innerHTML =
+                            'Mật khẩu mới <small style="color:var(--muted);text-transform:none;font-weight:500;letter-spacing:0;">(Để trống nếu không đổi)</small>';
+
+                        syncRoleString(row.dataset.role);
+                        document.getElementById('form-user-status').value =
+                            row.dataset.status === 'active' ? 'Hoạt động' : 'Bị khóa';
+
+                        AdmModal.open('userModal');
+                    }
+
+                    function openDeleteModal(row) {
+                        var id = row.dataset.id;
+                        var name = row.dataset.fullname || row.dataset.username || '—';
+                        document.getElementById('deleteUserName').textContent = name;
+                        document.getElementById('deleteUserForm').action = '/admin/users/delete/' + id;
+                        AdmModal.open('deleteUserModal');
+                    }
+
+                    function openToggleModal(row) {
+                        var id = row.dataset.id;
+                        var isActive = row.dataset.status === 'active';
+                        var name = row.dataset.fullname || row.dataset.username || '—';
+
+                        document.getElementById('toggleUserName').textContent = name;
+                        document.getElementById('toggleNewStatus').textContent = isActive ? 'khóa' : 'mở khóa';
+                        document.getElementById('toggleEffect').textContent = isActive
+                            ? 'không thể đăng nhập'
+                            : 'có thể đăng nhập trở lại';
+                        document.getElementById('toggleIcon').className = isActive
+                            ? 'bi bi-lock-fill'
+                            : 'bi bi-unlock-fill';
+
+                        document.getElementById('toggleUserForm').action =
+                            '/admin/users/toggle-status/' + id;
+
+                        AdmModal.open('toggleUserModal');
+                    }
+
+                    /* ════════════════ BIND ACTIONS ════════════════ */
+                    var btnCreate = document.getElementById('btnCreateUser');
+                    if (btnCreate) btnCreate.addEventListener('click', openCreateModal);
+
+                    var tbody = document.getElementById('userTbody');
+                    if (tbody) {
+                        tbody.addEventListener('click', function (e) {
+                            var btn = e.target.closest('[data-action]');
+                            if (!btn) return;
+                            var row = btn.closest('.user-row');
+                            if (!row) return;
+                            var action = btn.dataset.action;
+                            if (action === 'edit') openEditModal(row);
+                            else if (action === 'delete') openDeleteModal(row);
+                            else if (action === 'toggle') openToggleModal(row);
+                        });
+                    }
+
+                    /* ════════════════ INIT ════════════════ */
+                    renderPage();
+                }
+
+                if (document.readyState === 'complete') {
+                    init();
+                } else {
+                    window.addEventListener('load', init);
+                }
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

@@ -8,163 +8,143 @@
 
 <body>
     <section layout:fragment="content">
-        <style>
-            .rv-wrap {
-                max-width: 640px;
-                margin: 40px auto;
-                padding: 0 16px;
-            }
 
-            .rv-card {
-                background: #fff;
-                border-radius: 16px;
-                padding: 32px;
-                box-shadow: 0 8px 30px rgba(0, 0, 0, .08);
-            }
+        <div class="mh-rv-form-page">
 
-            .rv-card h1 {
-                font-size: 1.5rem;
-                margin: 0 0 6px;
-            }
+            <div class="mh-rv-form-wrap">
 
-            .rv-card p.sub {
-                color: #6b7280;
-                margin: 0 0 24px;
-            }
+                <!-- Breadcrumb nhỏ -->
+                <a th:href="@{/booking/history/detail(id=${bookingId})}" class="mh-rv-form-back">
+                    <i class="fa-solid fa-arrow-left"></i>
+                    <span>Quay lại đơn đặt phòng</span>
+                </a>
 
-            .rv-stars {
-                display: inline-flex;
-                flex-direction: row-reverse;
-                gap: 6px;
-            }
+                <!-- Card chính -->
+                <div class="mh-rv-form-card">
 
-            .rv-stars input {
-                position: absolute;
-                opacity: 0;
-                pointer-events: none;
-            }
-
-            .rv-stars label {
-                font-size: 2.4rem;
-                line-height: 1;
-                color: #d1d5db;
-                cursor: pointer;
-                transition: color .15s;
-            }
-
-            .rv-stars label:hover,
-            .rv-stars label:hover~label,
-            .rv-stars input:checked~label {
-                color: #f5a623;
-            }
-
-            .rv-stars input:focus-visible+label {
-                outline: 2px solid #f5a623;
-                border-radius: 4px;
-            }
-
-            .rv-hint {
-                margin: 8px 0 20px;
-                color: #6b7280;
-                font-size: .9rem;
-                min-height: 1.2em;
-            }
-
-            .rv-card textarea {
-                width: 100%;
-                min-height: 130px;
-                padding: 12px 14px;
-                border: 1px solid #d1d5db;
-                border-radius: 10px;
-                font: inherit;
-                resize: vertical;
-                box-sizing: border-box;
-            }
-
-            .rv-actions {
-                display: flex;
-                gap: 12px;
-                margin-top: 20px;
-                align-items: center;
-            }
-
-            .rv-btn {
-                background: #b8860b;
-                color: #fff;
-                border: 0;
-                padding: 12px 28px;
-                border-radius: 10px;
-                font-weight: 600;
-                cursor: pointer;
-            }
-
-            .rv-btn:disabled {
-                opacity: .5;
-                cursor: not-allowed;
-            }
-
-            .rv-back {
-                color: #6b7280;
-                text-decoration: none;
-            }
-
-            .rv-err {
-                background: #fef2f2;
-                color: #b91c1c;
-                padding: 10px 14px;
-                border-radius: 8px;
-                margin-bottom: 16px;
-            }
-        </style>
-
-        <div class="rv-wrap">
-            <div class="rv-card">
-                <h1>Bạn thấy kỳ nghỉ thế nào?</h1>
-                <p class="sub">Đơn đặt phòng #<span th:text="${bookingId}">1</span> — đánh giá của bạn giúp khách khác
-                    chọn phòng.</p>
-
-                <div class="rv-err" th:if="${error}" th:text="${error}"></div>
-
-                <form th:action="@{/review/create}" method="post" id="rvForm">
-                    <input type="hidden" name="bookingId" th:value="${bookingId}">
-                    <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}"
-                        th:value="${_csrf.token}">
-
-                    <div class="rv-stars" role="radiogroup" aria-label="Số sao">
-                        <input type="radio" id="st5" name="rating" value="5"><label for="st5"
-                            title="Tuyệt vời">★</label>
-                        <input type="radio" id="st4" name="rating" value="4"><label for="st4" title="Rất tốt">★</label>
-                        <input type="radio" id="st3" name="rating" value="3"><label for="st3" title="Tốt">★</label>
-                        <input type="radio" id="st2" name="rating" value="2"><label for="st2" title="Tạm được">★</label>
-                        <input type="radio" id="st1" name="rating" value="1"><label for="st1"
-                            title="Chưa hài lòng">★</label>
+                    <!-- Header -->
+                    <div class="mh-rv-form-head">
+                        <div class="mh-rv-form-icon">
+                            <i class="fa-solid fa-star"></i>
+                        </div>
+                        <div>
+                            <span class="mh-rv-form-eyebrow">CHIA SẺ TRẢI NGHIỆM</span>
+                            <h1>Bạn thấy kỳ nghỉ thế nào?</h1>
+                            <p>
+                                Đơn đặt phòng
+                                <strong th:text="'#' + ${bookingId}">#1</strong>
+                                — đánh giá của bạn giúp khách khác chọn phòng.
+                            </p>
+                        </div>
                     </div>
-                    <div class="rv-hint" id="rvHint">Chọn số sao</div>
 
-                    <textarea name="content" maxlength="1000"
-                        placeholder="Chia sẻ trải nghiệm của bạn (không bắt buộc)"></textarea>
-
-                    <div class="rv-actions">
-                        <button type="submit" class="rv-btn" id="rvSubmit" disabled>Gửi đánh giá</button>
-                        <a class="rv-back" th:href="@{/booking/history/detail(id=${bookingId})}">Để sau</a>
+                    <!-- Error -->
+                    <div th:if="${error}" class="mh-rv-form-error">
+                        <i class="fa-solid fa-circle-exclamation"></i>
+                        <span th:text="${error}"></span>
                     </div>
-                </form>
+
+                    <!-- Form -->
+                    <form th:action="@{/review/create}" method="post" id="rvForm" class="mh-rv-form">
+                        <input type="hidden" name="bookingId" th:value="${bookingId}">
+                        <input type="hidden" th:if="${_csrf != null}" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}">
+
+                        <!-- Star picker -->
+                        <label class="mh-rv-form-label">
+                            Đánh giá của bạn <span class="mh-rv-form-req">*</span>
+                        </label>
+                        <div class="mh-rv-star-picker" role="radiogroup" aria-label="Số sao">
+                            <input type="radio" id="st5" name="rating" value="5">
+                            <label for="st5" title="Tuyệt vời"><i class="fa-solid fa-star"></i></label>
+
+                            <input type="radio" id="st4" name="rating" value="4">
+                            <label for="st4" title="Rất tốt"><i class="fa-solid fa-star"></i></label>
+
+                            <input type="radio" id="st3" name="rating" value="3">
+                            <label for="st3" title="Tốt"><i class="fa-solid fa-star"></i></label>
+
+                            <input type="radio" id="st2" name="rating" value="2">
+                            <label for="st2" title="Tạm được"><i class="fa-solid fa-star"></i></label>
+
+                            <input type="radio" id="st1" name="rating" value="1">
+                            <label for="st1" title="Chưa hài lòng"><i class="fa-solid fa-star"></i></label>
+                        </div>
+                        <div class="mh-rv-form-hint" id="rvHint">Chọn số sao để đánh giá</div>
+
+                        <!-- Textarea -->
+                        <label for="rvContent" class="mh-rv-form-label">
+                            Nhận xét chi tiết
+                            <small>(không bắt buộc)</small>
+                        </label>
+                        <textarea id="rvContent" name="content" maxlength="1000"
+                            placeholder="Chia sẻ cảm nhận của bạn về phòng, dịch vụ, nhân viên..."></textarea>
+                        <div class="mh-rv-form-counter">
+                            <span id="rvCounter">0</span>/1000 ký tự
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="mh-rv-form-actions">
+                            <button type="submit" class="mh-rv-form-btn" id="rvSubmit" disabled>
+                                <i class="fa-solid fa-paper-plane"></i>
+                                <span>Gửi đánh giá</span>
+                            </button>
+                            <a class="mh-rv-form-cancel" th:href="@{/booking/history/detail(id=${bookingId})}">
+                                Để sau
+                            </a>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Note -->
+                <div class="mh-rv-form-note">
+                    <i class="fa-solid fa-circle-info"></i>
+                    <p>
+                        Đánh giá của bạn sẽ được hiển thị công khai tại
+                        <a th:href="@{/review}">trang Đánh giá</a>
+                        và giúp khách hàng khác có lựa chọn tốt hơn.
+                    </p>
+                </div>
+
             </div>
         </div>
 
         <script>
             (function () {
-                var hints = { 5: 'Tuyệt vời', 4: 'Rất tốt', 3: 'Tốt', 2: 'Tạm được', 1: 'Chưa hài lòng' };
+                'use strict';
+
+                var HINTS = {
+                    5: 'Tuyệt vời — Chúng tôi rất vui vì bạn hài lòng!',
+                    4: 'Rất tốt — Cảm ơn bạn đã tin tưởng May Hotel!',
+                    3: 'Tốt — Chúng tôi sẽ cố gắng hơn!',
+                    2: 'Tạm được — Hãy cho chúng tôi biết điểm chưa ổn nhé.',
+                    1: 'Chưa hài lòng — Chúng tôi thành thật xin lỗi và sẽ cải thiện.'
+                };
+
                 var hint = document.getElementById('rvHint');
                 var btn = document.getElementById('rvSubmit');
-                document.querySelectorAll('input[name=rating]').forEach(function (i) {
-                    i.addEventListener('change', function () {
-                        hint.textContent = hints[i.value];
+                var textarea = document.getElementById('rvContent');
+                var counter = document.getElementById('rvCounter');
+
+                // Star picker
+                document.querySelectorAll('input[name=rating]').forEach(function (input) {
+                    input.addEventListener('change', function () {
+                        var text = HINTS[input.value] || 'Chọn số sao để đánh giá';
+                        hint.textContent = text;
+                        hint.classList.add('is-active');
                         btn.disabled = false;
                     });
                 });
+
+                // Character counter
+                if (textarea && counter) {
+                    textarea.addEventListener('input', function () {
+                        counter.textContent = this.value.length;
+                    });
+                }
             })();
         </script>
+
     </section>
 </body>
 

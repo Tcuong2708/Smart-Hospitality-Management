@@ -1,0 +1,922 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <!-- ============================================================
+         BODY CONTENT
+         ============================================================ -->
+    <div th:fragment="body_content" class="manager-page-shell manager-fill-page">
+
+        <!-- Page header -->
+        <div class="adm-page-head admin-page-banner">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Marketing & Ưu đãi</span>
+                <h1 class="adm-page-title">Quản lý khuyến mãi</h1>
+                <p class="adm-page-sub">Quản lý các chương trình ưu đãi, mã giảm giá và thời gian áp dụng.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-gold" id="btnCreatePromo">
+                    <i class="bi bi-plus-lg"></i> Thêm khuyến mãi
+                </button>
+            </div>
+        </div>
+
+        <!-- Card -->
+        <div class="adm-card manager-fill-card">
+
+            <!-- Toolbar -->
+            <div class="adm-toolbar">
+                <div class="adm-search" id="searchPromotionWrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchPromotion" placeholder="Tìm theo mã hoặc tên chương trình...">
+                    <button type="button" class="adm-search-clear" id="searchPromoClear" aria-label="Xóa tìm kiếm">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterStatus">
+                        <i class="bi bi-circle-half"></i>
+                        <span>Trạng thái</span>
+                        <span class="adm-filter-badge" id="badgeStatus" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Trạng thái</strong>
+                            <button type="button" data-clear="status">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="thFilterStatus"></div>
+                    </div>
+                </div>
+
+                <div class="adm-result-count">
+                    <i class="bi bi-ticket-perforated" style="color:var(--gold-hover);"></i>
+                    <strong id="promoCount">0</strong> chương trình
+                </div>
+            </div>
+
+            <!-- Chip bar -->
+            <div class="adm-chips" id="filterChips"></div>
+
+            <!-- Table -->
+            <div class="adm-table-wrap manager-fill-body">
+                <table class="adm-table" id="promoTable">
+                    <thead>
+                        <tr>
+                            <th style="width:130px;">Mã KM</th>
+                            <th>Tên chương trình</th>
+                            <th class="col-center" style="width:110px;">Mức giảm</th>
+                            <th style="width:200px;">Thời gian áp dụng</th>
+                            <th class="col-center" style="width:150px;">Trạng thái</th>
+                            <th class="col-center" style="width:160px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr>
+                            <td colspan="6" class="text-center" style="padding:40px;">
+                                <span class="adm-spinner"
+                                    style="width:24px;height:24px;border-width:3px;color:var(--gold);"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: CREATE / EDIT ==================== -->
+        <div class="adm-modal-backdrop" id="promotionModal">
+            <div class="adm-modal lg">
+                <form id="promotionForm">
+                    <input type="hidden" id="form-promo-id">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-gift"></i> <span id="promotionModalTitle">Thêm khuyến mãi</span></h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div class="adm-modal-body">
+
+                        <!-- Section: Thông tin cơ bản -->
+                        <div class="adm-form-section">
+                            <div class="adm-form-section-title">
+                                <i class="bi bi-info-circle"></i> Thông tin cơ bản
+                            </div>
+                            <div class="adm-form-row">
+                                <div class="adm-field">
+                                    <label>Loại chương trình <span class="req">*</span></label>
+                                    <!-- ✅ Dropdown load động từ /api/types -->
+                                    <select id="form-promo-type" required></select>
+                                </div>
+                                <div class="adm-field">
+                                    <label>Mã khuyến mãi</label>
+                                    <input type="text" id="form-promo-code" placeholder="Để trống để tự sinh mã"
+                                        maxlength="30">
+                                </div>
+                            </div>
+                            <div class="adm-form-row full">
+                                <div class="adm-field">
+                                    <label>Tên chương trình <span class="req">*</span></label>
+                                    <input type="text" id="form-promo-name" placeholder="VD: Chào Hè Rực Rỡ 2026"
+                                        required maxlength="100">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Ưu đãi & thời gian -->
+                        <div class="adm-form-section">
+                            <div class="adm-form-section-title">
+                                <i class="bi bi-percent"></i> Ưu đãi & thời gian áp dụng
+                            </div>
+                            <div class="adm-form-row" style="grid-template-columns:1fr 1fr 1fr;">
+                                <div class="adm-field">
+                                    <label>Mức giảm (%) <span class="req">*</span></label>
+                                    <input type="number" id="form-promo-discount" placeholder="15" min="0" max="100"
+                                        required>
+                                </div>
+                                <div class="adm-field">
+                                    <label>Chế độ hiển thị</label>
+                                    <select id="form-promo-visibility">
+                                        <option value="PUBLIC">Công khai (tự động)</option>
+                                        <option value="PRIVATE">Riêng tư (gửi khách)</option>
+                                    </select>
+                                </div>
+                                <div class="adm-field">
+                                    <label>Trạng thái</label>
+                                    <select id="form-promo-status">
+                                        <option value="ACTIVE">Đang diễn ra</option>
+                                        <option value="SCHEDULED">Sắp diễn ra</option>
+                                        <option value="EXPIRED">Hết hạn</option>
+                                        <option value="DISABLED">Tạm ngưng</option>
+                                        <option value="DRAFT">Bản nháp</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="adm-form-row">
+                                <div class="adm-field">
+                                    <label>Ngày bắt đầu <span class="req">*</span></label>
+                                    <input type="date" id="form-promo-start" required>
+                                </div>
+                                <div class="adm-field">
+                                    <label>Ngày kết thúc <span class="req">*</span></label>
+                                    <input type="date" id="form-promo-end" required>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Section: Điều kiện áp dụng -->
+                        <div class="adm-form-section">
+                            <div class="adm-form-section-title">
+                                <i class="bi bi-sliders"></i> Điều kiện áp dụng (không bắt buộc)
+                            </div>
+                            <div class="adm-form-row" style="grid-template-columns:1fr 1fr 1fr;">
+                                <div class="adm-field">
+                                    <label>Tối thiểu phòng</label>
+                                    <input type="number" id="form-promo-min-rooms" min="1" placeholder="VD: 2">
+                                </div>
+                                <div class="adm-field">
+                                    <label>Tối thiểu đêm</label>
+                                    <input type="number" id="form-promo-min-nights" min="1" placeholder="VD: 3">
+                                </div>
+                                <div class="adm-field">
+                                    <label>Đặt trước (ngày)</label>
+                                    <input type="number" id="form-promo-advance-days" min="1" placeholder="VD: 7">
+                                </div>
+                            </div>
+                            <div class="adm-form-row full">
+                                <div class="adm-field">
+                                    <label>Đơn hàng tối thiểu</label>
+                                    <input type="text" id="form-promo-min-bill" placeholder="VD: 1.000.000">
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold" id="btn-save-promotion">
+                            <i class="bi bi-check-lg"></i> Lưu khuyến mãi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: VIEW ==================== -->
+        <div class="adm-modal-backdrop" id="viewPromotionModal">
+            <div class="adm-modal">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-gift"></i> Chi tiết khuyến mãi</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="adm-modal-body">
+                    <div class="adm-view-hero">
+                        <span class="adm-view-hero-code" id="view-promo-id">—</span>
+                        <h2 id="view-promo-name">—</h2>
+                        <div class="adm-view-hero-discount">
+                            <strong id="view-promo-discount">0</strong>
+                            <small>% giảm giá</small>
+                        </div>
+                    </div>
+                    <div class="adm-view-facts">
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Trạng thái</span>
+                            <span class="adm-view-fact-value" id="view-promo-status">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Loại chương trình</span>
+                            <span class="adm-view-fact-value" id="view-promo-type">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Hiển thị</span>
+                            <span class="adm-view-fact-value" id="view-promo-visibility">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Thời gian áp dụng</span>
+                            <span class="adm-view-fact-value" id="view-promo-time">—</span>
+                        </div>
+                        <div class="adm-view-fact">
+                            <span class="adm-view-fact-label">Điều kiện áp dụng</span>
+                            <span class="adm-view-fact-value" id="view-promo-conditions">—</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Đóng</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: DELETE ==================== -->
+        <div class="adm-modal-backdrop" id="deletePromoModal">
+            <div class="adm-modal" style="max-width:440px;">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-exclamation-triangle" style="color:var(--red);"></i> Xác nhận xóa</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="adm-modal-body" style="text-align:center;">
+                    <div class="adm-delete-icon-modal">
+                        <i class="bi bi-trash"></i>
+                    </div>
+                    <p style="font-size:14px;color:var(--text-soft);margin-bottom:12px;">
+                        Bạn có chắc chắn muốn xóa chương trình
+                    </p>
+                    <p id="deletePromoName"
+                        style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--navy);">
+                        —
+                    </p>
+                    <p style="font-size:13px;color:var(--muted);margin-top:8px;">
+                        Hành động này không thể hoàn tác.
+                    </p>
+                </div>
+                <div class="adm-modal-foot" style="justify-content:center;">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <button type="button" class="adm-btn adm-btn-danger" id="btn-confirm-delete">
+                        <i class="bi bi-trash"></i> Xóa chương trình
+                    </button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: SEND TO CUSTOMERS ==================== -->
+        <div class="adm-modal-backdrop" id="sendPromoModal">
+            <div class="adm-modal lg">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-send-fill"></i> Gửi khuyến mãi cho khách</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="adm-modal-body">
+                    <input type="hidden" id="send-promo-id">
+
+                    <div class="adm-alert adm-alert-info" style="margin-bottom:16px;">
+                        <i class="bi bi-info-circle-fill"></i>
+                        <span>Khách được chọn sẽ nhận <strong>thông báo</strong> trên tài khoản và có thể dùng mã ngay
+                            khi checkout.</span>
+                    </div>
+
+                    <div class="adm-search" style="margin-bottom:16px;">
+                        <i class="bi bi-search"></i>
+                        <input type="text" id="send-promo-search" placeholder="Tìm theo tên hoặc số điện thoại...">
+                    </div>
+
+                    <div id="send-promo-list"
+                        style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;padding:6px;">
+                        <div style="padding:20px;text-align:center;color:var(--muted);">Đang tải...</div>
+                    </div>
+
+                    <div style="margin-top:12px;text-align:right;">
+                        <span style="color:var(--muted);font-size:13px;">
+                            Đã chọn: <strong id="send-promo-count">0</strong> khách
+                        </span>
+                    </div>
+                </div>
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <button type="button" class="adm-btn adm-btn-gold" id="btnConfirmSendPromo">
+                        <i class="bi bi-send-fill"></i> Gửi khuyến mãi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <!-- ============================================================
+         KẾT THÚC body_content
+         ============================================================ -->
+
+
+    <!-- ============================================================
+         EXTRA JS
+         ============================================================ -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                var promotions = [];
+                var filtered = [];
+                var editingId = null;
+                var deletingId = null;
+                var sendingPromoId = null;
+                var selectedPromoCustomers = new Set();
+                var statusFilter = [];
+                var searchKw = '';
+
+                // ✅ Map code → {label, icon, cls} — load động từ /api/types
+                var TYPE_MAP = {};
+
+                function csrfHeaders() {
+                    var tokenMeta = document.querySelector('meta[name="_csrf"]');
+                    var headerMeta = document.querySelector('meta[name="_csrf_header"]');
+                    var headers = { 'Accept': 'application/json' };
+                    if (tokenMeta && headerMeta && tokenMeta.content && headerMeta.content) {
+                        headers[headerMeta.content] = tokenMeta.content;
+                    }
+                    return headers;
+                }
+
+                var STATUS_LABELS = {
+                    ACTIVE: { label: 'Đang diễn ra', badge: 'adm-badge-success' },
+                    SCHEDULED: { label: 'Sắp diễn ra', badge: 'adm-badge-info' },
+                    EXPIRED: { label: 'Hết hạn', badge: 'adm-badge-neutral' },
+                    DISABLED: { label: 'Tạm ngưng', badge: 'adm-badge-warning' },
+                    DRAFT: { label: 'Bản nháp', badge: 'adm-badge-neutral' }
+                };
+
+                var VISIBILITY_LABELS = {
+                    PUBLIC: { label: 'Công khai', badge: 'adm-badge-info', icon: 'bi-globe' },
+                    PRIVATE: { label: 'Riêng tư', badge: 'adm-badge-cat', icon: 'bi-lock-fill' }
+                };
+
+                function esc(s) {
+                    if (s == null) return '';
+                    var d = document.createElement('div');
+                    d.textContent = String(s);
+                    return d.innerHTML;
+                }
+
+                function fmtDate(d) {
+                    if (!d) return '—';
+                    var date = new Date(d);
+                    if (isNaN(date)) return '—';
+                    var pad = function (n) { return String(n).padStart(2, '0'); };
+                    return pad(date.getDate()) + '/' + pad(date.getMonth() + 1) + '/' + date.getFullYear();
+                }
+
+                function toInputDate(d) {
+                    if (!d) return '';
+                    var date = new Date(d);
+                    if (isNaN(date)) return '';
+                    var pad = function (n) { return String(n).padStart(2, '0'); };
+                    return date.getFullYear() + '-' + pad(date.getMonth() + 1) + '-' + pad(date.getDate());
+                }
+
+                function parseMoney(str) {
+                    if (str == null || str === '') return null;
+                    var cleaned = String(str).replace(/[^\d]/g, '');
+                    return cleaned ? parseFloat(cleaned) : null;
+                }
+
+                function fmtMoneyInput(str) {
+                    if (str == null || str === '') return '';
+                    var num = String(str).replace(/[^\d]/g, '');
+                    return num ? new Intl.NumberFormat('vi-VN').format(parseFloat(num)) : '';
+                }
+
+                /* ============================================================
+                 * LOAD TYPES — populate dropdown + TYPE_MAP
+                 * ============================================================ */
+                async function loadTypes() {
+                    try {
+                        var res = await fetch('/manager/promotions/api/types',
+                            { headers: { 'Accept': 'application/json' } });
+                        if (!res.ok) {
+                            console.warn('[promotions] loadTypes failed HTTP ' + res.status);
+                            return;
+                        }
+                        var list = await res.json();
+
+                        // Populate dropdown
+                        var sel = document.getElementById('form-promo-type');
+                        if (sel) {
+                            sel.innerHTML = list.map(function (t) {
+                                return '<option value="' + esc(t.code) + '">' + esc(t.name) + '</option>';
+                            }).join('');
+                        }
+
+                        // Build TYPE_MAP
+                        TYPE_MAP = {};
+                        list.forEach(function (t) {
+                            TYPE_MAP[t.code] = {
+                                label: t.name,
+                                icon: t.icon || 'bi-tag',
+                                cls: 'color-' + (t.color || 'neutral')
+                            };
+                        });
+                    } catch (e) {
+                        console.error('[promotions] loadTypes error', e);
+                    }
+                }
+
+                /* ===== API ===== */
+                async function fetchList() {
+                    var res = await fetch('/manager/promotions/api', { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) {
+                        var error = await res.json().catch(function () { return {}; });
+                        throw new Error(error.message || 'Không thể tải danh sách (HTTP ' + res.status + ').');
+                    }
+                    var data = await res.json();
+                    return Array.isArray(data) ? data : [];
+                }
+
+                /* ===== Render table ===== */
+                function renderTable(list) {
+                    var tbody = document.getElementById('table-body');
+                    if (!tbody) return;
+
+                    if (!list.length) {
+                        tbody.innerHTML = '<tr><td colspan="6">' +
+                            '<div class="adm-empty">' +
+                            '<i class="bi bi-ticket-perforated"></i>' +
+                            '<h4>Chưa có chương trình khuyến mãi</h4>' +
+                            '<p>Bấm "Thêm khuyến mãi" để tạo chương trình ưu đãi đầu tiên.</p>' +
+                            '</div>' +
+                            '</td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = list.map(function (p) {
+                        var id = p._id || p.id;
+                        // Dùng TYPE_MAP thay vì hard-code
+                        var type = TYPE_MAP[p.type] || { label: p.type || 'Khác', cls: 'color-neutral', icon: 'bi-tag' };
+                        var status = STATUS_LABELS[p.status] || { label: p.status || '—', badge: 'adm-badge-neutral' };
+                        var visibility = VISIBILITY_LABELS[p.visibility] || VISIBILITY_LABELS.PUBLIC;
+
+                        var startFmt = fmtDate(p.startDate || p.start_date);
+                        var endFmt = fmtDate(p.endDate || p.end_date);
+                        var isExpired = p.status === 'EXPIRED';
+                        var isActive = p.status === 'ACTIVE';
+
+                        var sendBtn = '';
+                        if (p.visibility === 'PRIVATE' && p.code) {
+                            sendBtn = '<button type="button" class="adm-action" data-action="send" title="Gửi cho khách" style="color:var(--blue);"><i class="bi bi-send-fill"></i></button>';
+                        }
+
+                        return '<tr class="promo-row" data-id="' + esc(id) + '">' +
+                            '<td>' +
+                            '<button type="button" class="adm-promo-code" data-action="view" title="Xem chi tiết">' +
+                            '<i class="bi bi-ticket-perforated"></i>' + esc(p.code || '—') +
+                            '</button>' +
+                            '<span class="adm-badge ' + visibility.badge + '" style="margin-top:6px;font-size:10px;"><i class="bi ' + visibility.icon + '"></i> ' + visibility.label + '</span>' +
+                            '</td>' +
+                            '<td>' +
+                            '<span class="adm-promo-name">' + esc(p.name || '—') + '</span>' +
+                            '<span class="adm-promo-type ' + type.cls + '"><i class="bi ' + type.icon + '"></i> ' + esc(type.label) + '</span>' +
+                            '</td>' +
+                            '<td class="col-center">' +
+                            '<span class="adm-promo-discount"><strong>' + (p.discount || 0) + '</strong><small>%</small></span>' +
+                            '</td>' +
+                            '<td>' +
+                            '<div class="adm-promo-date ' + (isExpired ? 'is-expired' : (isActive ? 'is-active' : '')) + '">' +
+                            '<span class="adm-promo-date-line"><i class="bi bi-calendar-plus"></i><strong>' + startFmt + '</strong></span>' +
+                            '<span class="adm-promo-date-line"><i class="bi bi-calendar-minus"></i><strong>' + endFmt + '</strong></span>' +
+                            '</div>' +
+                            '</td>' +
+                            '<td class="col-center">' +
+                            '<span class="adm-badge ' + status.badge + '"><span class="dot"></span>' + status.label + '</span>' +
+                            '</td>' +
+                            '<td class="col-center">' +
+                            '<div class="adm-actions">' +
+                            '<button type="button" class="adm-action view" data-action="view" title="Xem chi tiết"><i class="bi bi-eye"></i></button>' +
+                            '<button type="button" class="adm-action edit" data-action="edit" title="Chỉnh sửa"><i class="bi bi-pencil"></i></button>' +
+                            sendBtn +
+                            '<button type="button" class="adm-action delete" data-action="delete" title="Xóa"><i class="bi bi-trash"></i></button>' +
+                            '</div>' +
+                            '</td>' +
+                            '</tr>';
+                    }).join('');
+                }
+
+                /* ===== Filter ===== */
+                function buildStatusFilter() {
+                    var counts = {};
+                    promotions.forEach(function (p) {
+                        var s = p.status || 'DRAFT';
+                        counts[s] = (counts[s] || 0) + 1;
+                    });
+                    var box = document.getElementById('thFilterStatus');
+                    if (!box) return;
+                    var keys = Object.keys(counts).sort();
+                    if (!keys.length) {
+                        box.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12.5px;">Không có dữ liệu</div>';
+                        return;
+                    }
+                    box.innerHTML = keys.map(function (k, i) {
+                        var meta = STATUS_LABELS[k] || { label: k };
+                        var id = 'fst_' + i;
+                        return '<label class="adm-filter-option" for="' + id + '">' +
+                            '<input type="checkbox" class="filter-status-cb" value="' + esc(k) + '" id="' + id + '">' +
+                            '<span class="adm-filter-option-label">' + meta.label + '</span>' +
+                            '<span class="adm-filter-option-count">' + counts[k] + '</span>' +
+                            '</label>';
+                    }).join('');
+                    box.querySelectorAll('input').forEach(function (cb) {
+                        cb.addEventListener('change', applyFilters);
+                    });
+                }
+
+                function updateStatusBadge(count) {
+                    var badge = document.getElementById('badgeStatus');
+                    var btn = document.getElementById('btnFilterStatus');
+                    if (count > 0) {
+                        badge.textContent = count;
+                        badge.style.display = 'inline-flex';
+                        btn.classList.add('is-active');
+                    } else {
+                        badge.style.display = 'none';
+                        btn.classList.remove('is-active');
+                    }
+                }
+
+                function renderChips() {
+                    var chips = document.getElementById('filterChips');
+                    chips.innerHTML = statusFilter.map(function (s) {
+                        var label = (STATUS_LABELS[s] || {}).label || s;
+                        return '<span class="adm-chip"><span>' + label + '</span>' +
+                            '<button type="button" data-chip-status="' + esc(s) + '">×</button></span>';
+                    }).join('');
+                    chips.querySelectorAll('button[data-chip-status]').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var s = btn.dataset.chipStatus;
+                            var cb = document.querySelector('.filter-status-cb[value="' + s + '"]');
+                            if (cb) { cb.checked = false; applyFilters(); }
+                        });
+                    });
+                }
+
+                function applyFilters() {
+                    statusFilter = Array.from(document.querySelectorAll('.filter-status-cb:checked')).map(function (c) { return c.value; });
+
+                    filtered = promotions.filter(function (p) {
+                        if (statusFilter.length && statusFilter.indexOf(p.status || 'DRAFT') < 0) return false;
+                        if (!searchKw) return true;
+                        var kw = searchKw.toLowerCase();
+                        return (p.name || '').toLowerCase().indexOf(kw) >= 0
+                            || (p.code || '').toLowerCase().indexOf(kw) >= 0;
+                    });
+
+                    renderTable(filtered);
+                    document.getElementById('promoCount').textContent = filtered.length;
+                    updateStatusBadge(statusFilter.length);
+                    renderChips();
+                }
+
+                /* ===== Modal handlers ===== */
+                function openCreateModal() {
+                    editingId = null;
+                    document.getElementById('promotionModalTitle').textContent = 'Thêm khuyến mãi';
+                    document.getElementById('promotionForm').reset();
+                    document.getElementById('form-promo-id').value = '';
+
+                    var today = new Date();
+                    var pad = function (n) { return String(n).padStart(2, '0'); };
+
+                    var start = today.getFullYear() + '-' + pad(today.getMonth() + 1) + '-' + pad(today.getDate());
+                    var endDate = new Date(today);
+                    endDate.setDate(endDate.getDate() + 30);
+                    var end = endDate.getFullYear() + '-' + pad(endDate.getMonth() + 1) + '-' + pad(endDate.getDate());
+
+                    document.getElementById('form-promo-start').value = start;
+                    document.getElementById('form-promo-end').value = end;
+                    document.getElementById('form-promo-visibility').value = 'PUBLIC';
+
+                    AdmModal.open('promotionModal');
+                }
+
+                function openEditModal(p) {
+                    editingId = p._id || p.id;
+                    document.getElementById('promotionModalTitle').textContent = 'Chỉnh sửa khuyến mãi';
+                    document.getElementById('form-promo-id').value = editingId;
+                    document.getElementById('form-promo-type').value = p.type || '';
+                    document.getElementById('form-promo-code').value = p.code || '';
+                    document.getElementById('form-promo-name').value = p.name || '';
+                    document.getElementById('form-promo-discount').value = p.discount || 0;
+                    document.getElementById('form-promo-start').value = toInputDate(p.startDate || p.start_date);
+                    document.getElementById('form-promo-end').value = toInputDate(p.endDate || p.end_date);
+                    document.getElementById('form-promo-status').value = p.status || 'DRAFT';
+                    document.getElementById('form-promo-visibility').value = p.visibility || 'PUBLIC';
+                    document.getElementById('form-promo-min-rooms').value = p.minRooms || '';
+                    document.getElementById('form-promo-min-nights').value = p.minNights || '';
+                    document.getElementById('form-promo-advance-days').value = p.advanceDays || '';
+                    document.getElementById('form-promo-min-bill').value = fmtMoneyInput(p.minBill);
+                    AdmModal.open('promotionModal');
+                }
+
+                function openViewModal(p) {
+                    // Dùng TYPE_MAP thay vì TYPE_LABELS
+                    var type = TYPE_MAP[p.type] || { label: p.type || '—' };
+                    var status = STATUS_LABELS[p.status] || { label: p.status || '—' };
+                    var visibility = VISIBILITY_LABELS[p.visibility] || VISIBILITY_LABELS.PUBLIC;
+
+                    document.getElementById('view-promo-id').textContent = p.code || ('#' + (p._id || p.id));
+                    document.getElementById('view-promo-name').textContent = p.name || '—';
+                    document.getElementById('view-promo-discount').textContent = p.discount || 0;
+                    document.getElementById('view-promo-status').textContent = status.label;
+                    document.getElementById('view-promo-type').textContent = type.label;
+                    document.getElementById('view-promo-visibility').textContent = visibility.label;
+                    document.getElementById('view-promo-time').textContent =
+                        fmtDate(p.startDate || p.start_date) + '  →  ' + fmtDate(p.endDate || p.end_date);
+
+                    var conds = [];
+                    if (p.minRooms) conds.push('Tối thiểu ' + p.minRooms + ' phòng');
+                    if (p.minNights) conds.push('Tối thiểu ' + p.minNights + ' đêm');
+                    if (p.advanceDays) conds.push('Đặt trước ' + p.advanceDays + ' ngày');
+                    if (p.minBill) conds.push('Đơn tối thiểu ' + new Intl.NumberFormat('vi-VN').format(p.minBill) + ' đ');
+                    document.getElementById('view-promo-conditions').textContent = conds.length ? conds.join('  ·  ') : 'Không có';
+
+                    AdmModal.open('viewPromotionModal');
+                }
+
+                function openDeleteModal(p) {
+                    deletingId = p._id || p.id;
+                    document.getElementById('deletePromoName').textContent = p.name || p.code || '—';
+                    AdmModal.open('deletePromoModal');
+                }
+
+                /* ===== Send to customers ===== */
+                function openSendPromoModal(promoId) {
+                    sendingPromoId = promoId;
+                    selectedPromoCustomers.clear();
+                    document.getElementById('send-promo-id').value = promoId;
+                    document.getElementById('send-promo-count').textContent = '0';
+                    document.getElementById('send-promo-list').innerHTML =
+                        '<div style="padding:20px;text-align:center;color:var(--muted);">Đang tải...</div>';
+                    AdmModal.open('sendPromoModal');
+                    loadCustomersForSend('');
+                }
+
+                async function loadCustomersForSend(q) {
+                    try {
+                        var res = await fetch('/manager/promotions/api/customers?q=' + encodeURIComponent(q),
+                            { headers: { 'Accept': 'application/json' } });
+                        var list = await res.json();
+                        var box = document.getElementById('send-promo-list');
+
+                        if (!list.length) {
+                            box.innerHTML = '<div style="padding:20px;text-align:center;color:var(--muted);">Không có khách hàng</div>';
+                            return;
+                        }
+
+                        box.innerHTML = list.map(function (c) {
+                            var checked = selectedPromoCustomers.has(c.id) ? 'checked' : '';
+                            return '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border-bottom:1px solid var(--border-soft);">' +
+                                '<input type="checkbox" class="send-promo-cb" value="' + c.id + '" ' + checked + ' style="width:16px;height:16px;accent-color:var(--gold);">' +
+                                '<div style="flex:1;">' +
+                                '<div style="font-weight:700;color:var(--navy);">' + esc(c.name) + '</div>' +
+                                '<div style="font-size:12px;color:var(--muted);">' + esc(c.phone) + ' · ' + (c.points || 0) + ' điểm</div>' +
+                                '</div></label>';
+                        }).join('');
+
+                        box.querySelectorAll('.send-promo-cb').forEach(function (cb) {
+                            cb.addEventListener('change', function () {
+                                var id = parseInt(cb.value, 10);
+                                if (cb.checked) selectedPromoCustomers.add(id);
+                                else selectedPromoCustomers.delete(id);
+                                document.getElementById('send-promo-count').textContent = selectedPromoCustomers.size;
+                            });
+                        });
+                    } catch (err) {
+                        if (typeof toast === 'function') toast('Lỗi tải khách hàng', 'danger');
+                    }
+                }
+
+                async function confirmSendPromo() {
+                    if (!sendingPromoId) return;
+                    if (selectedPromoCustomers.size === 0) {
+                        if (typeof toast === 'function') toast('Vui lòng chọn ít nhất 1 khách', 'warning');
+                        return;
+                    }
+
+                    try {
+                        var headers = csrfHeaders();
+                        headers['Content-Type'] = 'application/json';
+                        var res = await fetch('/manager/promotions/api/' + sendingPromoId + '/send', {
+                            method: 'POST',
+                            headers: headers,
+                            body: JSON.stringify({ customerIds: Array.from(selectedPromoCustomers) })
+                        });
+                        var data = await res.json();
+                        if (!res.ok) throw new Error(data.message || 'Lỗi gửi khuyến mãi');
+
+                        AdmModal.close('sendPromoModal');
+                        if (typeof toast === 'function') toast('Đã gửi cho ' + data.sent + ' khách');
+                        await loadData();
+                    } catch (err) {
+                        if (typeof toast === 'function') toast(err.message, 'danger');
+                    }
+                }
+
+                /* ===== Save ===== */
+                async function savePromotion(e) {
+                    e.preventDefault();
+                    var payload = {
+                        type: document.getElementById('form-promo-type').value,
+                        code: document.getElementById('form-promo-code').value.trim(),
+                        name: document.getElementById('form-promo-name').value.trim(),
+                        discountType: 'PERCENT',
+                        discountPercent: parseFloat(document.getElementById('form-promo-discount').value) || 0,
+                        startDate: document.getElementById('form-promo-start').value,
+                        endDate: document.getElementById('form-promo-end').value,
+                        status: document.getElementById('form-promo-status').value,
+                        visibility: document.getElementById('form-promo-visibility').value,
+                        minimumRooms: parseInt(document.getElementById('form-promo-min-rooms').value) || null,
+                        minimumNights: parseInt(document.getElementById('form-promo-min-nights').value) || null,
+                        advanceDays: parseInt(document.getElementById('form-promo-advance-days').value) || null,
+                        minimumOrderAmount: parseMoney(document.getElementById('form-promo-min-bill').value)
+                    };
+
+                    if (!payload.name) {
+                        if (typeof toast === 'function') toast('Vui lòng nhập tên chương trình', 'warning');
+                        return;
+                    }
+                    if (!payload.type) {
+                        if (typeof toast === 'function') toast('Vui lòng chọn loại khuyến mãi', 'warning');
+                        return;
+                    }
+                    if (payload.startDate && payload.endDate && payload.startDate > payload.endDate) {
+                        if (typeof toast === 'function') toast('Ngày kết thúc phải sau ngày bắt đầu', 'warning');
+                        return;
+                    }
+
+                    var url = editingId ? '/manager/promotions/api/' + editingId : '/manager/promotions/api';
+                    var method = editingId ? 'PUT' : 'POST';
+
+                    try {
+                        var headers = csrfHeaders();
+                        headers['Content-Type'] = 'application/json';
+                        var res = await fetch(url, {
+                            method: method,
+                            headers: headers,
+                            body: JSON.stringify(payload)
+                        });
+                        if (!res.ok) {
+                            var error = await res.json().catch(function () { return {}; });
+                            throw new Error(error.message || 'Không thể lưu (HTTP ' + res.status + ').');
+                        }
+                        AdmModal.close('promotionModal');
+                        if (typeof toast === 'function') toast(editingId ? 'Đã cập nhật khuyến mãi' : 'Đã thêm khuyến mãi');
+                        await loadData();
+                    } catch (err) {
+                        if (typeof toast === 'function') toast(err.message, 'danger');
+                    }
+                }
+
+                async function deletePromotion() {
+                    if (!deletingId) return;
+                    try {
+                        var res = await fetch('/manager/promotions/api/' + deletingId + '/disable', {
+                            method: 'POST',
+                            headers: csrfHeaders()
+                        });
+                        if (!res.ok) throw new Error('Không thể vô hiệu hóa (HTTP ' + res.status + ').');
+                        AdmModal.close('deletePromoModal');
+                        if (typeof toast === 'function') toast('Đã vô hiệu hóa chương trình');
+                        await loadData();
+                    } catch (err) {
+                        if (typeof toast === 'function') toast(err.message, 'danger');
+                    }
+                }
+
+                /* ===== Load ===== */
+                async function loadData() {
+                    //  Load types TRƯỚC để có TYPE_MAP cho renderTable
+                    await loadTypes();
+
+                    var list = await fetchList();
+                    promotions = list.map(function (p) {
+                        return {
+                            _id: p._id || p.id,
+                            id: p._id || p.id,
+                            type: p.type || p.promotionType || 'VOUCHER',
+                            code: p.code || p.promotionCode || '',
+                            name: p.name || '',
+                            discount: p.discountPercent || 0,
+                            startDate: p.startDate || p.start_date,
+                            endDate: p.endDate || p.end_date,
+                            status: p.status || 'DRAFT',
+                            visibility: p.visibility || 'PUBLIC',
+                            minRooms: p.minimumRooms,
+                            minNights: p.minimumNights,
+                            advanceDays: p.advanceDays,
+                            minBill: p.minimumOrderAmount
+                        };
+                    });
+                    buildStatusFilter();
+                    applyFilters();
+                }
+
+                /* ===== Bind ===== */
+                document.addEventListener('DOMContentLoaded', function () {
+
+                    document.getElementById('btnCreatePromo').addEventListener('click', function (e) {
+                        e.preventDefault();
+                        openCreateModal();
+                    });
+
+                    var searchInput = document.getElementById('searchPromotion');
+                    var searchWrap = document.getElementById('searchPromotionWrap');
+                    var searchClear = document.getElementById('searchPromoClear');
+
+                    searchInput.addEventListener('input', function () {
+                        searchKw = this.value.trim();
+                        searchWrap.classList.toggle('has-value', !!searchKw);
+                        applyFilters();
+                    });
+                    searchClear.addEventListener('click', function () {
+                        searchInput.value = '';
+                        searchKw = '';
+                        searchWrap.classList.remove('has-value');
+                        applyFilters();
+                        searchInput.focus();
+                    });
+
+                    // Auto-format tiền khi gõ
+                    var minBillInput = document.getElementById('form-promo-min-bill');
+                    minBillInput.addEventListener('input', function () {
+                        var pos = this.selectionStart;
+                        var before = this.value.length;
+                        this.value = fmtMoneyInput(this.value);
+                        var after = this.value.length;
+                        var newPos = pos + (after - before);
+                        this.setSelectionRange(newPos, newPos);
+                    });
+
+                    document.querySelector('[data-clear="status"]')?.addEventListener('click', function () {
+                        document.querySelectorAll('.filter-status-cb').forEach(function (cb) { cb.checked = false; });
+                        applyFilters();
+                    });
+
+                    document.getElementById('promotionForm').addEventListener('submit', savePromotion);
+                    document.getElementById('btn-confirm-delete').addEventListener('click', deletePromotion);
+                    document.getElementById('btnConfirmSendPromo').addEventListener('click', confirmSendPromo);
+
+                    document.getElementById('send-promo-search')?.addEventListener('input', function (e) {
+                        loadCustomersForSend(e.target.value.trim());
+                    });
+
+                    document.getElementById('table-body').addEventListener('click', function (e) {
+                        var btn = e.target.closest('[data-action]');
+                        if (!btn) return;
+                        var row = btn.closest('.promo-row');
+                        if (!row) return;
+                        var id = row.dataset.id;
+                        var p = promotions.find(function (x) { return (x._id || x.id) == id; });
+                        if (!p) return;
+
+                        var action = btn.dataset.action;
+                        if (action === 'view') openViewModal(p);
+                        if (action === 'edit') openEditModal(p);
+                        if (action === 'delete') openDeleteModal(p);
+                        if (action === 'send') openSendPromoModal(p._id || p.id);
+                    });
+
+                    loadData();
+                });
+
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

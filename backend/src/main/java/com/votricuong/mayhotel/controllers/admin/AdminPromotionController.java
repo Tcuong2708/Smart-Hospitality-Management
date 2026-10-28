@@ -13,6 +13,6 @@ public class AdminPromotionController extends BaseController {
     @GetMapping("/promotion")
     public String index(Model model) {
         setPageTitle(model, "Quản Lý Khuyến Mãi - Admin");
-        return render(model, "view/Admin/Promotion/index");
+        return render(model, "view/admin/promotion/index");
     }
 }

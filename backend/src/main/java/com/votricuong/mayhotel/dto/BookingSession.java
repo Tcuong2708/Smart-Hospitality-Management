@@ -28,4 +28,16 @@ public class BookingSession implements java.io.Serializable {
         }
         return loaiPhong.getPrice() * (soLuong * getSoDem());
     }
+
+    public int getAdults() {
+        return adultCount;
+    }
+
+    public int getChildren() {
+        return childCount;
+    }
+
+    public int getInfants() {
+        return infantCount;
+    }
 }

@@ -34,9 +34,9 @@ public abstract class BaseController {
     }
 
     private boolean isBackOfficeView(String viewPath) {
-        return viewPath != null && (viewPath.startsWith("view/Admin/")
-                || viewPath.startsWith("view/Manager/")
-                || viewPath.startsWith("view/Receptionist/"));
+        return viewPath != null && (viewPath.startsWith("view/admin/")
+                || viewPath.startsWith("view/manager/")
+                || viewPath.startsWith("view/receptionist/"));
     }
 
     private void setFragmentAttribute(Model model, String attribute, String fragmentPath) {

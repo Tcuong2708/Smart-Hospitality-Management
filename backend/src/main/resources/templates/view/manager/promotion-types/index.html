@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+    <div th:fragment="body_content" class="manager-page-shell manager-fill-page">
+
+        <!-- Page header -->
+        <div class="adm-page-head admin-page-banner">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Marketing & Ưu đãi</span>
+                <h1 class="adm-page-title">Loại khuyến mãi</h1>
+                <p class="adm-page-sub">Quản lý danh mục loại khuyến mãi dùng trong chương trình ưu đãi.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-gold" id="btnCreateType">
+                    <i class="bi bi-plus-lg"></i> Thêm loại
+                </button>
+            </div>
+        </div>
+
+        <div class="adm-card manager-fill-card">
+            <div class="adm-toolbar">
+                <div class="adm-search" id="searchTypeWrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchType" placeholder="Tìm theo mã hoặc tên loại...">
+                    <button type="button" class="adm-search-clear" id="searchTypeClear" aria-label="Xóa">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-tag-fill" style="color:var(--gold-hover);"></i>
+                    <strong id="typeCount">0</strong> loại
+                </div>
+            </div>
+
+            <div class="adm-table-wrap manager-fill-body">
+                <table class="adm-table" id="typeTable">
+                    <thead>
+                        <tr>
+                            <th style="width:140px;">Mã loại</th>
+                            <th>Tên hiển thị</th>
+                            <th>Mô tả</th>
+                            <th class="col-center" style="width:110px;">Icon</th>
+                            <th class="col-center" style="width:130px;">Đang dùng</th>
+                            <th class="col-center" style="width:140px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="type-body">
+                        <tr>
+                            <td colspan="6" class="text-center" style="padding:40px;">
+                                <span class="adm-spinner"
+                                    style="width:24px;height:24px;border-width:3px;color:var(--gold);"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Modal Create/Edit -->
+        <div class="adm-modal-backdrop" id="typeModal">
+            <div class="adm-modal">
+                <form id="typeForm">
+                    <input type="hidden" id="form-type-id">
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-tag-fill"></i> <span id="typeModalTitle">Thêm loại khuyến mãi</span></h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+                    <div class="adm-modal-body">
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Mã loại <span class="req">*</span></label>
+                                <input type="text" id="form-type-code" placeholder="VD: FLASH_SALE" maxlength="30"
+                                    required style="text-transform:uppercase;">
+                                <small>Bắt đầu bằng chữ cái, chỉ A-Z, 0-9, dấu gạch dưới</small>
+                            </div>
+                            <div class="adm-field">
+                                <label>Tên hiển thị <span class="req">*</span></label>
+                                <input type="text" id="form-type-name" placeholder="VD: Flash Sale" maxlength="100"
+                                    required>
+                            </div>
+                        </div>
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Icon</label>
+                                <select id="form-type-icon">
+                                    <option value="bi-tag-fill">🏷️ Tag</option>
+                                    <option value="bi-people-fill">👥 Đoàn</option>
+                                    <option value="bi-clock-history">⏰ Đặt sớm</option>
+                                    <option value="bi-cloud-sun">☀️ Mùa thấp điểm</option>
+                                    <option value="bi-star-fill">⭐ Sự kiện</option>
+                                    <option value="bi-calendar-range">📅 Dài ngày</option>
+                                    <option value="bi-ticket-perforated">🎫 Voucher</option>
+                                    <option value="bi-gift-fill">🎁 Quà tặng</option>
+                                    <option value="bi-percent">％ Giảm giá</option>
+                                    <option value="bi-lightning-fill">⚡ Flash sale</option>
+                                    <option value="bi-fire">🔥 Hot deal</option>
+                                    <option value="bi-award-fill">🏆 VIP</option>
+                                    <option value="bi-bag-check-fill">🛍️ Mua sắm</option>
+                                    <option value="bi-cash-coin">💰 Tiền mặt</option>
+                                    <option value="bi-credit-card-fill">💳 Thẻ</option>
+                                    <option value="bi-heart-fill">❤️ Thân thiết</option>
+                                    <option value="bi-trophy-fill">🏅 Giải thưởng</option>
+                                    <option value="bi-gem">💎 Cao cấp</option>
+                                    <option value="bi-shop">🏪 Cửa hàng</option>
+                                    <option value="bi-emoji-smile-fill">😊 Khách vui vẻ</option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label>Màu badge</label>
+                                <select id="form-type-color">
+                                    <option value="navy">Navy (xanh đậm)</option>
+                                    <option value="gold">Gold (vàng)</option>
+                                    <option value="green">Green (xanh lá)</option>
+                                    <option value="red">Red (đỏ)</option>
+                                    <option value="yellow">Yellow (vàng cam)</option>
+                                    <option value="blue">Blue (xanh dương)</option>
+                                    <option value="neutral">Neutral (xám)</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="adm-form-row full">
+                            <div class="adm-field">
+                                <label>Mô tả</label>
+                                <textarea id="form-type-description" rows="3"
+                                    placeholder="Mô tả ngắn về loại khuyến mãi này"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-lg"></i> Lưu
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Modal Delete -->
+        <div class="adm-modal-backdrop" id="deleteTypeModal">
+            <div class="adm-modal" style="max-width:440px;">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-exclamation-triangle" style="color:var(--red);"></i> Xác nhận xóa</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                </div>
+                <div class="adm-modal-body" style="text-align:center;">
+                    <div class="adm-delete-icon-modal"><i class="bi bi-trash"></i></div>
+                    <p style="font-size:14px;color:var(--text-soft);margin-bottom:12px;">
+                        Bạn có chắc muốn xóa loại
+                    </p>
+                    <p id="deleteTypeName"
+                        style="font-family:var(--font-heading);font-size:20px;font-weight:700;color:var(--navy);">—</p>
+                    <p style="font-size:13px;color:var(--muted);margin-top:8px;">
+                        Không thể xóa nếu đang có khuyến mãi sử dụng loại này.
+                    </p>
+                </div>
+                <div class="adm-modal-foot" style="justify-content:center;">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <button type="button" class="adm-btn adm-btn-danger" id="btnConfirmDeleteType">
+                        <i class="bi bi-trash"></i> Xóa loại
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ============================================================
+         EXTRA JS
+         ============================================================ -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                var types = [];
+                var filtered = [];
+                var editingId = null;
+                var deletingId = null;
+                var searchKw = '';
+
+                function csrfHeaders() {
+                    var tokenMeta = document.querySelector('meta[name="_csrf"]');
+                    var headerMeta = document.querySelector('meta[name="_csrf_header"]');
+                    var headers = { 'Accept': 'application/json' };
+                    if (tokenMeta && headerMeta && tokenMeta.content && headerMeta.content) {
+                        headers[headerMeta.content] = tokenMeta.content;
+                    }
+                    return headers;
+                }
+
+                function esc(s) {
+                    if (s == null) return '';
+                    var d = document.createElement('div');
+                    d.textContent = String(s);
+                    return d.innerHTML;
+                }
+
+                async function fetchList() {
+                    var res = await fetch('/manager/promotion-types/api',
+                        { headers: { 'Accept': 'application/json' } });
+                    if (!res.ok) throw new Error('HTTP ' + res.status);
+                    return await res.json();
+                }
+
+                function renderTable(list) {
+                    var tbody = document.getElementById('type-body');
+                    if (!list.length) {
+                        tbody.innerHTML = '<tr><td colspan="6"><div class="adm-empty">' +
+                            '<i class="bi bi-tag"></i>' +
+                            '<h4>Chưa có loại khuyến mãi nào</h4>' +
+                            '<p>Bấm "Thêm loại" để tạo loại đầu tiên.</p>' +
+                            '</div></td></tr>';
+                        return;
+                    }
+
+                    tbody.innerHTML = list.map(function (t) {
+                        var badgeCls = 'adm-promo-type color-' + (t.color || 'neutral');
+                        return '<tr class="type-row" data-id="' + t.id + '">' +
+                            '<td><span class="' + badgeCls + '"><i class="bi ' + esc(t.icon || 'bi-tag') + '"></i> ' + esc(t.code) + '</span></td>' +
+                            '<td><strong class="text-navy">' + esc(t.name) + '</strong></td>' +
+                            '<td class="text-muted" style="font-size:13px;">' + esc(t.description || '—') + '</td>' +
+                            '<td class="col-center"><i class="bi ' + esc(t.icon || 'bi-tag') + '" style="font-size:20px;color:var(--gold-hover);"></i></td>' +
+                            '<td class="col-center">' +
+                            (t.usageCount > 0
+                                ? '<span class="adm-badge adm-badge-info"><i class="bi bi-link-45deg"></i> ' + t.usageCount + '</span>'
+                                : '<span class="text-muted">0</span>') +
+                            '</td>' +
+                            '<td class="col-center">' +
+                            '<div class="adm-actions">' +
+                            '<button type="button" class="adm-action edit" data-action="edit" title="Sửa"><i class="bi bi-pencil"></i></button>' +
+                            '<button type="button" class="adm-action delete" data-action="delete" title="Xóa"><i class="bi bi-trash"></i></button>' +
+                            '</div></td>' +
+                            '</tr>';
+                    }).join('');
+                }
+
+                function applyFilters() {
+                    filtered = types.filter(function (t) {
+                        if (!searchKw) return true;
+                        var kw = searchKw.toLowerCase();
+                        return (t.code || '').toLowerCase().indexOf(kw) >= 0
+                            || (t.name || '').toLowerCase().indexOf(kw) >= 0;
+                    });
+                    renderTable(filtered);
+                    document.getElementById('typeCount').textContent = filtered.length;
+                }
+
+                function openCreateModal() {
+                    editingId = null;
+                    document.getElementById('typeModalTitle').textContent = 'Thêm loại khuyến mãi';
+                    document.getElementById('typeForm').reset();
+                    document.getElementById('form-type-id').value = '';
+                    document.getElementById('form-type-code').disabled = false;
+                    document.getElementById('form-type-icon').value = 'bi-tag-fill';
+                    document.getElementById('form-type-color').value = 'navy';
+                    AdmModal.open('typeModal');
+                }
+
+                function openEditModal(t) {
+                    editingId = t.id;
+                    document.getElementById('typeModalTitle').textContent = 'Chỉnh sửa loại';
+                    document.getElementById('form-type-id').value = t.id;
+                    document.getElementById('form-type-code').value = t.code || '';
+                    document.getElementById('form-type-code').disabled = t.usageCount > 0;
+                    document.getElementById('form-type-name').value = t.name || '';
+                    document.getElementById('form-type-icon').value = t.icon || 'bi-tag-fill';
+                    document.getElementById('form-type-color').value = t.color || 'neutral';
+                    document.getElementById('form-type-description').value = t.description || '';
+                    AdmModal.open('typeModal');
+                }
+
+                function openDeleteModal(t) {
+                    deletingId = t.id;
+                    document.getElementById('deleteTypeName').textContent = t.name + ' (' + t.code + ')';
+                    AdmModal.open('deleteTypeModal');
+                }
+
+                async function saveType(e) {
+                    e.preventDefault();
+                    var payload = {
+                        code: document.getElementById('form-type-code').value.trim().toUpperCase(),
+                        name: document.getElementById('form-type-name').value.trim(),
+                        icon: document.getElementById('form-type-icon').value,
+                        color: document.getElementById('form-type-color').value,
+                        description: document.getElementById('form-type-description').value.trim()
+                    };
+
+                    var url = editingId ? '/manager/promotion-types/api/' + editingId
+                        : '/manager/promotion-types/api';
+                    var method = editingId ? 'PUT' : 'POST';
+
+                    try {
+                        var headers = csrfHeaders();
+                        headers['Content-Type'] = 'application/json';
+                        var res = await fetch(url, {
+                            method: method,
+                            headers: headers,
+                            body: JSON.stringify(payload)
+                        });
+                        if (!res.ok) {
+                            var err = await res.json().catch(function () { return {}; });
+                            throw new Error(err.message || 'HTTP ' + res.status);
+                        }
+                        AdmModal.close('typeModal');
+                        if (typeof toast === 'function') toast(editingId ? 'Đã cập nhật loại' : 'Đã thêm loại');
+                        await loadData();
+                    } catch (e2) {
+                        if (typeof toast === 'function') toast(e2.message, 'danger');
+                    }
+                }
+
+                async function deleteType() {
+                    if (!deletingId) return;
+                    try {
+                        var res = await fetch('/manager/promotion-types/api/' + deletingId, {
+                            method: 'DELETE',
+                            headers: csrfHeaders()
+                        });
+                        if (!res.ok) {
+                            var err = await res.json().catch(function () { return {}; });
+                            throw new Error(err.message || 'HTTP ' + res.status);
+                        }
+                        AdmModal.close('deleteTypeModal');
+                        if (typeof toast === 'function') toast('Đã xóa loại');
+                        await loadData();
+                    } catch (e2) {
+                        if (typeof toast === 'function') toast(e2.message, 'danger');
+                    }
+                }
+
+                async function loadData() {
+                    types = await fetchList();
+                    applyFilters();
+                }
+
+                document.addEventListener('DOMContentLoaded', function () {
+
+                    document.getElementById('btnCreateType').addEventListener('click', openCreateModal);
+                    document.getElementById('typeForm').addEventListener('submit', saveType);
+                    document.getElementById('btnConfirmDeleteType').addEventListener('click', deleteType);
+
+                    document.getElementById('form-type-code').addEventListener('input', function () {
+                        this.value = this.value.toUpperCase().replace(/[^A-Z0-9_]/g, '');
+                    });
+
+                    var searchInput = document.getElementById('searchType');
+                    var searchWrap = document.getElementById('searchTypeWrap');
+                    var searchClear = document.getElementById('searchTypeClear');
+                    searchInput.addEventListener('input', function () {
+                        searchKw = this.value.trim();
+                        searchWrap.classList.toggle('has-value', !!searchKw);
+                        applyFilters();
+                    });
+                    searchClear.addEventListener('click', function () {
+                        searchInput.value = '';
+                        searchKw = '';
+                        searchWrap.classList.remove('has-value');
+                        applyFilters();
+                        searchInput.focus();
+                    });
+
+                    document.getElementById('type-body').addEventListener('click', function (e) {
+                        var btn = e.target.closest('[data-action]');
+                        if (!btn) return;
+                        var row = btn.closest('.type-row');
+                        if (!row) return;
+                        var id = Number(row.dataset.id);
+                        var t = types.find(function (x) { return x.id === id; });
+                        if (!t) return;
+
+                        if (btn.dataset.action === 'edit') openEditModal(t);
+                        if (btn.dataset.action === 'delete') openDeleteModal(t);
+                    });
+
+                    loadData();
+                });
+
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

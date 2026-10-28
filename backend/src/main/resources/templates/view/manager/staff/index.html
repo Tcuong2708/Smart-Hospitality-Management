@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css">
+        <!-- SheetJS để xuất Excel -->
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    </th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Quản lý nhân sự</span>
+                <h1 class="adm-page-title">Quản lý nhân viên</h1>
+                <p class="adm-page-sub">Quản lý thông tin tài khoản, phân quyền và trạng thái hoạt động của nhân viên.
+                </p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-outline" id="btnExport">
+                    <i class="bi bi-download"></i> Xuất Excel
+                </button>
+                <button type="button" class="adm-btn adm-btn-gold" id="btnCreate">
+                    <i class="bi bi-person-plus-fill"></i> Thêm nhân viên
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="adm-loyalty-stats" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon"><i class="bi bi-people-fill"></i></div>
+                    <div class="adm-loyalty-stat-label">Tổng nhân viên</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--navy);line-height:1.1;"
+                    th:text="${staffs != null ? #lists.size(staffs) : 0}">0</div>
+                <div class="adm-loyalty-stat-suffix">Tài khoản trong hệ thống</div>
+            </div>
+
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon" style="background:var(--green-bg);color:var(--green);">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+                    <div class="adm-loyalty-stat-label">Đang hoạt động</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--green);line-height:1.1;"
+                    th:text="${staffs != null ? #lists.size(staffs.?[status == 1]) : 0}">0</div>
+                <div class="adm-loyalty-stat-suffix">Có thể đăng nhập</div>
+            </div>
+
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon" style="background:var(--red-bg);color:var(--red);">
+                        <i class="bi bi-person-x-fill"></i>
+                    </div>
+                    <div class="adm-loyalty-stat-label">Tài khoản bị khóa</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--red);line-height:1.1;"
+                    th:text="${staffs != null ? #lists.size(staffs.?[status != 1]) : 0}">0</div>
+                <div class="adm-loyalty-stat-suffix">Không thể đăng nhập</div>
+            </div>
+        </div>
+
+        <!-- Card danh sách -->
+        <div class="adm-card">
+            <div class="adm-toolbar">
+                <div class="adm-search" style="flex:1;max-width:360px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="search-input" placeholder="Tìm tên, bộ phận, số điện thoại..."
+                        autocomplete="off">
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-person-badge" style="color:var(--gold-hover);"></i>
+                    <strong th:text="${staffs != null ? #lists.size(staffs) : 0}">0</strong> nhân viên
+                </div>
+            </div>
+
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th class="col-center" style="width:80px;">Mã</th>
+                            <th>Nhân viên</th>
+                            <th>Bộ phận</th>
+                            <th>Liên hệ</th>
+                            <th class="col-right">Lương cơ bản</th>
+                            <th class="col-center">Trạng thái</th>
+                            <th class="col-center" style="width:150px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${staffs == null or staffs.isEmpty()}">
+                            <td colspan="7">
+                                <div class="adm-empty">
+                                    <i class="bi bi-person-x"></i>
+                                    <h4>Chưa có nhân viên</h4>
+                                    <p>Bấm "Thêm nhân viên" để tạo tài khoản mới cho nhân sự.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:each="nv : ${staffs}" class="staff-row" th:attr="data-id=${nv.id},
+                                     data-name=${nv.name},
+                                     data-phone=${nv.phone},
+                                     data-email=${nv.email},
+                                     data-position=${nv.dept},
+                                     data-salary=${nv.salary},
+                                     data-role=${nv.roleId},
+                                     data-status=${nv.status},
+                                     data-username=${nv.username}">
+                            <td class="cell-id text-center" th:text="${nv.id}">1</td>
+                            <td>
+                                <strong
+                                    style="display:block;font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.35;"
+                                    th:text="${nv.name}">Tên</strong>
+                                <small style="color:var(--muted);font-size:11.5px;"
+                                    th:text="${nv.username}">username</small>
+                            </td>
+                            <td>
+                                <span class="adm-badge adm-badge-info" th:text="${nv.dept}">Bộ phận</span>
+                            </td>
+                            <td>
+                                <div style="font-weight:600;color:var(--navy);font-size:13px;" th:text="${nv.phone}">090
+                                </div>
+                                <small style="color:var(--muted);font-size:11.5px;" th:text="${nv.email}">email</small>
+                            </td>
+                            <td class="col-right cell-price"
+                                th:text="${#numbers.formatDecimal(nv.salary, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+                            <td class="col-center">
+                                <span class="adm-badge"
+                                    th:classappend="${nv.status == 1 ? 'adm-badge-success' : 'adm-badge-neutral'}">
+                                    <span class="dot"></span>
+                                    <span th:text="${nv.status == 1 ? 'Hoạt động' : 'Bị khóa'}">Hoạt động</span>
+                                </span>
+                            </td>
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <button type="button" class="adm-action edit btn-edit" title="Sửa thông tin">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+
+                                    <form th:action="@{/manager/staff/{id}/status(id=${nv.id})}" method="post"
+                                        style="display:inline;">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                            th:value="${_csrf.token}">
+                                        <button type="submit" class="adm-action" title="Khóa/Mở khóa"
+                                            th:style="${nv.status == 1 ? 'color:var(--yellow);' : 'color:var(--green);'}">
+                                            <i class="bi"
+                                                th:classappend="${nv.status == 1 ? 'bi-lock-fill' : 'bi-unlock-fill'}"></i>
+                                        </button>
+                                    </form>
+
+                                    <form th:action="@{/manager/staff/{id}/delete(id=${nv.id})}" method="post"
+                                        style="display:inline;" onsubmit="return confirm('Xóa nhân viên này?');">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                            th:value="${_csrf.token}">
+                                        <button type="submit" class="adm-action delete" title="Xóa nhân viên">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: THÊM/SỬA ==================== -->
+        <div class="adm-modal-backdrop" id="employeeModal">
+            <div class="adm-modal lg">
+                <form id="employeeForm" method="post" th:action="@{/manager/staff/create}">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <input type="hidden" name="id" id="form-id">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-person-vcard"></i> <span id="employeeModalTitle">Thêm nhân viên</span></h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body">
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Họ và tên <span class="req">*</span></label>
+                                <input name="fullName" id="form-name" maxlength="100" required
+                                    placeholder="Nguyễn Văn A">
+                            </div>
+                            <div class="adm-field">
+                                <label>Số điện thoại <span class="req">*</span></label>
+                                <input name="phone" id="form-phone" pattern="\+?[0-9]{9,15}" required
+                                    placeholder="0901234567">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Email <span class="req">*</span></label>
+                                <input type="email" name="email" id="form-email" required
+                                    placeholder="email@mayhotel.com">
+                            </div>
+                            <div class="adm-field">
+                                <label>Chức vụ/Bộ phận <span class="req">*</span></label>
+                                <input name="position" id="form-position" maxlength="100" required
+                                    placeholder="Lễ tân ca sáng">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Lương cơ bản <span class="req">*</span></label>
+                                <input type="number" name="baseSalary" id="form-salary" min="0" max="1000000000"
+                                    value="0" required>
+                            </div>
+                            <div class="adm-field">
+                                <label>Vai trò <span class="req">*</span></label>
+                                <select name="roleId" id="form-role" required>
+                                    <option value="3">Lễ tân</option>
+                                    <option value="4">Buồng phòng</option>
+                                    <option value="6">Nhân viên dịch vụ</option>
+                                    <option value="7">Kế toán</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field create-only">
+                                <label>Tên đăng nhập <span class="req">*</span></label>
+                                <input name="username" id="form-username" minlength="4" maxlength="50"
+                                    placeholder="VD: nhanvien_a">
+                            </div>
+                            <div class="adm-field">
+                                <label>Mật khẩu <span class="req create-only">*</span></label>
+                                <input type="password" name="password" id="form-password" minlength="8"
+                                    placeholder="Tối thiểu 8 ký tự">
+                                <small class="text-muted edit-only" style="display:none;">Để trống nếu không đổi mật
+                                    khẩu.</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-circle"></i> Lưu thông tin
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function ready(fn) {
+                    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+                    else fn();
+                }
+
+                ready(function () {
+                    window.ADM_PAGE_MODULE = 'staff';
+
+                    var form = document.getElementById('employeeForm');
+                    var field = function (id) { return document.getElementById(id); };
+
+                    /* ── Map roleId → tên vai trò ── */
+                    var ROLE_NAMES = {
+                        '3': 'Lễ tân',
+                        '4': 'Buồng phòng',
+                        '6': 'Nhân viên dịch vụ',
+                        '7': 'Kế toán'
+                    };
+
+                    function roleName(roleId) {
+                        return ROLE_NAMES[String(roleId)] || 'Không xác định';
+                    }
+
+                    /* ── Mở modal Thêm mới ── */
+                    function createMode() {
+                        form.reset();
+                        field('form-id').value = '';
+                        form.action = '/manager/staff/create';
+                        field('employeeModalTitle').textContent = 'Thêm nhân viên';
+                        field('form-username').required = true;
+                        field('form-password').required = true;
+
+                        document.querySelectorAll('.create-only').forEach(function (e) { e.style.display = ''; });
+                        document.querySelectorAll('.edit-only').forEach(function (e) { e.style.display = 'none'; });
+
+                        if (typeof AdmModal !== 'undefined') AdmModal.open('employeeModal');
+                    }
+
+                    var btnCreate = document.getElementById('btnCreate');
+                    if (btnCreate) btnCreate.addEventListener('click', createMode);
+
+                    /* ── Mở modal Sửa ── */
+                    document.querySelectorAll('.btn-edit').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var row = btn.closest('.staff-row');
+                            if (!row) return;
+
+                            form.reset();
+                            form.action = '/manager/staff/edit';
+                            field('employeeModalTitle').textContent = 'Cập nhật nhân viên';
+                            field('form-id').value = row.dataset.id;
+                            field('form-name').value = row.dataset.name || '';
+                            field('form-phone').value = row.dataset.phone || '';
+                            field('form-email').value = row.dataset.email || '';
+                            field('form-position').value = row.dataset.position || '';
+                            field('form-salary').value = row.dataset.salary || 0;
+                            field('form-role').value = row.dataset.role || 3;
+
+                            field('form-username').required = false;
+                            field('form-password').required = false;
+
+                            document.querySelectorAll('.create-only').forEach(function (e) { e.style.display = 'none'; });
+                            document.querySelectorAll('.edit-only').forEach(function (e) { e.style.display = ''; });
+
+                            if (typeof AdmModal !== 'undefined') AdmModal.open('employeeModal');
+                        });
+                    });
+
+                    /* ── Search ── */
+                    var searchInput = document.getElementById('search-input');
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function (e) {
+                            var q = e.target.value.toLowerCase();
+                            document.querySelectorAll('.staff-row').forEach(function (row) {
+                                row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+                            });
+                        });
+                    }
+
+                    /* ── EXPORT EXCEL ── */
+                    var btnExport = document.getElementById('btnExport');
+                    if (btnExport) {
+                        btnExport.addEventListener('click', function () {
+                            if (typeof XLSX === 'undefined') {
+                                if (typeof toast === 'function') toast('Thư viện Excel chưa load, thử lại', 'danger');
+                                return;
+                            }
+
+                            var allRows = Array.from(document.querySelectorAll('.staff-row'));
+                            if (!allRows.length) {
+                                if (typeof toast === 'function') toast('Không có dữ liệu để xuất', 'warning');
+                                return;
+                            }
+
+                            var data = [
+                                ['Mã', 'Họ và tên', 'Tên đăng nhập', 'Bộ phận', 'Số điện thoại',
+                                    'Email', 'Vai trò', 'Lương cơ bản (VNĐ)', 'Trạng thái']
+                            ];
+
+                            allRows.forEach(function (row) {
+                                var d = row.dataset;
+                                var statusText = (d.status === '1') ? 'Hoạt động' : 'Bị khóa';
+
+                                data.push([
+                                    d.id || '',
+                                    d.name || '',
+                                    d.username || '',
+                                    d.position || '',
+                                    d.phone || '',
+                                    d.email || '',
+                                    roleName(d.role),
+                                    parseFloat(d.salary) || 0,
+                                    statusText
+                                ]);
+                            });
+
+                            var ws = XLSX.utils.aoa_to_sheet(data);
+                            ws['!cols'] = [
+                                { wch: 8 },  // Mã
+                                { wch: 25 }, // Họ tên
+                                { wch: 20 }, // Username
+                                { wch: 20 }, // Bộ phận
+                                { wch: 15 }, // SĐT
+                                { wch: 30 }, // Email
+                                { wch: 20 }, // Vai trò
+                                { wch: 18 }, // Lương
+                                { wch: 12 }  // Trạng thái
+                            ];
+
+                            var wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Danh sách nhân viên');
+
+                            var now = new Date();
+                            var dateStr = now.getFullYear()
+                                + String(now.getMonth() + 1).padStart(2, '0')
+                                + String(now.getDate()).padStart(2, '0')
+                                + '_'
+                                + String(now.getHours()).padStart(2, '0')
+                                + String(now.getMinutes()).padStart(2, '0');
+
+                            XLSX.writeFile(wb, 'danh-sach-nhan-vien_' + dateStr + '.xlsx');
+
+                            if (typeof toast === 'function') {
+                                toast('Đã xuất ' + allRows.length + ' nhân viên ra Excel');
+                            }
+                        });
+                    }
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

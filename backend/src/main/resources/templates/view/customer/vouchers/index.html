@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+    layout:decorate="~{layout/main}">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block layout:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <section layout:fragment="content">
+
+        <div class="mh-detail-page">
+            <div class="container">
+
+                <!-- Breadcrumb -->
+                <div class="mh-detail-breadcrumb">
+                    <a th:href="@{/}">Trang chủ</a>
+                    <i class="fa-solid fa-chevron-right"></i>
+                    <span>Ưu đãi của tôi</span>
+                </div>
+
+                <!-- ============ PRIVATE ============ -->
+                <div class="vc-section">
+                    <div class="vc-section-head">
+                        <h2>
+                            <i class="bi bi-gift-fill"></i>
+                            Ưu đãi dành riêng cho bạn
+                        </h2>
+                        <span class="vc-section-badge">
+                            <i class="bi bi-ticket-perforated-fill"></i>
+                            <span th:text="${privateVouchers != null ? #lists.size(privateVouchers) : 0}">0</span> mã
+                        </span>
+                    </div>
+
+                    <div th:if="${privateVouchers == null or #lists.isEmpty(privateVouchers)}" class="vc-empty">
+                        <i class="bi bi-ticket-perforated"></i>
+                        <h4>Chưa có ưu đãi riêng</h4>
+                        <p>Khi bạn được tặng mã giảm giá, mã sẽ xuất hiện tại đây và có thông báo trong mục Thông báo.
+                        </p>
+                    </div>
+
+                    <div th:unless="${privateVouchers == null or #lists.isEmpty(privateVouchers)}" class="vc-grid">
+                        <div th:each="v : ${privateVouchers}" class="vc-card private">
+                            <div class="vc-header">
+                                <div style="flex:1;min-width:0;">
+                                    <h4 class="vc-title" th:text="${v.name}">Tên voucher</h4>
+                                    <p class="vc-desc" th:text="${v.description != null and !v.description.isEmpty()
+                                                ? v.description : 'Ưu đãi đặc biệt từ MAY HOTEL'}">Mô tả</p>
+                                </div>
+                                <div class="vc-discount">
+                                    <span th:text="${v.discountPercent}">0</span>%
+                                    <small>GIẢM</small>
+                                </div>
+                            </div>
+
+                            <div class="vc-code-row">
+                                <div class="vc-code" th:text="${v.code}">CODE</div>
+                                <button type="button" class="vc-copy-btn" th:attr="data-code=${v.code}">
+                                    <i class="bi bi-clipboard"></i> Sao chép
+                                </button>
+                            </div>
+
+                            <div class="vc-footer">
+                                <span>
+                                    <i class="bi bi-calendar-event"></i>
+                                    HSD: <strong th:text="${#dates.format(v.endDate, 'dd/MM/yyyy')}">—</strong>
+                                </span>
+                                <span th:if="${v.minimumOrderAmount != null}">
+                                    <i class="bi bi-cash"></i>
+                                    Tối thiểu:
+                                    <strong
+                                        th:text="${#numbers.formatDecimal(v.minimumOrderAmount, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</strong>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ============ PUBLIC ============ -->
+                <div class="vc-section">
+                    <div class="vc-section-head">
+                        <h2>
+                            <i class="bi bi-globe"></i>
+                            Mã công khai
+                        </h2>
+                        <span class="vc-section-badge blue">
+                            <i class="bi bi-ticket-detailed-fill"></i>
+                            <span th:text="${publicVouchers != null ? #lists.size(publicVouchers) : 0}">0</span> mã
+                        </span>
+                    </div>
+
+                    <div th:if="${publicVouchers == null or #lists.isEmpty(publicVouchers)}" class="vc-empty">
+                        <i class="bi bi-ticket-detailed"></i>
+                        <h4>Chưa có mã công khai</h4>
+                        <p>Các chương trình ưu đãi công khai sẽ xuất hiện tại đây khi được kích hoạt.</p>
+                    </div>
+
+                    <div th:unless="${publicVouchers == null or #lists.isEmpty(publicVouchers)}" class="vc-grid">
+                        <div th:each="v : ${publicVouchers}" class="vc-card public">
+                            <div class="vc-header">
+                                <div style="flex:1;min-width:0;">
+                                    <h4 class="vc-title" th:text="${v.name}">Tên voucher</h4>
+                                    <p class="vc-desc" th:text="${v.description != null and !v.description.isEmpty()
+                                                ? v.description : 'Chương trình ưu đãi công khai'}">Mô tả</p>
+                                </div>
+                                <div class="vc-discount">
+                                    <span th:text="${v.discountPercent}">0</span>%
+                                    <small>GIẢM</small>
+                                </div>
+                            </div>
+
+                            <div class="vc-code-row">
+                                <div class="vc-code" th:text="${v.code}">CODE</div>
+                                <button type="button" class="vc-copy-btn" th:attr="data-code=${v.code}">
+                                    <i class="bi bi-clipboard"></i> Sao chép
+                                </button>
+                            </div>
+
+                            <div class="vc-footer">
+                                <span>
+                                    <i class="bi bi-calendar-event"></i>
+                                    HSD: <strong th:text="${#dates.format(v.endDate, 'dd/MM/yyyy')}">—</strong>
+                                </span>
+                                <span th:if="${v.minimumOrderAmount != null}">
+                                    <i class="bi bi-cash"></i>
+                                    Tối thiểu:
+                                    <strong
+                                        th:text="${#numbers.formatDecimal(v.minimumOrderAmount, 0, 'COMMA', 0, 'POINT')} + 'đ'">0đ</strong>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </section>
+
+
+    <th:block layout:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function showToast(msg, type) {
+                    type = type || 'success';
+                    if (typeof window.toast === 'function') { window.toast(msg, type); return; }
+
+                    var container = document.querySelector('.mh-toast-container');
+                    if (!container) {
+                        container = document.createElement('div');
+                        container.className = 'mh-toast-container';
+                        document.body.appendChild(container);
+                    }
+                    var t = document.createElement('div');
+                    t.className = 'mh-toast toast-' + type;
+                    var icon = type === 'danger' ? 'bi-x-circle-fill' : 'bi-check-circle-fill';
+                    t.innerHTML = '<i class="bi ' + icon + '"></i><span class="mh-toast-text">' + msg + '</span>';
+                    container.appendChild(t);
+                    setTimeout(function () { t.remove(); }, 3500);
+                }
+
+                document.addEventListener('DOMContentLoaded', function () {
+
+                    document.querySelectorAll('.vc-copy-btn').forEach(function (btn) {
+                        btn.addEventListener('click', async function () {
+                            var code = btn.dataset.code;
+                            if (!code) return;
+
+                            try {
+                                await navigator.clipboard.writeText(code);
+                                var original = btn.innerHTML;
+                                btn.classList.add('copied');
+                                btn.innerHTML = '<i class="bi bi-check-lg"></i> Đã chép';
+                                showToast('Đã sao chép mã ' + code);
+                                setTimeout(function () {
+                                    btn.classList.remove('copied');
+                                    btn.innerHTML = original;
+                                }, 1800);
+                            } catch (err) {
+                                showToast('Không thể sao chép', 'danger');
+                            }
+                        });
+                    });
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

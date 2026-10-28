@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Nghiệp vụ lễ tân</span>
+                <h1 class="adm-page-title">Quản lý đặt phòng</h1>
+                <p class="adm-page-sub">Xem danh sách đơn đặt phòng và tạo đặt phòng trực tiếp tại quầy lễ tân.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-gold" data-adm-open="directBookingModal">
+                    <i class="bi bi-plus-lg"></i> Thêm đặt phòng
+                </button>
+            </div>
+        </div>
+
+        <!-- Flash -->
+        <div th:if="${success}" class="adm-alert adm-alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${success}"></span>
+        </div>
+        <div th:if="${error}" class="adm-alert adm-alert-danger">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- Card danh sách -->
+        <div class="adm-card">
+            <div class="adm-toolbar">
+                <div class="adm-search" style="flex:1;max-width:360px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="bookingSearch" placeholder="Tìm theo mã đơn, tên khách hoặc phòng..."
+                        autocomplete="off">
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-calendar-check" style="color:var(--gold-hover);"></i>
+                    <strong id="bookingCount">0</strong> đơn đặt
+                </div>
+            </div>
+
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th class="col-center" style="width:100px;">Mã đặt</th>
+                            <th>Khách hàng</th>
+                            <th class="col-center" style="width:130px;">Phòng</th>
+                            <th class="col-center" style="width:130px;">Check-in</th>
+                            <th class="col-center" style="width:130px;">Check-out</th>
+                            <th class="col-center" style="width:150px;">Trạng thái</th>
+                            <th class="col-center" style="width:170px;">
+                                <i class="bi bi-robot" style="color:var(--gold-hover);margin-right:6px;"></i>AI dự đoán
+                            </th>
+                            <th class="col-center" style="width:150px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body">
+                        <tr>
+                            <td colspan="8" style="padding:40px;text-align:center;">
+                                <span class="adm-spinner"
+                                    style="width:24px;height:24px;border-width:3px;color:var(--gold);"></span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: ĐẶT PHÒNG TRỰC TIẾP ==================== -->
+        <div class="adm-modal-backdrop" id="directBookingModal">
+            <div class="adm-modal lg">
+                <form th:action="@{/receptionist/booking/checkout}" method="POST">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-calendar-plus"></i> Đặt phòng trực tiếp</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body">
+
+                        <div class="adm-booking-step">
+                            <div class="adm-booking-step-head">
+                                <span class="adm-booking-step-num">1</span>
+                                <i class="bi bi-search"></i>
+                                Tìm phòng trống
+                            </div>
+                            <div class="adm-booking-step-body">
+                                <div class="adm-form-row" style="grid-template-columns:1fr 1fr 1fr;">
+                                    <div class="adm-field">
+                                        <label>Check-in <span class="req">*</span></label>
+                                        <input type="date" name="ngayNhan" id="db-checkin" required>
+                                    </div>
+                                    <div class="adm-field">
+                                        <label>Check-out <span class="req">*</span></label>
+                                        <input type="date" name="ngayTra" id="db-checkout" required>
+                                    </div>
+                                    <div class="adm-field">
+                                        <label>Loại phòng</label>
+                                        <select id="db-room-type">
+                                            <option value="">Tất cả loại phòng</option>
+                                            <option value="Standard">Standard</option>
+                                            <option value="Deluxe">Deluxe</option>
+                                            <option value="Suite">Suite</option>
+                                        </select>
+                                    </div>
+                                </div>
+
+                                <div style="margin-top:14px;text-align:right;">
+                                    <button type="button" class="adm-btn adm-btn-outline" id="btn-search-rooms">
+                                        <i class="bi bi-search"></i> Tìm phòng
+                                    </button>
+                                </div>
+
+                                <div id="db-search-results" class="adm-booking-result" style="display:none;">
+                                    <label><i class="bi bi-check-circle-fill"></i> Chọn phòng</label>
+                                    <select name="roomId" id="db-selected-room">
+                                        <option value="">— Chọn phòng —</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="adm-booking-step">
+                            <div class="adm-booking-step-head">
+                                <span class="adm-booking-step-num">2</span>
+                                <i class="bi bi-person-vcard"></i>
+                                Thông tin khách hàng
+                            </div>
+                            <div class="adm-booking-step-body">
+
+                                <div class="adm-cccd-row">
+                                    <div class="adm-field">
+                                        <label>CCCD / Passport <span class="req">*</span></label>
+                                        <input type="text" id="db-cccd"
+                                            placeholder="Nhập CCCD để tự động điền thông tin khách cũ">
+                                    </div>
+                                    <div class="adm-cccd-actions">
+                                        <button type="button" class="adm-btn adm-btn-outline" id="btn-check-customer">
+                                            <i class="bi bi-search"></i> Tra cứu
+                                        </button>
+                                        <button type="button" class="adm-btn adm-btn-primary" id="btn-nfc-scan"
+                                            title="Quét CCCD qua NFC">
+                                            <i class="bi bi-wifi"></i> NFC
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div class="adm-form-row">
+                                    <div class="adm-field">
+                                        <label>Họ và tên <span class="req">*</span></label>
+                                        <input type="text" name="guestName" id="db-fullname" required
+                                            placeholder="Nguyễn Văn A">
+                                    </div>
+                                    <div class="adm-field">
+                                        <label>Số điện thoại <span class="req">*</span></label>
+                                        <input type="tel" name="phone" id="db-phone" required placeholder="0901234567">
+                                    </div>
+                                </div>
+
+                                <div class="adm-form-row">
+                                    <div class="adm-field">
+                                        <label>Số khách lưu trú <span class="req">*</span></label>
+                                        <input type="number" name="guestCount" id="db-guest-count" min="1" max="100"
+                                            value="1" required>
+                                    </div>
+                                    <div class="adm-field"></div>
+                                </div>
+
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold" id="btn-confirm-booking">
+                            <i class="bi bi-check-circle"></i> Xác nhận đặt phòng
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: XEM CHI TIẾT ==================== -->
+        <div class="adm-modal-backdrop" id="viewBookingModal">
+            <div class="adm-modal lg">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-info-circle"></i> Chi tiết đơn đặt phòng</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close>
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="adm-modal-body">
+
+                    <div
+                        style="padding:20px;background:linear-gradient(135deg,var(--navy),var(--navy-soft));color:#fff;border-radius:12px;margin-bottom:22px;">
+                        <div
+                            style="font-size:11px;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold);margin-bottom:8px;">
+                            Mã đơn
+                        </div>
+                        <div style="font-family:var(--font-heading);font-size:26px;font-weight:700;"
+                            id="view-booking-id">#—</div>
+                        <div style="margin-top:8px;font-size:12.5px;color:rgba(255,255,255,.85);"
+                            id="view-booking-status">—</div>
+                    </div>
+
+                    <div class="adm-form-section">
+                        <div class="adm-form-section-title">
+                            <i class="bi bi-person-fill"></i> Khách hàng
+                        </div>
+                        <div id="view-customer" class="adm-view-facts"></div>
+                    </div>
+
+                    <div class="adm-form-section">
+                        <div class="adm-form-section-title">
+                            <i class="bi bi-calendar-event"></i> Thông tin lưu trú
+                        </div>
+                        <div id="view-stay" class="adm-view-facts"></div>
+                    </div>
+
+                    <div class="adm-form-section">
+                        <div class="adm-form-section-title">
+                            <i class="bi bi-cash-coin"></i> Tài chính
+                        </div>
+                        <div id="view-finance" class="adm-view-facts"></div>
+                    </div>
+
+                    <div class="adm-form-section">
+                        <div class="adm-form-section-title">
+                            <i class="bi bi-robot"></i> Dự đoán AI
+                        </div>
+                        <div id="view-ai" class="adm-view-facts"></div>
+                    </div>
+
+                    <div class="adm-form-section" id="view-notes-section" style="display:none;">
+                        <div class="adm-form-section-title">
+                            <i class="bi bi-sticky"></i> Ghi chú
+                        </div>
+                        <div id="view-notes"
+                            style="padding:14px 16px;background:var(--bg-cream);border-left:3px solid var(--gold);border-radius:8px;font-size:13px;line-height:1.55;white-space:pre-wrap;">
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Đóng</button>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: SỬA ĐƠN ==================== -->
+        <div class="adm-modal-backdrop" id="editBookingModal">
+            <div class="adm-modal">
+                <form id="editBookingForm" method="post">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-pencil-square"></i> Sửa đơn đặt phòng</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body">
+
+                        <div class="adm-alert adm-alert-info" style="margin-bottom:20px;">
+                            <i class="bi bi-info-circle-fill"></i>
+                            <span>Chỉ sửa được ngày trả, số khách, SĐT và ghi chú. Muốn đổi phòng dùng nghiệp vụ "Đổi
+                                phòng".</span>
+                        </div>
+
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Mã đơn</label>
+                            <input type="text" id="edit-booking-code" readonly
+                                style="background:var(--bg-cream);font-weight:700;">
+                        </div>
+
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Ngày nhận phòng (không đổi được)</label>
+                            <input type="text" id="edit-checkin" readonly style="background:var(--bg-cream);">
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Ngày trả phòng <span class="req">*</span></label>
+                                <input type="date" id="edit-checkout" name="expectedOut" required>
+                            </div>
+                            <div class="adm-field">
+                                <label>Số khách <span class="req">*</span></label>
+                                <input type="number" id="edit-guest-count" name="guestCount" min="1" max="100" required>
+                            </div>
+                        </div>
+
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Số điện thoại <span class="req">*</span></label>
+                            <input type="tel" id="edit-phone" name="phone" required placeholder="0901234567">
+                        </div>
+
+                        <div class="adm-field">
+                            <label>Ghi chú</label>
+                            <textarea id="edit-notes" name="notes" rows="3"
+                                placeholder="Yêu cầu đặc biệt, ghi chú nội bộ..."></textarea>
+                        </div>
+
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-circle"></i> Lưu thay đổi
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <th:block th:fragment="extra_js">
+        <script th:inline="javascript">
+            window.ADM_PAGE_MODULE = 'booking';
+            window.mockBookings = /*[[${bookings}]]*/[];
+            window.mockVacantRooms = /*[[${vacantRooms}]]*/[];
+        </script>
+        <script th:src="@{/js/receptionist/booking/index.js(v=20261027-4)}"></script>
+    </th:block>
+
+</body>
+
+</html>

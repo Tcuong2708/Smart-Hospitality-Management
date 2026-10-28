@@ -26,7 +26,7 @@ public class PromotionManagementController extends BaseController {
             return "redirect:/account/login?error=forbidden";
         }
         setPageTitle(model, "Quản lý khuyến mãi");
-        return render(model, "view/Manager/promotions/index");
+        return render(model, "view/manager/promotions/index");
     }
 
     @GetMapping("/api")

@@ -270,7 +270,9 @@ def save_final_booking(session, user_id):
         # Tự động lấy tên miền public từ biến môi trường (mặc định lấy BACKEND_SERVER_URL)
         public_url = os.getenv("PUBLIC_SERVER_URL", os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080")).rstrip("/")
         backend_url = os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
-        internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "mayhotel_internal_token_2026").strip()
+        internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "").strip()
+        if not internal_token:
+            raise RuntimeError("CHATBOT_INTERNAL_TOKEN chưa được cấu hình trên AI server")
         
         checkin_iso = datetime.strptime(session["checkin"], "%d/%m/%Y").strftime("%Y-%m-%d")
         checkout_iso = datetime.strptime(session["checkout"], "%d/%m/%Y").strftime("%Y-%m-%d")
@@ -295,24 +297,35 @@ def save_final_booking(session, user_id):
         with urllib.request.urlopen(request, timeout=12) as response:
             result = json.loads(response.read().decode("utf-8"))
         
-        raw_payment_url = result.get("paymentUrl", "")
+        raw_payment_url = str(result.get("paymentUrl") or "").strip()
+        invoice_id = result.get("invoiceId")
+        if not raw_payment_url or invoice_id is None:
+            raise RuntimeError("Backend chưa trả về mã hóa đơn hoặc liên kết VNPay")
         # Tự động ghi đè 127.0.0.1 thành tên miền public thực tế
         if "127.0.0.1" in raw_payment_url or "localhost" in raw_payment_url:
             raw_payment_url = re.sub(r'http://(127\.0\.0\.1|localhost):8080', public_url, raw_payment_url)
 
+        if not raw_payment_url.startswith("https://"):
+            raise RuntimeError("Backend trả về liên kết thanh toán không an toàn")
         session["total_amount"] = float(result.get("totalAmount", 0.0))
         session["deposit_amount"] = float(result.get("depositAmount", 0.0))
         session["payment_url"] = raw_payment_url
-        session["invoice_id"] = result.get("invoiceId")
+        session["invoice_id"] = invoice_id
         return result
+    except urllib.error.HTTPError as e:
+        response_body = e.read().decode("utf-8", errors="replace")
+        try:
+            backend_message = json.loads(response_body).get("message", response_body)
+        except json.JSONDecodeError:
+            backend_message = response_body
+        print(f"[ERROR] Backend từ chối tạo booking ({e.code}): {backend_message}")
+        raise RuntimeError(f"Backend từ chối tạo booking ({e.code}): {backend_message}") from e
+    except urllib.error.URLError as e:
+        print(f"[ERROR] Không kết nối được backend tại {backend_url}: {e.reason}")
+        raise RuntimeError(f"Không kết nối được backend tại {backend_url}") from e
     except Exception as e:
-        print(f"[WARN] Tạo đơn đặt phòng qua Backend thất bại: {e}. Đang dùng chế độ giữ chỗ tạm thời.")
-        public_url = os.getenv("PUBLIC_SERVER_URL", os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080")).rstrip("/")
-        session["total_amount"] = 1600000.0
-        session["deposit_amount"] = 160000.0
-        # Dùng public_url thay vì dán cứng 127.0.0.1
-        session["payment_url"] = f"{public_url}/booking/payment-vnpay?session={user_id}"
-        return {"totalAmount": 1600000.0, "depositAmount": 160000.0}
+        print(f"[ERROR] Tạo đơn đặt phòng qua Backend thất bại: {e}")
+        raise RuntimeError("Backend chưa tạo được booking và liên kết VNPay; không phát hành liên kết giữ chỗ giả") from e
 
 def handle_structured_booking(user_id, msg):
     msg_clean = msg.strip()

@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org" xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+  layout:decorate="~{layout/main}">
+
+<head>
+  <title>Trang chủ</title>
+</head>
+
+<body>
+  <section layout:fragment="content">
+
+    <!-- ══════════ HERO ══════════ -->
+    <section class="mh-hero">
+      <div class="mh-hero-slides" id="heroSlides" aria-hidden="true">
+        <div class="hero-slide active" th:style="'background-image:url(' + @{/images/hero/hero1.jpg} + ')'"></div>
+        <div class="hero-slide" th:style="'background-image:url(' + @{/images/hero/hero2.jpg} + ')'"></div>
+        <div class="hero-slide" th:style="'background-image:url(' + @{/images/hero/hero3.jpg} + ')'"></div>
+        <div class="hero-slide" th:style="'background-image:url(' + @{/images/hero/hero4.jpg} + ')'"></div>
+      </div>
+
+      <div class="mh-hero-inner container">
+        <span class="mh-hero-badge"><i class="fa-solid fa-hotel"></i> MAY HOTEL</span>
+        <h1>Nghỉ dưỡng trọn vẹn,<br><em>đặt phòng dễ dàng</em></h1>
+        <p class="mh-hero-sub">
+          Tìm phòng phù hợp, so sánh tiện ích và đặt chỗ nhanh chóng cho chuyến đi của bạn tại May Hotel.
+        </p>
+
+        <form class="mh-search" th:action="@{/rooms}" method="get">
+          <div class="mh-search-accent"></div>
+          <div class="mh-search-body">
+            <div class="mh-search-field mh-search-field--dest">
+              <label><i class="fa-solid fa-magnifying-glass"></i> Từ khóa</label>
+              <input type="text" name="keyword" placeholder="Tên phòng, loại phòng...">
+            </div>
+            <div class="mh-search-field">
+              <label><i class="fa-solid fa-calendar-check"></i> Nhận phòng</label>
+              <input type="date" name="checkin">
+            </div>
+            <div class="mh-search-field">
+              <label><i class="fa-solid fa-calendar-xmark"></i> Trả phòng</label>
+              <input type="date" name="checkout">
+            </div>
+            <div class="mh-search-field mh-search-field--guest">
+              <label><i class="fa-solid fa-user"></i> Người lớn (12+)</label>
+              <input type="number" name="adults" min="1" value="2" required>
+            </div>
+            <div class="mh-search-field mh-search-field--guest">
+              <label><i class="fa-solid fa-child"></i> Trẻ em (6–11)</label>
+              <input type="number" name="children" min="0" value="0" required>
+            </div>
+            <div class="mh-search-field mh-search-field--guest">
+              <label><i class="fa-solid fa-baby"></i> Em bé (0–5)</label>
+              <input type="number" name="infants" min="0" value="0" required>
+            </div>
+            <button type="submit" class="mh-search-btn">
+              <i class="fa-solid fa-magnifying-glass"></i> Tìm phòng
+            </button>
+          </div>
+        </form>
+
+        <div class="mh-filter-tags" aria-label="Bộ lọc nhanh">
+          <a th:href="@{/rooms(keyword='deluxe')}"><i class="fa-solid fa-heart"></i><span>Cặp đôi</span></a>
+          <a th:href="@{/rooms(keyword='gia đình')}"><i class="fa-solid fa-users"></i><span>Gia đình</span></a>
+          <a th:href="@{/rooms(keyword='tiêu chuẩn')}"><i class="fa-solid fa-briefcase"></i><span>Công tác</span></a>
+          <a th:href="@{/rooms(keyword='suite')}"><i class="fa-solid fa-crown"></i><span>Hạng sang</span></a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ FLASH SALE ══════════ -->
+    <section class="deal-section" th:if="${flashSale != null}">
+      <div class="container">
+        <div class="flash-deal-card single">
+          <div class="flash-deal-image">
+            <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=1200" th:alt="${flashSale.name}">
+            <span class="last-min-tag"><i class="fa-solid fa-clock"></i> Khuyến mãi phút cuối</span>
+          </div>
+          <div class="flash-deal-info">
+            <span class="deal-kicker"><i class="fa-solid fa-fire"></i> Flash Sale giờ chót</span>
+            <h2 th:text="${flashSale.name}">Phòng Deluxe giảm mạnh</h2>
+            <p>
+              Giảm đến
+              <strong th:text="${#numbers.formatDecimal(flashSale.discountPercent, 0, 0) + '%'}">20%</strong>
+              cho các loại phòng đang còn trống — áp dụng cho khách đặt hôm nay.
+            </p>
+
+            <div class="countdown-box" th:if="${flashSaleSeconds != null and flashSaleSeconds > 0}"
+              th:attr="data-endtime=${flashSale.endDate}">
+              <div><strong id="cd-hour">00</strong><span>Giờ</span></div>
+              <b>:</b>
+              <div><strong id="cd-min">00</strong><span>Phút</span></div>
+              <b>:</b>
+              <div><strong id="cd-sec">00</strong><span>Giây</span></div>
+            </div>
+
+            <div class="deal-progress-label">
+              <i class="fa-solid fa-fire"></i> Chỉ còn
+              <strong th:text="${soPhongTrong}">0</strong> phòng trống
+            </div>
+            <div class="deal-progress"><span style="width:72%"></span></div>
+
+            <div class="deal-actions">
+              <button type="button" class="primary-action"
+                th:if="${flashSale.code != null and !#strings.isEmpty(flashSale.code)}"
+                th:attr="data-code=${flashSale.code}"
+                onclick="copyFlashCode(this)">
+                <i class="fa-solid fa-copy"></i>
+                <span th:text="${'Copy mã: ' + flashSale.code}">Copy mã</span>
+              </button>
+              <a th:href="@{/rooms}" class="secondary-action">Xem phòng</a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ PHÒNG NỔI BẬT ══════════ -->
+    <section class="mh-section" th:if="${phongNoiBat != null and !#lists.isEmpty(phongNoiBat)}">
+      <div class="container">
+        <div class="mh-section-head">
+          <div>
+            <h2>Phòng nghỉ được đánh giá cao</h2>
+            <p>Lựa chọn phòng phù hợp cho kỳ nghỉ của bạn.</p>
+          </div>
+          <a th:href="@{/rooms}" class="mh-link">Xem tất cả phòng <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="mh-room-carousel-wrap">
+          <button class="room-carousel-btn mh-carousel-prev" type="button" data-target="roomCarousel" data-dir="-1"
+            aria-label="Xem phòng trước">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+
+          <div class="mh-room-carousel" id="roomCarousel">
+            <a th:each="p : ${phongNoiBat}" th:href="@{/rooms/detail/{id}(id=${p.maPhong})}" class="mh-room-card">
+              <div class="mh-room-img">
+                <img th:src="@{'/images/rooms/' + ${p.hinhAnhHienThi}}" th:alt="${p.soPhong}">
+                <span class="mh-room-badge" th:text="${p.trangThai}">Còn phòng</span>
+                <span class="room-wishlist" role="link" tabindex="0" aria-label="Yêu thích"
+                  onclick="event.preventDefault(); event.stopPropagation();">
+                  <i class="fa-regular fa-heart"></i>
+                </span>
+              </div>
+              <div class="mh-room-body">
+                <div class="room-title-row booking-style">
+                  <div>
+                    <h3 th:text="${p.tenLoaiPhong + ' – ' + p.soPhong}">Deluxe – 101</h3>
+                    <p class="room-location">
+                      <i class="fa-solid fa-location-dot"></i> May Hotel
+                    </p>
+                  </div>
+                  <div class="booking-rating">
+                    <div class="rating-text">
+                      <strong>Tuyệt vời</strong>
+                      <span>Từ khách hàng</span>
+                    </div>
+                    <b>8.8</b>
+                  </div>
+                </div>
+                <p class="mh-room-desc" th:text="${p.moTa}">Phòng tiện nghi, phù hợp lưu trú ngắn ngày.</p>
+                <div class="mh-room-tags">
+                  <span th:text="${p.sucChua + ' khách'}">2 khách</span>
+                  <span th:if="${p.viewDirection != null and !p.viewDirection.isBlank()}"
+                    th:text="${p.viewDirection}">Hướng phố</span>
+                  <span>Wi-Fi</span>
+                </div>
+                <div class="mh-room-bottom">
+                  <div class="room-price-stack">
+                    <span class="old-price"
+                      th:text="${'VND ' + #numbers.formatDecimal(p.giaPhong * 1.2, 0, 'POINT', 0, 'COMMA')}">VND
+                      400.000</span>
+                    <strong class="mh-room-price"
+                      th:text="${'VND ' + #numbers.formatDecimal(p.giaPhong, 0, 'POINT', 0, 'COMMA')}">VND
+                      320.000</strong>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </div>
+
+          <button class="room-carousel-btn mh-carousel-next" type="button" data-target="roomCarousel" data-dir="1"
+            aria-label="Xem phòng tiếp theo">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ LOẠI PHÒNG ══════════ -->
+    <section class="mh-section mh-section--alt" th:if="${loaiPhong != null and !#lists.isEmpty(loaiPhong)}">
+      <div class="container">
+        <div class="mh-section-head">
+          <div>
+            <h2>Loại phòng phổ biến</h2>
+            <p>Chọn nhanh loại phòng phù hợp với nhu cầu lưu trú của bạn.</p>
+          </div>
+          <a th:href="@{/rooms}" class="mh-link">Xem tất cả <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="mh-category-carousel-wrap">
+          <button class="room-carousel-btn mh-carousel-prev" type="button" data-target="categoryCarousel" data-dir="-1"
+            aria-label="Xem loại phòng trước">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+
+          <div class="mh-category-carousel" id="categoryCarousel">
+            <a th:each="t : ${loaiPhong}" th:href="@{/rooms(roomTypeId=${t.id})}" class="mh-category-card"
+              th:with="imgPath=${(t.imageUrl != null and !t.imageUrl.isBlank()) ? t.imageUrl : 'default.jpg'}">
+              <div class="mh-category-img">
+                <img th:src="@{'/images/rooms/' + ${imgPath}}" th:alt="${t.name}">
+              </div>
+              <div class="mh-category-info">
+                <span class="mh-category-tag"
+                  th:text="${'Tối đa ' + (t.maxOccupancy != null ? t.maxOccupancy : 2) + ' khách'}">2 khách</span>
+                <h3 th:text="${t.name}">Phòng Deluxe</h3>
+                <p>Không gian tiện nghi, đầy đủ tiện ích cho kỳ nghỉ trọn vẹn.</p>
+                <span class="mh-category-link">Khám phá <i class="fa-solid fa-arrow-right"></i></span>
+              </div>
+            </a>
+          </div>
+
+          <button class="room-carousel-btn mh-carousel-next" type="button" data-target="categoryCarousel" data-dir="1"
+            aria-label="Xem loại phòng tiếp theo">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ DỊCH VỤ ══════════ -->
+    <section class="mh-section" th:if="${dichVuNoiBat != null and !#lists.isEmpty(dichVuNoiBat)}">
+      <div class="container">
+        <div class="mh-section-head">
+          <div>
+            <h2>Dịch vụ nổi bật</h2>
+            <p>Những tiện ích giúp kỳ nghỉ của bạn thoải mái hơn.</p>
+          </div>
+          <a th:href="@{/services}" class="mh-link">Xem dịch vụ <i class="fa-solid fa-arrow-right"></i></a>
+        </div>
+
+        <div class="mh-service-carousel-wrap">
+          <button class="room-carousel-btn mh-carousel-prev" type="button" data-target="serviceCarousel" data-dir="-1"
+            aria-label="Xem dịch vụ trước">
+            <i class="fa-solid fa-chevron-left"></i>
+          </button>
+
+          <div class="mh-service-carousel" id="serviceCarousel">
+            <a th:each="s : ${dichVuNoiBat}" th:href="@{/services}" class="mh-service-card">
+              <div class="mh-service-img">
+                <img src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=800" th:alt="${s.name}">
+              </div>
+              <div class="mh-service-info">
+                <h3 th:text="${s.name}">Tên dịch vụ</h3>
+                <p>
+                  <span
+                    th:text="${'Chỉ từ ' + #numbers.formatDecimal(s.price, 0, 'POINT', 0, 'COMMA') + ' VND'}">120.000
+                    VND</span>
+                  <span th:if="${s.unit != null and !s.unit.isBlank()}" th:text="${' / ' + s.unit}"> / Ngày</span>
+                </p>
+                <span class="mh-service-arrow"><i class="fa-solid fa-arrow-right"></i></span>
+              </div>
+            </a>
+          </div>
+
+          <button class="room-carousel-btn mh-carousel-next" type="button" data-target="serviceCarousel" data-dir="1"
+            aria-label="Xem dịch vụ tiếp theo">
+            <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ VÌ SAO CHỌN ══════════ -->
+    <section class="mh-why">
+      <div class="container">
+        <div class="mh-section-head mh-section-head--light centered-head"
+          style="text-align:center;justify-content:center">
+          <div>
+            <h2 style="color:#fff">Vì sao chọn May Hotel?</h2>
+            <p style="color:rgba(255,255,255,.72)">Ba điều khiến khách quay lại với chúng tôi.</p>
+          </div>
+        </div>
+
+        <div class="mh-why-grid" style="grid-template-columns:repeat(3,1fr)">
+          <div class="mh-why-card">
+            <div class="mh-why-icon"><i class="fa-solid fa-crown" style="font-size:22px"></i></div>
+            <h3>Không gian đẳng cấp</h3>
+            <p>Phòng nghỉ nội thất sang trọng, view thành phố tuyệt đẹp mang lại trải nghiệm thượng lưu.</p>
+          </div>
+          <div class="mh-why-card">
+            <div class="mh-why-icon"><i class="fa-solid fa-hand-holding-heart" style="font-size:22px"></i></div>
+            <h3>Phục vụ tận tâm</h3>
+            <p>Đội ngũ chuyên nghiệp, lễ tân 24/7, luôn sẵn sàng hỗ trợ mọi nhu cầu của quý khách.</p>
+          </div>
+          <div class="mh-why-card">
+            <div class="mh-why-icon"><i class="fa-solid fa-location-dot" style="font-size:22px"></i></div>
+            <h3>Vị trí đắc địa</h3>
+            <p>Trung tâm thành phố, dễ dàng di chuyển đến các điểm tham quan và trung tâm thương mại.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ REVIEWS ══════════ -->
+    <section class="mh-section reviews-section" th:if="${danhGiaNoiBat != null and !#lists.isEmpty(danhGiaNoiBat)}">
+      <div class="container">
+        <div class="mh-section-head centered-head" style="text-align:center;justify-content:center">
+          <div>
+            <h2>Khách hàng nói gì về May Hotel?</h2>
+            <p>Đánh giá thật từ những vị khách đã trải nghiệm dịch vụ.</p>
+          </div>
+        </div>
+
+        <div class="review-grid booking-review-grid">
+          <article th:each="dg : ${danhGiaNoiBat}" class="review-card booking-review-card">
+            <div class="review-header">
+              <div class="review-avatar">
+                <img
+                  th:src="${'https://ui-avatars.com/api/?name=' + #strings.replace(dg.tenKhachHang, ' ', '+') + '&background=0F2942&color=fff'}"
+                  th:alt="${dg.tenKhachHang}">
+              </div>
+              <div class="review-meta">
+                <strong class="review-name" th:text="${dg.tenKhachHang}">Khách hàng</strong>
+                <div class="review-badges">
+                  <span class="badge-loyal">Khách hàng</span>
+                  <span class="badge-score" th:text="${dg.soSao + '.0'}">5.0</span>
+                </div>
+              </div>
+            </div>
+            <div class="review-body">
+              <p th:text="${dg.binhLuan}">Nội dung đánh giá...</p>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════════ FAQ ══════════ -->
+    <section class="mh-section faq-section">
+      <div class="container faq-container">
+        <div class="mh-section-head centered-head" style="text-align:center;justify-content:center">
+          <div>
+            <h2>Bạn có câu hỏi? May Hotel trả lời</h2>
+            <p>Một số thông tin thường gặp trước khi đặt phòng.</p>
+          </div>
+        </div>
+
+        <div class="faq-list">
+          <details class="faq-item" open>
+            <summary>Tôi có cần thanh toán trước khi nhận phòng không?</summary>
+            <p>Bạn có thể thanh toán online để giữ phòng hoặc thanh toán tiền mặt tại khách sạn tùy quy định đặt phòng.
+            </p>
+          </details>
+          <details class="faq-item">
+            <summary>Tôi có thể hủy đơn đặt phòng không?</summary>
+            <p>Bạn có thể hủy đơn khi đơn đang ở trạng thái chờ xác nhận hoặc đã xác nhận, kèm lý do hủy rõ ràng.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Làm sao để xem lịch sử đặt phòng?</summary>
+            <p>Sau khi đăng nhập, bạn mở menu tài khoản và chọn Lịch sử đặt phòng để theo dõi các đơn đã tạo.</p>
+          </details>
+          <details class="faq-item">
+            <summary>May Hotel có hỗ trợ thanh toán VNPay không?</summary>
+            <p>Có. Hệ thống hỗ trợ thanh toán VNPay cho hóa đơn đặt phòng, đồng thời vẫn có lựa chọn thanh toán tại
+              khách sạn.</p>
+          </details>
+          <details class="faq-item">
+            <summary>Giá phòng đã bao gồm dịch vụ chưa?</summary>
+            <p>Giá phòng hiển thị theo từng đêm. Các dịch vụ phát sinh như ăn uống, giặt ủi hoặc đưa đón được ghi nhận
+              riêng khi sử dụng.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+
+  </section>
+
+  <!-- ══════════ SCRIPTS ══════════ -->
+  <th:block layout:fragment="additional-scripts">
+    <script th:inline="javascript">
+      /*<![CDATA[*/
+      const FLASH_END_SECONDS = /*[[${flashSaleSeconds}]]*/ 0;
+      /*]]>*/
+
+      // Copy mã flash sale
+      function copyFlashCode(btn) {
+        const code = btn.getAttribute('data-code');
+        if (!code) return;
+        navigator.clipboard.writeText(code).then(() => {
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="fa-solid fa-circle-check"></i> Đã copy mã!';
+          btn.style.background = 'linear-gradient(135deg,#28a745,#1e7e34)';
+          setTimeout(() => {
+            btn.innerHTML = original;
+            btn.style.background = '';
+          }, 2000);
+        });
+      }
+
+      // Countdown flash sale
+      function startFlashCountdown(seconds) {
+        if (!seconds || seconds <= 0) return;
+        let remain = seconds;
+        const hEl = document.getElementById('cd-hour');
+        const mEl = document.getElementById('cd-min');
+        const sEl = document.getElementById('cd-sec');
+        if (!hEl || !mEl || !sEl) return;
+
+        function update() {
+          if (remain <= 0) return;
+          const h = Math.floor(remain / 3600);
+          const m = Math.floor((remain % 3600) / 60);
+          const s = remain % 60;
+          hEl.textContent = String(h).padStart(2, '0');
+          mEl.textContent = String(m).padStart(2, '0');
+          sEl.textContent = String(s).padStart(2, '0');
+          remain--;
+        }
+        update();
+        setInterval(update, 1000);
+      }
+
+      // ══════════ CAROUSEL (dùng chung) ══════════
+      document.querySelectorAll('.mh-carousel-prev, .mh-carousel-next').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const target = document.getElementById(btn.dataset.target);
+          const dir = parseInt(btn.dataset.dir, 10) || 0;
+          if (!target) return;
+          target.scrollBy({ left: dir * target.clientWidth * 0.8, behavior: 'smooth' });
+        });
+      });
+
+      // ══════════ HERO SLIDESHOW ══════════
+      (function initHeroSlideshow() {
+        const slides = document.querySelectorAll('#heroSlides .hero-slide');
+        if (!slides.length) return;
+        let current = 0;
+        const DURATION = 5000;
+        let timer = null;
+
+        function goTo(index) {
+          slides[current].classList.remove('active');
+          current = (index + slides.length) % slides.length;
+          slides[current].classList.add('active');
+        }
+        function next() { goTo(current + 1); }
+        function start() { timer = setInterval(next, DURATION); }
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) clearInterval(timer);
+          else start();
+        });
+        start();
+      })();
+
+      // ══════════ FLASH SALE COUNTDOWN ══════════
+      startFlashCountdown(FLASH_END_SECONDS);
+    </script>
+  </th:block>
+</body>
+
+</html>

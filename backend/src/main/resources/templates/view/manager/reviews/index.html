@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Quản lý đánh giá</span>
+                <h1 class="adm-page-title">Kiểm duyệt đánh giá</h1>
+                <p class="adm-page-sub">Xem, phản hồi và quản lý trạng thái hiển thị của đánh giá khách hàng.</p>
+            </div>
+        </div>
+        <!-- Card danh sách -->
+        <div class="adm-card">
+            <div class="adm-toolbar">
+                <div class="adm-search" style="flex:1;max-width:360px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchReview" placeholder="Tìm theo tên khách, nội dung..."
+                        autocomplete="off">
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-chat-square-heart" style="color:var(--gold-hover);"></i>
+                    <strong th:text="${reviews != null ? #lists.size(reviews) : 0}">0</strong> đánh giá
+                </div>
+            </div>
+
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th style="width:200px;">Người dùng</th>
+                            <th class="col-center" style="width:150px;">Xếp hạng</th>
+                            <th>Nội dung phản hồi</th>
+                            <th class="col-center" style="width:130px;">Trạng thái</th>
+                            <th class="col-center" style="width:130px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="review-table-body">
+
+                        <tr th:if="${reviews == null or #lists.isEmpty(reviews)}">
+                            <td colspan="5">
+                                <div class="adm-empty">
+                                    <i class="bi bi-chat-square-text"></i>
+                                    <h4>Chưa có đánh giá</h4>
+                                    <p>Đánh giá của khách hàng sẽ xuất hiện khi được gửi.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:each="r : ${reviews}" class="review-row">
+
+                            <!-- Người dùng -->
+                            <td>
+                                <strong
+                                    style="display:block;font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.35;"
+                                    th:text="${r.hoTen}">Tên khách</strong>
+                                <small style="color:var(--muted);font-size:11.5px;"
+                                    th:text="${r.ngayDanhGia}">10/10/2026</small>
+                            </td>
+
+                            <!-- Xếp hạng sao -->
+                            <td class="col-center">
+                                <span style="color:var(--gold);font-size:14px;letter-spacing:1px;">
+                                    <th:block th:each="i : ${#numbers.sequence(1, 5)}">
+                                        <i class="bi" th:classappend="${i <= r.soSao} ? 'bi-star-fill' : 'bi-star'"
+                                            style="margin-right:1px;"></i>
+                                    </th:block>
+                                </span>
+                            </td>
+
+                            <!-- Nội dung + phản hồi -->
+                            <td>
+                                <p style="margin:0;font-size:13.5px;color:var(--text);line-height:1.55;"
+                                    class="review-content-text" th:text="${r.noiDung}">Nội dung</p>
+
+                                <div th:if="${r.reply != null and !r.reply.isEmpty()}"
+                                    style="margin-top:10px;padding:10px 14px;background:var(--bg-cream);border-left:3px solid var(--gold);border-radius:8px;font-size:12.5px;line-height:1.55;">
+                                    <strong
+                                        style="color:var(--navy);display:block;margin-bottom:4px;font-size:11px;letter-spacing:0.6px;text-transform:uppercase;">
+                                        <i class="bi bi-reply-fill" style="color:var(--gold-hover);"></i> MAY HOTEL
+                                    </strong>
+                                    <span th:text="${r.reply}">Phản hồi</span>
+                                </div>
+                            </td>
+
+                            <!-- Trạng thái -->
+                            <td class="col-center">
+                                <span class="adm-badge"
+                                    th:classappend="${r.status == 'Hiện' ? 'adm-badge-success' : 'adm-badge-neutral'}">
+                                    <span class="dot"></span>
+                                    <span th:text="${r.status}">Hiện</span>
+                                </span>
+                            </td>
+
+                            <!-- Thao tác -->
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <!-- Nút phản hồi -->
+                                    <button type="button" class="adm-action edit btn-reply" title="Phản hồi khách hàng"
+                                        th:attr="data-id=${r.id},data-content=${r.noiDung},data-reply=${r.reply}">
+                                        <i class="bi bi-reply-all-fill"></i>
+                                    </button>
+
+                                    <!-- Nút ẩn/hiện -->
+                                    <form th:action="@{/manager/reviews/toggle-status/{id}(id=${r.id})}" method="post"
+                                        style="display:inline;"
+                                        th:title="${r.status == 'Hiện' ? 'Ẩn đánh giá' : 'Hiển thị đánh giá'}">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                            th:value="${_csrf.token}">
+                                        <button type="submit" class="adm-action"
+                                            th:style="${r.status == 'Hiện' ? 'color:var(--yellow);' : 'color:var(--green);'}">
+                                            <i class="bi"
+                                                th:classappend="${r.status == 'Hiện' ? 'bi-eye-slash-fill' : 'bi-eye-fill'}"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: PHẢN HỒI ==================== -->
+        <div class="adm-modal-backdrop" id="replyModal">
+            <div class="adm-modal">
+                <form id="replyForm" method="post" th:action="@{/manager/reviews/reply/0}">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-reply-all-fill"></i> Phản hồi từ Khách sạn</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body">
+
+                        <div
+                            style="padding:14px 16px;background:var(--bg-cream);border-left:3px solid var(--gold);border-radius:8px;margin-bottom:20px;">
+                            <div
+                                style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--muted);margin-bottom:6px;">
+                                Nội dung đánh giá
+                            </div>
+                            <p id="reply-review-content"
+                                style="margin:0;color:var(--text);font-style:italic;font-size:13px;line-height:1.55;">
+                                "..."
+                            </p>
+                        </div>
+
+                        <div class="adm-field">
+                            <label>Nội dung phản hồi <span class="req">*</span></label>
+                            <textarea name="replyContent" id="reply-content" rows="4" required
+                                placeholder="VD: Cảm ơn quý khách đã tin tưởng và lựa chọn MAY HOTEL. Chúng tôi rất vui được phục vụ quý khách..."></textarea>
+                        </div>
+
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-send-fill"></i> Gửi phản hồi
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function ready(fn) {
+                    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+                    else fn();
+                }
+
+                ready(function () {
+                    window.ADM_PAGE_MODULE = 'review';
+
+                    var replyForm = document.getElementById('replyForm');
+                    var replyContent = document.getElementById('reply-content');
+                    var reviewContentDisplay = document.getElementById('reply-review-content');
+
+                    document.querySelectorAll('.btn-reply').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var id = btn.dataset.id || '';
+                            var content = btn.dataset.content || '';
+                            var existingReply = btn.dataset.reply || '';
+
+                            if (reviewContentDisplay) {
+                                reviewContentDisplay.textContent = '"' + content + '"';
+                            }
+                            if (replyForm) {
+                                replyForm.action = '/manager/reviews/reply/' + id;
+                            }
+                            if (replyContent) {
+                                replyContent.value = existingReply;
+                            }
+
+                            if (typeof AdmModal !== 'undefined') AdmModal.open('replyModal');
+                        });
+                    });
+
+                    var searchInput = document.getElementById('searchReview');
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function (e) {
+                            var q = e.target.value.toLowerCase();
+                            document.querySelectorAll('.review-row').forEach(function (row) {
+                                row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+                            });
+                        });
+                    }
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>

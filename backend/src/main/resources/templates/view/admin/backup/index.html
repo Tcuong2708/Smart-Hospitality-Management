@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content" class="manager-page-shell">
+        <div class="adm-backup-page">
+
+            <!-- ═════════ HEADER ═════════ -->
+            <div class="adm-page-head">
+                <div class="adm-page-head-text">
+                    <span class="adm-page-eyebrow">QUẢN TRỊ HỆ THỐNG</span>
+                    <h1 class="adm-page-title">Sao lưu &amp; Phục hồi</h1>
+                    <p class="adm-page-sub">Quản lý bản sao lưu MongoDB và lịch tự động</p>
+                </div>
+            </div>
+
+            <!-- ═════════ ALERTS ═════════ -->
+            <div th:if="${success}" class="adm-alert adm-alert-success">
+                <i class="bi bi-check-circle-fill"></i>
+                <span th:text="${success}"></span>
+            </div>
+            <div th:if="${error}" class="adm-alert adm-alert-danger">
+                <i class="bi bi-exclamation-octagon-fill"></i>
+                <span th:text="${error}"></span>
+            </div>
+            <div th:unless="${backupEnabled}" class="adm-alert adm-alert-warning">
+                <i class="bi bi-shield-exclamation"></i>
+                <span>Sao lưu đang tắt theo cấu hình an toàn. Đặt <code>BACKUP_ENABLED=true</code> sau khi đã kiểm tra
+                    MongoDB Database Tools.</span>
+            </div>
+
+            <!-- ═════════ ACTION CARDS ═════════ -->
+            <div class="adm-backup-actions">
+
+                <section class="adm-backup-card">
+                    <div class="adm-backup-card-head">
+                        <div class="adm-backup-card-icon is-navy">
+                            <i class="bi bi-cloud-arrow-down-fill"></i>
+                        </div>
+                        <div>
+                            <h3>Sao lưu ngay</h3>
+                            <p>Tạo bản sao lưu toàn bộ dữ liệu hiện tại</p>
+                        </div>
+                    </div>
+                    <div class="adm-backup-card-body">
+                        <div class="adm-backup-info">
+                            <span class="adm-backup-info-label">Trạng thái hệ thống</span>
+                            <span class="adm-badge"
+                                th:classappend="${backupEnabled ? 'adm-badge-success' : 'adm-badge-danger'}">
+                                <span class="dot"></span>
+                                <span th:text="${backupEnabled ? 'Sẵn sàng' : 'Đang tắt'}"></span>
+                            </span>
+                        </div>
+                        <form th:action="@{/admin/backup/create}" method="post">
+                            <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                th:value="${_csrf.token}">
+                            <button class="adm-btn adm-btn-primary w-100" type="submit" th:disabled="${!backupEnabled}">
+                                <i class="bi bi-cloud-arrow-down"></i> Bắt đầu sao lưu
+                            </button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="adm-backup-card">
+                    <div class="adm-backup-card-head">
+                        <div class="adm-backup-card-icon is-gold">
+                            <i class="bi bi-clock-history"></i>
+                        </div>
+                        <div>
+                            <h3>Lịch sao lưu tự động</h3>
+                            <p>Cấu hình chu kỳ sao lưu định kỳ</p>
+                        </div>
+                    </div>
+                    <form th:action="@{/admin/backup/schedule}" method="post" class="adm-backup-card-body">
+                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                            th:value="${_csrf.token}">
+
+                        <label class="adm-switch">
+                            <input type="checkbox" name="enabled" value="true" th:disabled="${!backupEnabled}"
+                                th:checked="${backupSettings.enabled}">
+                            <span>Bật sao lưu tự động</span>
+                        </label>
+
+                        <div class="adm-backup-form-grid">
+                            <div class="adm-field">
+                                <label for="freqSelect">Chu kỳ</label>
+                                <select name="frequency" id="freqSelect">
+                                    <option value="HOURLY">Theo giờ</option>
+                                    <option value="DAILY" th:selected="${backupSettings.frequency == 'DAILY'}">Theo ngày
+                                    </option>
+                                </select>
+                            </div>
+                            <div class="adm-field">
+                                <label for="intervalInput">Khoảng cách (giờ)</label>
+                                <input type="number" id="intervalInput" name="intervalHours" min="1" max="720"
+                                    th:value="${backupSettings.intervalHours}">
+                            </div>
+                        </div>
+
+                        <button class="adm-btn adm-btn-gold w-100" type="submit" th:disabled="${!backupEnabled}">
+                            <i class="bi bi-save"></i> Lưu cấu hình
+                        </button>
+                    </form>
+                </section>
+            </div>
+
+            <!-- ═════════ HISTORY TABLE ═════════ -->
+            <section class="adm-backup-history">
+                <header class="adm-backup-history-head">
+                    <div>
+                        <h2><i class="bi bi-clock-history"></i> Lịch sử sao lưu</h2>
+                        <p><span th:text="${#lists.size(backups)}"></span> bản ghi</p>
+                    </div>
+                </header>
+
+                <div class="adm-table-wrap">
+                    <table class="adm-table" id="backupTable">
+                        <thead>
+                            <tr>
+                                <th>Tên file</th>
+                                <th>Loại</th>
+                                <th>Trạng thái</th>
+                                <th>Thời điểm</th>
+                                <th>Thông báo</th>
+                                <th class="col-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${#lists.isEmpty(backups)}">
+                                <td colspan="6">
+                                    <div class="adm-empty">
+                                        <i class="bi bi-inbox"></i>
+                                        <h4>Chưa có bản sao lưu</h4>
+                                        <p>Nhấn "Bắt đầu sao lưu" để tạo bản sao lưu đầu tiên.</p>
+                                    </div>
+                                </td>
+                            </tr>
+
+                            <tr th:each="backup : ${backups}" class="backup-row">
+                                <td>
+                                    <div class="adm-backup-file">
+                                        <i class="bi bi-file-earmark-zip"></i>
+                                        <span th:text="${backup.fileName}"></span>
+                                    </div>
+                                </td>
+
+                                <td>
+                                    <span class="adm-badge adm-badge-info" th:if="${backup.operation == 'BACKUP'}">
+                                        <i class="bi bi-cloud-arrow-down"></i> Sao lưu
+                                    </span>
+                                    <span class="adm-badge adm-badge-warning" th:if="${backup.operation == 'RESTORE'}">
+                                        <i class="bi bi-arrow-counterclockwise"></i> Phục hồi
+                                    </span>
+                                    <span class="adm-badge adm-badge-neutral"
+                                        th:unless="${backup.operation == 'BACKUP' or backup.operation == 'RESTORE'}"
+                                        th:text="${backup.operation}"></span>
+                                </td>
+
+                                <td>
+                                    <span class="adm-badge adm-badge-success" th:if="${backup.status == 'SUCCESS'}">
+                                        <span class="dot"></span> Thành công
+                                    </span>
+                                    <span class="adm-badge adm-badge-danger" th:if="${backup.status == 'FAILED'}">
+                                        <span class="dot"></span> Thất bại
+                                    </span>
+                                    <span class="adm-badge adm-badge-warning" th:if="${backup.status == 'RUNNING'}">
+                                        <span class="dot"></span> Đang chạy
+                                    </span>
+                                    <span class="adm-badge adm-badge-neutral"
+                                        th:unless="${backup.status == 'SUCCESS' or backup.status == 'FAILED' or backup.status == 'RUNNING'}"
+                                        th:text="${backup.status}"></span>
+                                </td>
+
+                                <td class="text-muted" th:text="${backup.backupDate}"></td>
+                                <td class="text-muted" th:text="${backup.message}"></td>
+
+                                <td class="col-center">
+                                    <form
+                                        th:if="${restoreEnabled and backup.operation == 'BACKUP' and backup.status == 'SUCCESS'}"
+                                        th:action="@{/admin/backup/restore}" method="post"
+                                        onsubmit="return confirm('Phục hồi sẽ ghi đè dữ liệu hiện tại. Tiếp tục?');">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                            th:value="${_csrf.token}">
+                                        <input type="hidden" name="fileName" th:value="${backup.fileName}">
+                                        <button class="adm-btn adm-btn-warning adm-btn-sm" type="submit">
+                                            <i class="bi bi-arrow-counterclockwise"></i> Phục hồi
+                                        </button>
+                                    </form>
+                                    <span class="text-muted"
+                                        th:unless="${restoreEnabled and backup.operation == 'BACKUP' and backup.status == 'SUCCESS'}">—</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="backupPagination" class="adm-pagination"></div>
+            </section>
+
+        </div>
+    </div>
+
+    <th:block th:fragment="extra_js">
+        <script>
+            window.addEventListener('load', function () {
+                if (window.AdmPagination) {
+                    window.AdmPagination.init({
+                        table: '#backupTable',
+                        rowSelector: '.backup-row',
+                        container: '#backupPagination',
+                        pageSize: 10
+                    });
+                }
+            });
+        </script>
+    </th:block>
+
+</body>
+
+</html>

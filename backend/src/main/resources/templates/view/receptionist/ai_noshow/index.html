@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+    <div th:fragment="body_content">
+
+        <!-- PAGE HEAD -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Nghiệp vụ</span>
+                <h1 class="adm-page-title">Dự đoán No-show</h1>
+                <p class="adm-page-sub">AI phân tích lịch sử giao dịch để đánh giá xác suất khách không đến nhận phòng
+                </p>
+            </div>
+            <div class="adm-page-head-actions">
+                <span th:if="${aiAvailable}" class="adm-badge adm-badge-success" style="height:40px;padding:0 16px;">
+                    <span class="dot"></span>
+                    AI Model đang chạy
+                </span>
+                <span th:unless="${aiAvailable}" class="adm-badge adm-badge-neutral"
+                    style="height:40px;padding:0 16px;">
+                    <span class="dot"></span>
+                    AI chưa kết nối
+                </span>
+
+                <form th:action="@{/receptionist/ai-no-show/retrain}" method="post" style="display:inline;">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <button type="submit" class="adm-btn adm-btn-primary" th:disabled="${!aiAvailable}"
+                        th:title="${aiAvailable ? 'Reset tất cả risk để AI dự đoán lại' : 'Cần khởi động AI service trước'}"
+                        onclick="return confirm('Reset toàn bộ rủi ro của các phiếu chờ nhận phòng? AI sẽ dự đoán lại từ đầu.');">
+                        <i class="bi bi-arrow-repeat"></i> Chạy lại AI
+                    </button>
+                </form>
+
+                <a th:href="@{/receptionist/ai-no-show}" class="adm-btn adm-btn-outline">
+                    <i class="bi bi-arrow-clockwise"></i> Làm mới
+                </a>
+            </div>
+        </div>
+
+        <!-- Flash alerts -->
+        <div th:if="${success}" class="adm-alert adm-alert-success">
+            <i class="bi bi-check-circle-fill"></i>
+            <span th:text="${success}"></span>
+        </div>
+        <div th:if="${error}" class="adm-alert adm-alert-danger">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            <span th:text="${error}"></span>
+        </div>
+
+        <!-- AI EXPLAINER -->
+        <div class="adm-alert adm-alert-warning">
+            <i class="bi bi-robot"></i>
+            <div>
+                <strong style="display:block; margin-bottom:4px;">Trợ lý AI phân tích rủi ro No-show</strong>
+                <span>
+                    Hệ thống tự động quét lịch sử giao dịch và đánh giá xác suất khách hàng không đến nhận phòng.
+                    Với rủi ro <strong>Cao</strong>, thời gian hủy phòng an toàn được đặt lúc <strong>14:00</strong>
+                    thay vì <strong>18:00</strong> mặc định để kịp giải phóng phòng bán cho khách khác.
+                </span>
+            </div>
+        </div>
+
+        <!-- Cảnh báo khi AI offline -->
+        <div th:unless="${aiAvailable}" class="adm-alert adm-alert-info">
+            <i class="bi bi-info-circle-fill"></i>
+            <div>
+                <strong style="display:block; margin-bottom:4px;">AI Model chưa kết nối</strong>
+                <span>
+                    Python service không phản hồi ở <code style="font-family:monospace;">127.0.0.1:5000</code>.
+                    Các phiếu chưa được phân tích sẽ hiển thị <strong>"Chưa xác định"</strong>.
+                    Khởi động Python service và bấm "Chạy lại AI" để dự đoán.
+                </span>
+            </div>
+        </div>
+
+        <!-- CARD -->
+        <div class="adm-card">
+            <div class="adm-card-head">
+                <h3><i class="bi bi-shield-exclamation"></i> Danh sách giám sát rủi ro</h3>
+                <span class="adm-result-count">
+                    <strong th:text="${#lists.size(bookings)}">0</strong> phiếu
+                </span>
+            </div>
+
+            <!-- Có dữ liệu -->
+            <div class="adm-table-wrap" th:if="${!#lists.isEmpty(bookings)}">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th>Mã phiếu</th>
+                            <th>Khách hàng</th>
+                            <th>Ngày nhận phòng</th>
+                            <th class="col-center">Mức rủi ro</th>
+                            <th class="col-center">Xác suất No-show</th>
+                            <th class="col-center">Tự động hủy lúc</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="item : ${bookings}"
+                            th:with="pct=${item.order.noShowRiskPercentage},
+                                     hasRisk=${pct != null},
+                                     riskColor=${!hasRisk ? '#8A94A6' : (pct > 70 ? '#C0392B' : (pct > 30 ? '#A05A00' : '#1A7A3F'))},
+                                     initial=${item.customerName != null and !#strings.isEmpty(item.customerName) ? #strings.substring(item.customerName, 0, 1) : '?'}">
+
+                            <td>
+                                <span class="adm-promo-code">
+                                    <i class="bi bi-hash"></i>
+                                    <span th:text="${item.order.id}"></span>
+                                </span>
+                            </td>
+
+                            <td>
+                                <div class="adm-user-cell">
+                                    <div class="adm-user-cell-avatar" th:text="${initial}">?</div>
+                                    <div class="adm-user-cell-body">
+                                        <strong th:text="${item.customerName}">Khách</strong>
+                                        <small>
+                                            <i class="bi bi-telephone"></i>
+                                            <span th:text="${item.customerPhone}">—</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td>
+                                <div class="adm-date-pair">
+                                    <div class="adm-date-line in">
+                                        <i class="bi bi-calendar-event"></i>
+                                        <strong
+                                            th:text="${#dates.format(item.order.expectedIn, 'dd/MM/yyyy')}">—</strong>
+                                    </div>
+                                    <div class="adm-date-line">
+                                        <i class="bi bi-info-circle"></i>
+                                        <small class="text-muted" th:text="${item.order.status}">—</small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <td class="col-center">
+                                <span th:if="${item.order.noShowRiskLevel != null}" class="adm-risk"
+                                    th:classappend="${item.order.noShowRiskLevel == 'Cao' ? 'high' : (item.order.noShowRiskLevel == 'Trung bình' ? 'medium' : 'low')}">
+                                    <i class="bi bi-shield-fill"></i>
+                                    <span th:text="${item.order.noShowRiskLevel}">—</span>
+                                </span>
+                                <span th:if="${item.order.noShowRiskLevel == null}" class="adm-badge adm-badge-neutral">
+                                    <i class="bi bi-question-circle"></i>
+                                    Chưa xác định
+                                </span>
+                            </td>
+
+                            <td class="col-center" style="min-width: 170px;">
+                                <th:block th:if="${hasRisk}">
+                                    <div class="d-flex justify-between align-center mb-8">
+                                        <strong class="fw-bold" th:style="|color: ${riskColor}|"
+                                            th:text="${pct + '%'}">0%</strong>
+                                        <i th:if="${pct > 70}" class="bi bi-exclamation-triangle-fill text-danger"></i>
+                                    </div>
+                                    <div style="height:6px; background:#EEF0F3; border-radius:3px; overflow:hidden;">
+                                        <div th:style="|height:100%; width:${pct}%; background:${riskColor}|"></div>
+                                    </div>
+                                </th:block>
+                                <span th:unless="${hasRisk}"
+                                    style="font-size:12px;color:var(--muted);font-style:italic;">
+                                    Chưa có dữ liệu AI
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <th:block th:if="${item.order.autoCancelTime != null}">
+                                    <strong class="text-danger"
+                                        th:text="${#dates.format(item.order.autoCancelTime, 'HH:mm')}">--:--</strong>
+                                    <div class="text-muted" style="font-size:11.5px;"
+                                        th:text="${#dates.format(item.order.autoCancelTime, 'dd/MM/yyyy')}">—</div>
+                                </th:block>
+                                <span th:if="${item.order.autoCancelTime == null}" class="text-muted">—</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty state -->
+            <div class="adm-empty" th:if="${#lists.isEmpty(bookings)}">
+                <i class="bi bi-shield-check"></i>
+                <h4>Không có phiếu chờ nhận phòng</h4>
+                <p>Hiện tại không có phiếu đặt phòng nào đang chờ nhận. Danh sách sẽ cập nhật khi có đơn mới.</p>
+            </div>
+        </div>
+
+    </div>
+</body>
+
+</html>

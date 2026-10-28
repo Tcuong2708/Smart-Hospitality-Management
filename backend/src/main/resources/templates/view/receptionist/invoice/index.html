@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <th:block th:fragment="extra_css"></th:block>
+</head>
+
+<body>
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Nghiệp vụ lễ tân</span>
+                <h1 class="adm-page-title">Đơn đặt phòng</h1>
+                <p class="adm-page-sub">Quản lý danh sách hóa đơn, đơn đặt phòng và trạng thái lưu trú.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-gold" data-adm-open="createInvoiceModal">
+                    <i class="bi bi-person-plus"></i> Tạo đơn khách lẻ
+                </button>
+            </div>
+        </div>
+
+        <div class="adm-card">
+
+            <!-- Toolbar -->
+            <div class="adm-toolbar">
+                <div class="adm-search" id="searchInvoiceWrap">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="searchInvoice" placeholder="Tìm theo mã HĐ, tên khách, số điện thoại...">
+                    <button type="button" class="adm-search-clear" id="searchInvoiceClear" aria-label="Xóa tìm kiếm">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterStatus">
+                        <i class="bi bi-circle-half"></i>
+                        <span>Trạng thái</span>
+                        <span class="adm-filter-badge" id="badgeStatus" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Trạng thái</strong>
+                            <button type="button" data-clear="status">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterStatusDropdown"></div>
+                    </div>
+                </div>
+
+                <div class="adm-result-count">
+                    <i class="bi bi-receipt" style="color:var(--gold-hover);"></i>
+                    <strong id="invoiceCount" th:text="${#lists.size(invoices)}">0</strong> đơn
+                </div>
+            </div>
+
+            <!-- Chip bar -->
+            <div class="adm-chips" id="filterChips"></div>
+
+            <!-- Table -->
+            <div class="adm-table-wrap">
+                <table class="adm-table" id="invoiceTable">
+                    <thead>
+                        <tr>
+                            <th style="width:110px;">Mã HĐ</th>
+                            <th>Khách hàng</th>
+                            <th class="col-center" style="width:150px;">Ngày đặt</th>
+                            <th style="width:190px;">Lưu trú</th>
+                            <th class="col-right" style="width:140px;">Tổng tiền</th>
+                            <th class="col-center" style="width:150px;">Trạng thái</th>
+                            <th class="col-center" style="width:130px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoiceTbody">
+                        <tr th:if="${invoices == null or #lists.isEmpty(invoices)}">
+                            <td colspan="7">
+                                <div class="adm-empty">
+                                    <i class="bi bi-receipt"></i>
+                                    <h4>Chưa có đơn đặt phòng nào</h4>
+                                    <p>Đơn đặt phòng sẽ xuất hiện khi khách đặt qua website hoặc được tạo tại quầy.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:unless="${invoices == null or #lists.isEmpty(invoices)}" th:each="item : ${invoices}"
+                            class="invoice-row" th:attr="data-status=${item.invoiceStatus},
+                                 data-name=${item.hoTen},
+                                 data-phone=${item.sdt}" th:with="chuDau=${item.hoTen != null and !item.hoTen.isEmpty()
+                                    ? #strings.substring(item.hoTen, 0, 1).toUpperCase() : 'K'}">
+
+                            <!-- Mã HĐ -->
+                            <td>
+                                <span class="adm-invoice-code">
+                                    <i class="bi bi-receipt"></i>
+                                    <span th:text="'#' + ${item.id}">#1</span>
+                                </span>
+                            </td>
+
+                            <!-- Khách hàng -->
+                            <td>
+                                <div class="adm-guest-cell">
+                                    <div class="adm-guest-avatar" th:text="${chuDau}">K</div>
+                                    <div class="adm-guest-body">
+                                        <strong th:text="${item.hoTen} ?: 'Khách lẻ'">Tên khách</strong>
+                                        <small th:if="${item.sdt != null and !item.sdt.isEmpty()}">
+                                            <i class="bi bi-telephone-fill"></i>
+                                            <span th:text="${item.sdt}">0901 234 567</span>
+                                        </small>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Ngày đặt -->
+                            <td class="col-center text-muted" style="font-size:12.5px;">
+                                <span th:text="${#dates.format(item.ngayDat, 'dd/MM/yyyy')}">01/01/2026</span>
+                                <br>
+                                <small th:text="${#dates.format(item.ngayDat, 'HH:mm')}">12:00</small>
+                            </td>
+
+                            <!-- Lưu trú -->
+                            <td>
+                                <div class="adm-date-pair">
+                                    <span class="adm-date-line in">
+                                        <i class="bi bi-box-arrow-in-right"></i>
+                                        <strong
+                                            th:text="${#dates.format(item.ngayCheckIn, 'dd/MM/yyyy')}">01/01/2026</strong>
+                                    </span>
+                                    <span class="adm-date-line out">
+                                        <i class="bi bi-box-arrow-left"></i>
+                                        <strong
+                                            th:text="${#dates.format(item.ngayCheckOut, 'dd/MM/yyyy')}">02/01/2026</strong>
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- Tổng tiền -->
+                            <td class="col-right">
+                                <span class="adm-invoice-total"
+                                    th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+                                    0 đ
+                                </span>
+                            </td>
+
+                            <!-- Trạng thái -->
+                            <td class="col-center">
+                                <span th:if="${item.invoiceStatus == 'Completed'}"
+                                    class="adm-badge adm-badge-success lg">
+                                    <span class="dot"></span> Đã trả phòng
+                                </span>
+                                <span th:if="${item.invoiceStatus == 'In Use'}" class="adm-badge adm-badge-info lg">
+                                    <span class="dot"></span> Đang lưu trú
+                                </span>
+                                <span th:if="${item.invoiceStatus == 'Reserved' or item.invoiceStatus == 'Pending'}"
+                                    class="adm-badge adm-badge-warning lg">
+                                    <span class="dot"></span> Đã đặt trước
+                                </span>
+                                <span th:if="${item.invoiceStatus != 'Completed'
+                                        and item.invoiceStatus != 'In Use'
+                                        and item.invoiceStatus != 'Reserved'
+                                        and item.invoiceStatus != 'Pending'}" class="adm-badge adm-badge-neutral lg">
+                                    <span class="dot"></span>
+                                    <span th:text="${item.invoiceStatus}">—</span>
+                                </span>
+                            </td>
+
+                            <!-- Thao tác -->
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <a th:href="@{/receptionist/invoices/details/{id}(id=${item.id})}"
+                                        class="adm-action view" title="Xem chi tiết">
+                                        <i class="bi bi-eye"></i>
+                                    </a>
+                                    <a th:href="@{/receptionist/invoices/print/{id}(id=${item.id})}" target="_blank"
+                                        class="adm-action edit" title="In hóa đơn">
+                                        <i class="bi bi-printer"></i>
+                                    </a>
+                                    <a th:href="@{/receptionist/invoices/delete/{id}(id=${item.id})}"
+                                        class="adm-action delete" title="Xóa"
+                                        onclick="return confirm('Bạn có chắc chắn muốn xóa hóa đơn này?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: TẠO ĐƠN KHÁCH LẺ ==================== -->
+        <div class="adm-modal-backdrop" id="createInvoiceModal">
+            <div class="adm-modal lg">
+                <form th:action="@{/receptionist/invoices/create}" method="post">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-person-plus"></i> Tạo đơn đặt phòng khách lẻ</h3>
+                        <button type="button" class="adm-modal-close" data-adm-close><i class="bi bi-x-lg"></i></button>
+                    </div>
+
+                    <div class="adm-modal-body">
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Họ và tên khách <span class="req">*</span></label>
+                                <input type="text" name="guestName" required maxlength="100"
+                                    placeholder="VD: Nguyễn Văn A">
+                            </div>
+                            <div class="adm-field">
+                                <label>Số điện thoại <span class="req">*</span></label>
+                                <input type="tel" name="phone" required pattern="[0-9]{10}" maxlength="10"
+                                    inputmode="numeric" placeholder="VD: 0901234567">
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row">
+                            <div class="adm-field">
+                                <label>Ngày nhận phòng <span class="req">*</span></label>
+                                <input type="date" name="checkInDate" required>
+                            </div>
+                            <div class="adm-field">
+                                <label>Ngày trả phòng <span class="req">*</span></label>
+                                <input type="date" name="checkOutDate" required>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-row full">
+                            <div class="adm-field">
+                                <label>Ghi chú thêm</label>
+                                <textarea name="note" rows="3" maxlength="300"
+                                    placeholder="Ghi chú nếu có..."></textarea>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-lg"></i> Xác nhận tạo đơn
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+
+        <script>
+            (function () {
+                'use strict';
+
+                var rows = Array.prototype.slice.call(document.querySelectorAll('.invoice-row'));
+
+                var searchInput = document.getElementById('searchInvoice');
+                var searchWrap = document.getElementById('searchInvoiceWrap');
+                var searchClear = document.getElementById('searchInvoiceClear');
+                var chips = document.getElementById('filterChips');
+                var countEl = document.getElementById('invoiceCount');
+
+                var STATUS_LABELS = {
+                    'Completed': 'Đã trả phòng',
+                    'In Use': 'Đang lưu trú',
+                    'Reserved': 'Đã đặt trước',
+                    'Pending': 'Đã đặt trước'
+                };
+
+                var keyword = '';
+
+                // Build filter trạng thái từ data
+                function buildFilter() {
+                    var box = document.getElementById('filterStatusDropdown');
+                    if (!box) return;
+
+                    var map = {};
+                    rows.forEach(function (r) {
+                        var s = r.dataset.status;
+                        if (!s) return;
+                        map[s] = (map[s] || 0) + 1;
+                    });
+
+                    var keys = Object.keys(map).sort();
+                    if (!keys.length) {
+                        box.innerHTML = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12.5px;">Không có dữ liệu</div>';
+                        return;
+                    }
+
+                    box.innerHTML = keys.map(function (k, i) {
+                        var id = 'fst_' + i;
+                        return '<label class="adm-filter-option" for="' + id + '">' +
+                            '<input type="checkbox" class="filter-status" value="' + k + '" id="' + id + '">' +
+                            '<span class="adm-filter-option-label">' + (STATUS_LABELS[k] || k) + '</span>' +
+                            '<span class="adm-filter-option-count">' + map[k] + '</span>' +
+                            '</label>';
+                    }).join('');
+
+                    box.querySelectorAll('input').forEach(function (cb) {
+                        cb.addEventListener('change', applyFilters);
+                    });
+                }
+
+                buildFilter();
+
+                // Search
+                searchInput.addEventListener('input', function () {
+                    keyword = this.value.trim().toLowerCase();
+                    searchWrap.classList.toggle('has-value', !!keyword);
+                    applyFilters();
+                });
+                searchClear.addEventListener('click', function () {
+                    searchInput.value = '';
+                    keyword = '';
+                    searchWrap.classList.remove('has-value');
+                    applyFilters();
+                    searchInput.focus();
+                });
+
+                // Clear filter
+                document.querySelectorAll('[data-clear="status"]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        document.querySelectorAll('.filter-status').forEach(function (cb) { cb.checked = false; });
+                        applyFilters();
+                    });
+                });
+
+                // Badge
+                function updateBadge(count) {
+                    var badge = document.getElementById('badgeStatus');
+                    var btn = document.getElementById('btnFilterStatus');
+                    if (!badge || !btn) return;
+                    if (count > 0) {
+                        badge.textContent = count;
+                        badge.style.display = 'inline-flex';
+                        btn.classList.add('is-active');
+                    } else {
+                        badge.style.display = 'none';
+                        btn.classList.remove('is-active');
+                    }
+                }
+
+                // Chips
+                function renderChips(statuses) {
+                    chips.innerHTML = statuses.map(function (s) {
+                        return '<span class="adm-chip"><span>' +
+                            (STATUS_LABELS[s] || s) +
+                            '</span><button type="button" data-chip-status="' + s + '">×</button></span>';
+                    }).join('');
+
+                    chips.querySelectorAll('button[data-chip-status]').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var cb = document.querySelector('.filter-status[value="' + btn.dataset.chipStatus + '"]');
+                            if (cb) { cb.checked = false; applyFilters(); }
+                        });
+                    });
+                }
+
+                // Apply
+                function applyFilters() {
+                    var statuses = Array.prototype.slice.call(
+                        document.querySelectorAll('.filter-status:checked')).map(function (c) { return c.value; });
+
+                    var visible = 0;
+                    rows.forEach(function (row) {
+                        var text = row.textContent.toLowerCase();
+                        var status = row.dataset.status;
+
+                        var ok = (!keyword || text.indexOf(keyword) >= 0)
+                            && (!statuses.length || statuses.indexOf(status) >= 0);
+
+                        row.style.display = ok ? '' : 'none';
+                        if (ok) visible++;
+                    });
+
+                    countEl.textContent = visible;
+                    updateBadge(statuses.length);
+                    renderChips(statuses);
+                }
+
+                applyFilters();
+            })();
+        </script>
+
+    </div>
+</body>
+
+</html>

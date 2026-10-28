@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <th:block th:fragment="extra_css">
+        <!-- SheetJS để xuất Excel -->
+        <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    </th:block>
+</head>
+
+<body>
+
+    <div th:fragment="body_content">
+
+        <!-- Page head -->
+        <div class="adm-page-head">
+            <div class="adm-page-head-text">
+                <span class="adm-page-eyebrow">Quản lý khách hàng</span>
+                <h1 class="adm-page-title">Quản lý khách hàng</h1>
+                <p class="adm-page-sub">Xem, chỉnh sửa và quản lý thông tin khách hàng của khách sạn.</p>
+            </div>
+            <div class="adm-page-head-actions">
+                <button type="button" class="adm-btn adm-btn-outline" id="btnExport">
+                    <i class="bi bi-download"></i> Xuất Excel
+                </button>
+                <button type="button" class="adm-btn adm-btn-gold" id="addCustomer">
+                    <i class="bi bi-plus-lg"></i> Thêm khách hàng
+                </button>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="adm-loyalty-stats" style="grid-template-columns: repeat(3, 1fr); margin-bottom: 24px;">
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon"><i class="bi bi-people-fill"></i></div>
+                    <div class="adm-loyalty-stat-label">Tổng khách hàng</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--navy);line-height:1.1;"
+                    th:text="${totalCustomers}">0</div>
+                <div class="adm-loyalty-stat-suffix">Trong hệ thống</div>
+            </div>
+
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon" style="background:var(--gold-soft);color:var(--gold-hover);">
+                        <i class="bi bi-stars"></i>
+                    </div>
+                    <div class="adm-loyalty-stat-label">Có điểm thành viên</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--gold-hover);line-height:1.1;"
+                    th:text="${loyalCustomers}">0</div>
+                <div class="adm-loyalty-stat-suffix">Đang tích lũy</div>
+            </div>
+
+            <div class="adm-loyalty-stat">
+                <div class="adm-loyalty-stat-head">
+                    <div class="adm-loyalty-stat-icon" style="background:var(--blue-bg);color:var(--blue);">
+                        <i class="bi bi-person-check-fill"></i>
+                    </div>
+                    <div class="adm-loyalty-stat-label">Đã liên kết tài khoản</div>
+                </div>
+                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--blue);line-height:1.1;"
+                    th:text="${linkedCustomers}">0</div>
+                <div class="adm-loyalty-stat-suffix">Có tài khoản online</div>
+            </div>
+        </div>
+
+        <!-- Card danh sách -->
+        <div class="adm-card">
+            <div class="adm-toolbar">
+                <div class="adm-search" style="flex:1;max-width:360px;">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="customerSearch" placeholder="Tìm tên, SĐT, email..." autocomplete="off">
+                </div>
+                <div class="adm-result-count">
+                    <i class="bi bi-person-badge" style="color:var(--gold-hover);"></i>
+                    <strong th:text="${#lists.size(customers)}">0</strong> khách hàng
+                </div>
+            </div>
+
+            <div class="adm-table-wrap">
+                <table class="adm-table">
+                    <thead>
+                        <tr>
+                            <th class="col-center" style="width:80px;">Mã</th>
+                            <th>Khách hàng</th>
+                            <th>Liên hệ</th>
+                            <th>CCCD / Hộ chiếu</th>
+                            <th>Quốc tịch</th>
+                            <th class="col-right">Điểm</th>
+                            <th class="col-center" style="width:120px;">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${customers.isEmpty()}">
+                            <td colspan="7">
+                                <div class="adm-empty">
+                                    <i class="bi bi-person-x"></i>
+                                    <h4>Chưa có khách hàng</h4>
+                                    <p>Bấm "Thêm khách hàng" để tạo hồ sơ mới.</p>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr th:each="c : ${customers}" class="customer-row" th:attr="data-id=${c.id},
+                                     data-name=${c.fullName},
+                                     data-phone=${c.phone},
+                                     data-email=${c.email},
+                                     data-cccd=${c.cccd},
+                                     data-address=${c.address},
+                                     data-nationality=${c.nationality},
+                                     data-gender=${c.gender},
+                                     data-dob=${c.dob},
+                                     data-iso-dob=${c.isoDob},
+                                     data-points=${c.points}">
+                            <td class="cell-id text-center" th:text="${c.id}">1</td>
+
+                            <td>
+                                <strong
+                                    style="display:block;font-size:13.5px;font-weight:700;color:var(--navy);line-height:1.35;"
+                                    th:text="${c.fullName}">Tên</strong>
+                                <small style="color:var(--muted);font-size:11.5px;"
+                                    th:text="${c.dob != null and !c.dob.isEmpty() ? 'Sinh: ' + c.dob : ''}"></small>
+                            </td>
+
+                            <td>
+                                <div style="font-weight:600;color:var(--navy);font-size:13px;" th:text="${c.phone}">090
+                                </div>
+                                <small style="color:var(--muted);font-size:11.5px;" th:text="${c.email}">email</small>
+                            </td>
+
+                            <td class="text-muted" th:text="${c.maskedCccd != null ? c.maskedCccd : '—'}">***</td>
+
+                            <td th:text="${c.nationality != null ? c.nationality : '—'}">Việt Nam</td>
+
+                            <td class="col-right">
+                                <span class="adm-points">
+                                    <strong th:text="${c.points}">0</strong>
+                                    <small>điểm</small>
+                                </span>
+                            </td>
+
+                            <td class="col-center">
+                                <div class="adm-actions">
+                                    <button type="button" class="adm-action edit edit-customer" title="Sửa thông tin">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form th:action="@{/manager/customers/{id}/delete(id=${c.id})}" method="post"
+                                        style="display:inline;" onsubmit="return confirm('Xóa khách hàng này?');">
+                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                                            th:value="${_csrf.token}">
+                                        <button type="submit" class="adm-action delete" title="Xóa khách hàng">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <!-- ==================== MODAL: THÊM/SỬA KHÁCH HÀNG ==================== -->
+        <div class="adm-modal-backdrop" id="customerModal">
+            <div class="adm-modal lg">
+                <form id="customerForm" method="post" th:action="@{/manager/customers/create}">
+                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
+                        th:value="${_csrf.token}">
+                    <input type="hidden" name="id" id="customer-id">
+
+                    <div class="adm-modal-head">
+                        <h3><i class="bi bi-person-plus"></i> <span id="customerTitle">Thêm khách hàng</span></h3>
+                        <button type="button" class="adm-modal-close" data-adm-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="adm-modal-body">
+
+                        <div class="adm-form-section">
+                            <div class="adm-form-section-title">
+                                <i class="bi bi-person-fill"></i> Thông tin cơ bản
+                            </div>
+
+                            <div class="adm-form-row">
+                                <div class="adm-field">
+                                    <label>Họ và tên <span class="req">*</span></label>
+                                    <input name="fullName" id="customer-name" maxlength="100" required
+                                        placeholder="VD: Nguyễn Văn A">
+                                </div>
+                                <div class="adm-field">
+                                    <label>Số điện thoại <span class="req">*</span></label>
+                                    <input name="phone" id="customer-phone" pattern="\+?[0-9]{9,15}" required
+                                        placeholder="VD: 0901234567">
+                                </div>
+                            </div>
+
+                            <div class="adm-form-row">
+                                <div class="adm-field">
+                                    <label>Email</label>
+                                    <input type="email" name="email" id="customer-email"
+                                        placeholder="VD: khach@email.com">
+                                </div>
+                                <div class="adm-field">
+                                    <label>CCCD / Hộ chiếu</label>
+                                    <input name="cccd" id="customer-cccd" maxlength="20" placeholder="VD: 079201998822">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="adm-form-section">
+                            <div class="adm-form-section-title">
+                                <i class="bi bi-info-circle-fill"></i> Thông tin bổ sung
+                            </div>
+
+                            <div class="adm-form-row" style="grid-template-columns:1fr 1fr 1fr;">
+                                <div class="adm-field">
+                                    <label>Ngày sinh</label>
+                                    <!-- Đổi sang type="date" để dùng Calendar Picker -->
+                                    <input type="date" name="dob" id="customer-dob">
+                                </div>
+                                <div class="adm-field">
+                                    <label>Quốc tịch</label>
+                                    <input name="nationality" id="customer-nationality" maxlength="100"
+                                        placeholder="VD: Việt Nam">
+                                </div>
+                                <div class="adm-field">
+                                    <label>Giới tính</label>
+                                    <select name="gender" id="customer-gender">
+                                        <option value="">Chưa xác định</option>
+                                        <option value="Nam">Nam</option>
+                                        <option value="Nữ">Nữ</option>
+                                        <option value="Khác">Khác</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="adm-field">
+                                <label>Địa chỉ</label>
+                                <input name="address" id="customer-address" maxlength="300"
+                                    placeholder="Số nhà, đường, quận, thành phố...">
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <div class="adm-modal-foot">
+                        <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                        <button type="submit" class="adm-btn adm-btn-gold">
+                            <i class="bi bi-check-circle"></i> Lưu thông tin
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+    <!-- /body_content -->
+
+
+    <!-- ==================== SCRIPT ==================== -->
+    <th:block th:fragment="extra_js">
+        <script>
+            (function () {
+                'use strict';
+
+                function ready(fn) {
+                    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', fn);
+                    else fn();
+                }
+
+                ready(function () {
+                    window.ADM_PAGE_MODULE = 'customer';
+
+                    var form = document.getElementById('customerForm');
+                    var get = function (id) { return document.getElementById(id); };
+
+                    // Thiết lập ngày max cho input date (không cho chọn ngày tương lai)
+                    var dobInput = get('customer-dob');
+                    if (dobInput) {
+                        var today = new Date();
+                        var yyyy = today.getFullYear();
+                        var mm = String(today.getMonth() + 1).padStart(2, '0');
+                        var dd = String(today.getDate()).padStart(2, '0');
+                        dobInput.max = yyyy + '-' + mm + '-' + dd;
+                    }
+
+                    /* --- Mở modal Thêm mới --- */
+                    var addBtn = get('addCustomer');
+                    if (addBtn) {
+                        addBtn.addEventListener('click', function () {
+                            form.reset();
+                            form.action = '/manager/customers/create';
+                            get('customer-id').value = '';
+                            get('customerTitle').textContent = 'Thêm khách hàng';
+                            if (typeof AdmModal !== 'undefined') AdmModal.open('customerModal');
+                        });
+                    }
+
+                    /* --- Mở modal Sửa --- */
+                    document.querySelectorAll('.edit-customer').forEach(function (btn) {
+                        btn.addEventListener('click', function () {
+                            var row = btn.closest('.customer-row');
+                            if (!row) return;
+
+                            form.reset();
+                            form.action = '/manager/customers/edit';
+                            get('customerTitle').textContent = 'Cập nhật khách hàng';
+
+                            // Fill các field text thông thường
+                            ['id', 'name', 'phone', 'email', 'cccd', 'address', 'nationality', 'gender'].forEach(function (k) {
+                                var el = get('customer-' + k);
+                                if (el) el.value = row.dataset[k] || '';
+                            });
+
+                            // Fill ngày sinh bằng data-iso-dob (yyyy-MM-dd) để khớp với <input type="date">
+                            if (dobInput) {
+                                dobInput.value = row.dataset.isoDob || '';
+                            }
+
+                            if (typeof AdmModal !== 'undefined') AdmModal.open('customerModal');
+                        });
+                    });
+
+                    /* --- Search filter --- */
+                    var searchInput = get('customerSearch');
+                    if (searchInput) {
+                        searchInput.addEventListener('input', function (e) {
+                            var q = e.target.value.toLowerCase();
+                            document.querySelectorAll('.customer-row').forEach(function (row) {
+                                row.style.display = row.innerText.toLowerCase().includes(q) ? '' : 'none';
+                            });
+                        });
+                    }
+
+                    /* --- EXPORT EXCEL --- */
+                    var btnExport = get('btnExport');
+                    if (btnExport) {
+                        btnExport.addEventListener('click', function () {
+                            if (typeof XLSX === 'undefined') {
+                                if (typeof toast === 'function') toast('Thư viện Excel chưa load, thử lại', 'danger');
+                                return;
+                            }
+
+                            var allRows = Array.from(document.querySelectorAll('.customer-row'));
+                            if (!allRows.length) {
+                                if (typeof toast === 'function') toast('Không có dữ liệu để xuất', 'warning');
+                                return;
+                            }
+
+                            var data = [
+                                ['Mã', 'Họ và tên', 'Số điện thoại', 'Email', 'CCCD', 'Ngày sinh', 'Giới tính', 'Quốc tịch', 'Địa chỉ', 'Điểm tích lũy']
+                            ];
+
+                            allRows.forEach(function (row) {
+                                var d = row.dataset;
+
+                                // Lấy CCCD đã mask từ cột hiển thị
+                                var cccdCell = row.querySelector('td:nth-child(4)');
+                                var maskedCccd = cccdCell ? cccdCell.textContent.trim() : '';
+
+                                data.push([
+                                    d.id || '',
+                                    d.name || '',
+                                    d.phone || '',
+                                    d.email || '',
+                                    maskedCccd,
+                                    d.dob || '',
+                                    d.gender || '',
+                                    d.nationality || '',
+                                    d.address || '',
+                                    parseInt(d.points) || 0
+                                ]);
+                            });
+
+                            var ws = XLSX.utils.aoa_to_sheet(data);
+                            ws['!cols'] = [
+                                { wch: 8 }, { wch: 25 }, { wch: 15 }, { wch: 30 },
+                                { wch: 18 }, { wch: 12 }, { wch: 10 }, { wch: 15 },
+                                { wch: 40 }, { wch: 12 }
+                            ];
+
+                            var wb = XLSX.utils.book_new();
+                            XLSX.utils.book_append_sheet(wb, ws, 'Danh sách khách hàng');
+
+                            var now = new Date();
+                            var dateStr = now.getFullYear()
+                                + String(now.getMonth() + 1).padStart(2, '0')
+                                + String(now.getDate()).padStart(2, '0')
+                                + '_'
+                                + String(now.getHours()).padStart(2, '0')
+                                + String(now.getMinutes()).padStart(2, '0');
+
+                            XLSX.writeFile(wb, 'danh-sach-khach-hang_' + dateStr + '.xlsx');
+
+                            if (typeof toast === 'function') {
+                                toast('Đã xuất ' + allRows.length + ' khách hàng ra Excel');
+                            }
+                        });
+                    }
+                });
+            })();
+        </script>
+    </th:block>
+
+</body>
+
+</html>
