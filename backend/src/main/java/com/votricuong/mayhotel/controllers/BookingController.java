@@ -404,7 +404,8 @@ public class BookingController extends BaseController {
             phone = com.votricuong.mayhotel.utils.InputValidator.phone(phone);
             ghiChu = com.votricuong.mayhotel.utils.InputValidator.optionalText(ghiChu, "Ghi chú", 500);
             phuongThucThanhToan = com.votricuong.mayhotel.utils.InputValidator.oneOf(
-                    phuongThucThanhToan, "Phương thức thanh toán", java.util.Set.of("ONLINE"));
+                    phuongThucThanhToan, "Phương thức thanh toán",
+                    java.util.Set.of("COD", "DEPOSIT", "ONLINE"));
             com.votricuong.mayhotel.utils.InputValidator.range(currentBooking.getSoLuong(), "Số lượng phòng", 1, 10);
             if (currentBooking.getGuestCount() <= 0) {
                 currentBooking.setGuestCount(Math.max(1, currentBooking.getSoLuong()));
@@ -511,7 +512,11 @@ public class BookingController extends BaseController {
             bookingOrder.setBookingDate(new Date());
             bookingOrder.setExpectedIn(Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant()));
             bookingOrder.setExpectedOut(Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant()));
-            bookingOrder.setStatus(com.votricuong.mayhotel.services.OnlineBookingPolicy.BOOKING_AWAITING_DEPOSIT);
+            boolean payAtHotel = "COD".equals(phuongThucThanhToan);
+            boolean fullOnline = "ONLINE".equals(phuongThucThanhToan);
+            bookingOrder.setStatus(payAtHotel
+                    ? "Đã xác nhận - Thanh toán tại khách sạn"
+                    : com.votricuong.mayhotel.services.OnlineBookingPolicy.BOOKING_AWAITING_DEPOSIT);
             bookingOrder.setBookingSource("WEB");
             bookingOrder.setRiskAnalysisStatus("PENDING");
             bookingOrder.setGuestCount(currentBooking.getGuestCount());
@@ -519,7 +524,9 @@ public class BookingController extends BaseController {
             bookingOrder.setChildCount(currentBooking.getChildCount());
             bookingOrder.setInfantCount(currentBooking.getInfantCount());
             bookingOrder.setVerifiedGuestCount(0);
-            bookingOrder.setPaymentExpiresAt(com.votricuong.mayhotel.services.OnlineBookingPolicy.paymentExpiryFromNow());
+            bookingOrder.setPaymentExpiresAt(payAtHotel
+                    ? null
+                    : com.votricuong.mayhotel.services.OnlineBookingPolicy.paymentExpiryFromNow());
             
             String noteStr = (ghiChu != null) ? ghiChu.trim() : "";
             bookingOrder.setNotes(noteStr);
@@ -579,16 +586,21 @@ public class BookingController extends BaseController {
             invoice.setPromotionDiscount(promotionDiscount);
             invoice.setTotalAmount(roomAndServiceTotal - pointsDiscount);
             double netRoomAmount = Math.max(0D, tongGiaCacPhong - promotionDiscount - pointsDiscount);
-            long depositAmount = com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(netRoomAmount);
             long totalAmount = Math.round(roomAndServiceTotal - pointsDiscount);
-            invoice.setPayMethod("VNPAY_DEPOSIT");
-            invoice.setInvoiceStatus("Awaiting Deposit");
-            invoice.setDepositRate(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_RATE);
+            long depositAmount = payAtHotel ? 0L
+                    : fullOnline ? totalAmount
+                    : com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(netRoomAmount);
+            invoice.setPayMethod(payAtHotel ? "PAY_AT_HOTEL"
+                    : fullOnline ? "VNPAY_FULL" : "VNPAY_DEPOSIT");
+            invoice.setInvoiceStatus(payAtHotel ? "Pay at Hotel" : "Awaiting Payment");
+            invoice.setDepositRate(payAtHotel ? 0D
+                    : fullOnline ? 1D : com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_RATE);
             invoice.setDepositBaseAmount(Math.round(netRoomAmount));
             invoice.setDepositRequiredAmount(depositAmount);
             invoice.setDepositPaidAmount(0L);
             invoice.setRemainingAmount(Math.max(0L, totalAmount - depositAmount));
-            invoice.setDepositStatus(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PENDING);
+            invoice.setDepositStatus(payAtHotel ? "NOT_REQUIRED"
+                    : com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PENDING);
             invoice.setNote(noteStr);
             invoice.setGuestName(customer.getFullName());
             invoice.setPhone(customer.getPhone());
@@ -605,6 +617,13 @@ public class BookingController extends BaseController {
             invoice.setPointsDiscount(pointsDiscount);
             invoice.setLoyaltyFinalized(false);
             invoiceRepository.save(invoice);
+            if (payAtHotel) {
+                noShowPredictionService.analyzeAndSave(generatedMaHD);
+                redirectAttributes.addFlashAttribute("success",
+                        "Đặt phòng thành công. Quý khách thanh toán tại khách sạn khi nhận phòng.");
+                redirectAttributes.addFlashAttribute("successBookingId", generatedMaHD);
+                return "redirect:/booking/success";
+            }
             return "redirect:/booking/payment-gate?id=" + invoice.getId();
 
         } catch (Exception e) {
@@ -631,12 +650,44 @@ public class BookingController extends BaseController {
         }
         model.addAttribute("invoice", invoice);
         model.addAttribute("vnpayEnabled", vnPayService.isEnabled());
+        model.addAttribute("paymentAmount",
+                com.votricuong.mayhotel.services.OnlineBookingPolicy.payableDeposit(invoice));
         if (vnPayService.isEnabled()
                 && !com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PAID
                 .equalsIgnoreCase(invoice.getDepositStatus())) {
             model.addAttribute("vnpayPaymentUrl", vnPayService.createPaymentUrl(invoice, request));
         }
         return "view/booking/payment";
+    }
+
+    @GetMapping("/payment-gate/vnpay")
+    public String redirectToVnpay(@RequestParam("id") Long id,
+                                  HttpServletRequest request,
+                                  RedirectAttributes ra) {
+        Invoice invoice = invoiceRepository.findById(id).orElse(null);
+        if (invoice == null) {
+            ra.addFlashAttribute("error", "Không tìm thấy thông tin hóa đơn.");
+            return "redirect:/";
+        }
+        if (!isInvoiceOwner(invoice, request.getSession(false))) {
+            ra.addFlashAttribute("error", "Bạn không có quyền thanh toán hóa đơn này.");
+            return "redirect:/booking/success";
+        }
+        if (com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PAID
+                .equalsIgnoreCase(invoice.getDepositStatus())) {
+            ra.addFlashAttribute("success", "Hóa đơn này đã được thanh toán.");
+            return "redirect:/booking/success";
+        }
+        if (!vnPayService.isEnabled()) {
+            ra.addFlashAttribute("error", "Thanh toán VNPay chưa được bật hoặc thiếu cấu hình bảo mật.");
+            return "redirect:/booking/payment-gate?id=" + id;
+        }
+        try {
+            return "redirect:" + vnPayService.createPaymentUrl(invoice, request);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            ra.addFlashAttribute("error", ex.getMessage());
+            return "redirect:/booking/payment-gate?id=" + id;
+        }
     }
 
     @GetMapping("/vnpay-return")

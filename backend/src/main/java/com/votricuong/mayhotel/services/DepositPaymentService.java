@@ -35,12 +35,14 @@ public class DepositPaymentService {
             throw new IllegalArgumentException("Số tiền thanh toán không khớp tiền cọc");
         }
 
+        boolean fullPayment = "VNPAY_FULL".equalsIgnoreCase(current.getPayMethod())
+                || (current.getTotalAmount() != null && paidAmount >= Math.round(current.getTotalAmount()));
         current.setDepositStatus(OnlineBookingPolicy.DEPOSIT_PAID);
         current.setDepositPaidAmount(paidAmount);
         current.setDepositPaidAt(new Date());
-        current.setPayMethod("VNPAY_DEPOSIT");
-        current.setInvoiceStatus("Deposit Paid");
-        current.setIsPaid(false);
+        current.setPayMethod(fullPayment ? "VNPAY_FULL" : "VNPAY_DEPOSIT");
+        current.setInvoiceStatus(fullPayment ? "Paid" : "Deposit Paid");
+        current.setIsPaid(fullPayment);
         appendTransaction(current, transactionId, paidAmount, bankCode, "SUCCESS", responseCode, note);
         invoiceRepository.save(current);
 

@@ -6,8 +6,8 @@
 'use strict';
 
 // Đổi URL khi deploy
-const API_BASE = window.API_BASE_URL || 'http://localhost:8080/api';
-const CHAT_API = window.CHAT_API_URL || '';
+const API_BASE = window.API_BASE_URL || '/api';
+const CHAT_API = window.CHAT_API_URL || '/api/v1/ai/chat';
 const USER_ID = localStorage.getItem('userId') || 'guest';
 const REVIEW_DELAY = 5000;
 
@@ -17,8 +17,7 @@ const REVIEW_DELAY = 5000;
 // ============================================================
 
 async function api(path, options = {}) {
-    const url = path.startsWith('http') ? path : API_BASE + path;
-
+    const url = path.startsWith('http') ? path : (path.startsWith('/api') ? path : API_BASE + (path.startsWith('/') ? path : '/' + path));
     const res = await fetch(url, {
         ...options,
         headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
@@ -511,9 +510,8 @@ const Chatbot = {
         this.them(msg, 'user');
         this.input.value = '';
 
-        if (!CHAT_API) {
-            return this.them('Trợ lý AI chưa kết nối. Vui lòng liên hệ lễ tân.', 'bot');
-        }
+        const endpoint = (typeof CHAT_API !== 'undefined' && CHAT_API) ? CHAT_API : '/api/v1/ai/chat';
+        const currentUserId = (typeof USER_ID !== 'undefined' && USER_ID) ? USER_ID : (window.USER_ID || 'guest');
 
         const id = 'loading-' + Date.now();
         this.logs.insertAdjacentHTML('beforeend',
@@ -521,44 +519,31 @@ const Chatbot = {
         this.cuonXuong();
 
         try {
-            const res = await api(CHAT_API, {
+            const res = await api(endpoint, {
                 method: 'POST',
-                body: JSON.stringify({ message: msg, userId: USER_ID }),
+                body: JSON.stringify({ message: msg, prompt: msg, userId: currentUserId, user_id: currentUserId }),
             });
 
             document.getElementById(id)?.remove();
-            const reply = (res?.answer || res?.message || 'Xin lỗi, tôi chưa hiểu.').replace(/\n/g, '<br>');
+            const rawText = res?.reply || res?.answer || res?.response || res?.message || 'Xin lỗi, tôi chưa hiểu.';
+            const reply = String(rawText).replace(/\n/g, '<br>');
             this.them(reply, 'bot', true);
         } catch (err) {
+            console.error('Lỗi Chatbot Frontend:', err);
             document.getElementById(id)?.remove();
             this.them('Không kết nối được trợ lý AI', 'bot', true);
         }
     },
 
-    them(text, who, isHtml = false) {
-        const div = document.createElement('div');
-        div.className = who === 'user' ? 'msg-user' : 'msg-bot';
-        if (isHtml) div.innerHTML = text;
-        else div.textContent = text;
-        this.logs.appendChild(div);
-        this.cuonXuong();
-    },
+    // ============================================================
+    // Chạy
+    // ============================================================
 
-    cuonXuong() {
-        if (this.logs) this.logs.scrollTop = this.logs.scrollHeight;
-    },
-};
-
-
-// ============================================================
-// Chạy
-// ============================================================
-
-document.addEventListener('DOMContentLoaded', () => {
-    ChonPhong.init();
-    DanhGia.init();
-    TimPhong.init();
-    BangDatPhong.init();
-    DatTrucTiep.init();
-    Chatbot.init();
-});
+    document.addEventListener('DOMContentLoaded', () => {
+        ChonPhong.init();
+        DanhGia.init();
+        TimPhong.init();
+        BangDatPhong.init();
+        DatTrucTiep.init();
+        Chatbot.init();
+    });

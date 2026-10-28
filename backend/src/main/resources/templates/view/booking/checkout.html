@@ -209,10 +209,10 @@
                                     <label for="mhPayDeposit" class="mh-co-pay-card">
                                         <span class="mh-co-pay-dot"></span>
                                         <div class="mh-co-pay-info">
-                                            <strong>Đặt cọc 1 đêm qua VNPay <span
+                                            <strong>Đặt cọc 10% qua VNPay <span
                                                     style="color:var(--gold-hover);font-weight:800;">· Khuyến
                                                     nghị</span></strong>
-                                            <small>Chỉ thanh toán trước 1 đêm để giữ phòng. Phần còn lại trả tại KS khi
+                                            <small>Chỉ thanh toán trước 10% giá trị tiền phòng. Phần còn lại trả tại KS khi
                                                 nhận phòng.</small>
                                         </div>
                                         <div class="mh-co-pay-logo-img">
@@ -259,7 +259,7 @@
                                                 <i class="fa-solid fa-shield-halved"></i>
                                             </div>
                                             <div class="mh-co-panel-body">
-                                                <h4>Đặt cọc 1 đêm qua VNPay</h4>
+                                                <h4>Đặt cọc 10% qua VNPay</h4>
                                                 <p>Quý khách chỉ cần thanh toán trước <strong id="mhDepositAmount"
                                                         style="color:var(--gold-hover);">0 đ</strong> để giữ phòng.
                                                     Phần còn lại <strong id="mhRemainingAmount"
@@ -598,8 +598,7 @@
 
                     // Phase B: cọc + còn lại
                     if (elFullAmount) elFullAmount.textContent = fmtTien(tong);
-                    var cocMotDem = basePrice * soLuong + basePrice * 0.5 * g.children;
-                    var depositAmount = Math.min(cocMotDem, tong);
+                    var depositAmount = Math.min(tong * 0.10, tong);
                     var remaining = Math.max(0, tong - depositAmount);
                     if (elDepositAmount) elDepositAmount.textContent = fmtTien(depositAmount);
                     if (elRemainingAmount) elRemainingAmount.textContent = fmtTien(remaining);

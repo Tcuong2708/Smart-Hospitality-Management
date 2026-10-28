@@ -13,9 +13,12 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -103,6 +106,23 @@ public class ReceptionApiController {
             String nationality = requiredText(payload, "nationality", "Quốc tịch");
             String dateOfBirth = requiredText(payload, "dateOfBirth", "Ngày sinh");
             String reason = requiredText(payload, "reason", "Lý do nhập tay");
+            if (!documentNumber.matches("[A-Za-z0-9.-]{4,30}")) {
+                throw new IllegalArgumentException(
+                        "Số hộ chiếu / ID chỉ gồm 4-30 chữ, số, dấu chấm hoặc gạch ngang.");
+            }
+            int guestIndex;
+            try {
+                guestIndex = Integer.parseInt(String.valueOf(payload.get("guestIndex")));
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Vị trí khách xác thực không hợp lệ.");
+            }
+
+            int requiredGuestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy
+                    .requiredIdentityVerifications(booking);
+            if (guestIndex < 0 || guestIndex >= requiredGuestCount) {
+                throw new IllegalArgumentException("Vị trí khách xác thực không hợp lệ. Booking có "
+                        + requiredGuestCount + " khách cần xác thực.");
+            }
 
             if (!List.of("FOREIGN_GUEST", "NO_VALID_CCCD", "MOBILE_VERIFICATION_FAILED").contains(reason)) {
                 throw new IllegalArgumentException("Lý do nhập tay không hợp lệ.");
@@ -110,38 +130,81 @@ public class ReceptionApiController {
 
             Date dob;
             try {
-                dob = Date.from(LocalDate.parse(dateOfBirth)
+                LocalDate birthDate = LocalDate.parse(dateOfBirth);
+                if (birthDate.isAfter(LocalDate.now())) {
+                    throw new IllegalArgumentException("Ngày sinh không được ở tương lai.");
+                }
+                dob = Date.from(birthDate
                         .atStartOfDay(ZoneId.systemDefault())
                         .toInstant());
+            } catch (IllegalArgumentException ex) {
+                throw ex;
             } catch (Exception ex) {
                 throw new IllegalArgumentException("Ngày sinh không hợp lệ.");
             }
 
-            Customer customer = customerRepository.findById(booking.getCustomerId())
-                    .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ khách hàng."));
-            customer.setFullName(fullName);
-            customer.setCccd(documentNumber);
-            customer.setNationality(nationality);
-            customer.setQuocTich(nationality);
-            customer.setDob(dob);
-            customerRepository.save(customer);
+            List<Map<String, Object>> verifications = booking.getGuestVerifications() == null
+                    ? new ArrayList<>()
+                    : new ArrayList<>(booking.getGuestVerifications());
+            boolean duplicateDocument = verifications.stream().anyMatch(item ->
+                    !Objects.equals(asInteger(item.get("guestIndex")), guestIndex)
+                            && documentNumber.equalsIgnoreCase(String.valueOf(item.get("documentNumber"))));
+            if (duplicateDocument) {
+                throw new IllegalArgumentException("Giấy tờ này đã được dùng để xác thực cho một khách khác.");
+            }
 
-            booking.setIsFaceVerified(true);
-            int guestCount = com.votricuong.mayhotel.services.OnlineBookingPolicy
-                    .requiredIdentityVerifications(booking);
-            booking.setGuestCount(guestCount);
-            booking.setVerifiedGuestCount(guestCount);
-            booking.setIdentityVerificationMethod("MANUAL_EXCEPTION");
+            Map<String, Object> verification = new LinkedHashMap<>();
+            verification.put("guestIndex", guestIndex);
+            verification.put("fullName", fullName);
+            verification.put("documentNumber", documentNumber);
+            verification.put("nationality", nationality);
+            verification.put("dob", dob);
+            verification.put("reason", reason);
+            verification.put("method", "MANUAL_EXCEPTION");
+            verification.put("verifiedAt", new Date());
+            verifications.removeIf(item -> Objects.equals(asInteger(item.get("guestIndex")), guestIndex));
+            verifications.add(verification);
+
+            int verifiedGuestCount = (int) verifications.stream()
+                    .map(item -> asInteger(item.get("guestIndex")))
+                    .filter(Objects::nonNull)
+                    .filter(index -> index >= 0 && index < requiredGuestCount)
+                    .distinct()
+                    .count();
+            boolean allGuestsVerified = verifiedGuestCount >= requiredGuestCount;
+
+            booking.setGuestCount(requiredGuestCount);
+            booking.setGuestVerifications(verifications);
+            booking.setVerifiedGuestCount(verifiedGuestCount);
+            booking.setIsFaceVerified(allGuestsVerified);
+            booking.setIdentityVerificationMethod(allGuestsVerified
+                    ? "MANUAL_EXCEPTION" : "MANUAL_EXCEPTION_PARTIAL");
             booking.setIdentityVerificationReason(reason);
-            booking.setIdentityVerifiedAt(new Date());
+            booking.setIdentityVerifiedAt(allGuestsVerified ? new Date() : null);
             bookingOrderRepository.save(booking);
+
+            // Chỉ đồng bộ hồ sơ người đặt phòng; dữ liệu người đi cùng nằm trong guest_verifications.
+            if (guestIndex == 0) {
+                Customer customer = customerRepository.findById(booking.getCustomerId())
+                        .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy hồ sơ khách hàng."));
+                customer.setFullName(fullName);
+                customer.setCccd(documentNumber);
+                customer.setNationality(nationality);
+                customer.setQuocTich(nationality);
+                customer.setDob(dob);
+                customerRepository.save(customer);
+            }
 
             Map<String, Object> response = new HashMap<>();
             response.put("status", "success");
             response.put("bookingId", bookingId);
-            response.put("isFaceVerified", true);
-            response.put("verificationMethod", "MANUAL_EXCEPTION");
-            response.put("message", "Đã lưu xác thực nhập tay ngoại lệ.");
+            response.put("isFaceVerified", allGuestsVerified);
+            response.put("verifiedGuestCount", verifiedGuestCount);
+            response.put("requiredGuestCount", requiredGuestCount);
+            response.put("verificationMethod", booking.getIdentityVerificationMethod());
+            response.put("message", allGuestsVerified
+                    ? "Đã xác thực đủ khách bằng luồng nhập tay ngoại lệ."
+                    : "Đã xác thực " + verifiedGuestCount + "/" + requiredGuestCount + " khách.");
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("status", "error", "message", e.getMessage()));
@@ -183,6 +246,16 @@ public class ReceptionApiController {
             throw new IllegalArgumentException(label + " là thông tin bắt buộc.");
         }
         return text;
+    }
+
+    private Integer asInteger(Object value) {
+        if (value == null) return null;
+        if (value instanceof Number number) return number.intValue();
+        try {
+            return Integer.valueOf(value.toString());
+        } catch (NumberFormatException ex) {
+            return null;
+        }
     }
 
     // 3. Duyệt nhận phòng & Xếp phòng (Cập nhật Khóa ngoại roomId vào BookingDetail)
