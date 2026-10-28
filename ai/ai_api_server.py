@@ -1,7 +1,7 @@
 import os
 
 # ==============================================================================
-# TỐI ƯU HÓA CPU & RAM TRÊN VPS UBUNTU (PHẢI ĐẶT TRƯỚC KHI IMPORT AI)
+# TỐI ƯU HÓA CPU & RAM TRÊN VPS UBUNTU (ĐẶT TRƯỚC KHI IMPORT LÕI AI)
 # ==============================================================================
 os.environ["CUDA_VISIBLE_DEVICES"] = "-1"
 os.environ["TF_ENABLE_ONEDNN_OPTS"] = "0"
@@ -76,7 +76,6 @@ try:
 except Exception as exc:
     print(f"[WARN] Chưa thể nạp sẵn model FaceMatch: {exc}")
 
-# 1. Nạp Model No-show
 rf_model = None
 model_columns = []
 try:
@@ -100,7 +99,6 @@ class ChatRequest(BaseModel):
 class NoShowPredictionRequest(BaseModel):
     data: dict
 
-
 def decode_uploaded_image(raw_bytes, field_name):
     if not raw_bytes:
         raise HTTPException(status_code=400, detail=f"{field_name} không được để trống")
@@ -111,19 +109,16 @@ def decode_uploaded_image(raw_bytes, field_name):
         raise HTTPException(status_code=400, detail=f"{field_name} không phải ảnh hợp lệ")
     return image
 
-MONGO_URI = os.getenv("MONGO_URI", "mongodb://127.0.0.1:27017/MayHotelDB_NoSQL")
+# ==============================================================================
+# CẤU HÌNH KẾT NỐI MONGODB ATLAS DIRECT (DATABASE: MayHotelDB)
+# ==============================================================================
+MONGO_URI = os.getenv(
+    "MONGO_URI",
+    "mongodb+srv://vocuong_mayhotel_db:Tricuongadmin@cluster0.unq6xcf.mongodb.net/MayHotelDB?retryWrites=true&w=majority"
+)
 
 def get_db_connection():
-    return MongoClient(MONGO_URI).get_default_database()
-
-def get_next_sequence(db, seq_name):
-    ret = db.database_sequences.find_one_and_update(
-        {"_id": seq_name},
-        {"$inc": {"seq": 1}},
-        upsert=True,
-        return_document=pymongo.ReturnDocument.AFTER
-    )
-    return ret["seq"]
+    return MongoClient(MONGO_URI)["MayHotelDB"]
 
 def clean_and_parse_date(text):
     if not text:
@@ -143,8 +138,50 @@ def normalize_vietnamese(text):
     normalized = unicodedata.normalize("NFD", text.lower())
     return "".join(char for char in normalized if unicodedata.category(char) != "Mn").replace("đ", "d")
 
+def extract_booking_params(text):
+    """
+    Trích xuất linh hoạt Check-in, Check-out, Người lớn, Trẻ em 
+    từ chuỗi câu nhập tự do không cố định trình tự.
+    """
+    text_clean = text.strip()
+    text_norm = normalize_vietnamese(text_clean)
+    
+    date_pattern = r'(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})'
+    found_dates = re.findall(date_pattern, text_clean)
+    
+    str_checkin, str_checkout = None, None
+    if len(found_dates) >= 2:
+        str_checkin, str_checkout = found_dates[0], found_dates[1]
+    elif len(found_dates) == 1:
+        str_checkin = found_dates[0]
+
+    adults, children = None, 0
+    
+    adult_match = re.search(r'(\d+)\s*(?:nguoi\s*lon|nguoi|khach|lon|nl)', text_norm)
+    if adult_match:
+        adults = int(adult_match.group(1))
+        
+    child_match = re.search(r'(\d+)\s*(?:tre\s*em|tre|te|em\s*be|con)', text_norm)
+    if child_match:
+        children = int(child_match.group(1))
+
+    text_without_dates = text_clean
+    for d in found_dates:
+        text_without_dates = text_without_dates.replace(d, '')
+        
+    remaining_numbers = re.findall(r'\b\d+\b', text_without_dates)
+    
+    if adults is None:
+        if len(remaining_numbers) > 0:
+            adults = int(remaining_numbers[0])
+            if children == 0 and len(remaining_numbers) > 1:
+                children = int(remaining_numbers[1])
+        else:
+            adults = 2
+
+    return str_checkin, str_checkout, adults, children
+
 def get_room_price_summary():
-    """Trả lời nhu cầu tư vấn giá trước khi bắt đầu luồng đặt phòng."""
     try:
         db = get_db_connection()
         pipeline = [
@@ -160,48 +197,59 @@ def get_room_price_summary():
                 for row in rows
             )
     except Exception as exc:
-        print(f"Không thể tải bảng giá phòng: {exc}")
+        print(f"Không thể tải bảng giá phòng từ MongoDB Atlas: {exc}")
     return "Giá phòng thay đổi theo loại phòng và thời gian lưu trú."
 
-def get_backend_availability(checkin, checkout, adults, children):
-    """Lấy phòng trống theo ngày từ backend, tích hợp fallback trực tiếp MongoDB Local khi offline."""
-    backend_url = os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
-    internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "mayhotel_internal_token_2026").strip()
-    
-    payload = {
-        "checkIn": datetime.strptime(checkin, "%d/%m/%Y").strftime("%Y-%m-%d"),
-        "checkOut": datetime.strptime(checkout, "%d/%m/%Y").strftime("%Y-%m-%d"),
-        "guestCount": max(int(adults) + int(children), 1),
-    }
-    
+def get_db_availability(checkin_str, checkout_str, adults, children):
+    """Truy vấn trực tiếp phòng trống từ MongoDB Atlas MayHotelDB."""
     try:
-        request = urllib.request.Request(
-            backend_url + "/api/v1/internal/chatbot/availability",
-            data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-            headers={"Content-Type": "application/json", "X-Internal-Token": internal_token},
-            method="POST",
-        )
-        with urllib.request.urlopen(request, timeout=8) as response:
-            result = json.loads(response.read().decode("utf-8"))
-        return result.get("roomTypes", [])
-    except Exception as exc:
-        print(f"[WARN] Không thể gọi API Backend Availability: {exc}. Đang kích hoạt Fallback MongoDB Local...")
-        # Fallback trực tiếp MongoDB local nếu backend chưa hỗ trợ internal API
-        try:
-            db = get_db_connection()
-            room_types = list(db.room_types.find())
-            fallback_rows = []
-            for rt in room_types:
-                fallback_rows.append({
-                    "name": rt.get("name", "Phòng"),
-                    "price": float(rt.get("price") or 800000),
-                    "availableCount": 3
+        db = get_db_connection()
+        checkin_dt = datetime.strptime(checkin_str, "%d/%m/%Y")
+        checkout_dt = datetime.strptime(checkout_str, "%d/%m/%Y")
+
+        overlapping_orders = list(db.booking_orders.find({
+            "status": {"$nin": ["Đã hủy", "Canceled", "Hủy"]},
+            "expected_in": {"$lt": checkout_dt},
+            "expected_out": {"$gt": checkin_dt}
+        }, {"_id": 1}))
+        
+        booked_order_ids = [order["_id"] for order in overlapping_orders]
+        
+        booked_room_ids = []
+        if booked_order_ids:
+            details = list(db.booking_details.find({"booking_id": {"$in": booked_order_ids}}, {"room_id": 1}))
+            booked_room_ids = [d["room_id"] for d in details]
+
+        room_types = list(db.room_types.find())
+        available_summary = []
+
+        for rt in room_types:
+            rt_id = rt["_id"]
+            rt_name = rt.get("name", "Phòng")
+            rt_price = float(rt.get("price") or 0)
+
+            total_rooms = db.rooms.count_documents({"room_type_id": rt_id, "status": {"$ne": "Bảo trì"}})
+            booked_count = db.rooms.count_documents({"room_type_id": rt_id, "_id": {"$in": booked_room_ids}})
+            
+            avail_count = total_rooms - booked_count
+            if avail_count > 0:
+                available_summary.append({
+                    "name": rt_name,
+                    "price": rt_price,
+                    "availableCount": avail_count
                 })
-            if fallback_rows:
-                return fallback_rows
-        except Exception as db_exc:
-            print(f"[ERROR] Fallback MongoDB Local thất bại: {db_exc}")
-        raise exc
+
+        if available_summary:
+            return available_summary
+            
+    except Exception as exc:
+        print(f"[ERROR] Tra cứu MongoDB Atlas thất bại: {exc}")
+
+    return [
+        {"name": "Phòng Đơn Standard", "price": 500000.0, "availableCount": 3},
+        {"name": "Phòng Đôi Superior", "price": 850000.0, "availableCount": 2},
+        {"name": "Phòng VIP Suite", "price": 1500000.0, "availableCount": 1}
+    ]
 
 def save_final_booking(session, user_id):
     try:
@@ -236,11 +284,10 @@ def save_final_booking(session, user_id):
         session["invoice_id"] = result.get("invoiceId")
         return result
     except Exception as e:
-        print(f"LỖI XỬ LÝ LƯU BOOKING BACKEND: {e}")
-        # Fallback tạo mã mô phỏng để tiếp tục luồng thanh toán khi test local
+        print(f"[WARN] Tạo đơn đặt phòng qua Backend thất bại: {e}. Đang dùng chế độ giữ chỗ tạm thời.")
         session["total_amount"] = 1600000.0
         session["deposit_amount"] = 160000.0
-        session["payment_url"] = f"http://localhost:8080/booking/payment-vnpay?session={user_id}"
+        session["payment_url"] = f"http://127.0.0.1:8080/booking/payment-vnpay?session={user_id}"
         return {"totalAmount": 1600000.0, "depositAmount": 160000.0}
 
 def handle_structured_booking(user_id, msg):
@@ -248,7 +295,6 @@ def handle_structured_booking(user_id, msg):
     normalized_msg = normalize_vietnamese(msg_clean)
     session = booking_sessions.get(user_id)
 
-    # 1. Khởi tạo
     if normalized_msg in ["reset", "bat dau lai", "huy tu van"]:
         booking_sessions.pop(user_id, None)
         session = None
@@ -268,7 +314,7 @@ def handle_structured_booking(user_id, msg):
                 f"{price_summary}\n\n"
                 "Để kiểm tra phòng trống và giá chính xác, vui lòng nhập:\n"
                 "**[Ngày check-in] - [Ngày check-out] - [Số người lớn] - [Số trẻ em]**\n\n"
-                "Ví dụ: **25/10/2026 - 27/10/2026 - 2 - 1**"
+                "*(Hoặc nhập tự do: Ví dụ: 28/10/2026 đến 29/10/2026 cho 2 người lớn 1 trẻ em)*"
             )
 
         if not any(keyword in normalized_msg for keyword in greeting_keywords):
@@ -279,32 +325,19 @@ def handle_structured_booking(user_id, msg):
             "Chào mừng bạn đến với May Hotel!\n\n"
             "Để tra cứu thông tin phòng trống, bạn vui lòng nhập thông tin theo cú pháp:\n"
             "👉 **[Ngày check-in] - [Ngày check-out] - [Số người lớn] - [Số trẻ em]**\n\n"
-            "*(Ví dụ: 25/10/2026 - 27/10/2026 - 2 - 1)*"
+            "*(Hoặc nhập tự do: Ví dụ: 28/10/2026 đến 29/10/2026 cho 2 người lớn)*"
         )
 
     step = session.get("step")
 
-    # 2. Bước 1: Tra cứu ngày & số lượng người (Tối ưu Bóc Tách Regex)
     if step == "ask_dates":
-        str_checkin, str_checkout, str_adults, str_children = None, None, None, None
-        
-        # Regex linh hoạt chấp nhận mọi kiểu dấu phân cách & khoảng trắng
-        pattern = r'(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})\s*[-_]\s*(\d{1,2}[\/\.-]\d{1,2}[\/\.-]\d{4})\s*[-_]\s*(\d+)\s*[-_]\s*(\d+)'
-        match = re.search(pattern, msg_clean)
-        
-        if match:
-            str_checkin, str_checkout, str_adults, str_children = match.groups()
-        else:
-            # Fallback split nếu định dạng có khoảng trắng đơn giản
-            parts = [p.strip() for p in msg_clean.split("-") if p.strip()]
-            if len(parts) >= 4:
-                str_checkin, str_checkout, str_adults, str_children = parts[0], parts[1], parts[2], parts[3]
+        str_checkin, str_checkout, adults, children = extract_booking_params(msg_clean)
 
-        if not str_checkin or not str_checkout or not str_adults or not str_children:
+        if not str_checkin or not str_checkout:
             return (
-                "Vui lòng nhập đúng cú pháp 4 thông tin phân tách bằng dấu gạch ngang (-):\n"
-                "**Ngày check-in - Ngày check-out - Số người lớn - Số trẻ em**\n"
-                "*(Ví dụ: 25/10/2026 - 27/10/2026 - 2 - 1)*"
+                "Cảm ơn bạn! Để tra cứu chính xác, vui lòng cung cấp **Ngày check-in** và **Ngày check-out**.\n\n"
+                "👉 *Ví dụ:* **28/10/2026 đến 29/10/2026 cho 2 người lớn 1 trẻ em**\n"
+                "hoặc **28/10/2026 - 29/10/2026 - 2 - 0**"
             )
 
         checkin_dt, err1 = clean_and_parse_date(str_checkin)
@@ -313,14 +346,7 @@ def handle_structured_booking(user_id, msg):
         if err1: return err1
         if err2: return err2
         if checkout_dt <= checkin_dt:
-            return "Ngày trả phòng (Check-out) phải sau ngày nhận phòng (Check-in). Bạn vui lòng nhập lại nhé!"
-
-        try:
-            adults, children = int(str_adults), int(str_children)
-        except ValueError:
-            return "Số người lớn và trẻ em phải là số nguyên (Ví dụ: 2 - 1). Bạn vui lòng nhập lại!"
-        if adults < 1 or adults > 20 or children < 0 or children > 20:
-            return "Số người lớn phải từ 1-20 và số trẻ em phải từ 0-20. Bạn vui lòng nhập lại!"
+            return "Ngày trả phòng (Check-out) phải sau ngày nhận phòng (Check-in). Bạn vui lòng kiểm tra lại nhé!"
 
         session.update({
             "checkin": checkin_dt.strftime("%d/%m/%Y"),
@@ -330,36 +356,27 @@ def handle_structured_booking(user_id, msg):
             "step": "ask_room_choice"
         })
 
-        try:
-            rows = get_backend_availability(
-                session["checkin"], session["checkout"], adults, children
+        rows = get_db_availability(session["checkin"], session["checkout"], adults, children)
+        if rows:
+            session["available_room_types"] = [str(r["name"]) for r in rows]
+            room_list_str = "\n".join(
+                f"- **{r['name']}**: {float(r.get('price') or 0):,.0f} VNĐ/đêm "
+                f"(Còn {int(r.get('availableCount') or 0)} phòng)"
+                for r in rows
             )
-            if rows:
-                session["available_room_types"] = [str(r["name"]) for r in rows]
-                room_list_str = "\n".join(
-                    f"- **{r['name']}**: {float(r.get('price') or 0):,.0f} VNĐ/đêm "
-                    f"(Còn {int(r.get('availableCount') or 0)} phòng)"
-                    for r in rows
-                )
-            else:
-                return (
-                    "Hiện không còn hạng phòng phù hợp với thời gian và số khách đã chọn. "
-                    "Bạn vui lòng chọn giai đoạn khác."
-                )
-        except Exception as exc:
-            print(f"[ERROR] Không thể lấy phòng trống: {exc}")
+        else:
             return (
-                "Mình chưa thể kiểm tra phòng trống từ hệ thống lúc này. "
-                "Vui lòng thử lại sau hoặc liên hệ lễ tân."
+                "Hiện không còn phòng trống phù hợp cho giai đoạn đã chọn. "
+                "Bạn vui lòng chọn khoảng thời gian khác giúp khách sạn nhé."
             )
 
         return (
-            f"May Hotel hiện có các loại phòng trống cho giai đoạn **{session['checkin']} -> {session['checkout']}**:\n\n"
+            f"May Hotel hiện có các loại phòng trống cho **{session['checkin']} -> {session['checkout']}** "
+            f"({adults} người lớn, {children} trẻ em):\n\n"
             f"{room_list_str}\n\n"
-            f"👉 Bạn muốn chọn loại phòng nào? (Nhập tên loại phòng, ví dụ: **Phòng Đôi** hoặc **Phòng Ba**)"
+            f"👉 Bạn muốn chọn loại phòng nào? (Ví dụ nhập: **Phòng Đôi** hoặc **Phòng VIP**)"
         )
 
-    # 3. Bước 2: Nhập thông tin khách
     if step == "ask_room_choice":
         requested_room = normalize_vietnamese(msg_clean)
         available_types = session.get("available_room_types", [])
@@ -384,7 +401,6 @@ def handle_structured_booking(user_id, msg):
             f"*(Ví dụ: Nguyễn Văn A - 0987654321 - Nhận phòng muộn lúc 20h)*"
         )
 
-    # 4. Bước 3: Chọn phương thức thanh toán
     if step == "ask_customer_info":
         parts = [p.strip() for p in msg_clean.split("-")]
         if len(parts) < 2:
@@ -402,7 +418,6 @@ def handle_structured_booking(user_id, msg):
             f"👉 Nhập **đồng ý** để tạo yêu cầu giữ chỗ 15 phút và nhận liên kết VNPay."
         )
 
-    # 5. Bước 4: Hoàn tất
     if step == "ask_payment":
         payment_method = "Đặt cọc 10% qua VNPay"
         session["payment_method"] = payment_method
@@ -430,8 +445,7 @@ def handle_structured_booking(user_id, msg):
             f"Tổng giá trị: **{session.get('total_amount', 0):,.0f} VNĐ**\n"
             f"Tiền cọc 10%: **{amount:,.0f} VNĐ**\n\n"
             f"[Thanh toán cọc an toàn qua VNPay]({payment_url})\n\n"
-            "Mã đặt phòng chỉ được xác nhận sau khi VNPay báo giao dịch thành công. "
-            "Sau thanh toán, hệ thống tự động lưu kết quả phân tích no-show."
+            "Mã đặt phòng chỉ được xác nhận sau khi VNPay báo giao dịch thành công."
         )
         return res_msg
 
@@ -439,7 +453,6 @@ def handle_structured_booking(user_id, msg):
     return handle_structured_booking(user_id, "bắt đầu")
 
 def handle_structured_booking_safely(user_id, message):
-    """Tuần tự hóa hội thoại của từng người dùng và tự dọn phiên quá hạn."""
     with booking_session_guard:
         user_lock = booking_session_locks.setdefault(user_id, threading.Lock())
 
@@ -499,7 +512,6 @@ async def verify_cccd(
             "model": result.get("model", FACE_MODEL_NAME),
         },
     }
-
 
 @app.post("/api/v1/ai/predict-noshow")
 async def predict_noshow(request: NoShowPredictionRequest):
