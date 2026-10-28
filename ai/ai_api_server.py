@@ -267,6 +267,8 @@ def get_db_availability(checkin_str, checkout_str, adults, children):
 
 def save_final_booking(session, user_id):
     try:
+        # Tự động lấy tên miền public từ biến môi trường (mặc định lấy BACKEND_SERVER_URL)
+        public_url = os.getenv("PUBLIC_SERVER_URL", os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080")).rstrip("/")
         backend_url = os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080").rstrip("/")
         internal_token = os.getenv("CHATBOT_INTERNAL_TOKEN", "mayhotel_internal_token_2026").strip()
         
@@ -292,16 +294,24 @@ def save_final_booking(session, user_id):
         )
         with urllib.request.urlopen(request, timeout=12) as response:
             result = json.loads(response.read().decode("utf-8"))
+        
+        raw_payment_url = result.get("paymentUrl", "")
+        # Tự động ghi đè 127.0.0.1 thành tên miền public thực tế
+        if "127.0.0.1" in raw_payment_url or "localhost" in raw_payment_url:
+            raw_payment_url = re.sub(r'http://(127\.0\.0\.1|localhost):8080', public_url, raw_payment_url)
+
         session["total_amount"] = float(result.get("totalAmount", 0.0))
         session["deposit_amount"] = float(result.get("depositAmount", 0.0))
-        session["payment_url"] = result.get("paymentUrl", "")
+        session["payment_url"] = raw_payment_url
         session["invoice_id"] = result.get("invoiceId")
         return result
     except Exception as e:
         print(f"[WARN] Tạo đơn đặt phòng qua Backend thất bại: {e}. Đang dùng chế độ giữ chỗ tạm thời.")
+        public_url = os.getenv("PUBLIC_SERVER_URL", os.getenv("BACKEND_SERVER_URL", "http://127.0.0.1:8080")).rstrip("/")
         session["total_amount"] = 1600000.0
         session["deposit_amount"] = 160000.0
-        session["payment_url"] = f"http://127.0.0.1:8080/booking/payment-vnpay?session={user_id}"
+        # Dùng public_url thay vì dán cứng 127.0.0.1
+        session["payment_url"] = f"{public_url}/booking/payment-vnpay?session={user_id}"
         return {"totalAmount": 1600000.0, "depositAmount": 160000.0}
 
 def handle_structured_booking(user_id, msg):
