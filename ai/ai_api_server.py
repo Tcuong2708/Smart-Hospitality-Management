@@ -201,12 +201,13 @@ def get_room_price_summary():
     return "Giá phòng thay đổi theo loại phòng và thời gian lưu trú."
 
 def get_db_availability(checkin_str, checkout_str, adults, children):
-    """Truy vấn trực tiếp phòng trống từ MongoDB Atlas MayHotelDB."""
+    """Truy vấn trực tiếp phòng trống và giá chính xác từ MongoDB Atlas MayHotelDB."""
     try:
         db = get_db_connection()
         checkin_dt = datetime.strptime(checkin_str, "%d/%m/%Y")
         checkout_dt = datetime.strptime(checkout_str, "%d/%m/%Y")
 
+        # 1. Lọc đơn đặt phòng bị trùng lịch
         overlapping_orders = list(db.booking_orders.find({
             "status": {"$nin": ["Đã hủy", "Canceled", "Hủy"]},
             "expected_in": {"$lt": checkout_dt},
@@ -226,8 +227,21 @@ def get_db_availability(checkin_str, checkout_str, adults, children):
         for rt in room_types:
             rt_id = rt["_id"]
             rt_name = rt.get("name", "Phòng")
-            rt_price = float(rt.get("price") or 0)
 
+            # --- LẤY GIÁ PHÒNG LINH HOẠT ---
+            # Thử lấy giá từ room_types (các alias phổ biến)
+            rt_price = float(rt.get("price") or rt.get("basePrice") or rt.get("pricePerNight") or rt.get("price_per_night") or 0)
+
+            # Nếu room_types không có giá, truy vấn giá min từ collection rooms theo room_type_id
+            if rt_price == 0:
+                sample_room = db.rooms.find_one(
+                    {"room_type_id": rt_id, "price": {"$gt": 0}},
+                    sort=[("price", 1)]
+                )
+                if sample_room and sample_room.get("price"):
+                    rt_price = float(sample_room["price"])
+
+            # Đếm số phòng khả dụng
             total_rooms = db.rooms.count_documents({"room_type_id": rt_id, "status": {"$ne": "Bảo trì"}})
             booked_count = db.rooms.count_documents({"room_type_id": rt_id, "_id": {"$in": booked_room_ids}})
             
