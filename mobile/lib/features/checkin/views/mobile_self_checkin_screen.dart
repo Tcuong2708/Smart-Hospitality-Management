@@ -3,6 +3,9 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:may_hotel_app/features/auth/views/login_screen.dart';
+import 'package:may_hotel_app/services/auth_state_service.dart';
+import 'package:may_hotel_app/services/hotel_api_client.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/services/mrz_ocr_service.dart';
 import 'package:may_hotel_app/services/nfc_service.dart';
@@ -367,6 +370,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       _isProcessing = true;
       _statusMessage = 'Backend đang đối sánh khuôn mặt và ghi nhận kết quả...';
     });
+    var retryAfterLogin = false;
     try {
       final method = switch (identity.method) {
         IdentityNfcMethod.realNfc => 'REAL_NFC',
@@ -408,16 +412,26 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
             : 'Đã xác thực $_verifiedGuestCount/$_totalGuests khách. Tiếp tục khách ${_currentGuestIndex + 1}.';
       });
     } on DioException catch (error) {
-      final body = error.response?.data;
-      final message = body is Map
-          ? '${body['message'] ?? body['error'] ?? error.message}'
-          : error.message ?? 'Không thể xác thực';
-      _showMessage(message);
-      if (mounted) {
-        setState(
-          () => _statusMessage =
-              'Xác thực thất bại. Vui lòng kiểm tra và thử lại.',
-        );
+      if (error.response?.statusCode == 401) {
+        retryAfterLogin = await _renewExpiredSession();
+        if (!retryAfterLogin && mounted) {
+          setState(
+            () => _statusMessage =
+                'Phiên đăng nhập đã hết hạn. Đăng nhập lại để tiếp tục xác thực.',
+          );
+        }
+      } else {
+        final body = error.response?.data;
+        final message = body is Map
+            ? '${body['message'] ?? body['error'] ?? error.message}'
+            : error.message ?? 'Không thể xác thực';
+        _showMessage(message);
+        if (mounted) {
+          setState(
+            () => _statusMessage =
+                'Xác thực thất bại. Vui lòng kiểm tra và thử lại.',
+          );
+        }
       }
     } catch (error) {
       _showMessage('Không thể xác thực: $error');
@@ -427,6 +441,23 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     } finally {
       if (mounted) setState(() => _isProcessing = false);
     }
+    if (retryAfterLogin && mounted) {
+      await _submitVerification();
+    }
+  }
+
+  Future<bool> _renewExpiredSession() async {
+    await HotelApiClient.instance.clearAccessToken();
+    AuthStateService().logout();
+    if (!mounted) return false;
+
+    _showMessage(
+      'Phiên đăng nhập cũ không còn hợp lệ. Vui lòng đăng nhập lại; dữ liệu xác thực hiện tại vẫn được giữ.',
+    );
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
+    );
+    return mounted && AuthStateService().currentAuth.isLoggedIn;
   }
 
   Future<void> _deleteChipFace() async {
