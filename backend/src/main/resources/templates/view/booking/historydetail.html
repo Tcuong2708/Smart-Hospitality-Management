@@ -30,7 +30,7 @@
                 <div class="mh-dt-hero" th:with="anhPhong=${phong != null and phong.imageUrl != null and !#strings.isEmpty(phong.imageUrl)
                                         ? '/images/' + phong.imageUrl
                                         : '/images/default.png'}">
-                    <img th:src="@{${anhPhong}}" th:alt="${phong != null ? phong.name : 'Phòng'}">
+                    <img th:src="@{${anhPhong}}" th:alt="${loaiPhong != null ? loaiPhong.name : 'Loại phòng'}">
 
                     <div class="mh-dt-hero-content">
                         <div class="mh-dt-hero-left">
@@ -39,8 +39,8 @@
                                 <span th:text="'DP-' + ${order.id}">DP-0000</span>
                             </span>
 
-                            <h1 class="mh-dt-hero-title" th:text="${phong != null ? phong.name : 'Đơn đặt phòng'}">
-                                P701
+                            <h1 class="mh-dt-hero-title" th:text="${loaiPhong != null ? loaiPhong.name : 'Loại phòng đang chờ xếp'}">
+                                Phòng Deluxe
                             </h1>
 
                             <div class="mh-dt-hero-location">
@@ -175,13 +175,13 @@
                     <div class="mh-dt-card" th:if="${phong != null}">
                         <div class="mh-dt-card-head">
                             <i class="fa-solid fa-bed"></i>
-                            <h3>Phòng được xếp</h3>
+                            <h3>Loại phòng đã đặt</h3>
                         </div>
 
                         <div class="mh-dt-info">
                             <div class="mh-dt-info-row">
-                                <span class="lbl"><i class="fa-solid fa-door-closed"></i> Số phòng</span>
-                                <span class="val mono" th:text="${phong.name}">--</span>
+                                <span class="lbl"><i class="fa-solid fa-bed"></i> Loại phòng</span>
+                                <span class="val" th:text="${loaiPhong != null ? loaiPhong.name : 'Đang cập nhật'}">--</span>
                             </div>
                             <div class="mh-dt-info-row" th:if="${phong.locationZone != null}">
                                 <span class="lbl"><i class="fa-solid fa-map-pin"></i> Vị trí</span>
@@ -342,12 +342,22 @@
                 <!-- ===== ACTIONS ===== -->
                 <div class="mh-dt-actions">
 
+                    <a th:if="${reviewState == 'CAN_REVIEW'}"
+                        th:href="@{/review/create(bookingId=${order.id})}" class="mh-dt-btn gold">
+                        <i class="fa-solid fa-star"></i> Đánh giá phòng đã lưu trú
+                    </a>
+
+                    <span th:if="${reviewState == 'REVIEWED'}" class="mh-dt-btn outline"
+                        style="cursor:default;opacity:.72;">
+                        <i class="fa-solid fa-circle-check"></i> Đã đánh giá phòng
+                    </span>
+
                     <a th:if="${order.status == 'Hoàn tất' or order.status == 'Đã xác nhận'}"
                         th:href="@{/booking/history/export-pdf(id=${order.id})}" class="mh-dt-btn outline">
                         <i class="fa-solid fa-file-pdf"></i> Xuất hóa đơn PDF
                     </a>
 
-                    <button type="button" th:if="${order.status == 'Pending' or order.status == 'Chờ xác nhận'}"
+                    <button type="button" th:if="${cancellationQuote != null}"
                         class="mh-dt-btn danger" data-mh-open-cancel>
                         <i class="fa-solid fa-xmark"></i> Yêu cầu hủy phòng
                     </button>
@@ -383,6 +393,12 @@
                             <li>Hủy trong vòng 24 giờ: phí 50% cọc</li>
                             <li>Sau check-in hoặc no-show: không hoàn cọc</li>
                         </ul>
+                        <p th:if="${cancellationQuote != null}" style="margin:12px 0 0;font-weight:700;color:var(--navy);">
+                            Phí hủy áp dụng:
+                            <span th:text="${#numbers.formatDecimal(cancellationQuote.penaltyRate, 0, 'POINT', 0, 'COMMA')} + '%'">0%</span>
+                            · Hoàn dự kiến:
+                            <span th:text="${#numbers.formatDecimal(cancellationQuote.refundAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</span>
+                        </p>
                     </div>
 
                     <form th:action="@{/booking/cancel/{id}(id=${order.id})}" method="post" id="mhDetailCancelForm">

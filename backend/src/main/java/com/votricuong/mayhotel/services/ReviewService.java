@@ -3,7 +3,6 @@ package com.votricuong.mayhotel.services;
 import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.Customer;
-import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.documents.Review;
 import com.votricuong.mayhotel.documents.Room;
 import com.votricuong.mayhotel.documents.User;
@@ -12,9 +11,9 @@ import com.votricuong.mayhotel.dto.RatingStat;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.CustomerRepository;
-import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.repositories.ReviewRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
+import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import org.springframework.stereotype.Service;
 
 import java.text.SimpleDateFormat;
@@ -38,8 +37,8 @@ import java.util.stream.Collectors;
 public class ReviewService {
 
     public static final String STATUS_VISIBLE = "Hiện";
+    public static final String BOOKING_CHECKED_IN = "Đã nhận phòng";
     public static final String BOOKING_CHECKED_OUT = "Đã trả phòng";
-    public static final String INVOICE_COMPLETED = "Completed";
     public static final String STATE_CAN_REVIEW = "CAN_REVIEW";
     public static final String STATE_REVIEWED = "REVIEWED";
     public static final String STATE_NONE = "NONE";
@@ -50,23 +49,23 @@ public class ReviewService {
     private final BookingOrderRepository bookingOrderRepository;
     private final BookingDetailRepository bookingDetailRepository;
     private final RoomRepository roomRepository;
+    private final RoomTypeRepository roomTypeRepository;
     private final CustomerRepository customerRepository;
-    private final InvoiceRepository invoiceRepository;
     private final SequenceGeneratorService sequenceGeneratorService;
 
     public ReviewService(ReviewRepository reviewRepository,
             BookingOrderRepository bookingOrderRepository,
             BookingDetailRepository bookingDetailRepository,
             RoomRepository roomRepository,
+            RoomTypeRepository roomTypeRepository,
             CustomerRepository customerRepository,
-            InvoiceRepository invoiceRepository,
             SequenceGeneratorService sequenceGeneratorService) {
         this.reviewRepository = reviewRepository;
         this.bookingOrderRepository = bookingOrderRepository;
         this.bookingDetailRepository = bookingDetailRepository;
         this.roomRepository = roomRepository;
+        this.roomTypeRepository = roomTypeRepository;
         this.customerRepository = customerRepository;
-        this.invoiceRepository = invoiceRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
     }
 
@@ -95,12 +94,17 @@ public class ReviewService {
         if (order == null) {
             return false;
         }
-        if (BOOKING_CHECKED_OUT.equalsIgnoreCase(order.getStatus())) {
-            return true;
-        }
-        List<Invoice> invoices = invoiceRepository.findByBookingId(order.getId());
-        return invoices != null && invoices.stream()
-                .anyMatch(i -> INVOICE_COMPLETED.equalsIgnoreCase(i.getInvoiceStatus()));
+        String status = order.getStatus() == null ? "" : order.getStatus().trim();
+        return BOOKING_CHECKED_IN.equalsIgnoreCase(status)
+                || "Đang ở".equalsIgnoreCase(status)
+                || "Đang lưu trú".equalsIgnoreCase(status)
+                || "checked-in".equalsIgnoreCase(status)
+                || "occupied".equalsIgnoreCase(status)
+                || BOOKING_CHECKED_OUT.equalsIgnoreCase(status)
+                || "Hoàn tất".equalsIgnoreCase(status)
+                || "Đã hoàn thành".equalsIgnoreCase(status)
+                || "completed".equalsIgnoreCase(status)
+                || "checked-out".equalsIgnoreCase(status);
     }
 
     public Optional<Review> findReview(Long bookingId) {
@@ -141,7 +145,7 @@ public class ReviewService {
             return "Bạn đã đánh giá cho kỳ nghỉ này rồi. Cảm ơn bạn!";
         }
         if (!canReview(order)) {
-            return "Chỉ có thể đánh giá sau khi đã hoàn tất lưu trú (đã trả phòng).";
+            return "Chỉ có thể đánh giá phòng sau khi khách đã check-in.";
         }
         if (rating == null || rating < 1 || rating > 5) {
             return "Vui lòng chọn số sao từ 1 đến 5.";
@@ -163,12 +167,49 @@ public class ReviewService {
         review.setId(id);
         review.setBookingId(bookingId);
         review.setCustomerId(order.getCustomerId());
+        applyRoomContext(review, bookingId);
         review.setRating(rating);
         review.setContent(text);
         review.setReviewDate(new Date());
         review.setStatus(STATUS_VISIBLE); // quản lý có thể ẩn sau trong trang Quản lý đánh giá
         reviewRepository.save(review);
         return null;
+    }
+
+    /** Gắn đánh giá với đúng phòng/loại phòng thực tế trong kỳ lưu trú. */
+    public void applyRoomContext(Review review, Long bookingId) {
+        if (review == null || bookingId == null) return;
+        List<Long> roomIds = bookingDetailRepository.findByBookingId(bookingId).stream()
+                .map(BookingDetail::getRoomId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        Map<Long, Long> typeByRoom = roomRepository.findAllById(roomIds).stream()
+                .filter(r -> r.getId() != null && r.getRoomTypeId() != null)
+                .collect(Collectors.toMap(Room::getId, Room::getRoomTypeId, (a, b) -> a));
+        review.setRoomIds(roomIds);
+        review.setRoomTypeIds(roomIds.stream().map(typeByRoom::get)
+                .filter(java.util.Objects::nonNull).distinct().collect(Collectors.toList()));
+    }
+
+    public String roomLabel(Long bookingId) {
+        if (bookingId == null) return "Loại phòng lưu trú";
+        List<Long> ids = bookingDetailRepository.findByBookingId(bookingId).stream()
+                .map(BookingDetail::getRoomId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        List<Long> typeIds = roomRepository.findAllById(ids).stream()
+                .map(Room::getRoomTypeId)
+                .filter(java.util.Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+        String label = roomTypeRepository.findAllById(typeIds).stream()
+                .map(type -> type.getName())
+                .filter(ReviewService::notBlank)
+                .distinct()
+                .collect(Collectors.joining(", "));
+        return label.isBlank() ? "Loại phòng lưu trú" : label;
     }
 
     /**
@@ -263,7 +304,12 @@ public class ReviewService {
 
         List<Resolved> result = new ArrayList<>();
         for (Review r : visible) {
-            result.add(new Resolved(r, typesByBooking.getOrDefault(r.getBookingId(), new HashSet<>())));
+            Set<Long> persistedTypes = r.getRoomTypeIds() == null
+                    ? new HashSet<>()
+                    : r.getRoomTypeIds().stream().filter(java.util.Objects::nonNull).collect(Collectors.toSet());
+            result.add(new Resolved(r, persistedTypes.isEmpty()
+                    ? typesByBooking.getOrDefault(r.getBookingId(), new HashSet<>())
+                    : persistedTypes));
         }
         return result;
     }
@@ -309,13 +355,15 @@ public class ReviewService {
         private final String text;
         private final String date;
         private final String reply;
+        private final String roomLabel;
 
-        public ReviewItem(String name, int stars, String text, String date, String reply) {
+        public ReviewItem(String name, int stars, String text, String date, String reply, String roomLabel) {
             this.name = name;
             this.stars = stars;
             this.text = text;
             this.date = date;
             this.reply = reply;
+            this.roomLabel = roomLabel;
         }
 
         public String getName() {
@@ -336,6 +384,10 @@ public class ReviewService {
 
         public String getReply() {
             return reply;
+        }
+
+        public String getRoomLabel() {
+            return roomLabel;
         }
     }
 
@@ -381,7 +433,8 @@ public class ReviewService {
                     clampStars(r.getRating()),
                     r.getContent() == null ? "" : r.getContent(),
                     r.getReviewDate() == null ? "" : fmt.format(r.getReviewDate()),
-                    r.getReply()));
+                    r.getReply(),
+                    roomLabel(r.getBookingId())));
         }
         return items;
     }

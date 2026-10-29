@@ -67,8 +67,17 @@ public class ManagerCustomerController extends BaseController {
     private Customer toCustomer(CustomerForm form) {
         Date dob = null;
         if (form.getDob() != null && !form.getDob().isBlank()) {
-            try { dob = Date.from(LocalDate.parse(form.getDob(), DATE).atStartOfDay(ZONE).toInstant()); }
-            catch (Exception ex) { throw new IllegalArgumentException("Ngày sinh phải đúng định dạng dd-MM-yyyy"); }
+            try {
+                LocalDate parsed;
+                try {
+                    parsed = LocalDate.parse(form.getDob());
+                } catch (Exception ignored) {
+                    parsed = LocalDate.parse(form.getDob(), DATE);
+                }
+                dob = Date.from(parsed.atStartOfDay(ZONE).toInstant());
+            } catch (Exception ex) {
+                throw new IllegalArgumentException("Ngày sinh không hợp lệ");
+            }
         }
         return Customer.builder().fullName(form.getFullName()).phone(form.getPhone()).email(form.getEmail())
                 .cccd(form.getCccd()).address(form.getAddress()).nationality(form.getNationality())
@@ -78,17 +87,19 @@ public class ManagerCustomerController extends BaseController {
     private CustomerRow row(Customer item) {
         String cccd = item.getCccd() == null ? "" : item.getCccd();
         String masked = cccd.length() <= 4 ? cccd : "••••••••" + cccd.substring(cccd.length() - 4);
-        String dob = item.getDob() == null ? "" : DATE.format(item.getDob().toInstant().atZone(ZONE).toLocalDate());
+        LocalDate birthDate = item.getDob() == null ? null : item.getDob().toInstant().atZone(ZONE).toLocalDate();
+        String dob = birthDate == null ? "" : DATE.format(birthDate);
+        String isoDob = birthDate == null ? "" : birthDate.toString();
         return CustomerRow.builder().id(item.getId()).fullName(item.getFullName()).phone(item.getPhone())
                 .email(item.getEmail()).cccd(item.getCccd()).maskedCccd(masked).address(item.getAddress())
-                .nationality(item.getNationality()).gender(item.getGender()).dob(dob)
+                .nationality(item.getNationality()).gender(item.getGender()).dob(dob).isoDob(isoDob)
                 .points(item.getPoints() == null ? 0 : item.getPoints()).tierId(item.getTierId())
                 .linkedAccount(item.getUserId() != null).build();
     }
 
     @Data public static class CustomerForm { private Long id; private String fullName, phone, email, cccd, address, nationality, gender, dob; }
     @Data @Builder public static class CustomerRow {
-        private Long id, tierId; private String fullName, phone, email, cccd, maskedCccd, address, nationality, gender, dob;
+        private Long id, tierId; private String fullName, phone, email, cccd, maskedCccd, address, nationality, gender, dob, isoDob;
         private int points; private boolean linkedAccount;
     }
 }

@@ -16,8 +16,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.util.Optional;
 
 /**
- * Khách gửi đánh giá sau khi đã trả phòng (UC07).
- * Mọi kiểm tra (đăng nhập, đúng chủ đơn, đã trả phòng, chưa đánh giá, 1-5 sao)
+ * Khách gửi đánh giá phòng sau khi đã check-in (UC07).
+ * Mọi kiểm tra (đăng nhập, đúng chủ đơn, đã check-in, chưa đánh giá, 1-5 sao)
  * nằm trong ReviewService.
  */
 @Controller
@@ -52,12 +52,13 @@ public class ReviewController extends BaseController {
             return "redirect:/booking/history/detail?id=" + bookingId;
         }
         if (!ReviewService.STATE_CAN_REVIEW.equals(state)) {
-            ra.addFlashAttribute("error", "Chỉ có thể đánh giá sau khi đã hoàn tất lưu trú (Đã trả phòng)!");
+            ra.addFlashAttribute("error", "Chỉ có thể đánh giá phòng sau khi khách đã check-in!");
             return "redirect:/booking/history/detail?id=" + bookingId;
         }
 
         setPageTitle(model, "Đánh giá kỳ nghỉ #" + bookingId);
         model.addAttribute("bookingId", bookingId);
+        model.addAttribute("roomLabel", reviewService.roomLabel(bookingId));
         return "view/review/review-form";
     }
 

@@ -526,7 +526,7 @@ const Chatbot = {
 
             document.getElementById(id)?.remove();
             const rawText = res?.reply || res?.answer || res?.response || res?.message || 'Xin lỗi, tôi chưa hiểu.';
-            const reply = String(rawText).replace(/\n/g, '<br>');
+            const reply = String(rawText);
             this.them(reply, 'bot', true);
         } catch (err) {
             console.error('Lỗi Chatbot Frontend:', err);
@@ -535,15 +535,34 @@ const Chatbot = {
         }
     },
 
-    // ============================================================
-    // Chạy
-    // ============================================================
+    them(content, type, allowFormatting = false) {
+        if (!this.logs) return;
+        const node = document.createElement('div');
+        node.className = type === 'user' ? 'msg-user' : 'msg-bot';
+        if (allowFormatting) {
+            const safe = esc(content)
+                .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
+                    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+                .replace(/\n/g, '<br>');
+            node.innerHTML = safe;
+        } else {
+            node.textContent = content;
+        }
+        this.logs.appendChild(node);
+        this.cuonXuong();
+    },
 
-    document.addEventListener('DOMContentLoaded', () => {
-        ChonPhong.init();
-        DanhGia.init();
-        TimPhong.init();
-        BangDatPhong.init();
-        DatTrucTiep.init();
-        Chatbot.init();
-    });
+    cuonXuong() {
+        if (this.logs) this.logs.scrollTop = this.logs.scrollHeight;
+    },
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    ChonPhong.init();
+    DanhGia.init();
+    TimPhong.init();
+    BangDatPhong.init();
+    DatTrucTiep.init();
+    Chatbot.init();
+});

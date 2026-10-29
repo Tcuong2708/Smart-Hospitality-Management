@@ -134,7 +134,12 @@
           <div class="mh-room-carousel" id="roomCarousel">
             <a th:each="p : ${phongNoiBat}" th:href="@{/rooms/detail/{id}(id=${p.maPhong})}" class="mh-room-card">
               <div class="mh-room-img">
-                <img th:src="@{'/images/rooms/' + ${p.hinhAnhHienThi}}" th:alt="${p.soPhong}">
+                <img th:src="${#strings.startsWith(p.hinhAnhHienThi, 'http')
+                              ? p.hinhAnhHienThi
+                              : (#strings.startsWith(p.hinhAnhHienThi, '/')
+                                 ? p.hinhAnhHienThi
+                                 : '/images/rooms/' + p.hinhAnhHienThi)}"
+                  th:alt="${p.tenLoaiPhong}">
                 <span class="mh-room-badge" th:text="${p.trangThai}">Còn phòng</span>
                 <span class="room-wishlist" role="link" tabindex="0" aria-label="Yêu thích"
                   onclick="event.preventDefault(); event.stopPropagation();">
@@ -144,7 +149,7 @@
               <div class="mh-room-body">
                 <div class="room-title-row booking-style">
                   <div>
-                    <h3 th:text="${p.tenLoaiPhong + ' – ' + p.soPhong}">Deluxe – 101</h3>
+                    <h3 th:text="${p.tenLoaiPhong}">Phòng Deluxe</h3>
                     <p class="room-location">
                       <i class="fa-solid fa-location-dot"></i> May Hotel
                     </p>

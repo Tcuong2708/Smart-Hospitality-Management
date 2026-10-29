@@ -166,7 +166,7 @@
     </footer>
 
     <!-- ── Chatbot ── -->
-    <div id="chat-circle" th:if="${session.user == null or session.user.role == 'CUSTOMER'}">
+    <div id="chat-circle">
         <i class="fa-solid fa-comments"></i>
     </div>
     <div class="chat-box" id="chat-box">
@@ -188,7 +188,7 @@
     </form>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script th:src="@{/js/main.js}"></script>
+    <script th:src="@{/js/main.js(v='20261029-1')}"></script>
 
     <!-- Bell thông báo — fetch + poll -->
     <script th:if="${false}">

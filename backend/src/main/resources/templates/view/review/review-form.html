@@ -3,7 +3,7 @@
     layout:decorate="~{layout/main}">
 
 <head>
-    <title>Đánh giá kỳ nghỉ</title>
+    <title>Đánh giá phòng lưu trú</title>
 </head>
 
 <body>
@@ -29,11 +29,14 @@
                         </div>
                         <div>
                             <span class="mh-rv-form-eyebrow">CHIA SẺ TRẢI NGHIỆM</span>
-                            <h1>Bạn thấy kỳ nghỉ thế nào?</h1>
+                            <h1>Bạn thấy phòng lưu trú thế nào?</h1>
                             <p>
                                 Đơn đặt phòng
                                 <strong th:text="'#' + ${bookingId}">#1</strong>
                                 — đánh giá của bạn giúp khách khác chọn phòng.
+                            </p>
+                            <p><i class="fa-solid fa-hotel"></i> May Hotel ·
+                                <strong th:text="${roomLabel}">Phòng lưu trú</strong>
                             </p>
                         </div>
                     </div>

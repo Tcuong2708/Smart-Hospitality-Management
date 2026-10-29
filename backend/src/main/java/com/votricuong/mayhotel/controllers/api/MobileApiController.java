@@ -687,6 +687,14 @@ public class MobileApiController {
                     ? Map.of()
                     : roomRepository.findAllById(roomIds).stream()
                     .collect(Collectors.toMap(Room::getId, room -> room));
+            Set<Long> bookedRoomTypeIds = roomsById.values().stream()
+                    .map(Room::getRoomTypeId)
+                    .filter(Objects::nonNull)
+                    .collect(Collectors.toSet());
+            Map<Long, RoomType> bookedRoomTypesById = bookedRoomTypeIds.isEmpty()
+                    ? Map.of()
+                    : roomTypeRepository.findAllById(bookedRoomTypeIds).stream()
+                    .collect(Collectors.toMap(RoomType::getId, type -> type));
             List<ServiceTicket> serviceTickets = bookingIds.isEmpty()
                     ? List.of()
                     : serviceTicketRepository.findByBookingIdIn(bookingIds);
@@ -737,7 +745,8 @@ public class MobileApiController {
                 map.put("phuThu", invOpt.map(Invoice::getSurcharge).orElse(0.0));
                 map.put("giamGia", invOpt.map(inv -> Optional.ofNullable(inv.getPromotionDiscount()).orElse(0.0))
                         .orElse(0.0));
-                map.put("tenPhong", "Chưa gán phòng");
+                map.put("tenPhong", "Chưa gán loại phòng");
+                map.put("loaiPhong", "Chưa gán loại phòng");
                 map.put("roomId", null);
                 map.put("hinhAnh", "");
                 
@@ -745,9 +754,14 @@ public class MobileApiController {
                 BookingDetail detail = detailsByBooking.get(o.getId());
                 if (detail != null && detail.getRoomId() != null) {
                     Optional.ofNullable(roomsById.get(detail.getRoomId())).ifPresent(r -> {
+                        RoomType type = r.getRoomTypeId() == null ? null : bookedRoomTypesById.get(r.getRoomTypeId());
+                        String typeName = type == null || type.getName() == null ? "Loại phòng" : type.getName();
                         map.put("roomId", r.getId());
-                        map.put("tenPhong", r.getName());
-                        map.put("hinhAnh", r.getImageUrl() != null ? r.getImageUrl() : "");
+                        // API khách hàng không công khai số phòng; phòng cụ thể chỉ được lễ tân gán nội bộ.
+                        map.put("tenPhong", typeName);
+                        map.put("loaiPhong", typeName);
+                        map.put("hinhAnh", type != null && type.getImageUrl() != null
+                                ? type.getImageUrl() : (r.getImageUrl() != null ? r.getImageUrl() : ""));
                     });
                 }
 
