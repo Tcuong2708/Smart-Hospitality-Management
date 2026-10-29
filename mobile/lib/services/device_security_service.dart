@@ -117,6 +117,7 @@ class DeviceSecurityService {
     this.trustedDeviceFingerprints = const String.fromEnvironment(
       'TRUSTED_DEVICE_FINGERPRINTS',
     ),
+    this.allowUsbDebuggingForDevelopment = false,
     DeviceSecurityPlatform? currentPlatform,
   }) : _probe = probe ?? PlatformDeviceSecurityProbe(),
        _currentPlatform = currentPlatform ?? _detectPlatform();
@@ -126,6 +127,7 @@ class DeviceSecurityService {
 
   final DeviceSecurityProbe _probe;
   final String trustedDeviceFingerprints;
+  final bool allowUsbDebuggingForDevelopment;
   final DeviceSecurityPlatform _currentPlatform;
 
   Future<DeviceSecurityResult> check() async {
@@ -180,10 +182,15 @@ class DeviceSecurityService {
           deviceFingerprint: snapshot.deviceFingerprint,
         );
       }
-      if (checks[1]) {
+      if (checks[1] && !allowUsbDebuggingForDevelopment) {
         return DeviceSecurityResult.blocked(
           DeviceSecurityIssue.usbDebugging,
           deviceFingerprint: snapshot.deviceFingerprint,
+        );
+      }
+      if (checks[1] && allowUsbDebuggingForDevelopment) {
+        debugPrint(
+          '[Security] USB debugging accepted for this development build.',
         );
       }
       if (!checks[2]) {

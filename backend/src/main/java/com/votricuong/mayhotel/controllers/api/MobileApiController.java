@@ -928,7 +928,7 @@ public class MobileApiController {
             }
 
             String normalizedMethod = method == null ? "" : method.trim().toUpperCase(Locale.ROOT);
-            if (!Set.of("REAL_NFC", "SIGNED_NDEF", "AI_ONLY").contains(normalizedMethod)) {
+            if (!Set.of("REAL_NFC", "SIGNED_NDEF", "LEGACY_NDEF", "AI_ONLY").contains(normalizedMethod)) {
                 throw new IllegalArgumentException("Phương thức xác thực không hợp lệ");
             }
 
@@ -951,6 +951,12 @@ public class MobileApiController {
                 identityLast4 = identityVerificationService.last4(documentNumber);
                 // BAC/PACE controls chip access; without a trusted CSCA chain this is not official C06 verification.
                 trustLevel = "MEDIUM";
+            } else if ("LEGACY_NDEF".equals(normalizedMethod)) {
+                String documentNumber = com.votricuong.mayhotel.utils.InputValidator.requiredText(
+                        identityValue, "Số CCCD từ thẻ NFC mô phỏng", 64);
+                identitySource = "LEGACY_NDEF:" + documentNumber;
+                identityLast4 = identityVerificationService.last4(documentNumber);
+                trustLevel = "DEMO_LEGACY";
             } else {
                 identitySource = "IMAGE:" + identityVerificationService.imageFingerprint(documentImage);
                 identityLast4 = identityVerificationService.last4(identityValue);

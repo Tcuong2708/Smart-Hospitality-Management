@@ -17,7 +17,9 @@ import com.votricuong.mayhotel.utils.InputValidator;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class RoomChangeService {
@@ -58,7 +60,7 @@ public class RoomChangeService {
         }
         String normalizedReason = InputValidator.requiredText(reason, "Lý do đổi phòng", 500);
         Invoice invoice = invoiceRepository.findAll().stream()
-                .filter(item -> "In Use".equalsIgnoreCase(item.getInvoiceStatus())
+                .filter(item -> isActiveInvoice(item.getInvoiceStatus())
                         && oldRoomId.equals(item.getRoomId()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException("Không tìm thấy khách đang lưu trú ở phòng cũ."));
@@ -141,6 +143,49 @@ public class RoomChangeService {
         return new Result(oldRoom.getName(), newRoom.getName(), difference, remainingNights);
     }
 
+    /**
+     * Returns only rooms that can actually be selected for the active stay.
+     * This is intentionally calculated when the modal opens, because a static
+     * list rendered with the room map quickly becomes stale.
+     */
+    public List<Room> findOptions(Long oldRoomId) {
+        if (oldRoomId == null) return List.of();
+        Invoice invoice = invoiceRepository.findAll().stream()
+                .filter(item -> isActiveInvoice(item.getInvoiceStatus())
+                        && oldRoomId.equals(item.getRoomId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Không tìm thấy khách đang lưu trú ở phòng hiện tại."));
+        if (invoice.getBookingId() == null) {
+            throw new IllegalStateException("Hóa đơn lưu trú chưa liên kết với phiếu đặt phòng.");
+        }
+        BookingOrder booking = bookingOrderRepository.findById(invoice.getBookingId())
+                .orElseThrow(() -> new IllegalStateException("Không tìm thấy phiếu đặt phòng đang lưu trú."));
+        if (!isCheckedIn(booking.getStatus())) {
+            throw new IllegalStateException("Chỉ được đổi phòng khi khách đang lưu trú.");
+        }
+        Date now = new Date();
+        Date stayEnd = booking.getExpectedOut() != null ? booking.getExpectedOut() : invoice.getCheckOutDate();
+        if (stayEnd == null || !stayEnd.after(now)) {
+            throw new IllegalStateException("Thời gian lưu trú đã kết thúc, không thể đổi phòng.");
+        }
+
+        Set<Long> roomsAlreadyUsedByBooking = new HashSet<>();
+        for (BookingDetail detail : bookingDetailRepository.findByBookingId(booking.getId())) {
+            if (detail.getRoomId() != null) roomsAlreadyUsedByBooking.add(detail.getRoomId());
+        }
+        return availabilityService.findAvailableRoomsExcludingBooking(
+                        null, now, stayEnd, booking.getId()).stream()
+                .filter(room -> room.getId() != null)
+                .filter(room -> !oldRoomId.equals(room.getId()))
+                .filter(room -> !roomsAlreadyUsedByBooking.contains(room.getId()))
+                .filter(room -> RoomStatus.fromStored(room.getStatus()) == RoomStatus.VACANT)
+                .filter(room -> hasCapacity(room, invoice))
+                .sorted((left, right) -> String.valueOf(left.getName())
+                        .compareToIgnoreCase(String.valueOf(right.getName())))
+                .toList();
+    }
+
     private void validateCapacity(Room room, Invoice invoice) {
         RoomType type = room.getRoomTypeId() == null ? null
                 : roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
@@ -150,10 +195,29 @@ public class RoomChangeService {
         }
     }
 
+    private boolean hasCapacity(Room room, Invoice invoice) {
+        try {
+            validateCapacity(room, invoice);
+            return true;
+        } catch (IllegalStateException ignored) {
+            return false;
+        }
+    }
+
     private boolean isCheckedIn(String status) {
         return "Đã nhận phòng".equalsIgnoreCase(status)
                 || "Checked-in".equalsIgnoreCase(status)
-                || "CHECKED_IN".equalsIgnoreCase(status);
+                || "CHECKED_IN".equalsIgnoreCase(status)
+                || "Occupied".equalsIgnoreCase(status)
+                || "Đang ở".equalsIgnoreCase(status)
+                || "Đang lưu trú".equalsIgnoreCase(status);
+    }
+
+    private boolean isActiveInvoice(String status) {
+        return "In Use".equalsIgnoreCase(status)
+                || "Occupied".equalsIgnoreCase(status)
+                || "Đang ở".equalsIgnoreCase(status)
+                || "Đang lưu trú".equalsIgnoreCase(status);
     }
 
     private double value(Double number) {

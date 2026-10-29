@@ -35,7 +35,11 @@ class MayHotelApp extends StatelessWidget {
   const MayHotelApp({Key? key}) : super(key: key);
 
   Future<String?> _checkSecurity() async {
-    final result = await DeviceSecurityService().check();
+    final result = await DeviceSecurityService(
+      // Chỉ build debug/profile dùng để chạy qua cáp mới được bỏ qua USB debugging.
+      // Root, bootloader mở và thiết bị giả lập không tin cậy vẫn bị chặn.
+      allowUsbDebuggingForDevelopment: !kReleaseMode,
+    ).check();
     return result.message;
   }
 

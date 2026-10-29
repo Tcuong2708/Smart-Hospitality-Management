@@ -465,6 +465,29 @@ public class ReceptionistController extends BaseController {
     }
 
     // 5. POST /change-room/execute: Xử lý đổi phòng
+    @GetMapping("/change-room/options")
+    @ResponseBody
+    public Map<String, Object> changeRoomOptions(@RequestParam("oldRoomId") Long oldRoomId) {
+        try {
+            List<Map<String, Object>> rooms = roomChangeService.findOptions(oldRoomId).stream()
+                    .map(room -> {
+                        Map<String, Object> item = new java.util.LinkedHashMap<>();
+                        item.put("id", room.getId());
+                        item.put("name", room.getName());
+                        item.put("price", room.getPrice() == null ? 0D : room.getPrice());
+                        RoomType type = room.getRoomTypeId() == null ? null
+                                : roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
+                        item.put("type", type == null ? "Chưa phân loại" : type.getName());
+                        return item;
+                    }).toList();
+            return Map.of("success", true, "data", rooms);
+        } catch (Exception exception) {
+            return Map.of("success", false, "message",
+                    exception.getMessage() == null ? "Không tải được phòng đổi" : exception.getMessage(),
+                    "data", List.of());
+        }
+    }
+
     @PostMapping("/change-room/execute")
     public String executeChangeRoom(@RequestParam("oldRoomId") Long oldRoomId,
                                     @RequestParam("newRoomId") Long newRoomId,

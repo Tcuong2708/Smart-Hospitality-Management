@@ -86,6 +86,25 @@ void main() {
       expect(result.issue, DeviceSecurityIssue.usbDebugging);
     });
 
+    test(
+      'development build accepts USB debugging but keeps other checks',
+      () async {
+        final probe = _FakeSecurityProbe(
+          fingerprint: otherDevice,
+          usbDebugging: true,
+        );
+        final result = await DeviceSecurityService(
+          probe: probe,
+          currentPlatform: DeviceSecurityPlatform.android,
+          trustedDeviceFingerprints: '$phoneOne,$phoneTwo',
+          allowUsbDebuggingForDevelopment: true,
+        ).check();
+
+        expect(result.isBlocked, isFalse);
+        expect(result.isTrustedDevice, isFalse);
+      },
+    );
+
     test('bootloader warning has priority over other findings', () async {
       final probe = _FakeSecurityProbe(
         fingerprint: otherDevice,
