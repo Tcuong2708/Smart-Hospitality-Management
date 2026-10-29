@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <th:block layout:fragment="extra_css"></th:block>
+    <th:block layout:fragment="additional-css"></th:block>
 </head>
 
 <body>
@@ -92,7 +92,7 @@
     </section>
 
 
-    <th:block layout:fragment="extra_js">
+    <th:block layout:fragment="additional-scripts">
         <script>
             (function () {
                 'use strict';
@@ -145,6 +145,7 @@
                                     if (dot) dot.remove();
                                 }
                                 btn.remove();
+                                if (typeof window.updateNotifBadge === 'function') window.updateNotifBadge();
                             } catch (err) {
                                 showToast('Lỗi đánh dấu đã đọc', 'danger');
                             }
@@ -162,6 +163,7 @@
                                 });
                                 if (!res.ok) throw new Error('HTTP ' + res.status);
                                 showToast('Đã đánh dấu tất cả đã đọc');
+                                if (typeof window.updateNotifBadge === 'function') window.updateNotifBadge();
                                 setTimeout(function () { location.reload(); }, 600);
                             } catch (err) {
                                 showToast('Lỗi đánh dấu', 'danger');

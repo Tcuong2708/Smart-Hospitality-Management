@@ -95,6 +95,11 @@ public class LoyaltyService {
         invoice.setIsPaid(true);
         invoice.setLoyaltyFinalized(true);
         invoiceRepository.save(invoice);
+        Customer paidCustomer = findCustomer(invoice);
+        if (paidCustomer != null) {
+            promotionService.markPrivatePromotionUsed(
+                    invoice.getPromoId(), paidCustomer.getId(), invoice.getBookingId(), invoice.getId());
+        }
         int earned = awardPointsForPaidInvoice(invoice);
         return PaymentLoyaltyResult.success(requested, earned);
     }

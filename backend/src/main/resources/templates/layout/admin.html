@@ -18,7 +18,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 
-    <link rel="stylesheet" th:href="@{/css/admin-styles.css(v='20261028-4')}">
+    <link rel="stylesheet" th:href="@{/css/admin-styles.css(v='20261029-1')}">
 
     <style>
         .adm-alert[data-flash] {
@@ -197,14 +197,14 @@
             </header>
 
             <main class="adm-content" id="admContent">
-                <div th:if="${error}" class="adm-alert adm-alert-danger" data-flash="error">
+                <template th:if="${error}" data-flash="error">
                     <i class="bi bi-exclamation-circle-fill"></i>
                     <span th:text="${error}"></span>
-                </div>
-                <div th:if="${success}" class="adm-alert adm-alert-success" data-flash="success">
+                </template>
+                <template th:if="${success}" data-flash="success">
                     <i class="bi bi-check-circle-fill"></i>
                     <span th:text="${success}"></span>
-                </div>
+                </template>
 
                 <div th:if="${view != null}" th:replace="~{${view} :: body_content}"></div>
             </main>
@@ -233,13 +233,13 @@
                     return;
                 }
 
-                var flashes = document.querySelectorAll('.adm-alert[data-flash]');
+                var flashes = document.querySelectorAll('template[data-flash]');
                 if (!flashes.length) return;
 
                 var seenTexts = new Set();
 
                 flashes.forEach(function (el) {
-                    var text = (el.textContent || '').trim();
+                    var text = (el.content ? el.content.textContent : el.textContent || '').trim();
                     if (!text) return;
                     if (seenTexts.has(text)) return;
                     seenTexts.add(text);

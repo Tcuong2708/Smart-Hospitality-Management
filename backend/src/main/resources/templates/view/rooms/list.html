@@ -28,16 +28,6 @@
                 </div>
 
                 <div class="mh-list-search-field">
-                    <label><i class="fa-solid fa-bed"></i> Loại phòng</label>
-                    <select name="roomTypeId">
-                        <option value="">Tất cả</option>
-                        <option th:each="t : ${roomTypes}" th:value="${t.id}"
-                            th:selected="${roomTypeId != null and roomTypeId == t.id}" th:text="${t.name}">Deluxe
-                        </option>
-                    </select>
-                </div>
-
-                <div class="mh-list-search-field">
                     <label><i class="fa-solid fa-calendar-check"></i> Nhận phòng</label>
                     <input type="date" name="checkin" th:value="${checkin}">
                 </div>

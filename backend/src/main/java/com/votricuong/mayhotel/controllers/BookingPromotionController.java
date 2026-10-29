@@ -2,6 +2,9 @@ package com.votricuong.mayhotel.controllers;
 
 import com.votricuong.mayhotel.services.PromotionService;
 import com.votricuong.mayhotel.dto.BookingSession;
+import com.votricuong.mayhotel.documents.Customer;
+import com.votricuong.mayhotel.documents.User;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,9 +27,11 @@ import java.time.temporal.ChronoUnit;
 public class BookingPromotionController {
 
     private final PromotionService promotionService;
+    private final CustomerRepository customerRepository;
 
-    public BookingPromotionController(PromotionService promotionService) {
+    public BookingPromotionController(PromotionService promotionService, CustomerRepository customerRepository) {
         this.promotionService = promotionService;
+        this.customerRepository = customerRepository;
     }
 
     @GetMapping("/quote-voucher")
@@ -57,7 +62,7 @@ public class BookingPromotionController {
         PromotionService.Quote quote = promotionService.bestQuote(
                 roomAmount, Math.max(1, booking.getSoLuong()), Math.max(1, booking.getGuestCount()), nights,
                 new Date(), Date.from(arrival.atStartOfDay(ZoneId.systemDefault()).toInstant()),
-                booking.getLoaiPhong().getMaLoai(), code.trim());
+                booking.getLoaiPhong().getMaLoai(), code.trim(), currentCustomerId(session));
         if (quote.promotion() == null) {
             return ResponseEntity.ok(Map.of("valid", false, "discount", 0,
                     "message", "Mã voucher không hợp lệ hoặc không đủ điều kiện."));
@@ -70,7 +75,7 @@ public class BookingPromotionController {
     }
 
     @PostMapping("/quote-voucher")
-    public ResponseEntity<?> quoteVoucher(@RequestBody QuoteRequest request) {
+    public ResponseEntity<?> quoteVoucher(@RequestBody QuoteRequest request, HttpSession session) {
         if (request.roomAmount() < 0 || request.roomCount() < 1 || request.guestCount() < 1
                 || request.nights() < 1 || request.stayDate() == null) {
             return ResponseEntity.badRequest().body(Map.of(
@@ -81,7 +86,7 @@ public class BookingPromotionController {
         PromotionService.Quote quote = promotionService.bestQuote(
                 request.roomAmount(), request.roomCount(), request.guestCount(), request.nights(),
                 request.bookingDate() == null ? new Date() : request.bookingDate(), request.stayDate(),
-                request.roomTypeId(), request.voucherCode());
+                request.roomTypeId(), request.voucherCode(), currentCustomerId(session));
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("success", true);
@@ -95,5 +100,12 @@ public class BookingPromotionController {
 
     public record QuoteRequest(double roomAmount, int roomCount, int guestCount, int nights,
                                Date bookingDate, Date stayDate, Long roomTypeId, String voucherCode) {
+    }
+
+    private Long currentCustomerId(HttpSession session) {
+        Object value = session.getAttribute("user");
+        if (!(value instanceof User user) || user.getId() == null) return null;
+        Customer customer = customerRepository.findFirstByUserIdOrderByIdAsc(user.getId()).orElse(null);
+        return customer == null ? null : customer.getId();
     }
 }

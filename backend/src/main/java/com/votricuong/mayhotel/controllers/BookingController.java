@@ -451,10 +451,14 @@ public class BookingController extends BaseController {
             double roomGrossTotal = danhSachPhongTrong.subList(0, soLuongDat).stream()
                     .mapToDouble(item -> (item.getPrice() == null ? 0D : item.getPrice()) * currentBooking.getSoDem())
                     .sum();
+            User voucherUser = (User) session.getAttribute("user");
+            Long voucherCustomerId = voucherUser == null ? null
+                    : customerRepository.findFirstByUserIdOrderByIdAsc(voucherUser.getId())
+                    .map(com.votricuong.mayhotel.documents.Customer::getId).orElse(null);
             com.votricuong.mayhotel.services.PromotionService.Quote promotionQuote = promotionService.bestQuote(
                     roomGrossTotal, soLuongDat, currentBooking.getGuestCount(),
                     (int) currentBooking.getSoDem(), new Date(), requestedIn,
-                    maLoai, voucherCode);
+                    maLoai, voucherCode, voucherCustomerId);
             if (voucherCode != null && !voucherCode.isBlank() && promotionQuote.promotion() == null) {
                 redirectAttributes.addFlashAttribute("error", "Mã voucher không hợp lệ hoặc không đủ điều kiện.");
                 return "redirect:/booking/checkout";

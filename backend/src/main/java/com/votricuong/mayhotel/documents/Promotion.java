@@ -57,6 +57,9 @@ public class Promotion {
     private Boolean applyOnBookingDate;
     private Boolean applyOnStayDate;
     private String description;
+    /** PUBLIC: áp dụng công khai; PRIVATE: chỉ khách được cấp mới sử dụng. */
+    private String visibility;
+    private Integer assignedCount;
 
     public Promotion(Long id, String name, Double discountPercent, Date startDate, Date endDate) {
         this.id = id;
@@ -71,5 +74,7 @@ public class Promotion {
         this.priority = 0;
         this.combinable = false;
         this.applyOnStayDate = true;
+        this.visibility = "PUBLIC";
+        this.assignedCount = 0;
     }
 }

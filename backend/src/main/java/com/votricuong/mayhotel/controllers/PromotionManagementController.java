@@ -2,6 +2,7 @@ package com.votricuong.mayhotel.controllers;
 
 import com.votricuong.mayhotel.documents.Promotion;
 import com.votricuong.mayhotel.documents.User;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
 import com.votricuong.mayhotel.services.PromotionService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.http.ResponseEntity;
@@ -16,9 +17,12 @@ import java.util.Map;
 @RequestMapping("/manager/promotions")
 public class PromotionManagementController extends BaseController {
     private final PromotionService promotionService;
+    private final CustomerRepository customerRepository;
 
-    public PromotionManagementController(PromotionService promotionService) {
+    public PromotionManagementController(PromotionService promotionService,
+                                         CustomerRepository customerRepository) {
         this.promotionService = promotionService;
+        this.customerRepository = customerRepository;
     }
 
     @GetMapping
@@ -91,6 +95,45 @@ public class PromotionManagementController extends BaseController {
         }
     }
 
+    @GetMapping("/api/customers")
+    @ResponseBody
+    public ResponseEntity<?> customers(@RequestParam(required = false) String q, HttpSession session) {
+        if (!isManager(session)) return forbidden();
+        String keyword = q == null ? "" : q.trim().toLowerCase(java.util.Locale.ROOT);
+        return ResponseEntity.ok(customerRepository.findAll().stream()
+                .filter(customer -> keyword.isEmpty()
+                        || contains(customer.getFullName(), keyword)
+                        || contains(customer.getPhone(), keyword)
+                        || contains(customer.getEmail(), keyword))
+                .map(customer -> {
+                    Map<String, Object> item = new LinkedHashMap<>();
+                    item.put("id", customer.getId());
+                    item.put("name", customer.getFullName() == null ? "—" : customer.getFullName());
+                    item.put("phone", customer.getPhone() == null ? "" : customer.getPhone());
+                    item.put("points", customer.getPoints() == null ? 0 : customer.getPoints());
+                    return item;
+                }).limit(200).toList());
+    }
+
+    @PostMapping("/api/{id}/send")
+    @ResponseBody
+    public ResponseEntity<?> send(@PathVariable Long id, @RequestBody Map<String, Object> body,
+                                  HttpSession session) {
+        if (!isManager(session)) return forbidden();
+        Object raw = body.get("customerIds");
+        if (!(raw instanceof List<?> values) || values.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Chưa chọn khách hàng nào."));
+        }
+        try {
+            List<Long> customerIds = values.stream().filter(Number.class::isInstance)
+                    .map(Number.class::cast).map(Number::longValue).toList();
+            int sent = promotionService.sendToCustomers(id, customerIds);
+            return ResponseEntity.ok(Map.of("success", true, "sent", sent));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));
+        }
+    }
+
     @PostMapping("/api/quote")
     @ResponseBody
     public ResponseEntity<?> quote(@RequestBody QuoteRequest request) {
@@ -111,6 +154,10 @@ public class PromotionManagementController extends BaseController {
 
     private Map<String, String> promotionType(String code, String name, String icon, String color) {
         return Map.of("code", code, "name", name, "icon", icon, "color", color);
+    }
+
+    private boolean contains(String value, String keyword) {
+        return value != null && value.toLowerCase(java.util.Locale.ROOT).contains(keyword);
     }
 
     private boolean isManager(HttpSession session) {

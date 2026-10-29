@@ -17,7 +17,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" th:href="@{/css/styles.css(v='20261029-2')}">
+    <link rel="stylesheet" th:href="@{/css/styles.css(v='20261029-3')}">
 
     <th:block layout:fragment="additional-css"></th:block>
 </head>
@@ -50,7 +50,7 @@
 
             <div class="mh-header-actions">
                 <!-- Bell thông báo — chỉ hiện khi đăng nhập -->
-                <a th:if="${false}" th:href="@{/customer/notifications}" class="mh-help mh-notif-bell"
+                <a th:if="${session.user != null}" th:href="@{/customer/notifications}" class="mh-help mh-notif-bell"
                     aria-label="Thông báo" title="Thông báo">
                     <i class="fa-solid fa-bell"></i>
                     <span id="mhNotifBadge" class="mh-notif-badge">0</span>
@@ -72,7 +72,8 @@
                         <a th:href="@{/booking/history}"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử đặt
                             phòng</a>
                         <a th:href="@{/account/points}"><i class="fa-solid fa-star"></i> Điểm thưởng</a>
-                        <!-- Chỉ bật thông báo/voucher sau khi ghép đủ repository và API tương ứng. -->
+                        <a th:href="@{/customer/vouchers}"><i class="fa-solid fa-ticket"></i> Ưu đãi của tôi</a>
+                        <a th:href="@{/customer/notifications}"><i class="fa-solid fa-bell"></i> Thông báo</a>
                         <a href="#" onclick="event.preventDefault(); document.getElementById('logoutForm').submit();">
                             <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
                         </a>
@@ -188,10 +189,10 @@
     </form>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script th:src="@{/js/main.js(v='20261029-2')}"></script>
+    <script th:src="@{/js/main.js(v='20261029-3')}"></script>
 
     <!-- Bell thông báo — fetch + poll -->
-    <script th:if="${false}">
+    <script th:if="${session.user != null}">
         (function () {
             'use strict';
 

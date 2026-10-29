@@ -1,7 +1,11 @@
 package com.votricuong.mayhotel.services;
 
 import com.votricuong.mayhotel.documents.Promotion;
+import com.votricuong.mayhotel.documents.Customer;
+import com.votricuong.mayhotel.documents.CustomerPromotion;
 import com.votricuong.mayhotel.repositories.PromotionRepository;
+import com.votricuong.mayhotel.repositories.CustomerPromotionRepository;
+import com.votricuong.mayhotel.repositories.CustomerRepository;
 import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.documents.Invoice;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -22,16 +26,25 @@ public class PromotionService {
     private final MongoTemplate mongoTemplate;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final InvoiceRepository invoiceRepository;
+    private final CustomerPromotionRepository customerPromotionRepository;
+    private final CustomerRepository customerRepository;
+    private final NotificationService notificationService;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 
     public PromotionService(PromotionRepository promotionRepository, MongoTemplate mongoTemplate,
                             SequenceGeneratorService sequenceGeneratorService,
-                            InvoiceRepository invoiceRepository) {
+                            InvoiceRepository invoiceRepository,
+                            CustomerPromotionRepository customerPromotionRepository,
+                            CustomerRepository customerRepository,
+                            NotificationService notificationService) {
         this.promotionRepository = promotionRepository;
         this.mongoTemplate = mongoTemplate;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.invoiceRepository = invoiceRepository;
+        this.customerPromotionRepository = customerPromotionRepository;
+        this.customerRepository = customerRepository;
+        this.notificationService = notificationService;
     }
 
     public List<Promotion> search(String query, String type, String status) {
@@ -92,6 +105,12 @@ public class PromotionService {
                 && promotion.getMaxUsesPerCustomer() == null) {
             promotion.setMaxUsesPerCustomer(1);
         }
+        if (promotion.getVisibility() == null || promotion.getVisibility().isBlank()) {
+            promotion.setVisibility("PUBLIC");
+        } else {
+            promotion.setVisibility(promotion.getVisibility().trim().toUpperCase(Locale.ROOT));
+        }
+        if (promotion.getAssignedCount() == null) promotion.setAssignedCount(0);
         return promotionRepository.save(promotion);
     }
 
@@ -125,11 +144,74 @@ public class PromotionService {
         return id == null ? Optional.empty() : promotionRepository.findById(id);
     }
 
+    public int sendToCustomers(Long promotionId, List<Long> customerIds) {
+        Promotion promotion = promotionRepository.findById(promotionId)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khuyến mãi."));
+        if (!"PRIVATE".equalsIgnoreCase(promotion.getVisibility())) {
+            throw new IllegalArgumentException("Chỉ khuyến mãi riêng tư mới có thể gửi cho khách hàng.");
+        }
+        if (promotion.getCode() == null || promotion.getCode().isBlank()) {
+            throw new IllegalArgumentException("Khuyến mãi riêng tư phải có mã.");
+        }
+        int sent = 0;
+        for (Long customerId : new LinkedHashSet<>(customerIds)) {
+            if (customerId == null
+                    || customerPromotionRepository.existsByPromotionIdAndCustomerId(promotionId, customerId)) {
+                continue;
+            }
+            Customer customer = customerRepository.findById(customerId).orElse(null);
+            if (customer == null) continue;
+            customerPromotionRepository.save(CustomerPromotion.builder()
+                    .id(sequenceGeneratorService.generateSequence("customer_promotions_sequence"))
+                    .customerId(customerId).promotionId(promotionId).promotionCode(promotion.getCode())
+                    .status("UNUSED").assignedAt(new Date()).build());
+            notificationService.create(customerId, customer.getUserId(), "PROMOTION_GIFTED",
+                    "Bạn nhận được ưu đãi mới",
+                    "Mã " + promotion.getCode() + " — " + promotion.getName()
+                            + ". Hạn dùng đến " + formatDate(promotion.getEndDate()) + ".",
+                    "bi-gift-fill", "/customer/vouchers");
+            sent++;
+        }
+        promotion.setAssignedCount((int) customerPromotionRepository.countByPromotionId(promotionId));
+        promotionRepository.save(promotion);
+        return sent;
+    }
+
+    public boolean canCustomerUse(Long promotionId, Long customerId) {
+        return promotionId != null && customerId != null
+                && customerPromotionRepository.existsByPromotionIdAndCustomerIdAndStatus(
+                        promotionId, customerId, "UNUSED");
+    }
+
+    public void markPrivatePromotionUsed(Long promotionId, Long customerId,
+                                         Long bookingId, Long invoiceId) {
+        if (promotionId == null || customerId == null) return;
+        promotionRepository.findById(promotionId)
+                .filter(item -> "PRIVATE".equalsIgnoreCase(item.getVisibility()))
+                .ifPresent(item -> customerPromotionRepository
+                        .findByPromotionIdAndCustomerId(promotionId, customerId)
+                        .filter(link -> "UNUSED".equalsIgnoreCase(link.getStatus()))
+                        .ifPresent(link -> {
+                            link.setStatus("USED");
+                            link.setUsedAt(new Date());
+                            link.setUsedBookingId(bookingId);
+                            link.setUsedInvoiceId(invoiceId);
+                            customerPromotionRepository.save(link);
+                        }));
+    }
+
     public Quote bestQuote(double roomAmount, int roomCount, int guestCount, int nights,
                            Date bookingDate, Date stayDate, Long roomTypeId, String voucherCode) {
+        return bestQuote(roomAmount, roomCount, guestCount, nights, bookingDate, stayDate,
+                roomTypeId, voucherCode, null);
+    }
+
+    public Quote bestQuote(double roomAmount, int roomCount, int guestCount, int nights,
+                           Date bookingDate, Date stayDate, Long roomTypeId, String voucherCode,
+                           Long customerId) {
         List<Promotion> candidates = search(null, null, null).stream()
                 .filter(p -> isEligible(p, roomAmount, roomCount, guestCount, nights,
-                        bookingDate, stayDate, roomTypeId, voucherCode))
+                        bookingDate, stayDate, roomTypeId, voucherCode, customerId))
                 .toList();
         return candidates.stream()
                 .map(p -> new Quote(p, calculateDiscount(p, roomAmount, roomCount, nights),
@@ -188,7 +270,8 @@ public class PromotionService {
     }
 
     private boolean isEligible(Promotion p, double roomAmount, int roomCount, int guests, int nights,
-                               Date bookingDate, Date stayDate, Long roomTypeId, String voucherCode) {
+                               Date bookingDate, Date stayDate, Long roomTypeId, String voucherCode,
+                               Long customerId) {
         if (!"ACTIVE".equalsIgnoreCase(effectiveStatus(p))
                 || (p.getMaxUses() != null && number(p.getUsedCount(), 0) >= p.getMaxUses())
                 || (p.getMinimumOrderAmount() != null && roomAmount < p.getMinimumOrderAmount())
@@ -204,7 +287,12 @@ public class PromotionService {
             if (p.getCode() == null || !voucherCode.trim().equalsIgnoreCase(p.getCode().trim())) {
                 return false;
             }
+            if ("PRIVATE".equalsIgnoreCase(p.getVisibility()) && !canCustomerUse(p.getId(), customerId)) {
+                return false;
+            }
         } else if ("VOUCHER".equalsIgnoreCase(normalizedType(p))) {
+            return false;
+        } else if ("PRIVATE".equalsIgnoreCase(p.getVisibility())) {
             return false;
         }
         if (p.getAdvanceDays() != null && bookingDate != null && stayDate != null
@@ -273,6 +361,11 @@ public class PromotionService {
 
     private double number(Object value, double fallback) {
         return value instanceof Number n ? n.doubleValue() : fallback;
+    }
+
+    private String formatDate(Date date) {
+        if (date == null) return "không giới hạn";
+        return new java.text.SimpleDateFormat("dd/MM/yyyy").format(date);
     }
 
     private void validate(Promotion p) {

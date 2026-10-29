@@ -15,13 +15,16 @@ public class DepositPaymentService {
     private final InvoiceRepository invoiceRepository;
     private final BookingOrderRepository bookingOrderRepository;
     private final NoShowPredictionService noShowPredictionService;
+    private final PromotionService promotionService;
 
     public DepositPaymentService(InvoiceRepository invoiceRepository,
                                  BookingOrderRepository bookingOrderRepository,
-                                 NoShowPredictionService noShowPredictionService) {
+                                 NoShowPredictionService noShowPredictionService,
+                                 PromotionService promotionService) {
         this.invoiceRepository = invoiceRepository;
         this.bookingOrderRepository = bookingOrderRepository;
         this.noShowPredictionService = noShowPredictionService;
+        this.promotionService = promotionService;
     }
 
     public synchronized boolean confirmDeposit(Invoice invoice, String transactionId, long paidAmount,
@@ -53,6 +56,10 @@ public class DepositPaymentService {
                 order.setPaymentExpiresAt(null);
                 order.setRiskAnalysisStatus("PENDING");
                 bookingOrderRepository.save(order);
+                // A private voucher is consumed only after VNPay confirms the
+                // deposit/full payment. Failed or abandoned payments keep it usable.
+                promotionService.markPrivatePromotionUsed(current.getPromoId(), order.getCustomerId(),
+                        order.getId(), current.getId());
                 noShowPredictionService.analyzeAndSave(order.getId());
             }
         }
