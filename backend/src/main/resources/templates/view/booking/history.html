@@ -56,8 +56,10 @@
                 <div class="mh-hist-list" th:unless="${#lists.isEmpty(dsDatPhong)}">
 
                     <article th:each="d : ${dsDatPhong}" class="mh-hist-card" th:attr="data-status=${d.status}" th:with="phongCuaDon=${phongMap != null ? phongMap[d.id] : null},
+                                 loaiPhongCuaDon=${loaiPhongMap != null ? loaiPhongMap[d.id] : null},
                                  hoaDonCuaDon=${hoaDonMap != null ? hoaDonMap[d.id] : null},
-                                 soDem=${soDemMap != null ? soDemMap[d.id] : 0}">
+                                 soDem=${soDemMap != null ? soDemMap[d.id] : 0},
+                                 cancelQuote=${cancellationQuoteMap != null ? cancellationQuoteMap[d.id] : null}">
 
                         <!-- ===== DATE BLOCK ===== -->
                         <div class="mh-hist-date">
@@ -78,7 +80,7 @@
                             <div class="mh-hist-body-top">
                                 <div style="min-width:0;">
                                     <h3 class="mh-hist-room-name"
-                                        th:text="${phongCuaDon != null ? phongCuaDon.name : 'Phòng chờ xếp'}">
+                                        th:text="${loaiPhongCuaDon != null ? loaiPhongCuaDon : 'Loại phòng đang chờ xếp'}">
                                         Phòng Deluxe
                                     </h3>
                                     <div class="mh-hist-room-meta">
@@ -192,9 +194,21 @@
                                     <i class="fa-solid fa-eye"></i>
                                     Chi tiết
                                 </a>
+                                <a th:if="${reviewStateMap[d.id] == 'CAN_REVIEW'}"
+                                    th:href="@{/review/create(bookingId=${d.id})}" class="mh-hist-btn primary">
+                                    <i class="fa-solid fa-star"></i>
+                                    Đánh giá phòng
+                                </a>
+                                <span th:if="${reviewStateMap[d.id] == 'REVIEWED'}" class="mh-hist-btn"
+                                    style="cursor:default;opacity:.72;">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    Đã đánh giá
+                                </span>
                                 <button type="button" class="mh-hist-btn danger"
-                                    th:if="${d.status == 'Pending' or d.status == 'Chờ xác nhận'}"
-                                    th:attr="data-mh-cancel-id=${d.id}">
+                                    th:if="${cancelQuote != null}"
+                                    th:attr="data-mh-cancel-id=${d.id},
+                                             data-mh-penalty=${cancelQuote.penaltyRate},
+                                             data-mh-refund=${cancelQuote.refundAmount}">
                                     <i class="fa-solid fa-xmark"></i>
                                     Hủy đơn
                                 </button>
@@ -226,6 +240,7 @@
                             <li>Hủy trong vòng 24 giờ: phí phạt 50% tiền cọc</li>
                             <li>Sau giờ check-in hoặc không đến: không hoàn cọc</li>
                         </ul>
+                        <p id="mhCancelQuote" style="margin:12px 0 0;font-weight:700;color:var(--navy);"></p>
                     </div>
 
                     <form id="mhCancelForm" method="post" action="">
@@ -282,6 +297,11 @@
                         var maDP = btn.dataset.mhCancelId;
                         cancelIdEl.textContent = '#DP-' + maDP;
                         form.action = '/booking/cancel/' + maDP;
+                        var penalty = Number(btn.dataset.mhPenalty || 0);
+                        var refund = Number(btn.dataset.mhRefund || 0);
+                        var quote = document.getElementById('mhCancelQuote');
+                        if (quote) quote.textContent = 'Phí hủy áp dụng: ' + penalty.toLocaleString('vi-VN')
+                            + '% · Hoàn dự kiến: ' + refund.toLocaleString('vi-VN') + ' đ';
                         modal.classList.add('open');
                     });
                 });

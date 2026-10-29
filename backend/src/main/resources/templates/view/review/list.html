@@ -182,14 +182,15 @@
                                 <strong th:text="${rv.name}">Khách hàng</strong>
                                 <small>
                                     <i class="fa-solid fa-circle-check"></i>
-                                    Đã lưu trú tại May Hotel
+                                    Đã lưu trú tại May Hotel · <span th:text="${rv.roomLabel}">Phòng lưu trú</span>
                                 </small>
                             </div>
                         </div>
 
                         <div class="mh-rv-stars">
                             <i class="fa-solid fa-star" th:each="i : ${#numbers.sequence(1, rv.stars)}"></i>
-                            <i class="fa-regular fa-star" th:each="i : ${#numbers.sequence(1, 5 - rv.stars)}"></i>
+                            <i class="fa-regular fa-star" th:if="${rv.stars < 5}"
+                                th:each="i : ${#numbers.sequence(rv.stars + 1, 5)}"></i>
                         </div>
 
                         <div class="mh-rv-body">

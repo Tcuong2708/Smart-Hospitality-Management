@@ -17,6 +17,8 @@ import java.util.List;
 public class BookingCancellationService {
 
     public enum CancellationType { CUSTOMER, NO_SHOW }
+    public record CancellationQuote(double penaltyRate, double paidAmount,
+                                    double penaltyAmount, double refundAmount) {}
 
     private final BookingOrderRepository bookingOrderRepository;
     private final BookingDetailRepository bookingDetailRepository;
@@ -48,14 +50,10 @@ public class BookingCancellationService {
         bookingOrderRepository.save(order);
 
         for (Invoice invoice : invoiceRepository.findByBookingId(bookingId)) {
-            double total = invoice.getTotalAmount() == null ? 0.0 : invoice.getTotalAmount();
-            double penaltyRate = customerPenaltyRate;
-            double paidAmount = invoice.getDepositPaidAmount() != null && invoice.getDepositPaidAmount() > 0
-                    ? invoice.getDepositPaidAmount()
-                    : (Boolean.TRUE.equals(invoice.getIsPaid()) ? total : 0.0);
-            double penaltyBase = paidAmount;
-            double penalty = penaltyBase * penaltyRate / 100.0;
-            double refund = Math.max(paidAmount - penalty, 0.0);
+            CancellationQuote quote = quote(invoice, customerPenaltyRate);
+            double penaltyRate = quote.penaltyRate();
+            double penalty = quote.penaltyAmount();
+            double refund = quote.refundAmount();
             invoice.setPenaltyRate(penaltyRate);
             invoice.setPenaltyAmount(penalty);
             invoice.setRefundAmount(refund);
@@ -72,15 +70,40 @@ public class BookingCancellationService {
     }
 
     public void validateCancellable(BookingOrder order) {
-        String status = order.getStatus();
+        if (order == null) throw new IllegalArgumentException("Không tìm thấy phiếu đặt phòng");
+        String status = order.getStatus() == null ? "" : order.getStatus().trim();
         if ("Đã nhận phòng".equalsIgnoreCase(status)
+                || "Đang ở".equalsIgnoreCase(status)
+                || "Đang lưu trú".equalsIgnoreCase(status)
                 || "Checked-in".equalsIgnoreCase(status)
+                || "Occupied".equalsIgnoreCase(status)
+                || "In use".equalsIgnoreCase(status)
                 || "Đã trả phòng".equalsIgnoreCase(status)
+                || "Hoàn tất".equalsIgnoreCase(status)
+                || "Đã hoàn thành".equalsIgnoreCase(status)
                 || "Completed".equalsIgnoreCase(status)
                 || "Đã hủy".equalsIgnoreCase(status)
+                || "Cancelled".equalsIgnoreCase(status)
                 || "Hủy do khách không đến".equalsIgnoreCase(status)) {
             throw new IllegalStateException("Phiếu đặt phòng không còn đủ điều kiện hủy");
         }
+    }
+
+    public CancellationQuote quote(BookingOrder order) {
+        validateCancellable(order);
+        double rate = customerPenaltyRate(order);
+        Invoice invoice = invoiceRepository.findByBookingId(order.getId()).stream().findFirst().orElse(null);
+        return quote(invoice, rate);
+    }
+
+    private CancellationQuote quote(Invoice invoice, double penaltyRate) {
+        double total = invoice == null || invoice.getTotalAmount() == null ? 0.0 : invoice.getTotalAmount();
+        double paidAmount = invoice == null ? 0.0
+                : invoice.getDepositPaidAmount() != null && invoice.getDepositPaidAmount() > 0
+                ? invoice.getDepositPaidAmount()
+                : (Boolean.TRUE.equals(invoice.getIsPaid()) ? total : 0.0);
+        double penalty = paidAmount * penaltyRate / 100.0;
+        return new CancellationQuote(penaltyRate, paidAmount, penalty, Math.max(paidAmount - penalty, 0.0));
     }
 
     private void releaseRooms(BookingOrder cancelledOrder) {
@@ -112,10 +135,18 @@ public class BookingCancellationService {
                 .map(bookingOrderRepository::findById)
                 .filter(java.util.Optional::isPresent)
                 .map(java.util.Optional::get)
-                .anyMatch(order -> !"Đã hủy".equalsIgnoreCase(order.getStatus())
-                        && !"Hủy do khách không đến".equalsIgnoreCase(order.getStatus())
-                        && !"Đã trả phòng".equalsIgnoreCase(order.getStatus())
-                        && !"Completed".equalsIgnoreCase(order.getStatus()));
+                .anyMatch(order -> !isClosed(order.getStatus()));
+    }
+
+    private boolean isClosed(String status) {
+        return "Đã hủy".equalsIgnoreCase(status)
+                || "Cancelled".equalsIgnoreCase(status)
+                || "Hủy do khách không đến".equalsIgnoreCase(status)
+                || "Đã trả phòng".equalsIgnoreCase(status)
+                || "Hoàn tất".equalsIgnoreCase(status)
+                || "Đã hoàn thành".equalsIgnoreCase(status)
+                || "Completed".equalsIgnoreCase(status)
+                || "Checked-out".equalsIgnoreCase(status);
     }
 
     private String appendNote(String current, String extra) {

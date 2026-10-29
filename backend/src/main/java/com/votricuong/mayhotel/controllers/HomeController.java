@@ -5,7 +5,9 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -13,6 +15,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import com.votricuong.mayhotel.documents.BookingDetail;
 import com.votricuong.mayhotel.documents.Customer;
@@ -28,6 +31,7 @@ import com.votricuong.mayhotel.repositories.ReviewRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.repositories.ServiceRepository;
+import com.votricuong.mayhotel.services.ReviewService;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.Data;
@@ -42,6 +46,7 @@ public class HomeController extends BaseController {
     private final ReviewRepository reviewRepository;
     private final CustomerRepository customerRepository;
     private final PromotionRepository promotionRepository;
+    private final ReviewService reviewService;
 
     public HomeController(RoomRepository roomRepository,
             RoomTypeRepository roomTypeRepository,
@@ -49,7 +54,8 @@ public class HomeController extends BaseController {
             ServiceRepository serviceRepository,
             ReviewRepository reviewRepository,
             CustomerRepository customerRepository,
-            PromotionRepository promotionRepository) {
+            PromotionRepository promotionRepository,
+            ReviewService reviewService) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.bookingDetailRepository = bookingDetailRepository;
@@ -57,6 +63,7 @@ public class HomeController extends BaseController {
         this.reviewRepository = reviewRepository;
         this.customerRepository = customerRepository;
         this.promotionRepository = promotionRepository;
+        this.reviewService = reviewService;
     }
 
     @Data
@@ -132,7 +139,12 @@ public class HomeController extends BaseController {
                     a.getGiaPhong() != null ? a.getGiaPhong() : 0);
         });
 
-        List<RoomTypeDTO> phongNoiBat = danhSach.stream().limit(6).collect(Collectors.toList());
+        // Giao diện khách hàng chỉ giới thiệu loại phòng; không lặp hoặc công khai số phòng vật lý.
+        List<RoomTypeDTO> phongNoiBat = new ArrayList<>(danhSach.stream()
+                .filter(dto -> dto.getMaLoai() != null)
+                .collect(Collectors.toMap(RoomTypeDTO::getMaLoai, dto -> dto, (first, ignored) -> first,
+                        LinkedHashMap::new))
+                .values()).stream().limit(6).collect(Collectors.toList());
         model.addAttribute("phongNoiBat", phongNoiBat);
 
         // ── 2. LOẠI PHÒNG ──
@@ -246,9 +258,53 @@ public class HomeController extends BaseController {
     // REVIEW
     // ================================================================
     @GetMapping("/review")
-    public String review(Model model) {
-        model.addAttribute("pageTitle", "Đánh giá từ khách hàng");
-        return "view/home/review";
+    public String review(@RequestParam(name = "stars", defaultValue = "0") int stars,
+            @RequestParam(name = "q", defaultValue = "") String keyword,
+            Model model) {
+        int starFilter = stars >= 1 && stars <= 5 ? stars : 0;
+        String normalizedKeyword = keyword == null ? "" : keyword.trim();
+        String keywordLower = normalizedKeyword.toLowerCase(Locale.ROOT);
+
+        List<ReviewService.ReviewItem> allReviews = reviewService.latestReviews(10_000);
+        long count5 = countReviewsByStars(allReviews, 5);
+        long count4 = countReviewsByStars(allReviews, 4);
+        long count3 = countReviewsByStars(allReviews, 3);
+        long count2 = countReviewsByStars(allReviews, 2);
+        long count1 = countReviewsByStars(allReviews, 1);
+        double average = allReviews.stream()
+                .mapToInt(ReviewService.ReviewItem::getStars)
+                .average()
+                .orElse(0.0);
+
+        List<ReviewService.ReviewItem> filteredReviews = allReviews.stream()
+                .filter(review -> starFilter == 0 || review.getStars() == starFilter)
+                .filter(review -> keywordLower.isEmpty()
+                        || containsIgnoreCase(review.getName(), keywordLower)
+                        || containsIgnoreCase(review.getText(), keywordLower)
+                        || containsIgnoreCase(review.getRoomLabel(), keywordLower))
+                .toList();
+
+        model.addAttribute("pageTitle", "Đánh giá khách hàng");
+        model.addAttribute("avgRating", Math.round(average * 10.0) / 10.0);
+        model.addAttribute("totalReviews", allReviews.size());
+        model.addAttribute("count5", count5);
+        model.addAttribute("count4", count4);
+        model.addAttribute("count3", count3);
+        model.addAttribute("count2", count2);
+        model.addAttribute("count1", count1);
+        model.addAttribute("starFilter", starFilter);
+        model.addAttribute("keyword", normalizedKeyword);
+        model.addAttribute("reviews", filteredReviews);
+        model.addAttribute("filteredCount", filteredReviews.size());
+        return "view/review/list";
+    }
+
+    private long countReviewsByStars(List<ReviewService.ReviewItem> reviews, int stars) {
+        return reviews.stream().filter(review -> review.getStars() == stars).count();
+    }
+
+    private boolean containsIgnoreCase(String value, String normalizedKeyword) {
+        return value != null && value.toLowerCase(Locale.ROOT).contains(normalizedKeyword);
     }
 
     // ================================================================

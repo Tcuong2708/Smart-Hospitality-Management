@@ -8,6 +8,8 @@ import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 import org.springframework.data.mongodb.core.mapping.Field;
 
+import java.util.List;
+
 @Data
 @Builder
 @NoArgsConstructor
@@ -23,6 +25,12 @@ public class Review {
     
     @Field("customer_id")
     private Long customerId;
+
+    @Field("room_ids")
+    private List<Long> roomIds;
+
+    @Field("room_type_ids")
+    private List<Long> roomTypeIds;
     
     private Integer rating;
     

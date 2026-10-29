@@ -919,9 +919,11 @@ public class BookingController extends BaseController {
         }
 
         Map<Long, Room> phongMap = new HashMap<>();
+        Map<Long, String> loaiPhongMap = new HashMap<>();
         Map<Long, Invoice> hoaDonMap = new HashMap<>();
         Map<Long, Long> soDemMap = new HashMap<>();
         Map<Long, String> reviewStateMap = new HashMap<>();
+        Map<Long, com.votricuong.mayhotel.services.BookingCancellationService.CancellationQuote> cancellationQuoteMap = new HashMap<>();
 
         for (com.votricuong.mayhotel.documents.BookingOrder order : historyList) {
             List<com.votricuong.mayhotel.documents.BookingDetail> details =
@@ -929,7 +931,13 @@ public class BookingController extends BaseController {
             if (details != null) {
                 details.stream().filter(detail -> detail.getRoomId() != null).findFirst().ifPresent(detail ->
                         roomRepository.findById(detail.getRoomId())
-                                .ifPresent(room -> phongMap.put(order.getId(), room)));
+                                .ifPresent(room -> {
+                                    phongMap.put(order.getId(), room);
+                                    if (room.getRoomTypeId() != null) {
+                                        roomTypeRepository.findById(room.getRoomTypeId())
+                                                .ifPresent(type -> loaiPhongMap.put(order.getId(), type.getName()));
+                                    }
+                                }));
             }
             List<Invoice> invoices = invoiceRepository.findByBookingId(order.getId());
             if (invoices != null && !invoices.isEmpty()) {
@@ -937,14 +945,21 @@ public class BookingController extends BaseController {
             }
             soDemMap.put(order.getId(), calculateNights(order));
             reviewStateMap.put(order.getId(), reviewService.reviewState(order));
+            try {
+                cancellationQuoteMap.put(order.getId(), bookingCancellationService.quote(order));
+            } catch (RuntimeException ignored) {
+                // Không đưa nút hủy cho đơn đã check-in, đã hoàn tất hoặc đã hủy.
+            }
         }
 
         model.addAttribute("historyList", historyList);
         model.addAttribute("dsDatPhong", historyList);
         model.addAttribute("phongMap", phongMap);
+        model.addAttribute("loaiPhongMap", loaiPhongMap);
         model.addAttribute("hoaDonMap", hoaDonMap);
         model.addAttribute("soDemMap", soDemMap);
         model.addAttribute("reviewStateMap", reviewStateMap);
+        model.addAttribute("cancellationQuoteMap", cancellationQuoteMap);
         
         setPageTitle(model, "Lịch sử đặt phòng");
         setExtraCSS(model, "view/booking/history :: extra_css");
@@ -966,6 +981,10 @@ public class BookingController extends BaseController {
         if (!details.isEmpty() && details.get(0).getRoomId() != null) {
             roomRepository.findById(details.get(0).getRoomId()).ifPresent(room -> {
                 model.addAttribute("phong", room);
+                if (room.getRoomTypeId() != null) {
+                    roomTypeRepository.findById(room.getRoomTypeId())
+                            .ifPresent(type -> model.addAttribute("loaiPhong", type));
+                }
             });
         }
         
@@ -983,6 +1002,11 @@ public class BookingController extends BaseController {
         model.addAttribute("serviceTickets", services);
         model.addAttribute("reviewState", reviewService.reviewState(order));
         model.addAttribute("myReview", reviewService.findReview(order.getId()).orElse(null));
+        try {
+            model.addAttribute("cancellationQuote", bookingCancellationService.quote(order));
+        } catch (RuntimeException ignored) {
+            model.addAttribute("cancellationQuote", null);
+        }
 
         setExtraCSS(model, "view/booking/historydetail :: extra_css");
         return "view/booking/historydetail";
@@ -1003,7 +1027,10 @@ public class BookingController extends BaseController {
         com.votricuong.mayhotel.documents.BookingOrder order = orderOpt.get();
         User user = (User) session.getAttribute("user");
         boolean ownsBooking = user != null && customerRepository.findById(order.getCustomerId())
-                .map(customer -> user.getId().equals(customer.getUserId()))
+                .map(customer -> (user.getId() != null && user.getId().equals(customer.getUserId()))
+                        || (user.getPhone() != null && user.getPhone().equals(customer.getPhone()))
+                        || (user.getEmail() != null && customer.getEmail() != null
+                            && user.getEmail().equalsIgnoreCase(customer.getEmail())))
                 .orElse(false);
         if (!ownsBooking) {
             ra.addFlashAttribute("error", "Bạn không có quyền hủy phiếu đặt phòng này.");
@@ -1014,7 +1041,7 @@ public class BookingController extends BaseController {
                     com.votricuong.mayhotel.services.BookingCancellationService.CancellationType.CUSTOMER,
                     reason);
             ra.addFlashAttribute("success", "Hủy đặt phòng thành công. Chi tiết phí phạt và hoàn tiền đã được cập nhật trên hóa đơn.");
-        } catch (IllegalStateException ex) {
+        } catch (RuntimeException ex) {
             ra.addFlashAttribute("error", ex.getMessage());
         }
         return "redirect:/booking/history/detail?id=" + id;

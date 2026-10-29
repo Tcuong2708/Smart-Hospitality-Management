@@ -26,6 +26,7 @@ import com.votricuong.mayhotel.services.LoyaltyService;
 import com.votricuong.mayhotel.services.NoShowPredictionService;
 import com.votricuong.mayhotel.services.MobileTokenService;
 import com.votricuong.mayhotel.services.RoomStatusService;
+import com.votricuong.mayhotel.services.ReviewService;
 import com.votricuong.mayhotel.services.SequenceGeneratorService;
 import com.votricuong.mayhotel.utils.InputValidator;
 import org.springframework.http.HttpStatus;
@@ -88,6 +89,7 @@ public class MobileOperationsApiController {
     private final SequenceGeneratorService sequenceGeneratorService;
     private final LoyaltyService loyaltyService;
     private final NoShowPredictionService noShowPredictionService;
+    private final ReviewService reviewService;
 
     public MobileOperationsApiController(
             MobileTokenService tokenService,
@@ -105,7 +107,8 @@ public class MobileOperationsApiController {
             RoomStatusService roomStatusService,
             SequenceGeneratorService sequenceGeneratorService,
             LoyaltyService loyaltyService,
-            NoShowPredictionService noShowPredictionService) {
+            NoShowPredictionService noShowPredictionService,
+            ReviewService reviewService) {
         this.tokenService = tokenService;
         this.bookingOrderRepository = bookingOrderRepository;
         this.bookingDetailRepository = bookingDetailRepository;
@@ -122,6 +125,7 @@ public class MobileOperationsApiController {
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.loyaltyService = loyaltyService;
         this.noShowPredictionService = noShowPredictionService;
+        this.reviewService = reviewService;
     }
 
     @GetMapping("/customer/loyalty")
@@ -164,13 +168,15 @@ public class MobileOperationsApiController {
             @RequestBody(required = false) Map<String, Object> payload) {
         return customerAction(authorization, (claims, customer) -> {
             BookingOrder order = ownedBooking(bookingId, customer);
-            cancellationService.validateCancellable(order);
-            double penaltyRate = cancellationPenalty(order);
+            BookingCancellationService.CancellationQuote quote = cancellationService.quote(order);
+            double penaltyRate = quote.penaltyRate();
             boolean confirmed = payload != null && Boolean.parseBoolean(String.valueOf(payload.getOrDefault("confirmed", false)));
             if (!confirmed) {
                 return ok("Xác nhận chính sách hủy phòng", Map.of(
                         "bookingId", bookingId,
                         "penaltyRate", penaltyRate,
+                        "penaltyAmount", quote.penaltyAmount(),
+                        "refundAmount", quote.refundAmount(),
                         "requiresConfirmation", true));
             }
             String reason = payload == null ? null : string(payload.get("reason"));
@@ -194,8 +200,8 @@ public class MobileOperationsApiController {
             @RequestBody Map<String, Object> payload) {
         return customerAction(authorization, (claims, customer) -> {
             BookingOrder order = ownedBooking(bookingId, customer);
-            if (!hasStatus(order, CHECKED_OUT)) {
-                throw new IllegalStateException("Chỉ được đánh giá sau khi hoàn tất lưu trú");
+            if (!reviewService.canReview(order)) {
+                throw new IllegalStateException("Chỉ được đánh giá phòng sau khi khách đã check-in");
             }
             if (reviewRepository.findByBookingId(bookingId).isPresent()) {
                 throw new IllegalStateException("Kỳ lưu trú này đã được đánh giá");
@@ -212,6 +218,7 @@ public class MobileOperationsApiController {
                     .reviewDate(new Date())
                     .status("Hiện")
                     .build();
+            reviewService.applyRoomContext(review, bookingId);
             return ok("Đánh giá thành công", reviewRepository.save(review));
         });
     }
@@ -1053,13 +1060,6 @@ public class MobileOperationsApiController {
         if (Long.valueOf(3).equals(tierId)) return "Vàng";
         if (Long.valueOf(2).equals(tierId)) return "Bạc";
         return "Đồng";
-    }
-
-    private double cancellationPenalty(BookingOrder order) {
-        if (order.getExpectedIn() == null) return 0D;
-        long remaining = order.getExpectedIn().getTime() - System.currentTimeMillis();
-        if (remaining <= 0) return 100D;
-        return remaining < 24L * 60 * 60 * 1000 ? 50D : 0D;
     }
 
     private boolean within(Date value, Date from, Date to) {

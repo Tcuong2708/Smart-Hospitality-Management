@@ -73,10 +73,6 @@
                                 <span class="label"><i class="fa-solid fa-bed"></i> Loại phòng</span>
                                 <span class="value" th:text="${loaiPhong.name}">--</span>
                             </div>
-                            <div class="mh-sc-info-row" th:if="${phong != null}">
-                                <span class="label"><i class="fa-solid fa-door-closed"></i> Phòng</span>
-                                <span class="value" th:text="${phong.name}">--</span>
-                            </div>
                             <div class="mh-sc-info-row">
                                 <span class="label"><i class="fa-solid fa-right-to-bracket"></i> Nhận phòng</span>
                                 <span class="value" th:text="${order.expectedIn != null

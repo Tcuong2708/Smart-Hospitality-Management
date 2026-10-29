@@ -394,8 +394,10 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                               0)
                         : 0;
                     final rName = reserved != null
-                        ? (reserved['tenPhong']?.toString() ?? 'Phòng của bạn')
-                        : 'Phòng khách sạn';
+                        ? (reserved['loaiPhong']?.toString() ??
+                              reserved['roomType']?.toString() ??
+                              'Loại phòng của bạn')
+                        : 'Loại phòng khách sạn';
 
                     Navigator.push(
                       context,
@@ -688,9 +690,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     ColorScheme colorScheme,
     bool isDarkMode,
   ) {
-    String tenPhong = item['tenPhong']?.toString().trim().isNotEmpty == true
-        ? item['tenPhong'].toString()
-        : 'Chưa gán phòng';
+    String tenPhong = item['loaiPhong']?.toString().trim().isNotEmpty == true
+        ? item['loaiPhong'].toString()
+        : item['roomType']?.toString().trim().isNotEmpty == true
+        ? item['roomType'].toString()
+        : 'Loại phòng đang chờ xếp';
     String hinhAnh = item['hinhAnh']?.toString() ?? '';
 
     String ngayNhan = _safeFormatDate(
@@ -987,7 +991,10 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                 MaterialPageRoute(
                   builder: (context) => MobileSelfCheckinScreen(
                     bookingId: bookingId,
-                    roomName: item['tenPhong']?.toString() ?? 'Phòng của bạn',
+                    roomName:
+                        item['loaiPhong']?.toString() ??
+                        item['roomType']?.toString() ??
+                        'Loại phòng của bạn',
                     totalGuests:
                         int.tryParse(
                           item['requiredIdentityCount']?.toString() ??
@@ -1009,24 +1016,37 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
         ],
       );
     } else if (_isActiveStayStatus(trangThai)) {
-      return ElevatedButton.icon(
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.amber.shade700,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          minimumSize: const Size(0, 32),
-        ),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ServiceOrderScreen(bookingId: bookingId),
+      return Wrap(
+        spacing: 6,
+        runSpacing: 4,
+        alignment: WrapAlignment.end,
+        children: [
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.amber.shade700,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 10),
+              minimumSize: const Size(0, 32),
+            ),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ServiceOrderScreen(bookingId: bookingId),
+              ),
+            ),
+            icon: const Icon(Icons.room_service, size: 14),
+            label: const Text(
+              'Dịch vụ',
+              style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+            ),
           ),
-        ),
-        icon: const Icon(Icons.room_service, size: 14),
-        label: const Text(
-          'Dịch vụ',
-          style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
-        ),
+          OutlinedButton.icon(
+            style: OutlinedButton.styleFrom(minimumSize: const Size(0, 32)),
+            onPressed: () => _showReviewDialog(item),
+            icon: const Icon(Icons.star_outline, size: 16),
+            label: const Text('Đánh giá', style: TextStyle(fontSize: 11)),
+          ),
+        ],
       );
     } else if (_isCompletedStayStatus(trangThai)) {
       return OutlinedButton.icon(
@@ -1104,10 +1124,16 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
       context: context,
       builder: (dialogContext) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: const Text('Đánh giá kỳ lưu trú'),
+          title: const Text('Đánh giá May Hotel'),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Text(
+                '${item['loaiPhong'] ?? item['roomType'] ?? 'Loại phòng lưu trú'} · Kỳ lưu trú #$bookingId',
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(

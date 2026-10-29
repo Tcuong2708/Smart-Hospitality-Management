@@ -5,7 +5,7 @@
       layout:decorate="~{layout/layout}">
 <head>
     <meta charset="UTF-8">
-    <title th:text="'Chi tiết phòng ' + ${phong.name}"></title>
+    <title th:text="'Chi tiết ' + ${phong.roomType != null ? phong.roomType.name : 'loại phòng'}"></title>
 </head>
 <body>
 
@@ -22,7 +22,7 @@
 
                 <li class="breadcrumb-item active text-navy fw-bold"
                     aria-current="page"
-                    th:text="${phong.name}">Tên phòng</li>
+                    th:text="${phong.roomType != null ? phong.roomType.name : 'Loại phòng'}">Loại phòng</li>
             </ol>
         </nav>
         <div class="row">
@@ -30,7 +30,7 @@
                 <div class="detail-img-container position-relative">
                     <img th:src="@{'/images/' + ${phong.imageUrl}}" onerror="this.onerror=null; this.src='/images/a1.jpg';"
                          class="img-fluid w-100 detail-img"
-                         th:alt="${phong.name}"
+                         th:alt="${phong.roomType != null ? phong.roomType.name : 'Loại phòng'}"
                          style="object-fit: cover; min-height: 400px;" />
 
                     <th:block th:if="${phong.price < 1000000}">
@@ -71,7 +71,7 @@
                 <h4 class="text-muted text-uppercase small ls-1"
                     th:text="${phong.roomType != null ? phong.roomType.name : 'Luxury Room'}">Luxury Room</h4>
 
-                <h2 class="fw-bold text-navy mb-3" th:text="${phong.name}">Tên phòng</h2>
+                <h2 class="fw-bold text-navy mb-3" th:text="${phong.roomType != null ? phong.roomType.name : 'Loại phòng'}">Loại phòng</h2>
 
                 <div class="d-flex align-items-center mb-3">
                     <div class="text-warning">
