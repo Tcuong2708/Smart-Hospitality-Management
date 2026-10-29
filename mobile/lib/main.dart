@@ -35,7 +35,14 @@ class MayHotelApp extends StatelessWidget {
   const MayHotelApp({Key? key}) : super(key: key);
 
   Future<String?> _checkSecurity() async {
-    final result = await DeviceSecurityService().check();
+    final result = await DeviceSecurityService(
+      trustedDeviceFingerprints:
+          dotenv.env['TRUSTED_DEVICE_FINGERPRINTS']?.trim() ??
+          const String.fromEnvironment('TRUSTED_DEVICE_FINGERPRINTS'),
+      // Debug/profile dùng được qua cáp; release chỉ miễn USB debugging cho
+      // đúng fingerprint đã đăng ký. Root và bootloader vẫn luôn bị kiểm tra.
+      allowUsbDebuggingForDevelopment: !kReleaseMode,
+    ).check();
     return result.message;
   }
 

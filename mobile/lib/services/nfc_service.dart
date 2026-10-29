@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:nfc_manager/nfc_manager.dart';
 import 'package:nfc_manager/nfc_manager_android.dart';
 
-enum IdentityNfcMethod { realNfc, signedNdef, aiOnly }
+enum IdentityNfcMethod { realNfc, signedNdef, legacyNdef, aiOnly }
 
 class RealCccdAccessData {
   const RealCccdAccessData({
@@ -157,20 +157,9 @@ class NfcService {
           if (list.isEmpty) throw const FormatException('Thẻ NDEF trống.');
           final payload = List<int>.from(list.first.payload);
           final decoded = _parseNdefTextPayload(payload).trim();
-          final json = jsonDecode(decoded);
-          if (json is! Map || json['issuer'] != 'MAY_HOTEL_DEMO') {
-            throw const FormatException(
-              'Payload không phải thẻ MAY HOTEL demo.',
-            );
-          }
+          final parsed = _parseDemoPayload(decoded);
           if (!completer.isCompleted) {
-            completer.complete(
-              NfcIdentityResult(
-                method: IdentityNfcMethod.signedNdef,
-                identityValue: json['tokenId']?.toString(),
-                ndefProof: decoded,
-              ),
-            );
+            completer.complete(parsed);
           }
         } catch (error, stackTrace) {
           if (!completer.isCompleted) {
@@ -198,5 +187,42 @@ class NfcService {
       throw const FormatException('Payload NDEF Text không hợp lệ.');
     }
     return utf8.decode(payload.sublist(start));
+  }
+
+  /// Supports both the current signed JSON card and the original white demo
+  /// card whose NDEF record contains labelled Vietnamese text. A legacy card
+  /// is deliberately marked as unsigned; face verification remains mandatory.
+  static NfcIdentityResult _parseDemoPayload(String decoded) {
+    try {
+      final json = jsonDecode(decoded);
+      if (json is Map && json['issuer'] == 'MAY_HOTEL_DEMO') {
+        final tokenId = json['tokenId']?.toString().trim();
+        if (tokenId == null || tokenId.isEmpty) {
+          throw const FormatException('Thẻ demo thiếu tokenId.');
+        }
+        return NfcIdentityResult(
+          method: IdentityNfcMethod.signedNdef,
+          identityValue: tokenId,
+          ndefProof: decoded,
+        );
+      }
+    } on FormatException {
+      // Fall through to the legacy labelled-text parser.
+    }
+
+    final match = RegExp(
+      r'(?:Số\s*CCCD|CCCD|Số\s*giấy\s*tờ)\s*:\s*([0-9A-Za-z]{6,20})',
+      caseSensitive: false,
+    ).firstMatch(decoded);
+    final documentNumber = match?.group(1)?.trim().toUpperCase();
+    if (documentNumber == null || documentNumber.isEmpty) {
+      throw const FormatException(
+        'Thẻ không phải NDEF MAY HOTEL ký số hoặc thẻ văn bản CCCD mô phỏng.',
+      );
+    }
+    return NfcIdentityResult(
+      method: IdentityNfcMethod.legacyNdef,
+      identityValue: documentNumber,
+    );
   }
 }

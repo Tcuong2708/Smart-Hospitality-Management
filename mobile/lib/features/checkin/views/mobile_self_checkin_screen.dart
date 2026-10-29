@@ -157,6 +157,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       case IdentityNfcMethod.realNfc:
         await _scanRealCccd();
       case IdentityNfcMethod.signedNdef:
+      case IdentityNfcMethod.legacyNdef:
         await _scanDemoNdef();
       case IdentityNfcMethod.aiOnly:
         await _selectAiOnly();
@@ -370,6 +371,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       final method = switch (identity.method) {
         IdentityNfcMethod.realNfc => 'REAL_NFC',
         IdentityNfcMethod.signedNdef => 'SIGNED_NDEF',
+        IdentityNfcMethod.legacyNdef => 'LEGACY_NDEF',
         IdentityNfcMethod.aiOnly => 'AI_ONLY',
       };
       final response = await _api.submitIdentityVerification(
@@ -591,6 +593,7 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   String _methodLabel(IdentityNfcMethod? method) => switch (method) {
     IdentityNfcMethod.realNfc => 'Bước 2: Đã đọc chip CCCD thật',
     IdentityNfcMethod.signedNdef => 'Bước 2: Đã đọc NDEF mô phỏng',
+    IdentityNfcMethod.legacyNdef => 'Bước 2: Đã đọc thẻ NFC demo văn bản',
     IdentityNfcMethod.aiOnly => 'Bước 2: Đã chọn AI-only',
     null => 'Bước 2: Chọn NFC / AI fallback',
   };

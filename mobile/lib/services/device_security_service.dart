@@ -117,6 +117,7 @@ class DeviceSecurityService {
     this.trustedDeviceFingerprints = const String.fromEnvironment(
       'TRUSTED_DEVICE_FINGERPRINTS',
     ),
+    this.allowUsbDebuggingForDevelopment = false,
     DeviceSecurityPlatform? currentPlatform,
   }) : _probe = probe ?? PlatformDeviceSecurityProbe(),
        _currentPlatform = currentPlatform ?? _detectPlatform();
@@ -126,6 +127,7 @@ class DeviceSecurityService {
 
   final DeviceSecurityProbe _probe;
   final String trustedDeviceFingerprints;
+  final bool allowUsbDebuggingForDevelopment;
   final DeviceSecurityPlatform _currentPlatform;
 
   Future<DeviceSecurityResult> check() async {
@@ -158,10 +160,7 @@ class DeviceSecurityService {
       }
 
       final trusted = parseTrustedFingerprints(trustedDeviceFingerprints);
-      if (trusted.contains(snapshot.deviceFingerprint)) {
-        debugPrint('[Security] Trusted test device accepted.');
-        return DeviceSecurityResult.trusted(snapshot.deviceFingerprint);
-      }
+      final isTrusted = trusted.contains(snapshot.deviceFingerprint);
 
       final checks = await Future.wait<bool>([
         _probe.isRootedOrJailbroken(),
@@ -180,10 +179,17 @@ class DeviceSecurityService {
           deviceFingerprint: snapshot.deviceFingerprint,
         );
       }
-      if (checks[1]) {
+      if (checks[1] && !allowUsbDebuggingForDevelopment && !isTrusted) {
         return DeviceSecurityResult.blocked(
           DeviceSecurityIssue.usbDebugging,
           deviceFingerprint: snapshot.deviceFingerprint,
+        );
+      }
+      if (checks[1] && (allowUsbDebuggingForDevelopment || isTrusted)) {
+        debugPrint(
+          isTrusted
+              ? '[Security] USB debugging accepted for trusted test device.'
+              : '[Security] USB debugging accepted for this development build.',
         );
       }
       if (!checks[2]) {
@@ -192,9 +198,11 @@ class DeviceSecurityService {
           deviceFingerprint: snapshot.deviceFingerprint,
         );
       }
-      return DeviceSecurityResult.allowed(
-        deviceFingerprint: snapshot.deviceFingerprint,
-      );
+      return isTrusted
+          ? DeviceSecurityResult.trusted(snapshot.deviceFingerprint)
+          : DeviceSecurityResult.allowed(
+              deviceFingerprint: snapshot.deviceFingerprint,
+            );
     } catch (error) {
       debugPrint('[Security] Device verification failed: $error');
       return const DeviceSecurityResult.blocked(

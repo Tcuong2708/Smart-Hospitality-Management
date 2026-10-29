@@ -269,12 +269,8 @@
                             <label>Chọn phòng mới <span class="req">*</span></label>
                             <select name="newRoomId" id="new-room-select" required>
                                 <option value="" selected disabled>— Vui lòng chọn phòng trống —</option>
-                                <th:block th:each="er : ${emptyRooms}">
-                                    <option th:value="${er.id}" th:text="'Phòng ' + ${#strings.replace(er.name, 'P', '')}
-                                                 + ' — ' + ${#numbers.formatDecimal(er.price, 0, 'POINT', 0, 'COMMA')}
-                                                 + ' đ'"></option>
-                                </th:block>
                             </select>
+                            <small id="change-room-options-status" class="adm-field-hint"></small>
                         </div>
 
                         <div class="adm-field" style="margin-top:16px;">
@@ -517,13 +513,18 @@
             /* ============================================================
                GLOBAL — mở modal đổi phòng (gọi từ onclick)
                ============================================================ */
-            function openChangeRoomModal(roomId, roomName) {
+            async function openChangeRoomModal(roomId, roomName) {
                 document.getElementById('changeOldRoomId').value = roomId || '';
                 var label = (roomName || '').replace(/^P\s*[.\-]?\s*/i, '');
                 document.getElementById('current-room-id').textContent = 'P.' + (label || roomId);
 
                 var sel = document.getElementById('new-room-select');
-                if (sel) sel.value = '';
+                var status = document.getElementById('change-room-options-status');
+                if (sel) {
+                    sel.innerHTML = '<option value="" selected disabled>— Đang tải phòng phù hợp —</option>';
+                    sel.disabled = true;
+                }
+                if (status) status.textContent = '';
 
                 var reason = document.getElementById('transfer-reason');
                 if (reason) reason.value = 'Khách yêu cầu nâng hạng';
@@ -535,6 +536,34 @@
                 if (otherInput) otherInput.value = '';
 
                 if (typeof AdmModal !== 'undefined') AdmModal.open('changeRoomModal');
+
+                try {
+                    var response = await fetch('/receptionist/change-room/options?oldRoomId=' + encodeURIComponent(roomId), {
+                        headers: { 'Accept': 'application/json' }
+                    });
+                    var payload = await response.json();
+                    if (!response.ok || !payload.success) throw new Error(payload.message || 'Không tải được danh sách phòng');
+                    var rooms = Array.isArray(payload.data) ? payload.data : [];
+                    sel.innerHTML = '<option value="" selected disabled>— Vui lòng chọn phòng trống —</option>';
+                    rooms.forEach(function (room) {
+                        var option = document.createElement('option');
+                        option.value = room.id;
+                        option.textContent = 'Phòng ' + String(room.name || room.id).replace(/^P\s*[.\-]?\s*/i, '')
+                            + ' — ' + (room.type || 'Chưa phân loại')
+                            + ' — ' + Number(room.price || 0).toLocaleString('vi-VN') + ' đ';
+                        sel.appendChild(option);
+                    });
+                    sel.disabled = rooms.length === 0;
+                    if (status) status.textContent = rooms.length === 0
+                        ? 'Không có phòng phù hợp trong toàn bộ thời gian lưu trú còn lại.'
+                        : 'Có ' + rooms.length + ' phòng có thể đổi.';
+                } catch (error) {
+                    if (sel) {
+                        sel.innerHTML = '<option value="" selected disabled>— Không tải được phòng —</option>';
+                        sel.disabled = true;
+                    }
+                    if (status) status.textContent = error.message || 'Không tải được danh sách phòng.';
+                }
             }
         </script>
     </th:block>

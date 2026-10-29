@@ -1840,6 +1840,31 @@ textarea {
   line-height: 1.5;
 }
 
+.msg-bot .chat-payment-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin: 10px 0 4px;
+  padding: 11px 13px;
+  border-radius: 10px;
+  background: var(--gold);
+  color: var(--navy);
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: 0 5px 14px rgba(197, 160, 23, .25);
+}
+
+.msg-bot .chat-payment-link:hover,
+.msg-bot .chat-payment-link:focus-visible {
+  background: #e2bd35;
+  color: var(--navy);
+  transform: translateY(-1px);
+}
+
 .chat-input-area {
   padding: 14px;
   background: #fff;
