@@ -928,6 +928,11 @@ public class MobileApiController {
             }
 
             String normalizedMethod = method == null ? "" : method.trim().toUpperCase(Locale.ROOT);
+            if (Set.of("NFC", "NDEF", "NFC_DEMO").contains(normalizedMethod)) {
+                normalizedMethod = "LEGACY_NDEF";
+            } else if ("MOBILE_AI_NFC".equals(normalizedMethod)) {
+                normalizedMethod = "AI_ONLY";
+            }
             if (!Set.of("REAL_NFC", "SIGNED_NDEF", "LEGACY_NDEF", "AI_ONLY").contains(normalizedMethod)) {
                 throw new IllegalArgumentException("Phương thức xác thực không hợp lệ");
             }

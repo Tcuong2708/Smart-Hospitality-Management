@@ -36,8 +36,11 @@ class MayHotelApp extends StatelessWidget {
 
   Future<String?> _checkSecurity() async {
     final result = await DeviceSecurityService(
-      // Chỉ build debug/profile dùng để chạy qua cáp mới được bỏ qua USB debugging.
-      // Root, bootloader mở và thiết bị giả lập không tin cậy vẫn bị chặn.
+      trustedDeviceFingerprints:
+          dotenv.env['TRUSTED_DEVICE_FINGERPRINTS']?.trim() ??
+          const String.fromEnvironment('TRUSTED_DEVICE_FINGERPRINTS'),
+      // Debug/profile dùng được qua cáp; release chỉ miễn USB debugging cho
+      // đúng fingerprint đã đăng ký. Root và bootloader vẫn luôn bị kiểm tra.
       allowUsbDebuggingForDevelopment: !kReleaseMode,
     ).check();
     return result.message;

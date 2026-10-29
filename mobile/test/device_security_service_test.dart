@@ -37,25 +37,40 @@ void main() {
   });
 
   group('Android security policy', () {
-    test('trusted phone bypasses every scanner', () async {
+    test(
+      'trusted phone allows USB debugging but still runs scanners',
+      () async {
+        final probe = _FakeSecurityProbe(
+          fingerprint: phoneOne,
+          usbDebugging: true,
+        );
+        final result = await DeviceSecurityService(
+          probe: probe,
+          currentPlatform: DeviceSecurityPlatform.android,
+          trustedDeviceFingerprints: '$phoneOne,$phoneTwo',
+        ).check();
+
+        expect(result.isBlocked, isFalse);
+        expect(result.isTrustedDevice, isTrue);
+        expect(probe.rootChecks, 1);
+        expect(probe.usbChecks, 1);
+        expect(probe.realDeviceChecks, 1);
+      },
+    );
+
+    test('trusted phone with unlocked bootloader is still blocked', () async {
       final probe = _FakeSecurityProbe(
         fingerprint: phoneOne,
         bootloaderUnlocked: true,
-        rooted: true,
         usbDebugging: true,
-        realDevice: false,
       );
       final result = await DeviceSecurityService(
         probe: probe,
         currentPlatform: DeviceSecurityPlatform.android,
-        trustedDeviceFingerprints: '$phoneOne,$phoneTwo',
+        trustedDeviceFingerprints: phoneOne,
       ).check();
 
-      expect(result.isBlocked, isFalse);
-      expect(result.isTrustedDevice, isTrue);
-      expect(probe.rootChecks, 0);
-      expect(probe.usbChecks, 0);
-      expect(probe.realDeviceChecks, 0);
+      expect(result.issue, DeviceSecurityIssue.bootloaderUnlocked);
     });
 
     test('untrusted emulator is blocked', () async {

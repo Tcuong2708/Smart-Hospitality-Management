@@ -956,7 +956,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     final int bookingId =
         int.tryParse(item['bookingId']?.toString() ?? '0') ?? 0;
 
-    if (trangThai == "Đã xác nhận" ||
+    if (trangThai.contains("Đã xác nhận") ||
         trangThai == "Reserved" ||
         trangThai == "Pending" ||
         trangThai == "Chờ nhận phòng" ||

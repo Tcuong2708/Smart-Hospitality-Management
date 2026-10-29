@@ -543,7 +543,8 @@ const Chatbot = {
             const safe = esc(content)
                 .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
                 .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g,
-                    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+                    '<a class="chat-payment-link" href="$2" target="_blank" rel="noopener noreferrer">' +
+                    '<i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i><span>$1</span></a>')
                 .replace(/\n/g, '<br>');
             node.innerHTML = safe;
         } else {

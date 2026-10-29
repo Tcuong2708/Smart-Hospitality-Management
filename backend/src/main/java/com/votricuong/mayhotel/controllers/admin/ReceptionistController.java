@@ -272,7 +272,7 @@ public class ReceptionistController extends BaseController {
         setPageTitle(model, "Nghiệp vụ Nhận phòng");
         
         List<InvoiceDTO> invoices = invoiceRepository.findAll().stream()
-                .filter(inv -> "Reserved".equalsIgnoreCase(inv.getInvoiceStatus()))
+                .filter(this::isEligibleForCheckInToday)
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
 
@@ -291,7 +291,9 @@ public class ReceptionistController extends BaseController {
                 .filter(r -> occupiedRoomIds.contains(r.getId())
                         || "Trống".equalsIgnoreCase(r.getStatus())
                         || "Vacant".equalsIgnoreCase(r.getStatus())
-                        || (assignedRoomIds.contains(r.getId()) && "Reserved".equalsIgnoreCase(r.getStatus())))
+                        || (assignedRoomIds.contains(r.getId())
+                        && com.votricuong.mayhotel.enums.RoomStatus.fromStored(r.getStatus())
+                        == com.votricuong.mayhotel.enums.RoomStatus.RESERVED))
                 .filter(r -> r.getId() != null)
                 .map(room -> mapToCheckInRoomDTO(room, roomTypes, occupiedRoomIds.contains(room.getId())))
                 .collect(Collectors.toList());
@@ -359,7 +361,9 @@ public class ReceptionistController extends BaseController {
                     || bookingDetails.stream().anyMatch(detail -> maPhong.equals(detail.getRoomId()));
             boolean roomCanBeCheckedIn = "Vacant".equalsIgnoreCase(room.getStatus())
                     || "Trống".equalsIgnoreCase(room.getStatus())
-                    || (assignedToThisBooking && "Reserved".equalsIgnoreCase(room.getStatus()));
+                    || (assignedToThisBooking
+                    && com.votricuong.mayhotel.enums.RoomStatus.fromStored(room.getStatus())
+                    == com.votricuong.mayhotel.enums.RoomStatus.RESERVED);
             if (!roomCanBeCheckedIn) {
                 throw new Exception("Phòng này hiện không trống, vui lòng chọn phòng khác.");
             }
@@ -399,13 +403,40 @@ public class ReceptionistController extends BaseController {
         return "redirect:/receptionist/check-in";
     }
 
+    private boolean isEligibleForCheckInToday(Invoice invoice) {
+        if (invoice == null || invoice.getBookingId() == null) return false;
+        BookingOrder order = bookingOrderRepository.findById(invoice.getBookingId()).orElse(null);
+        if (order == null || order.getExpectedIn() == null || order.getExpectedOut() == null) return false;
+
+        String bookingStatus = order.getStatus() == null ? ""
+                : order.getStatus().trim().toLowerCase(java.util.Locale.ROOT);
+        if (Set.of("đã hủy", "cancelled", "canceled", "hủy do khách không đến",
+                "đã trả phòng", "completed", "đã nhận phòng", "occupied", "in use")
+                .contains(bookingStatus)) {
+            return false;
+        }
+
+        String invoiceStatus = invoice.getInvoiceStatus() == null ? ""
+                : invoice.getInvoiceStatus().trim().toLowerCase(java.util.Locale.ROOT);
+        boolean confirmedInvoice = Set.of("reserved", "paid", "deposit paid")
+                .contains(invoiceStatus)
+                || "PAID".equalsIgnoreCase(invoice.getDepositStatus())
+                || java.util.Optional.ofNullable(invoice.getDepositPaidAmount()).orElse(0L) > 0L;
+        if (!confirmedInvoice) return false;
+
+        LocalDate today = LocalDate.now(HOTEL_ZONE);
+        LocalDate arrival = order.getExpectedIn().toInstant().atZone(HOTEL_ZONE).toLocalDate();
+        LocalDate departure = order.getExpectedOut().toInstant().atZone(HOTEL_ZONE).toLocalDate();
+        return !today.isBefore(arrival) && today.isBefore(departure);
+    }
+
     // 3. GET /check-out: Hiển thị list phòng đang ở
     @GetMapping("/check-out")
     public String checkOutView(@RequestParam(value = "roomId", required = false) Long roomId, Model model) {
         setPageTitle(model, "Nghiệp vụ Trả phòng");
 
         List<InvoiceDTO> invoices = invoiceRepository.findAll().stream()
-                .filter(inv -> "In Use".equalsIgnoreCase(inv.getInvoiceStatus()))
+                .filter(this::isActiveStayInvoice)
                 .map(this::mapToDTO)
                 .collect(Collectors.toList());
 
@@ -415,6 +446,12 @@ public class ReceptionistController extends BaseController {
         setExtraCSS(model, "view/receptionist/check-out/index :: extra_css");
         setExtraJS(model, "view/receptionist/check-out/index :: extra_js");
         return render(model, "view/receptionist/check-out/index");
+    }
+
+    private boolean isActiveStayInvoice(Invoice invoice) {
+        if (invoice == null || invoice.getInvoiceStatus() == null) return false;
+        String status = invoice.getInvoiceStatus().trim().toLowerCase(java.util.Locale.ROOT);
+        return Set.of("in use", "occupied", "đang ở", "đang lưu trú").contains(status);
     }
 
     // 4. POST /checkout-room/execute: Xử lý trả phòng
