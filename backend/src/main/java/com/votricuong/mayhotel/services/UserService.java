@@ -37,7 +37,7 @@ public class UserService {
         if (user == null) throw new IllegalArgumentException("Dữ liệu tài khoản không được để trống");
         user.setUsername(com.votricuong.mayhotel.utils.InputValidator.username(user.getUsername()));
         user.setEmail(com.votricuong.mayhotel.utils.InputValidator.email(user.getEmail(), true));
-        user.setPassword(com.votricuong.mayhotel.utils.InputValidator.password(user.getPassword()));
+        user.setPassword(com.votricuong.mayhotel.utils.InputValidator.adminUserPassword(user.getPassword()));
         if (user.getFullName() != null && !user.getFullName().isBlank()) {
             user.setFullName(com.votricuong.mayhotel.utils.InputValidator.requiredText(
                     user.getFullName(), "Họ và tên", 100));
@@ -113,7 +113,7 @@ public class UserService {
         }
         if (userDetails.getPassword() != null && !userDetails.getPassword().isEmpty()) {
             user.setPassword(authService.hashPassword(
-                    com.votricuong.mayhotel.utils.InputValidator.password(userDetails.getPassword())));
+                    com.votricuong.mayhotel.utils.InputValidator.adminUserPassword(userDetails.getPassword())));
         }
         return userRepository.save(user);
     }

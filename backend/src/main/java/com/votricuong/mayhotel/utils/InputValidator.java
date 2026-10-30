@@ -60,6 +60,18 @@ public final class InputValidator {
         return password;
     }
 
+    /**
+     * Quy tắc dành riêng cho màn hình quản trị tài khoản /admin/users.
+     * Tách khỏi password() để không làm yếu chính sách đăng ký/đổi mật khẩu công khai.
+     */
+    public static String adminUserPassword(String value) {
+        String password = requiredText(value, "Mật khẩu", 100);
+        if (password.length() < 6) {
+            throw new IllegalArgumentException("Mật khẩu phải có ít nhất 6 ký tự");
+        }
+        return password;
+    }
+
     public static void stay(LocalDate checkIn, LocalDate checkOut) {
         if (checkIn == null || checkOut == null) throw new IllegalArgumentException("Ngày nhận và ngày trả phòng không được để trống");
         if (checkIn.isBefore(LocalDate.now())) throw new IllegalArgumentException("Ngày nhận phòng không được ở trong quá khứ");
