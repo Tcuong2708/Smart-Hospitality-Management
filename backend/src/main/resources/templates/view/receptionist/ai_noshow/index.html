@@ -12,28 +12,28 @@
         <div class="adm-page-head">
             <div class="adm-page-head-text">
                 <span class="adm-page-eyebrow">Nghiệp vụ</span>
-                <h1 class="adm-page-title">Dự đoán No-show</h1>
-                <p class="adm-page-sub">AI phân tích lịch sử giao dịch để đánh giá xác suất khách không đến nhận phòng
+                <h1 class="adm-page-title">Dự đoán khách không đến</h1>
+                <p class="adm-page-sub">Trí tuệ nhân tạo phân tích dữ liệu đặt phòng để đánh giá xác suất khách không đến nhận phòng
                 </p>
             </div>
             <div class="adm-page-head-actions">
                 <span th:if="${aiAvailable}" class="adm-badge adm-badge-success" style="height:40px;padding:0 16px;">
                     <span class="dot"></span>
-                    AI Model đang chạy
+                    Mô hình AI đang chạy
                 </span>
                 <span th:unless="${aiAvailable}" class="adm-badge adm-badge-neutral"
                     style="height:40px;padding:0 16px;">
                     <span class="dot"></span>
-                    AI chưa kết nối
+                    Mô hình AI chưa kết nối
                 </span>
 
                 <form th:action="@{/receptionist/ai-no-show/retrain}" method="post" style="display:inline;">
                     <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
                         th:value="${_csrf.token}">
                     <button type="submit" class="adm-btn adm-btn-primary" th:disabled="${!aiAvailable}"
-                        th:title="${aiAvailable ? 'Reset tất cả risk để AI dự đoán lại' : 'Cần khởi động AI service trước'}"
-                        onclick="return confirm('Reset toàn bộ rủi ro của các phiếu chờ nhận phòng? AI sẽ dự đoán lại từ đầu.');">
-                        <i class="bi bi-arrow-repeat"></i> Chạy lại AI
+                        th:title="${aiAvailable ? 'Phân tích lại tất cả phiếu đang chờ nhận phòng' : 'Cần khởi động dịch vụ AI trước'}"
+                        onclick="return confirm('Phân tích lại toàn bộ rủi ro của các phiếu chờ nhận phòng?');">
+                        <i class="bi bi-arrow-repeat"></i> Phân tích lại
                     </button>
                 </form>
 
@@ -57,9 +57,10 @@
         <div class="adm-alert adm-alert-warning">
             <i class="bi bi-robot"></i>
             <div>
-                <strong style="display:block; margin-bottom:4px;">Trợ lý AI phân tích rủi ro No-show</strong>
+                <strong style="display:block; margin-bottom:4px;">Trợ lý AI phân tích rủi ro khách không đến</strong>
                 <span>
                     Hệ thống tự động quét lịch sử giao dịch và đánh giá xác suất khách hàng không đến nhận phòng.
+                    Rủi ro thấp dưới 30%, trung bình từ 30% đến dưới 60% và cao từ 60% trở lên.
                     Với rủi ro <strong>Cao</strong>, thời gian hủy phòng an toàn được đặt lúc <strong>14:00</strong>
                     thay vì <strong>18:00</strong> mặc định để kịp giải phóng phòng bán cho khách khác.
                 </span>
@@ -70,12 +71,41 @@
         <div th:unless="${aiAvailable}" class="adm-alert adm-alert-info">
             <i class="bi bi-info-circle-fill"></i>
             <div>
-                <strong style="display:block; margin-bottom:4px;">AI Model chưa kết nối</strong>
+                <strong style="display:block; margin-bottom:4px;">Mô hình AI chưa kết nối</strong>
                 <span>
-                    Python service không phản hồi ở <code style="font-family:monospace;">127.0.0.1:5000</code>.
-                    Các phiếu chưa được phân tích sẽ hiển thị <strong>"Chưa xác định"</strong>.
-                    Khởi động Python service và bấm "Chạy lại AI" để dự đoán.
+                    Dịch vụ Python không phản hồi ở <code style="font-family:monospace;">127.0.0.1:5000</code>.
+                    Kiểm tra hai tệp <code>noshow_rf_model.pkl</code> và <code>model_columns.pkl</code>
+                    trong thư mục mô hình. Các phiếu chưa được phân tích sẽ hiển thị <strong>"Chưa xác định"</strong>.
+                    Khởi động dịch vụ Python và bấm "Phân tích lại" để dự đoán.
                 </span>
+            </div>
+        </div>
+
+        <!-- Chỉ số đánh giá mô hình trên tập kiểm thử Colab -->
+        <div class="adm-stat-kpis" style="margin-bottom:18px;">
+            <div class="adm-stat-kpi is-primary">
+                <span class="adm-stat-kpi-icon"><i class="bi bi-bullseye"></i></span>
+                <span class="adm-stat-kpi-label">Độ chính xác</span>
+                <strong class="adm-stat-kpi-value">87,03%</strong>
+                <span class="adm-stat-kpi-note">Trên 23.878 mẫu kiểm thử</span>
+            </div>
+            <div class="adm-stat-kpi">
+                <span class="adm-stat-kpi-icon"><i class="bi bi-check2-circle"></i></span>
+                <span class="adm-stat-kpi-label">Độ chính xác lớp không đến</span>
+                <strong class="adm-stat-kpi-value">87%</strong>
+                <span class="adm-stat-kpi-note">Precision lớp 1</span>
+            </div>
+            <div class="adm-stat-kpi is-gold">
+                <span class="adm-stat-kpi-icon"><i class="bi bi-search"></i></span>
+                <span class="adm-stat-kpi-label">Độ bao phủ lớp không đến</span>
+                <strong class="adm-stat-kpi-value">77%</strong>
+                <span class="adm-stat-kpi-note">Recall lớp 1</span>
+            </div>
+            <div class="adm-stat-kpi is-danger">
+                <span class="adm-stat-kpi-icon"><i class="bi bi-activity"></i></span>
+                <span class="adm-stat-kpi-label">Điểm F1 lớp không đến</span>
+                <strong class="adm-stat-kpi-value">82%</strong>
+                <span class="adm-stat-kpi-note">Cân bằng precision và recall</span>
             </div>
         </div>
 
@@ -97,7 +127,7 @@
                             <th>Khách hàng</th>
                             <th>Ngày nhận phòng</th>
                             <th class="col-center">Mức rủi ro</th>
-                            <th class="col-center">Xác suất No-show</th>
+                            <th class="col-center">Xác suất không đến</th>
                             <th class="col-center">Tự động hủy lúc</th>
                         </tr>
                     </thead>
@@ -105,7 +135,7 @@
                         <tr th:each="item : ${bookings}"
                             th:with="pct=${item.order.noShowRiskPercentage},
                                      hasRisk=${pct != null},
-                                     riskColor=${!hasRisk ? '#8A94A6' : (pct > 70 ? '#C0392B' : (pct > 30 ? '#A05A00' : '#1A7A3F'))},
+                                     riskColor=${!hasRisk ? '#8A94A6' : (pct >= 60 ? '#C0392B' : (pct >= 30 ? '#A05A00' : '#1A7A3F'))},
                                      initial=${item.customerName != null and !#strings.isEmpty(item.customerName) ? #strings.substring(item.customerName, 0, 1) : '?'}">
 
                             <td>
@@ -137,7 +167,7 @@
                                     </div>
                                     <div class="adm-date-line">
                                         <i class="bi bi-info-circle"></i>
-                                        <small class="text-muted" th:text="${item.order.status}">—</small>
+                                        <small class="text-muted" th:text="${item.statusLabel}">—</small>
                                     </div>
                                 </div>
                             </td>
@@ -159,7 +189,7 @@
                                     <div class="d-flex justify-between align-center mb-8">
                                         <strong class="fw-bold" th:style="|color: ${riskColor}|"
                                             th:text="${pct + '%'}">0%</strong>
-                                        <i th:if="${pct > 70}" class="bi bi-exclamation-triangle-fill text-danger"></i>
+                                        <i th:if="${pct >= 60}" class="bi bi-exclamation-triangle-fill text-danger"></i>
                                     </div>
                                     <div style="height:6px; background:#EEF0F3; border-radius:3px; overflow:hidden;">
                                         <div th:style="|height:100%; width:${pct}%; background:${riskColor}|"></div>

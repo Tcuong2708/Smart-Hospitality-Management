@@ -12,9 +12,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.temporal.ChronoUnit;
-import java.net.InetSocketAddress;
-import java.net.URI;
-import java.net.Socket;
+import java.time.DayOfWeek;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.LinkedHashMap;
@@ -30,6 +30,7 @@ public class NoShowPredictionService {
     private final SequenceGeneratorService sequenceGeneratorService;
     private final RestTemplate restTemplate;
     private final String predictionUrl;
+    private final String healthUrl;
 
     public NoShowPredictionService(
             BookingOrderRepository bookingOrderRepository,
@@ -43,7 +44,9 @@ public class NoShowPredictionService {
         this.riskAlertRepository = riskAlertRepository;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.restTemplate = restTemplate;
-        this.predictionUrl = aiServerUrl.replaceAll("/+$", "") + "/api/v1/ai/predict-noshow";
+        String baseUrl = aiServerUrl.replaceAll("/+$", "");
+        this.predictionUrl = baseUrl + "/api/v1/ai/predict-noshow";
+        this.healthUrl = baseUrl + "/api/v1/ai/health";
     }
 
     public BookingOrder analyzeAndSave(Long bookingId) {
@@ -65,7 +68,7 @@ public class NoShowPredictionService {
                 throw new IllegalStateException("AI thiếu tỷ lệ rủi ro");
             }
             double risk = Math.max(0, Math.min(100, ((Number) riskValue).doubleValue()));
-            String level = risk >= 70 ? "Cao" : risk >= 40 ? "Trung bình" : "Thấp";
+            String level = risk >= 60 ? "Cao" : risk >= 30 ? "Trung bình" : "Thấp";
             String reason = body.get("reason") == null
                     ? buildReason(features, level)
                     : body.get("reason").toString();
@@ -88,15 +91,12 @@ public class NoShowPredictionService {
         }
     }
 
-    /** Kiểm tra nhanh kết nối tới AI, không gọi dự đoán và không làm thay đổi dữ liệu. */
+    /** Kiểm tra cả kết nối và việc hai tệp mô hình No-show đã được nạp. */
     public boolean isAvailable() {
         try {
-            URI uri = URI.create(predictionUrl);
-            int port = uri.getPort() > 0 ? uri.getPort() : ("https".equalsIgnoreCase(uri.getScheme()) ? 443 : 80);
-            try (Socket socket = new Socket()) {
-                socket.connect(new InetSocketAddress(uri.getHost(), port), 700);
-                return true;
-            }
+            ResponseEntity<Map> response = restTemplate.getForEntity(healthUrl, Map.class);
+            if (!response.getStatusCode().is2xxSuccessful() || response.getBody() == null) return false;
+            return Boolean.TRUE.equals(response.getBody().get("no_show_ready"));
         } catch (Exception ignored) {
             return false;
         }
@@ -104,14 +104,22 @@ public class NoShowPredictionService {
 
     private Map<String, Object> buildFeatures(BookingOrder order) {
         long leadTime = 0;
-        long nights = 1;
+        long weekNights = 0;
+        long weekendNights = 0;
         if (order.getBookingDate() != null && order.getExpectedIn() != null) {
             leadTime = Math.max(0, ChronoUnit.DAYS.between(
                     order.getBookingDate().toInstant(), order.getExpectedIn().toInstant()));
         }
         if (order.getExpectedIn() != null && order.getExpectedOut() != null) {
-            nights = Math.max(1, ChronoUnit.DAYS.between(
-                    order.getExpectedIn().toInstant(), order.getExpectedOut().toInstant()));
+            LocalDate in = order.getExpectedIn().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            LocalDate out = order.getExpectedOut().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            for (LocalDate date = in; date.isBefore(out); date = date.plusDays(1)) {
+                if (date.getDayOfWeek() == DayOfWeek.FRIDAY || date.getDayOfWeek() == DayOfWeek.SATURDAY) {
+                    weekendNights++;
+                } else {
+                    weekNights++;
+                }
+            }
         }
         List<Invoice> invoices = invoiceRepository.findByBookingId(order.getId());
         boolean hasDeposit = invoices != null && invoices.stream().anyMatch(invoice ->
@@ -121,14 +129,49 @@ public class NoShowPredictionService {
 
         Map<String, Object> data = new LinkedHashMap<>();
         data.put("lead_time", leadTime);
-        data.put("adults", OnlineBookingPolicy.requiredIdentityVerifications(order));
-        int children = Math.max(order.getChildCount() == null ? 0 : order.getChildCount(), 0)
-                + Math.max(order.getInfantCount() == null ? 0 : order.getInfantCount(), 0);
+        int adults = Math.max(order.getAdultCount() == null
+                ? OnlineBookingPolicy.requiredIdentityVerifications(order) : order.getAdultCount(), 1);
+        int children = Math.max(order.getChildCount() == null ? 0 : order.getChildCount(), 0);
+        int babies = Math.max(order.getInfantCount() == null ? 0 : order.getInfantCount(), 0);
+        data.put("adults", adults);
         data.put("children", children);
-        data.put("stays_in_week_nights", nights);
+        data.put("babies", babies);
+        data.put("stays_in_week_nights", weekNights);
+        data.put("stays_in_weekend_nights", weekendNights);
         data.put("is_deposit", hasDeposit ? 1 : 0);
+        data.put("deposit_type", hasDeposit ? "Non Refund" : "No Deposit");
         data.put("total_of_special_requests", order.getNotes() == null || order.getNotes().isBlank() ? 0 : 1);
-        data.put("booking_source", order.getBookingSource() == null ? "UNKNOWN" : order.getBookingSource());
+        String bookingSource = order.getBookingSource() == null ? "UNKNOWN" : order.getBookingSource();
+        data.put("booking_source", bookingSource);
+        data.put("market_segment", bookingSource);
+        data.put("distribution_channel", bookingSource);
+
+        int previousCancellations = 0;
+        int previousCompleted = 0;
+        if (order.getCustomerId() != null) {
+            for (BookingOrder previous : bookingOrderRepository.findByCustomerIdOrderByBookingDateDesc(order.getCustomerId())) {
+                if (previous.getId() != null && previous.getId().equals(order.getId())) continue;
+                String status = previous.getStatus() == null ? "" : previous.getStatus().toLowerCase();
+                if (status.contains("hủy") || status.contains("cancel") || status.contains("không đến")) {
+                    previousCancellations++;
+                } else if (status.contains("trả phòng") || status.contains("checked-out")
+                        || status.contains("completed") || status.contains("hoàn thành")) {
+                    previousCompleted++;
+                }
+            }
+        }
+        data.put("is_repeated_guest", previousCompleted > 0 ? 1 : 0);
+        data.put("previous_cancellations", previousCancellations);
+        data.put("previous_bookings_not_canceled", previousCompleted);
+        data.put("customer_type", "Transient");
+
+        if (order.getExpectedIn() != null) {
+            LocalDate arrival = order.getExpectedIn().toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+            data.put("arrival_date_year", arrival.getYear());
+            data.put("arrival_date_month", arrival.getMonth().name());
+            data.put("arrival_date_week_number", arrival.get(java.time.temporal.WeekFields.ISO.weekOfWeekBasedYear()));
+            data.put("arrival_date_day_of_month", arrival.getDayOfMonth());
+        }
         return data;
     }
 

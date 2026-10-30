@@ -24,6 +24,7 @@ public class UserAdminController extends BaseController {
         List<User> users = userService.getAllUsers();
         setPageTitle(model, "Quản lý Người dùng");
         setExtraCSS(model, "view/admin/user/index :: extra_css");
+        setExtraJS(model, "view/admin/user/index :: extra_js");
         model.addAttribute("users", users);
         return render(model, "view/admin/user/index");
     }
@@ -69,7 +70,7 @@ public class UserAdminController extends BaseController {
         return "redirect:/admin/users";
     }
 
-    @GetMapping("/toggle-status/{id}")
+    @RequestMapping(value = "/toggle-status/{id}", method = {RequestMethod.GET, RequestMethod.POST})
     public String toggleStatus(@PathVariable Long id, RedirectAttributes ra) {
         try {
             userService.toggleStatus(id);
@@ -80,7 +81,7 @@ public class UserAdminController extends BaseController {
         return "redirect:/admin/users";
     }
 
-    @GetMapping("/delete/{id}")
+    @RequestMapping(value = "/delete/{id}", method = {RequestMethod.GET, RequestMethod.POST})
     public String delete(@PathVariable Long id, RedirectAttributes ra) {
         try {
             userService.deleteUser(id);

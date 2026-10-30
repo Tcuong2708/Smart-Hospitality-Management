@@ -42,7 +42,7 @@ public class AiNoShowController extends BaseController {
 
     @GetMapping("/ai-no-show")
     public String index(Model model) {
-        setPageTitle(model, "Trợ lý AI - Rủi ro No-show");
+        setPageTitle(model, "Trợ lý AI - Rủi ro khách không đến");
 
         List<BookingOrder> activeBookings = bookingOrderRepository.findAll();
         List<Map<String, Object>> displayList = new ArrayList<>();
@@ -51,6 +51,7 @@ public class AiNoShowController extends BaseController {
             if (isPendingCheckIn(order.getStatus())) {
                 Map<String, Object> map = new HashMap<>();
                 map.put("order", order);
+                map.put("statusLabel", statusLabel(order.getStatus()));
                 RiskAlert alert = riskAlertRepository.findFirstByBookingId(order.getId()).orElse(null);
                 map.put("riskAlert", alert);
                 
@@ -139,5 +140,17 @@ public class AiNoShowController extends BaseController {
                 || "Chờ nhận phòng".equals(status)
                 || "Đã xác nhận cọc".equals(status)
                 || "Reserved".equals(status);
+    }
+
+    private String statusLabel(String status) {
+        if (status == null || status.isBlank()) return "Chưa cập nhật";
+        return switch (status) {
+            case "Pending" -> "Chờ xác nhận";
+            case "Reserved" -> "Đã giữ phòng";
+            case "Checked-in", "CheckedIn" -> "Đã nhận phòng";
+            case "Checked-out", "CheckedOut" -> "Đã trả phòng";
+            case "Cancelled" -> "Đã hủy";
+            default -> status;
+        };
     }
 }

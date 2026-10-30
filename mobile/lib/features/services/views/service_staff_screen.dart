@@ -213,25 +213,37 @@ class _ServiceStaffScreenState extends State<ServiceStaffScreen> {
     showDialog<void>(
       context: context,
       builder: (dialogContext) => AlertDialog(
+        insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+        titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
         title: const Row(
           children: [
             Icon(Icons.receipt_long_rounded, color: _gold),
             SizedBox(width: 10),
-            Text('Xem trước hóa đơn 58 mm'),
+            Expanded(
+              child: Text(
+                'Xem trước hóa đơn 58 mm',
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(fontSize: 20),
+              ),
+            ),
           ],
         ),
         content: SizedBox(
-          width: 420,
+          width: 384,
           child: SingleChildScrollView(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 border: Border.all(color: Colors.grey.shade300),
               ),
-              child: Image.memory(imageBytes),
+              child: Image.memory(imageBytes, fit: BoxFit.fitWidth),
             ),
           ),
         ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
+        actionsOverflowAlignment: OverflowBarAlignment.end,
+        actionsOverflowButtonSpacing: 8,
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(dialogContext),

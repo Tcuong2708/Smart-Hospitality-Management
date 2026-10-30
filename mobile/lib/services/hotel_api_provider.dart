@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:may_hotel_app/features/admin/models/staff_model.dart';
@@ -370,6 +371,8 @@ class HotelApiProvider {
     required File selfieImage,
     String? identityValue,
     String? nfcProof,
+    bool? sodRead,
+    bool? activeAuthenticationResponded,
   }) async {
     try {
       final formData = FormData.fromMap({
@@ -379,13 +382,22 @@ class HotelApiProvider {
           'identityValue': identityValue.trim(),
         if (nfcProof != null && nfcProof.trim().isNotEmpty)
           'nfcProof': nfcProof.trim(),
+        if (sodRead != null) 'sodRead': sodRead,
+        if (activeAuthenticationResponded != null)
+          'activeAuthenticationResponded': activeAuthenticationResponded,
         'documentImage': await MultipartFile.fromFile(
           documentImage.path,
-          filename: 'identity-document.jpg',
+          filename: documentImage.path.toLowerCase().endsWith('.jp2')
+              ? 'identity-document.jp2'
+              : 'identity-document.jpg',
+          contentType: documentImage.path.toLowerCase().endsWith('.jp2')
+              ? MediaType('image', 'jp2')
+              : MediaType('image', 'jpeg'),
         ),
         'selfieImage': await MultipartFile.fromFile(
           selfieImage.path,
           filename: 'selfie.jpg',
+          contentType: MediaType('image', 'jpeg'),
         ),
       });
       final response = await _dio.post(

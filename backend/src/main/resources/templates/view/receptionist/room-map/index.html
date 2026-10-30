@@ -22,7 +22,7 @@
                     <i class="bi bi-plus-circle"></i> Thêm đặt phòng
                 </a>
                 <a th:href="@{/receptionist/check-in}" class="adm-btn adm-btn-outline">
-                    <i class="bi bi-journal-bookmark"></i> DS chờ Check-in
+                    <i class="bi bi-journal-bookmark"></i> Danh sách chờ nhận phòng
                 </a>
             </div>
         </div>
@@ -77,6 +77,22 @@
                             <button type="button" data-clear="capacity">Bỏ chọn</button>
                         </div>
                         <div class="adm-filter-popover-list" id="filterCapacityList"></div>
+                    </div>
+                </div>
+
+                <div class="adm-dropdown">
+                    <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterDirection">
+                        <i class="bi bi-compass"></i>
+                        <span>Hướng phòng</span>
+                        <span class="adm-filter-badge" id="badgeDirection" style="display:none;">0</span>
+                        <i class="bi bi-chevron-down chev"></i>
+                    </button>
+                    <div class="adm-filter-popover">
+                        <div class="adm-filter-popover-head">
+                            <strong>Hướng phòng</strong>
+                            <button type="button" data-clear="direction">Bỏ chọn</button>
+                        </div>
+                        <div class="adm-filter-popover-list" id="filterDirectionList"></div>
                     </div>
                 </div>
 
@@ -157,6 +173,7 @@
                                             : 'status-maintenance')))}" th:attr="data-floor=${floorEntry.key},
                                                   data-type=${room.maLoai},
                                                   data-capacity=${room.sucChua},
+                                                  data-direction=${room.view != null ? room.view : ''},
                                                   data-status=${room.maTrangThai}">
 
                                         <!-- Head: mã phòng + badge loại phòng -->
@@ -198,8 +215,8 @@
                                             <!-- ĐANG Ở: check-out + đổi phòng -->
                                             <th:block th:if="${room.maTrangThai == 2}">
                                                 <a th:href="@{/receptionist/check-out(roomId=${room.id})}"
-                                                    class="adm-btn adm-btn-outline" title="Check-out">
-                                                    <i class="bi bi-box-arrow-left"></i> Out
+                                                    class="adm-btn adm-btn-outline" title="Trả phòng">
+                                                    <i class="bi bi-box-arrow-left"></i> Trả phòng
                                                 </a>
                                                 <button type="button" class="adm-btn adm-btn-outline"
                                                     style="flex:0 0 34px;padding:0;" title="Đổi phòng"
@@ -336,12 +353,13 @@
                    ============================================================ */
                 function initFilterLists() {
                     var cards = document.querySelectorAll('.adm-room-card');
-                    var floors = new Set(), types = new Set(), caps = new Set(), statuses = new Set();
+                    var floors = new Set(), types = new Set(), caps = new Set(), directions = new Set(), statuses = new Set();
 
                     cards.forEach(function (c) {
                         if (c.dataset.floor) floors.add(c.dataset.floor);
                         if (c.dataset.type) types.add(c.dataset.type);
                         if (c.dataset.capacity) caps.add(c.dataset.capacity);
+                        if (c.dataset.direction) directions.add(c.dataset.direction);
                         if (c.dataset.status) statuses.add(c.dataset.status);
                     });
 
@@ -355,6 +373,10 @@
 
                     renderList('filterCapacityList', Array.from(caps).sort(numericSort), 'filter-capacity', function (v) {
                         return 'Tối đa ' + v + ' khách';
+                    });
+
+                    renderList('filterDirectionList', Array.from(directions).sort(), 'filter-direction', function (v) {
+                        return v;
                     });
 
                     var statusMap = { '1': 'Trống', '2': 'Đang ở', '3': 'Chờ dọn', '4': 'Đã đặt', '5': 'Bảo trì' };
@@ -385,7 +407,7 @@
                    FILTER EVENTS
                    ============================================================ */
                 function initFilterEvents() {
-                    document.querySelectorAll('.filter-floor, .filter-type, .filter-capacity, .filter-status')
+                    document.querySelectorAll('.filter-floor, .filter-type, .filter-capacity, .filter-direction, .filter-status')
                         .forEach(function (cb) {
                             cb.addEventListener('change', applyFilters);
                         });
@@ -410,6 +432,7 @@
                     var floors = pickValues('.filter-floor');
                     var types = pickValues('.filter-type');
                     var caps = pickValues('.filter-capacity');
+                    var directions = pickValues('.filter-direction');
                     var sts = pickValues('.filter-status');
 
                     var visibleCount = 0;
@@ -418,9 +441,10 @@
                         var matchFloor = !floors.length || floors.indexOf(card.dataset.floor) >= 0;
                         var matchType = !types.length || types.indexOf(card.dataset.type) >= 0;
                         var matchCap = !caps.length || caps.indexOf(card.dataset.capacity) >= 0;
+                        var matchDirection = !directions.length || directions.indexOf(card.dataset.direction) >= 0;
                         var matchSt = !sts.length || sts.indexOf(card.dataset.status) >= 0;
 
-                        var show = matchFloor && matchType && matchCap && matchSt;
+                        var show = matchFloor && matchType && matchCap && matchDirection && matchSt;
                         card.style.display = show ? '' : 'none';
                         if (show) visibleCount++;
                     });
@@ -452,6 +476,7 @@
                         { badge: 'badgeFloor', btn: 'btnFilterFloor', cls: '.filter-floor' },
                         { badge: 'badgeType', btn: 'btnFilterType', cls: '.filter-type' },
                         { badge: 'badgeCapacity', btn: 'btnFilterCapacity', cls: '.filter-capacity' },
+                        { badge: 'badgeDirection', btn: 'btnFilterDirection', cls: '.filter-direction' },
                         { badge: 'badgeStatus', btn: 'btnFilterStatus', cls: '.filter-status' }
                     ];
                     maps.forEach(function (m) {

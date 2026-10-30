@@ -912,6 +912,8 @@ public class MobileApiController {
             @RequestParam String method,
             @RequestParam(required = false) String identityValue,
             @RequestParam(required = false) String nfcProof,
+            @RequestParam(required = false, defaultValue = "false") boolean sodRead,
+            @RequestParam(required = false, defaultValue = "false") boolean activeAuthenticationResponded,
             @RequestPart("documentImage") MultipartFile documentImage,
             @RequestPart("selfieImage") MultipartFile selfieImage) {
         try {
@@ -955,7 +957,7 @@ public class MobileApiController {
                 identitySource = "REAL:" + documentNumber;
                 identityLast4 = identityVerificationService.last4(documentNumber);
                 // BAC/PACE controls chip access; without a trusted CSCA chain this is not official C06 verification.
-                trustLevel = "MEDIUM";
+                trustLevel = sodRead ? "LOCAL_CHIP_SOD_PRESENT" : "LOCAL_CHIP_READ";
             } else if ("LEGACY_NDEF".equals(normalizedMethod)) {
                 String documentNumber = com.votricuong.mayhotel.utils.InputValidator.requiredText(
                         identityValue, "Số CCCD từ thẻ NFC mô phỏng", 64);
@@ -993,6 +995,13 @@ public class MobileApiController {
             verification.put("trustLevel", trustLevel);
             verification.put("faceSimilarity", face.similarity());
             verification.put("verifiedAt", new Date());
+            if ("REAL_NFC".equals(normalizedMethod)) {
+                // These flags are research evidence only. Reading EF.SOD is not the same as
+                // validating its signer against an official Vietnamese CSCA trust store.
+                verification.put("sodPresent", sodRead);
+                verification.put("activeAuthenticationResponded", activeAuthenticationResponded);
+                verification.put("officialC06Verification", false);
+            }
             if (tokenHash != null) verification.put("nfcTokenIdHash", tokenHash);
             verifications.removeIf(item -> Objects.equals(asInteger(item.get("guestIndex")), guestIndex));
             verifications.add(verification);

@@ -97,11 +97,11 @@
                         <span></span>
                     </div>
 
-                    <button type="button" class="mh-auth-google" id="btn-google-login">
+                    <div class="mh-auth-google" id="btn-google-login" role="button" aria-label="Tiếp tục với Google">
                         <img src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
                             alt="Google">
                         <span>Tiếp tục với Google</span>
-                    </button>
+                    </div>
 
                     <p class="mh-auth-bottom">
                         Chưa có tài khoản?
@@ -119,7 +119,7 @@
 
     <th:block layout:fragment="additional-scripts">
         <script src="https://accounts.google.com/gsi/client" async defer></script>
-        <script>
+        <script th:inline="javascript">
             function togglePassword(btn) {
                 const input = btn.previousElementSibling;
                 const icon = btn.querySelector('i');
@@ -134,22 +134,35 @@
 
             document.addEventListener('DOMContentLoaded', () => {
                 const googleButton = document.getElementById('btn-google-login');
+                const googleClientId = /*[[${@environment.getProperty('google.oauth.client-id')}]]*/ '';
                 if (!googleButton) {
                     return;
                 }
 
-                googleButton.addEventListener('click', () => {
+                function initializeGoogleButton() {
                     if (!window.google || !window.google.accounts) {
-                        showGoogleError('Không tải được Google Sign-In. Vui lòng kiểm tra kết nối mạng và thử lại.');
+                        window.setTimeout(initializeGoogleButton, 250);
                         return;
                     }
-
+                    if (!googleClientId) {
+                        showGoogleError('Đăng nhập Google chưa được cấu hình.');
+                        return;
+                    }
                     google.accounts.id.initialize({
-                        client_id: '[[${@environment.getProperty('google.oauth.client-id')}]]',
+                        client_id: googleClientId,
                         callback: handleGoogleCredential
                     });
-                    google.accounts.id.prompt();
-                });
+                    google.accounts.id.renderButton(googleButton, {
+                        type: 'standard',
+                        theme: 'outline',
+                        size: 'large',
+                        text: 'continue_with',
+                        shape: 'rectangular',
+                        width: Math.max(280, Math.round(googleButton.getBoundingClientRect().width))
+                    });
+                }
+
+                initializeGoogleButton();
 
                 async function handleGoogleCredential(response) {
                     const csrfToken = document.querySelector('meta[name="_csrf"]')?.content;

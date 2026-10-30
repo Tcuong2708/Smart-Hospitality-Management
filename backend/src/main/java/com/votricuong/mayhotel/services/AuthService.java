@@ -1,16 +1,16 @@
 package com.votricuong.mayhotel.services;
 
-import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.auth.FirebaseToken;
-import com.google.auth.oauth2.GoogleCredentials;
-import com.google.firebase.FirebaseApp;
-import com.google.firebase.FirebaseOptions;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import com.votricuong.mayhotel.documents.OtpCode;
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.enums.Role;
 import com.votricuong.mayhotel.repositories.OtpCodeRepository;
 import com.votricuong.mayhotel.repositories.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -18,6 +18,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
+import java.util.Collections;
 import java.util.Optional;
 
 @Service
@@ -30,13 +31,18 @@ public class AuthService {
     private final EmailService emailService;
     private final SequenceGeneratorService sequenceGeneratorService;
     private final com.votricuong.mayhotel.repositories.CustomerRepository customerRepository;
+    private final String googleClientId;
 
-    public AuthService(UserRepository userRepository, OtpCodeRepository otpCodeRepository, EmailService emailService, SequenceGeneratorService sequenceGeneratorService, com.votricuong.mayhotel.repositories.CustomerRepository customerRepository) {
+    public AuthService(UserRepository userRepository, OtpCodeRepository otpCodeRepository, EmailService emailService,
+                       SequenceGeneratorService sequenceGeneratorService,
+                       com.votricuong.mayhotel.repositories.CustomerRepository customerRepository,
+                       @Value("${google.oauth.client-id:}") String googleClientId) {
         this.userRepository = userRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.emailService = emailService;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.customerRepository = customerRepository;
+        this.googleClientId = googleClientId == null ? "" : googleClientId.trim();
     }
 
     /**
@@ -211,28 +217,44 @@ public class AuthService {
         return userOpt.get();
     }
 
-    /**
-     * Hàm xác thực Token của Google Firebase.
-     * [NOTE]: Cần điền Firebase Key (google-services.json) thì code Firebase mới hoạt động thực tế.
-     */
+    /** Xác thực Google OpenID Connect ID token dùng chung cho Web và Mobile. */
     public User verifyGoogleToken(String idToken) throws Exception {
         try {
-            initializeFirebaseIfNeeded();
-            // Xác thực token bằng Firebase Admin SDK
-            FirebaseToken decodedToken = FirebaseAuth.getInstance().verifyIdToken(idToken);
-            String email = decodedToken.getEmail();
-            String name = decodedToken.getName();
+            if (googleClientId.isBlank()) {
+                throw new IllegalStateException("Google OAuth chưa được cấu hình");
+            }
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
+                    GoogleNetHttpTransport.newTrustedTransport(), GsonFactory.getDefaultInstance())
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+            GoogleIdToken googleToken = verifier.verify(idToken);
+            if (googleToken == null) {
+                throw new IllegalArgumentException("Google ID token không hợp lệ hoặc đã hết hạn");
+            }
+            GoogleIdToken.Payload payload = googleToken.getPayload();
+            String email = payload.getEmail();
+            String name = (String) payload.get("name");
+            if (email == null || email.isBlank() || !Boolean.TRUE.equals(payload.getEmailVerified())) {
+                throw new IllegalArgumentException("Tài khoản Google chưa xác minh email");
+            }
 
             // Kiểm tra email đã có trong hệ thống chưa
             Optional<User> existingUser = userRepository.findFirstByEmail(email);
             if (existingUser.isPresent()) {
-                return existingUser.get(); // Trả về user nếu đã tồn tại
+                User user = existingUser.get();
+                String status = user.getStatus();
+                if (status != null && !("Hoạt động".equalsIgnoreCase(status)
+                        || "Active".equalsIgnoreCase(status))) {
+                    throw new IllegalArgumentException("Tài khoản đã bị khóa");
+                }
+                return user;
             } else {
                 // Tự động tạo tài khoản mới nếu chưa có
                 User newUser = new User();
                 newUser.setId(sequenceGeneratorService.generateSequence("users_sequence"));
                 newUser.setEmail(email);
                 newUser.setUsername(email);
+                newUser.setFullName(name == null || name.isBlank() ? email : name);
                 newUser.setRoleId(5L);
                 newUser.setStatus("Hoạt động");
                 
@@ -255,11 +277,4 @@ public class AuthService {
         }
     }
 
-    private synchronized void initializeFirebaseIfNeeded() throws Exception {
-        if (!FirebaseApp.getApps().isEmpty()) return;
-        FirebaseOptions options = FirebaseOptions.builder()
-                .setCredentials(GoogleCredentials.getApplicationDefault())
-                .build();
-        FirebaseApp.initializeApp(options);
-    }
 }

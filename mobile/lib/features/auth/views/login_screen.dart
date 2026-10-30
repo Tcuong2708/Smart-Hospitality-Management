@@ -305,6 +305,18 @@ class _LoginScreenState extends State<LoginScreen> {
               child: Column(
                 children: [
                   SizedBox(height: Responsive.height(context) * 0.02),
+                  Image.asset(
+                    'assets/images/icon_app.png',
+                    width: Responsive.sp(context, 112),
+                    height: Responsive.sp(context, 112),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => Icon(
+                      Icons.hotel_rounded,
+                      size: Responsive.sp(context, 72),
+                      color: isDarkMode ? Colors.amber : colorScheme.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
                   Text(
                     "May Hotel",
                     style: TextStyle(

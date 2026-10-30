@@ -191,8 +191,11 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       });
       final result = await NfcService.readRealCccd(access);
       final directory = await getTemporaryDirectory();
+      final faceExtension = result.faceImageMimeType == 'image/jp2'
+          ? 'jp2'
+          : 'jpg';
       final face = File(
-        '${directory.path}${Platform.pathSeparator}mayhotel-chip-face-${widget.bookingId}-$_currentGuestIndex.jpg',
+        '${directory.path}${Platform.pathSeparator}mayhotel-chip-face-${widget.bookingId}-$_currentGuestIndex.$faceExtension',
       );
       await face.writeAsBytes(result.faceImageBytes!, flush: true);
       await _deleteChipFace();
@@ -201,9 +204,17 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         _chipFaceFile = face;
         _identityResult = result;
         _documentFront = null;
+        final last4 = (result.identityValue ?? '').length >= 4
+            ? (result.identityValue ?? '').substring(
+                (result.identityValue ?? '').length - 4,
+              )
+            : '----';
+        final holder = result.fullName?.trim().isNotEmpty == true
+            ? result.fullName!.trim()
+            : 'Chủ thẻ';
         _statusMessage = result.sodRead
-            ? 'Đã đọc DG1, DG2 và EF.SOD. Có thể xác thực khuôn mặt.'
-            : 'Đã đọc DG1/DG2; chưa kiểm tra được chuỗi chứng thư EF.SOD.';
+            ? 'Đã đọc chip cục bộ: $holder ••••$last4; có DG1, DG2 và EF.SOD. EF.SOD chưa được đối chiếu chuỗi CSCA/C06.'
+            : 'Đã đọc chip cục bộ: $holder ••••$last4; có DG1/DG2 nhưng chưa đọc được EF.SOD.';
       });
     } catch (error) {
       if (mounted) {
@@ -386,6 +397,13 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         selfieImage: selfie,
         identityValue: identity.identityValue,
         nfcProof: identity.ndefProof,
+        sodRead: identity.method == IdentityNfcMethod.realNfc
+            ? identity.sodRead
+            : null,
+        activeAuthenticationResponded:
+            identity.method == IdentityNfcMethod.realNfc
+            ? identity.activeAuthenticationAttempted
+            : null,
       );
       if (!mounted || response == null) return;
       final required =
@@ -454,9 +472,9 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     _showMessage(
       'Phiên đăng nhập cũ không còn hợp lệ. Vui lòng đăng nhập lại; dữ liệu xác thực hiện tại vẫn được giữ.',
     );
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(builder: (_) => const LoginScreen()),
-    );
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const LoginScreen()));
     return mounted && AuthStateService().currentAuth.isLoggedIn;
   }
 

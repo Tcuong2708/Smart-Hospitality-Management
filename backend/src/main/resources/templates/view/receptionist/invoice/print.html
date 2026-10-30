@@ -423,10 +423,10 @@
       <div class="inv-info right">
         <h3>Thông tin lưu trú</h3>
         <div class="inv-info-line">
-          Check-in: <b th:text="${#dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy')}">01/01/2026</b>
+          Nhận phòng: <b th:text="${#dates.format(invoice.ngayCheckIn, 'dd/MM/yyyy')}">01/01/2026</b>
         </div>
         <div class="inv-info-line">
-          Check-out: <b th:text="${#dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy')}">02/01/2026</b>
+          Trả phòng: <b th:text="${#dates.format(invoice.ngayCheckOut, 'dd/MM/yyyy')}">02/01/2026</b>
         </div>
         <div class="inv-info-nights" th:text="'(' + ${soDem} + ' đêm)'">(1 đêm)</div>
       </div>

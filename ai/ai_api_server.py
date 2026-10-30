@@ -31,6 +31,7 @@ import urllib.request
 import urllib.error
 import threading
 import time
+import calendar
 
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,13 +48,33 @@ from pyvi import ViTokenizer
 torch.set_num_threads(1)
 torch.set_num_interop_threads(1)
 
-BASE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "models")
+APP_DIR = os.path.dirname(os.path.abspath(__file__))
+BASE_DIR = os.getenv("AI_MODEL_DIR", os.path.join(APP_DIR, "models"))
 
-NOSHOW_MODEL_PATH = os.path.join(BASE_DIR, "noshow_rf_model.pkl")
-NOSHOW_COLS_PATH = os.path.join(BASE_DIR, "model_columns.pkl")
-CCCD_YOLO_PATH = os.path.join(BASE_DIR, "best.pt")
-SKLEARN_CHATBOT_PATH = os.path.join(BASE_DIR, "chatbot_sklearn.pkl")
-INTENTS_PATH = os.path.join(BASE_DIR, "intents.json")
+
+def resolve_model_path(env_name, filename):
+    """Resolve a model from an explicit env var, models/, or the AI app root."""
+    configured_path = os.getenv(env_name)
+    if configured_path:
+        return os.path.abspath(os.path.expanduser(configured_path))
+
+    candidates = (
+        os.path.join(BASE_DIR, filename),
+        os.path.join(APP_DIR, filename),
+    )
+    for candidate in candidates:
+        if os.path.isfile(candidate):
+            return candidate
+
+    # Keep the preferred destination in diagnostics when the file is missing.
+    return candidates[0]
+
+
+NOSHOW_MODEL_PATH = resolve_model_path("NOSHOW_MODEL_PATH", "noshow_rf_model.pkl")
+NOSHOW_COLS_PATH = resolve_model_path("NOSHOW_COLUMNS_PATH", "model_columns.pkl")
+CCCD_YOLO_PATH = resolve_model_path("CCCD_YOLO_PATH", "best.pt")
+SKLEARN_CHATBOT_PATH = resolve_model_path("SKLEARN_CHATBOT_PATH", "chatbot_sklearn.pkl")
+INTENTS_PATH = resolve_model_path("INTENTS_PATH", "intents.json")
 
 app = FastAPI(title="May Hotel AI Microservices", version="2.0")
 
@@ -557,13 +578,32 @@ async def predict_noshow(request: NoShowPredictionRequest):
 
     try:
         raw = request.data or {}
+        arrival_month = raw.get("arrival_date_month", "")
+        if isinstance(arrival_month, int) and 1 <= arrival_month <= 12:
+            arrival_month = calendar.month_name[arrival_month]
+        elif isinstance(arrival_month, str):
+            arrival_month = arrival_month.strip().title()
         df_input = pd.DataFrame([{
             "lead_time": max(int(raw.get("lead_time", 0)), 0),
             "adults": max(int(raw.get("adults", 1)), 1),
             "children": max(int(raw.get("children", 0)), 0),
-            "stays_in_week_nights": max(int(raw.get("stays_in_week_nights", 1)), 1),
+            "babies": max(int(raw.get("babies", 0)), 0),
+            "stays_in_week_nights": max(int(raw.get("stays_in_week_nights", 0)), 0),
+            "stays_in_weekend_nights": max(int(raw.get("stays_in_weekend_nights", 0)), 0),
             "is_deposit": 1 if int(raw.get("is_deposit", 0)) else 0,
+            "deposit_type": str(raw.get("deposit_type", "No Deposit")),
             "total_of_special_requests": max(int(raw.get("total_of_special_requests", 0)), 0),
+            "booking_source": str(raw.get("booking_source", "UNKNOWN")),
+            "market_segment": str(raw.get("market_segment", "UNKNOWN")),
+            "distribution_channel": str(raw.get("distribution_channel", "UNKNOWN")),
+            "is_repeated_guest": 1 if int(raw.get("is_repeated_guest", 0)) else 0,
+            "previous_cancellations": max(int(raw.get("previous_cancellations", 0)), 0),
+            "previous_bookings_not_canceled": max(int(raw.get("previous_bookings_not_canceled", 0)), 0),
+            "customer_type": str(raw.get("customer_type", "Transient")),
+            "arrival_date_year": max(int(raw.get("arrival_date_year", 0)), 0),
+            "arrival_date_month": str(arrival_month),
+            "arrival_date_week_number": max(int(raw.get("arrival_date_week_number", 0)), 0),
+            "arrival_date_day_of_month": max(int(raw.get("arrival_date_day_of_month", 0)), 0),
         }])
         df_encoded = pd.get_dummies(df_input)
         for col in model_columns:
@@ -571,7 +611,7 @@ async def predict_noshow(request: NoShowPredictionRequest):
                 df_encoded[col] = 0
         df_final = df_encoded[model_columns]
         probability = float(rf_model.predict_proba(df_final)[0][1] * 100)
-        level = "Cao" if probability >= 70 else ("Trung bình" if probability >= 40 else "Thấp")
+        level = "Cao" if probability >= 60 else ("Trung bình" if probability >= 30 else "Thấp")
         reason = (
             f"Mức {level}; lead time={df_input.iloc[0]['lead_time']} ngày; "
             f"đặt cọc={df_input.iloc[0]['is_deposit']}; "
@@ -587,6 +627,14 @@ async def predict_noshow(request: NoShowPredictionRequest):
         raise HTTPException(status_code=400, detail=f"Dữ liệu dự đoán không hợp lệ: {exc}") from exc
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Không thể dự đoán no-show: {exc}") from exc
+
+@app.get("/api/v1/ai/health")
+async def ai_health():
+    return {
+        "status": "success",
+        "no_show_ready": rf_model is not None and bool(model_columns),
+        "face_match_ready": True,
+    }
 
 @app.post("/api/v1/ai/chat")
 @app.post("/predict")

@@ -111,8 +111,17 @@ public class IdentityVerificationService {
             }
         };
         HttpHeaders partHeaders = new HttpHeaders();
-        MediaType type = file.getContentType() == null
-                ? MediaType.IMAGE_JPEG : MediaType.parseMediaType(file.getContentType());
+        MediaType type = MediaType.IMAGE_JPEG;
+        if (file.getContentType() != null) {
+            MediaType incomingType = MediaType.parseMediaType(file.getContentType());
+            // Several Android multipart clients send camera files as
+            // application/octet-stream. The bytes are still validated and
+            // decoded by the AI service, so forward them as JPEG instead of
+            // causing FastAPI's image content-type guard to reject the call.
+            if ("image".equalsIgnoreCase(incomingType.getType())) {
+                type = incomingType;
+            }
+        }
         partHeaders.setContentType(type);
         return new HttpEntity<>(resource, partHeaders);
     }

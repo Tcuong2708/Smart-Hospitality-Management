@@ -202,8 +202,8 @@ public class AuthController extends BaseController {
     }
 
     /**
-     * Hàm xử lý Đăng nhập bằng Google Firebase.
-     * Được Frontend (Ajax) gọi sau khi lấy được Token từ SDK Google.
+     * Xử lý đăng nhập Google OpenID Connect dùng chung Web và Mobile.
+     * Frontend gửi Google ID token để backend kiểm tra chữ ký, audience và email xác minh.
      */
     @PostMapping("/google-login")
     @ResponseBody // Trả về JSON cho Ajax xử lý thay vì điều hướng trang

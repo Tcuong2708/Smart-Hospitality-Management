@@ -118,11 +118,11 @@
                     </a>
                     <a th:href="@{/receptionist/check-in}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/check-in')} ? 'is-active'">
-                        <i class="bi bi-box-arrow-in-right"></i><span>Check-in</span>
+                        <i class="bi bi-box-arrow-in-right"></i><span>Nhận phòng</span>
                     </a>
                     <a th:href="@{/receptionist/check-out}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/check-out')} ? 'is-active'">
-                        <i class="bi bi-box-arrow-left"></i><span>Check-out</span>
+                        <i class="bi bi-box-arrow-left"></i><span>Trả phòng</span>
                     </a>
                     <a th:href="@{/receptionist/booking}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/booking')} ? 'is-active'">
@@ -134,7 +134,7 @@
                     </a>
                     <a th:href="@{/receptionist/ai-no-show}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/ai-no-show')} ? 'is-active'">
-                        <i class="bi bi-robot"></i><span>Dự đoán No-show</span>
+                        <i class="bi bi-robot"></i><span>Dự đoán khách không đến</span>
                     </a>
                 </div>
 
