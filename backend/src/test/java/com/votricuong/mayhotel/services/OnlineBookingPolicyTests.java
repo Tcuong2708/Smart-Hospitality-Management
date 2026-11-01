@@ -32,4 +32,20 @@ class OnlineBookingPolicyTests {
         assertThatThrownBy(() -> OnlineBookingPolicy.totalGuests(0, 1, 0))
                 .isInstanceOf(IllegalArgumentException.class);
     }
+
+    @Test
+    void vatIsCalculatedAfterDiscountsAndDepositUsesTaxInclusiveTotal() {
+        OnlineBookingPolicy.PriceBreakdown price = OnlineBookingPolicy.priceBreakdown(
+                500_000D, 0D, 0D, 0D);
+        assertThat(price.subtotal()).isEqualTo(500_000L);
+        assertThat(price.taxAmount()).isEqualTo(50_000L);
+        assertThat(price.totalAmount()).isEqualTo(550_000L);
+        assertThat(price.depositAmount()).isEqualTo(55_000L);
+
+        OnlineBookingPolicy.PriceBreakdown discounted = OnlineBookingPolicy.priceBreakdown(
+                500_000D, 100_000D, 50_000D, 50_000D);
+        assertThat(discounted.taxableAmount()).isEqualTo(500_000L);
+        assertThat(discounted.taxAmount()).isEqualTo(50_000L);
+        assertThat(discounted.totalAmount()).isEqualTo(550_000L);
+    }
 }

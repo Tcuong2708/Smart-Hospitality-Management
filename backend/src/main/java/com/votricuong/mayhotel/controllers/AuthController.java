@@ -8,8 +8,10 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import org.springframework.web.util.UriUtils;
+import org.springframework.http.ResponseEntity;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/account")
@@ -207,27 +209,34 @@ public class AuthController extends BaseController {
      */
     @PostMapping("/google-login")
     @ResponseBody // Trả về JSON cho Ajax xử lý thay vì điều hướng trang
-    public String handleGoogleLogin(@RequestParam("idToken") String idToken, HttpSession session) {
+    public ResponseEntity<Map<String, Object>> handleGoogleLogin(@RequestParam("idToken") String idToken,
+                                                                  HttpSession session) {
         try {
             User user = authService.verifyGoogleToken(idToken);
             session.setAttribute("user", user); // Lưu phiên làm việc
             
+            String redirect = "/";
             if (user.getRoleId() != null) {
                 if (user.getRoleId() == 1L) {
-                    return "{\"success\": true, \"redirect\": \"/admin/users\"}";
+                    redirect = "/admin/users";
                 } else if (user.getRoleId() == 2L) {
-                    return "{\"success\": true, \"redirect\": \"/manager/rooms\"}";
+                    redirect = "/manager/rooms";
                 } else if (user.getRoleId() == 3L) {
-                    return "{\"success\": true, \"redirect\": \"/receptionist/room-map\"}";
+                    redirect = "/receptionist/room-map";
                 } else if (user.getRoleId() == 4L || user.getRoleId() == 6L) {
-                    return "{\"success\": false, \"message\": \"Tài khoản này chỉ được phép đăng nhập trên Mobile\"}";
+                    session.invalidate();
+                    return ResponseEntity.status(403).body(Map.of(
+                            "success", false,
+                            "message", "Tài khoản này chỉ được phép đăng nhập trên Mobile"));
                 } else if (user.getRoleId() == 7L) {
-                    return "{\"success\": true, \"redirect\": \"/admin/statistical\"}";
+                    redirect = "/admin/statistical";
                 }
             }
-            return "{\"success\": true, \"redirect\": \"/\"}";
+            return ResponseEntity.ok(Map.of("success", true, "redirect", redirect));
         } catch (Exception e) {
-            return "{\"success\": false, \"message\": \"" + e.getMessage() + "\"}";
+            return ResponseEntity.badRequest().body(Map.of(
+                    "success", false,
+                    "message", e.getMessage() == null ? "Đăng nhập Google thất bại" : e.getMessage()));
         }
     }
     

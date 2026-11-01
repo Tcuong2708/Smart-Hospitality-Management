@@ -18,7 +18,8 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.Date;
-import java.util.Collections;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -32,17 +33,25 @@ public class AuthService {
     private final SequenceGeneratorService sequenceGeneratorService;
     private final com.votricuong.mayhotel.repositories.CustomerRepository customerRepository;
     private final String googleClientId;
+    private final List<String> googleAudiences;
 
     public AuthService(UserRepository userRepository, OtpCodeRepository otpCodeRepository, EmailService emailService,
                        SequenceGeneratorService sequenceGeneratorService,
                        com.votricuong.mayhotel.repositories.CustomerRepository customerRepository,
-                       @Value("${google.oauth.client-id:}") String googleClientId) {
+                       @Value("${google.oauth.client-id:}") String googleClientId,
+                       @Value("${google.oauth.audiences:}") String configuredAudiences) {
         this.userRepository = userRepository;
         this.otpCodeRepository = otpCodeRepository;
         this.emailService = emailService;
         this.sequenceGeneratorService = sequenceGeneratorService;
         this.customerRepository = customerRepository;
         this.googleClientId = googleClientId == null ? "" : googleClientId.trim();
+        String audiences = configuredAudiences == null ? "" : configuredAudiences.trim();
+        this.googleAudiences = Arrays.stream((audiences.isBlank() ? this.googleClientId : audiences).split(","))
+                .map(String::trim)
+                .filter(value -> !value.isBlank())
+                .distinct()
+                .toList();
     }
 
     /**
@@ -220,12 +229,12 @@ public class AuthService {
     /** Xác thực Google OpenID Connect ID token dùng chung cho Web và Mobile. */
     public User verifyGoogleToken(String idToken) throws Exception {
         try {
-            if (googleClientId.isBlank()) {
+            if (googleAudiences.isEmpty()) {
                 throw new IllegalStateException("Google OAuth chưa được cấu hình");
             }
             GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(
                     GoogleNetHttpTransport.newTrustedTransport(), GsonFactory.getDefaultInstance())
-                    .setAudience(Collections.singletonList(googleClientId))
+                    .setAudience(googleAudiences)
                     .build();
             GoogleIdToken googleToken = verifier.verify(idToken);
             if (googleToken == null) {

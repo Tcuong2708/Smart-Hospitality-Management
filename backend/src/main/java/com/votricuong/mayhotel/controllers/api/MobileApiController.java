@@ -596,8 +596,10 @@ public class MobileApiController {
             Invoice invoice = new Invoice();
             invoice.setId(sequenceGeneratorService.generateSequence("invoices_sequence"));
             invoice.setBookingId(order.getId());
-            invoice.setTotalAmount(total);
-            long depositAmount = com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(total);
+            com.votricuong.mayhotel.services.OnlineBookingPolicy.PriceBreakdown price =
+                    com.votricuong.mayhotel.services.OnlineBookingPolicy.priceBreakdown(total, 0D, 0D, 0D);
+            com.votricuong.mayhotel.services.OnlineBookingPolicy.applyPriceSnapshot(invoice, price);
+            long depositAmount = price.depositAmount();
             invoice.setInvoiceStatus("Awaiting Deposit");
             invoice.setCreatedAt(new Date());
             invoice.setUserId(userId);
@@ -609,10 +611,10 @@ public class MobileApiController {
             invoice.setIsPaid(false);
             invoice.setPayMethod("VNPAY_DEPOSIT");
             invoice.setDepositRate(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_RATE);
-            invoice.setDepositBaseAmount(Math.round(total));
+            invoice.setDepositBaseAmount(price.totalAmount());
             invoice.setDepositRequiredAmount(depositAmount);
             invoice.setDepositPaidAmount(0L);
-            invoice.setRemainingAmount(Math.max(0L, Math.round(total) - depositAmount));
+            invoice.setRemainingAmount(Math.max(0L, price.totalAmount() - depositAmount));
             invoice.setDepositStatus(com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_PENDING);
             invoice.setSurcharge(0.0);
             invoice.setNote(ghiChu);
@@ -621,7 +623,9 @@ public class MobileApiController {
             resp.put("bookingId", order.getId());
             resp.put("invoiceId", invoice.getId());
             resp.put("roomId", selectedRoom.getId());
-            resp.put("total", total);
+            resp.put("subtotal", price.subtotal());
+            resp.put("taxAmount", price.taxAmount());
+            resp.put("total", price.totalAmount());
             resp.put("depositAmount", depositAmount);
             resp.put("remainingAmount", invoice.getRemainingAmount());
             resp.put("paymentExpiresAt", order.getPaymentExpiresAt());

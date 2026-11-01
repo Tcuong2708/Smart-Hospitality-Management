@@ -335,10 +335,12 @@ public class BookingController extends BaseController {
 
         model.addAttribute("chosenServices", chosenServices);
         model.addAttribute("totalDichVu", totalDichVu);
-        model.addAttribute("finalTotal", currentBooking.getThanhTien() + totalDichVu);
-        model.addAttribute("depositAmount",
-                com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(
-                        currentBooking.getThanhTien()));
+        com.votricuong.mayhotel.services.OnlineBookingPolicy.PriceBreakdown initialPrice =
+                com.votricuong.mayhotel.services.OnlineBookingPolicy.priceBreakdown(
+                        currentBooking.getThanhTien(), totalDichVu, 0D, 0D);
+        model.addAttribute("priceBreakdown", initialPrice);
+        model.addAttribute("finalTotal", initialPrice.totalAmount());
+        model.addAttribute("depositAmount", initialPrice.depositAmount());
         
         // Push all services cho trường hợp muốn thêm dịch vụ
         model.addAttribute("listDichVu", serviceRepository.findAll());
@@ -571,9 +573,12 @@ public class BookingController extends BaseController {
             }
 
             double promotionDiscount = promotionQuote.discount();
-            double roomAndServiceTotal = tongGiaCacPhong - promotionDiscount + totalDichVu;
-            double pointsDiscount = Math.min(requestedPoints * 1000.0, roomAndServiceTotal);
+            double amountAfterPromotion = Math.max(0D, tongGiaCacPhong + totalDichVu - promotionDiscount);
+            double pointsDiscount = Math.min(requestedPoints * 1000.0, amountAfterPromotion);
             int pointsToRedeem = (int) Math.ceil(pointsDiscount / 1000.0);
+            com.votricuong.mayhotel.services.OnlineBookingPolicy.PriceBreakdown price =
+                    com.votricuong.mayhotel.services.OnlineBookingPolicy.priceBreakdown(
+                            tongGiaCacPhong, totalDichVu, promotionDiscount, pointsDiscount);
 
             // Xóa session
             session.removeAttribute("CurrentBooking");
@@ -585,21 +590,25 @@ public class BookingController extends BaseController {
             invoice.setBookingId(generatedMaHD);
             invoice.setCreatedAt(new Date());
             invoice.setGrossAmount(tongGiaCacPhong + totalDichVu);
+            invoice.setSubtotal((double) price.subtotal());
+            invoice.setDiscountAmount((double) price.discountAmount());
+            invoice.setTaxableAmount((double) price.taxableAmount());
+            invoice.setTaxRate(com.votricuong.mayhotel.services.OnlineBookingPolicy.TAX_RATE);
+            invoice.setTaxAmount((double) price.taxAmount());
             invoice.setPromoId(promotionQuote.promotion() == null ? null : promotionQuote.promotion().getId());
             invoice.setPromotionCode(promotionQuote.promotion() == null ? null : promotionQuote.promotion().getCode());
             invoice.setPromotionDiscount(promotionDiscount);
-            invoice.setTotalAmount(roomAndServiceTotal - pointsDiscount);
-            double netRoomAmount = Math.max(0D, tongGiaCacPhong - promotionDiscount - pointsDiscount);
-            long totalAmount = Math.round(roomAndServiceTotal - pointsDiscount);
+            invoice.setTotalAmount((double) price.totalAmount());
+            long totalAmount = price.totalAmount();
             long depositAmount = payAtHotel ? 0L
                     : fullOnline ? totalAmount
-                    : com.votricuong.mayhotel.services.OnlineBookingPolicy.depositAmount(netRoomAmount);
+                    : price.depositAmount();
             invoice.setPayMethod(payAtHotel ? "PAY_AT_HOTEL"
                     : fullOnline ? "VNPAY_FULL" : "VNPAY_DEPOSIT");
             invoice.setInvoiceStatus(payAtHotel ? "Pay at Hotel" : "Awaiting Payment");
             invoice.setDepositRate(payAtHotel ? 0D
                     : fullOnline ? 1D : com.votricuong.mayhotel.services.OnlineBookingPolicy.DEPOSIT_RATE);
-            invoice.setDepositBaseAmount(Math.round(netRoomAmount));
+            invoice.setDepositBaseAmount(totalAmount);
             invoice.setDepositRequiredAmount(depositAmount);
             invoice.setDepositPaidAmount(0L);
             invoice.setRemainingAmount(Math.max(0L, totalAmount - depositAmount));

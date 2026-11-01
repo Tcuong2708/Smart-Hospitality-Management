@@ -107,13 +107,15 @@
                                 <div class="mh-co-grid">
                                     <div class="mh-co-field">
                                         <label>Ngày nhận phòng <span class="req">*</span></label>
-                                        <input type="date" name="ngayNhan" id="mhNgayNhan" required
+                                        <input type="hidden" name="ngayNhan" id="mhNgayNhan"
                                             th:value="${currentBooking != null and currentBooking.ngayNhan != null ? currentBooking.ngayNhan : ''}">
+                                        <strong th:text="${currentBooking != null and currentBooking.ngayNhan != null ? #temporals.format(currentBooking.ngayNhan, 'dd/MM/yyyy') : '--'}">--</strong>
                                     </div>
                                     <div class="mh-co-field">
                                         <label>Ngày trả phòng <span class="req">*</span></label>
-                                        <input type="date" name="ngayTra" id="mhNgayTra" required
+                                        <input type="hidden" name="ngayTra" id="mhNgayTra"
                                             th:value="${currentBooking != null and currentBooking.ngayTra != null ? currentBooking.ngayTra : ''}">
+                                        <strong th:text="${currentBooking != null and currentBooking.ngayTra != null ? #temporals.format(currentBooking.ngayTra, 'dd/MM/yyyy') : '--'}">--</strong>
                                     </div>
                                 </div>
                                 <small id="mhDateWarn" style="display:none;color:#c0392b;margin-top:8px;">
@@ -129,8 +131,9 @@
                                                 style="color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;">(≥12
                                                 tuổi)</small>
                                         </label>
-                                        <input type="number" name="adults" id="mhAdults" min="1" max="20" required
-                                            th:value="${currentBooking != null ? currentBooking.adults : 2}">
+                                        <input type="hidden" name="adults" id="mhAdults"
+                                            th:value="${currentBooking != null ? currentBooking.adults : 1}">
+                                        <strong th:text="${currentBooking != null ? currentBooking.adults : 1}">1</strong>
                                     </div>
                                     <div class="mh-co-field">
                                         <label>Trẻ em
@@ -138,8 +141,9 @@
                                                 style="color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;">(6–11
                                                 tuổi · 50%)</small>
                                         </label>
-                                        <input type="number" name="children" id="mhChildren" min="0" max="10"
+                                        <input type="hidden" name="children" id="mhChildren"
                                             th:value="${currentBooking != null ? currentBooking.children : 0}">
+                                        <strong th:text="${currentBooking != null ? currentBooking.children : 0}">0</strong>
                                     </div>
                                     <div class="mh-co-field">
                                         <label>Em bé
@@ -147,8 +151,9 @@
                                                 style="color:var(--muted);font-weight:500;letter-spacing:0;text-transform:none;">(&lt;5
                                                 tuổi · Miễn phí)</small>
                                         </label>
-                                        <input type="number" name="infants" id="mhInfants" min="0" max="5"
+                                        <input type="hidden" name="infants" id="mhInfants"
                                             th:value="${currentBooking != null ? currentBooking.infants : 0}">
+                                        <strong th:text="${currentBooking != null ? currentBooking.infants : 0}">0</strong>
                                     </div>
                                 </div>
                                 <small id="mhGuestWarn" style="display:none;color:#c0392b;margin-top:8px;"></small>
@@ -393,8 +398,10 @@
                                         </div>
 
                                         <div class="mh-co-price-row">
-                                            <span>Thuế &amp; phí</span>
-                                            <strong style="color:var(--success);">Đã bao gồm</strong>
+                                            <span>Thuế GTGT (10%)</span>
+                                            <strong id="mhSumTax" th:text="${priceBreakdown != null
+                                                ? #numbers.formatDecimal(priceBreakdown.taxAmount(), 0, 'POINT', 0, 'COMMA') + ' đ'
+                                                : '0 đ'}">0 đ</strong>
                                         </div>
 
                                         <!-- Đổi điểm -->
@@ -479,6 +486,7 @@
                                             and currentBooking.loaiPhong.soNguoi != null
                                             ? currentBooking.loaiPhong.soNguoi : 2}]]*/ 2;
             window.MH_DICH_VU = /*[[${totalDichVu != null ? totalDichVu : 0}]]*/ 0;
+            window.MH_TAX_RATE = 0.10;
         </script>
 
         <script>
@@ -488,7 +496,7 @@
                 var $ = function (id) { return document.getElementById(id); };
                 var inNhan = $('mhNgayNhan'), inTra = $('mhNgayTra');
                 var elNhan = $('mhSumNgayNhan'), elTra = $('mhSumNgayTra'), elSoDem = $('mhSumSoDem');
-                var elTienPhong = $('mhSumTienPhong'), elTong = $('mhSumTong'), elQrAmount = $('mhCoQrAmount');
+                var elTienPhong = $('mhSumTienPhong'), elTax = $('mhSumTax'), elTong = $('mhSumTong'), elQrAmount = $('mhCoQrAmount');
                 var elPointsDiscount = $('mhPointsDiscount');
                 var elWarn = $('mhDateWarn');
                 var elGuestWarn = $('mhGuestWarn');
@@ -577,8 +585,7 @@
                     var soLuong = Number(window.MH_SO_LUONG) || 1;
 
                     var tienPhong = basePrice * soLuong * soDem;
-                    var phuTreEm = basePrice * 0.5 * g.children * soDem;
-                    var tongTruocGiam = tienPhong + phuTreEm + (Number(window.MH_DICH_VU) || 0);
+                    var tongTruocGiam = tienPhong + (Number(window.MH_DICH_VU) || 0);
 
                     var tong = Math.max(0, tongTruocGiam - voucherDiscount);
 
@@ -592,7 +599,11 @@
                     }
 
                     if (elSoDem) elSoDem.textContent = soDem;
-                    if (elTienPhong) elTienPhong.textContent = fmtTien(tienPhong + phuTreEm);
+                    var taxAmount = Math.round(tong * (Number(window.MH_TAX_RATE) || 0.10));
+                    tong += taxAmount;
+
+                    if (elTienPhong) elTienPhong.textContent = fmtTien(tienPhong);
+                    if (elTax) elTax.textContent = fmtTien(taxAmount);
                     if (elTong) elTong.textContent = fmtTien(tong);
                     if (elQrAmount) elQrAmount.textContent = fmtTien(tong);
 

@@ -11,6 +11,7 @@ import java.util.Date;
 public final class OnlineBookingPolicy {
 
     public static final double DEPOSIT_RATE = 0.10D;
+    public static final double TAX_RATE = 0.10D;
     public static final int PAYMENT_HOLD_MINUTES = 15;
     public static final String DEPOSIT_PENDING = "PENDING";
     public static final String DEPOSIT_PAID = "PAID";
@@ -42,6 +43,51 @@ public final class OnlineBookingPolicy {
                 .multiply(BigDecimal.valueOf(DEPOSIT_RATE))
                 .setScale(0, RoundingMode.HALF_UP)
                 .longValueExact();
+    }
+
+    /**
+     * Creates an immutable price snapshot for a booking. Discounts are applied
+     * before VAT; all values are rounded to whole VND so the invoice, UI and
+     * payment gateway always use the same amounts.
+     */
+    public static PriceBreakdown priceBreakdown(double roomAmount, double serviceAmount,
+                                                double promotionDiscount, double pointsDiscount) {
+        BigDecimal gross = money(roomAmount).add(money(serviceAmount));
+        BigDecimal requestedDiscount = money(promotionDiscount).add(money(pointsDiscount));
+        BigDecimal discount = requestedDiscount.min(gross);
+        BigDecimal taxableAmount = gross.subtract(discount).max(BigDecimal.ZERO);
+        BigDecimal taxAmount = taxableAmount.multiply(BigDecimal.valueOf(TAX_RATE))
+                .setScale(0, RoundingMode.HALF_UP);
+        BigDecimal totalAmount = taxableAmount.add(taxAmount);
+        return new PriceBreakdown(
+                gross.longValueExact(),
+                discount.longValueExact(),
+                taxableAmount.longValueExact(),
+                taxAmount.longValueExact(),
+                totalAmount.longValueExact());
+    }
+
+    private static BigDecimal money(double value) {
+        if (!Double.isFinite(value) || value <= 0D) return BigDecimal.ZERO;
+        return BigDecimal.valueOf(value).setScale(0, RoundingMode.HALF_UP);
+    }
+
+    public record PriceBreakdown(long subtotal, long discountAmount, long taxableAmount,
+                                 long taxAmount, long totalAmount) {
+        public long depositAmount() {
+            return OnlineBookingPolicy.depositAmount(totalAmount);
+        }
+    }
+
+    public static void applyPriceSnapshot(Invoice invoice, PriceBreakdown price) {
+        if (invoice == null || price == null) return;
+        invoice.setGrossAmount((double) price.subtotal());
+        invoice.setSubtotal((double) price.subtotal());
+        invoice.setDiscountAmount((double) price.discountAmount());
+        invoice.setTaxableAmount((double) price.taxableAmount());
+        invoice.setTaxRate(TAX_RATE);
+        invoice.setTaxAmount((double) price.taxAmount());
+        invoice.setTotalAmount((double) price.totalAmount());
     }
 
     public static Date paymentExpiryFromNow() {

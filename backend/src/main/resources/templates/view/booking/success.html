@@ -110,9 +110,29 @@
                             <div style="padding-top: 12px;">
                                 <div class="mh-sc-price-row">
                                     <span>Tiền phòng &amp; dịch vụ</span>
-                                    <strong th:text="${hoaDon.totalAmount != null
+                                    <strong th:text="${hoaDon.subtotal != null
+                                        ? #numbers.formatDecimal(hoaDon.subtotal, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                        : (hoaDon.totalAmount != null
                                         ? #numbers.formatDecimal(hoaDon.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'
-                                        : '0 đ'}">0 đ</strong>
+                                        : '0 đ')}">0 đ</strong>
+                                </div>
+
+                                <div class="mh-sc-price-row"
+                                    th:if="${hoaDon.discountAmount != null and hoaDon.discountAmount > 0}">
+                                    <span>Khuyến mãi &amp; điểm</span>
+                                    <strong style="color:var(--success);"
+                                        th:text="'- ' + ${#numbers.formatDecimal(hoaDon.discountAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">-
+                                        0 đ</strong>
+                                </div>
+
+                                <div class="mh-sc-price-row" th:if="${hoaDon.taxAmount != null}">
+                                    <span>Thuế 10%</span>
+                                    <strong th:text="${#numbers.formatDecimal(hoaDon.taxAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</strong>
+                                </div>
+
+                                <div class="mh-sc-price-row" th:if="${hoaDon.taxAmount == null}">
+                                    <span>Thuế &amp; phí</span>
+                                    <strong style="color:var(--success);">Theo dữ liệu hóa đơn cũ</strong>
                                 </div>
 
                                 <div class="mh-sc-price-row"
@@ -121,11 +141,6 @@
                                     <strong
                                         th:text="'+ ' + ${#numbers.formatDecimal(hoaDon.surcharge, 0, 'POINT', 0, 'COMMA')} + ' đ'">+
                                         0 đ</strong>
-                                </div>
-
-                                <div class="mh-sc-price-row">
-                                    <span>Thuế &amp; phí</span>
-                                    <strong style="color:var(--success);">Đã bao gồm</strong>
                                 </div>
 
                                 <!-- Đã cọc -->

@@ -225,8 +225,10 @@ public class ReceptionistBookingController extends BaseController {
                 invoice.setRoomId(room.getId());
                 long nights = ChronoUnit.DAYS.between(ngayNhan, ngayTra);
                 double unitPrice = room.getPrice() != null ? room.getPrice() : 0.0;
-                invoice.setGrossAmount(unitPrice * nights);
-                invoice.setTotalAmount(unitPrice * nights);
+                com.votricuong.mayhotel.services.OnlineBookingPolicy.PriceBreakdown price =
+                        com.votricuong.mayhotel.services.OnlineBookingPolicy.priceBreakdown(
+                                unitPrice * nights, 0D, 0D, 0D);
+                com.votricuong.mayhotel.services.OnlineBookingPolicy.applyPriceSnapshot(invoice, price);
             }
             // Luôn gán Reserved để hiển thị ở danh sách chờ Check-in
             invoice.setInvoiceStatus("Reserved");

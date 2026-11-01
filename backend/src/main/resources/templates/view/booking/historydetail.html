@@ -258,9 +258,32 @@
 
                         <div class="mh-dt-folio-row">
                             <span class="lbl">Tiền phòng &amp; dịch vụ</span>
-                            <span class="val" th:text="${hoaDon != null and hoaDon.totalAmount != null
+                            <span class="val" th:text="${hoaDon != null and hoaDon.subtotal != null
+                                            ? #numbers.formatDecimal(hoaDon.subtotal, 0, 'POINT', 0, 'COMMA') + ' đ'
+                                            : (hoaDon != null and hoaDon.totalAmount != null
                                             ? #numbers.formatDecimal(hoaDon.totalAmount, 0, 'POINT', 0, 'COMMA') + ' đ'
-                                            : '—'}">—</span>
+                                            : '—')}">—</span>
+                        </div>
+
+                        <div class="mh-dt-folio-row free"
+                            th:if="${hoaDon != null and hoaDon.discountAmount != null and hoaDon.discountAmount > 0}">
+                            <span class="lbl">Khuyến mãi &amp; điểm</span>
+                            <span class="val"
+                                th:text="'- ' + ${#numbers.formatDecimal(hoaDon.discountAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">-
+                                0 đ</span>
+                        </div>
+
+                        <div class="mh-dt-folio-row"
+                            th:if="${hoaDon != null and hoaDon.taxAmount != null}">
+                            <span class="lbl">Thuế 10%</span>
+                            <span class="val"
+                                th:text="${#numbers.formatDecimal(hoaDon.taxAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</span>
+                        </div>
+
+                        <div class="mh-dt-folio-row free"
+                            th:if="${hoaDon == null or hoaDon.taxAmount == null}">
+                            <span class="lbl">Thuế &amp; phí dịch vụ</span>
+                            <span class="val">Theo dữ liệu hóa đơn cũ</span>
                         </div>
 
                         <div class="mh-dt-folio-row surcharge"
@@ -293,11 +316,6 @@
                             <span class="val" style="color:var(--red);font-weight:800;"
                                 th:text="${#numbers.formatDecimal(hoaDon.remainingAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0
                                 đ</span>
-                        </div>
-
-                        <div class="mh-dt-folio-row free">
-                            <span class="lbl">Thuế &amp; phí dịch vụ</span>
-                            <span class="val">Đã bao gồm</span>
                         </div>
 
                         <div class="mh-dt-folio-total">

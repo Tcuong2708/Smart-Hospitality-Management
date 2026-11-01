@@ -27,3 +27,23 @@
 .btn-submit-booking { background-color: #ffc107; border: none; color: white; font-weight: bold; padding: 12px; border-radius: 5px; }
 .btn-submit-booking:hover { background-color: #e0a800; color: white; }        .form-label { color: #333; }
 .form-control:focus { border-color: #ffc107; box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25); }
+.mh-search-summary {
+    display: grid;
+    gap: 8px;
+    padding: 14px;
+    border: 1px solid #e2e7ef;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #334155;
+    line-height: 1.45;
+}
+
+.mh-search-summary a {
+    color: #9a7412;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.mh-search-summary a:hover {
+    text-decoration: underline;
+}

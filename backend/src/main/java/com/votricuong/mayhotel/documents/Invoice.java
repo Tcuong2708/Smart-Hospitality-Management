@@ -39,7 +39,23 @@ public class Invoice {
 
     @org.springframework.data.mongodb.core.mapping.Field("gross_amount")
     private Double grossAmount;
-    
+
+    /** Price snapshot. Legacy invoices keep these fields null and retain their old total. */
+    @org.springframework.data.mongodb.core.mapping.Field("subtotal")
+    private Double subtotal;
+
+    @org.springframework.data.mongodb.core.mapping.Field("discount_amount")
+    private Double discountAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("taxable_amount")
+    private Double taxableAmount;
+
+    @org.springframework.data.mongodb.core.mapping.Field("tax_rate")
+    private Double taxRate;
+
+    @org.springframework.data.mongodb.core.mapping.Field("tax_amount")
+    private Double taxAmount;
+
     @org.springframework.data.mongodb.core.mapping.Field("created_at")
     private Date createdAt;
     

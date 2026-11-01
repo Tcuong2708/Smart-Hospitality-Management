@@ -96,7 +96,9 @@ public class BookingApiController {
             Invoice invoice = new Invoice();
             invoice.setId(System.currentTimeMillis() % 1000000000L);
             invoice.setBookingId(order.getId());
-            invoice.setTotalAmount(total);
+            com.votricuong.mayhotel.services.OnlineBookingPolicy.PriceBreakdown price =
+                    com.votricuong.mayhotel.services.OnlineBookingPolicy.priceBreakdown(total, 0D, 0D, 0D);
+            com.votricuong.mayhotel.services.OnlineBookingPolicy.applyPriceSnapshot(invoice, price);
             invoice.setInvoiceStatus("Chờ thanh toán");
             invoice.setCreatedAt(new Date());
             invoiceRepository.save(invoice);
@@ -111,7 +113,8 @@ public class BookingApiController {
             response.put("success", true);
             response.put("maHD", invoice.getId());
             response.put("bookingId", order.getId());
-            response.put("tongTien", total);
+            response.put("tongTien", price.totalAmount());
+            response.put("thue", price.taxAmount());
             
             return ResponseEntity.ok(response);
             

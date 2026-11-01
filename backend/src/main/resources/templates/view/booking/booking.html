@@ -137,35 +137,33 @@
                                     </div>
                                 </div>
 
-                                <div class="mh-form-group" style="margin-bottom:16px;">
-                                    <label>Người lớn (12+)</label>
-                                    <input type="number" name="adultCount" min="1" th:value="${adults}" required>
-                                </div>
+                                <!-- Tiêu chí lưu trú chỉ được nhập một lần tại trang tra cứu. -->
+                                <input type="hidden" name="adultCount" th:value="${adults}">
+                                <input type="hidden" name="childCount" th:value="${children}">
+                                <input type="hidden" name="infantCount" th:value="${infants}">
+                                <input type="hidden" name="ngayNhan" id="mhNgayNhan" th:value="${checkin}">
+                                <input type="hidden" name="ngayTra" id="mhNgayTra" th:value="${checkout}">
 
                                 <div class="mh-form-group" style="margin-bottom:16px;">
-                                    <label>Trẻ em (6–11 tuổi)</label>
-                                    <input type="number" name="childCount" min="0" th:value="${children}" required>
-                                </div>
-
-                                <div class="mh-form-group" style="margin-bottom:16px;">
-                                    <label>Em bé (0–5 tuổi)</label>
-                                    <input type="number" name="infantCount" min="0" th:value="${infants}" required>
-                                </div>
-
-                                <div class="mh-form-group" style="margin-bottom:16px;">
-                                    <label>Ngày nhận phòng</label>
-                                    <input type="date" name="ngayNhan" id="mhNgayNhan" th:value="${checkin}" required>
-                                </div>
-
-                                <div class="mh-form-group" style="margin-bottom:16px;">
-                                    <label>Ngày trả phòng</label>
-                                    <input type="date" name="ngayTra" id="mhNgayTra" th:value="${checkout}" required>
+                                    <label>Thông tin đã chọn</label>
+                                    <div class="mh-search-summary">
+                                        <div><strong>Nhận:</strong> <span th:text="${#temporals.format(T(java.time.LocalDate).parse(checkin), 'dd/MM/yyyy')}">--</span></div>
+                                        <div><strong>Trả:</strong> <span th:text="${#temporals.format(T(java.time.LocalDate).parse(checkout), 'dd/MM/yyyy')}">--</span></div>
+                                        <div><strong>Khách:</strong>
+                                            <span th:text="${adults + ' người lớn, ' + children + ' trẻ em, ' + infants + ' em bé'}">--</span>
+                                        </div>
+                                        <a th:href="@{/rooms(checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants})}">Thay đổi tìm kiếm</a>
+                                    </div>
                                 </div>
 
                                 <div class="mh-price-breakdown">
                                     <div class="mh-price-row">
                                         <span>Tạm tính <span id="mhSoDem">1</span> đêm</span>
                                         <strong id="mhTienPhong">0 đ</strong>
+                                    </div>
+                                    <div class="mh-price-row">
+                                        <span>Thuế GTGT (10%)</span>
+                                        <strong id="mhTienThue">0 đ</strong>
                                     </div>
                                     <div class="mh-price-total">
                                         <span>Tổng cộng</span>
@@ -202,6 +200,7 @@
                 var inputNgayTra = document.getElementById('mhNgayTra');
                 var elSoDem = document.getElementById('mhSoDem');
                 var elTienPhong = document.getElementById('mhTienPhong');
+                var elTienThue = document.getElementById('mhTienThue');
                 var elTongCong = document.getElementById('mhTongCong');
 
                 function formatTien(n) {
@@ -222,9 +221,11 @@
                     inputSoLuong.value = soLuong;
 
                     var tienPhong = giaPhong * soLuong * soDem;
+                    var tienThue = Math.round(tienPhong * 0.10);
                     elSoDem.textContent = soDem;
                     elTienPhong.textContent = formatTien(tienPhong);
-                    elTongCong.textContent = formatTien(tienPhong);
+                    elTienThue.textContent = formatTien(tienThue);
+                    elTongCong.textContent = formatTien(tienPhong + tienThue);
                 }
 
                 document.querySelectorAll('[data-mh-qty]').forEach(function (btn) {
