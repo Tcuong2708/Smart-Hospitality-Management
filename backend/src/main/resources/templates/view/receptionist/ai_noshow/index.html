@@ -211,6 +211,10 @@
                                         th:text="${#dates.format(item.order.autoCancelTime, 'HH:mm')}">--:--</strong>
                                     <div class="text-muted" style="font-size:11.5px;"
                                         th:text="${#dates.format(item.order.autoCancelTime, 'dd/MM/yyyy')}">—</div>
+                                    <div th:if="${item.order.lateArrivalApproved}" class="adm-badge adm-badge-warning"
+                                        style="margin-top:6px;white-space:nowrap;">
+                                        Đã báo đến trễ
+                                    </div>
                                 </th:block>
                                 <span th:if="${item.order.autoCancelTime == null}" class="text-muted">—</span>
                             </td>
