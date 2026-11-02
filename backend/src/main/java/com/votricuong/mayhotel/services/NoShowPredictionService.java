@@ -198,13 +198,12 @@ public class NoShowPredictionService {
         Calendar calendar = Calendar.getInstance(java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         calendar.setTime(order.getExpectedIn());
         if (Boolean.TRUE.equals(order.getLateArrivalApproved())) {
-            calendar.add(Calendar.DAY_OF_MONTH, 1);
-            hour = 0;
+            hour = 23;
         }
         calendar.set(Calendar.HOUR_OF_DAY, hour);
-        calendar.set(Calendar.MINUTE, 0);
-        calendar.set(Calendar.SECOND, 0);
-        calendar.set(Calendar.MILLISECOND, 0);
+        calendar.set(Calendar.MINUTE, Boolean.TRUE.equals(order.getLateArrivalApproved()) ? 59 : 0);
+        calendar.set(Calendar.SECOND, Boolean.TRUE.equals(order.getLateArrivalApproved()) ? 59 : 0);
+        calendar.set(Calendar.MILLISECOND, Boolean.TRUE.equals(order.getLateArrivalApproved()) ? 999 : 0);
         return calendar.getTime();
     }
 

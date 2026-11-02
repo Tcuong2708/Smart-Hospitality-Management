@@ -138,23 +138,22 @@ public class AiNoShowController extends BaseController {
         order.setLateArrivalReason(reason == null ? "" : reason.trim());
         order.setLateArrivalAt(new java.util.Date());
         order.setLateArrivalApprovedBy(staff == null ? null : staff.getId());
-        order.setAutoCancelTime(nextDayMidnight(order.getExpectedIn()));
+        order.setAutoCancelTime(endOfCheckInDay(order.getExpectedIn()));
         bookingOrderRepository.save(order);
-        redirectAttributes.addFlashAttribute("success", "Đã ghi nhận khách báo nhận phòng trễ. Phiếu #" + bookingId
-                + " được giữ đến 00:00 ngày hôm sau; quá hạn hệ thống vẫn tự động hủy.");
+        redirectAttributes.addFlashAttribute("success", "Đã hủy lịch tự động lúc 14:00/18:00 cho phiếu #" + bookingId
+                + ". Đơn được giữ đến 23:59 ngày nhận phòng; nếu khách vẫn không đến, hệ thống sẽ tự động hủy.");
         return "redirect:/receptionist/ai-no-show";
     }
 
-    private java.util.Date nextDayMidnight(java.util.Date expectedIn) {
+    private java.util.Date endOfCheckInDay(java.util.Date expectedIn) {
         if (expectedIn == null) return null;
         java.util.Calendar calendar = java.util.Calendar.getInstance(
                 java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
         calendar.setTime(expectedIn);
-        calendar.add(java.util.Calendar.DAY_OF_MONTH, 1);
-        calendar.set(java.util.Calendar.HOUR_OF_DAY, 0);
-        calendar.set(java.util.Calendar.MINUTE, 0);
-        calendar.set(java.util.Calendar.SECOND, 0);
-        calendar.set(java.util.Calendar.MILLISECOND, 0);
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 23);
+        calendar.set(java.util.Calendar.MINUTE, 59);
+        calendar.set(java.util.Calendar.SECOND, 59);
+        calendar.set(java.util.Calendar.MILLISECOND, 999);
         return calendar.getTime();
     }
 

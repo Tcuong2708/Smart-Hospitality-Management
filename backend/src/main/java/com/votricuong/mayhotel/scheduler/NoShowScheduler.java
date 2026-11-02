@@ -64,17 +64,16 @@ public class NoShowScheduler {
     }
 
     private Date resolveAutoCancelTime(BookingOrder order) {
-        // Khách đã báo đến trễ chỉ được gia hạn đến 00:00 ngày hôm sau.
+        // Khách đã báo đến trễ được hủy mốc 14:00/18:00 và gia hạn đến 23:59 ngày nhận phòng.
         // Không bỏ lịch vô thời hạn vì phòng phải được giải phóng nếu khách vẫn không đến.
         if (Boolean.TRUE.equals(order.getLateArrivalApproved()) && order.getExpectedIn() != null) {
             java.util.Calendar extended = java.util.Calendar.getInstance(
                     java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
             extended.setTime(order.getExpectedIn());
-            extended.add(java.util.Calendar.DAY_OF_MONTH, 1);
-            extended.set(java.util.Calendar.HOUR_OF_DAY, 0);
-            extended.set(java.util.Calendar.MINUTE, 0);
-            extended.set(java.util.Calendar.SECOND, 0);
-            extended.set(java.util.Calendar.MILLISECOND, 0);
+            extended.set(java.util.Calendar.HOUR_OF_DAY, 23);
+            extended.set(java.util.Calendar.MINUTE, 59);
+            extended.set(java.util.Calendar.SECOND, 59);
+            extended.set(java.util.Calendar.MILLISECOND, 999);
             return extended.getTime();
         }
         if (order.getAutoCancelTime() != null) {

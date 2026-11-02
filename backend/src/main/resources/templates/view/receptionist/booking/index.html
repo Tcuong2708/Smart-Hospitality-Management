@@ -85,7 +85,7 @@
                         th:value="${_csrf.token}">
 
                     <div class="adm-modal-head">
-                        <h3><i class="bi bi-calendar-plus"></i> Đặt phòng trực tiếp</h3>
+                        <h3><i class="bi bi-calendar-plus"></i> Thêm đặt phòng</h3>
                         <button type="button" class="adm-modal-close" data-adm-close>
                             <i class="bi bi-x-lg"></i>
                         </button>
@@ -181,6 +181,14 @@
                                     <div class="adm-field"></div>
                                 </div>
 
+                                <label style="margin-top:16px;display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-cream);cursor:pointer;">
+                                    <input type="checkbox" name="checkInNow" value="true" checked style="width:18px;height:18px;margin-top:2px;">
+                                    <span style="display:flex;flex-direction:column;gap:4px;">
+                                        <strong>Nhận phòng ngay</strong>
+                                        <small style="color:var(--muted);">Áp dụng cho khách đặt trực tiếp tại quầy hôm nay; phòng sẽ chuyển sang trạng thái đang ở.</small>
+                                    </span>
+                                </label>
+
                             </div>
                         </div>
 
@@ -189,7 +197,7 @@
                     <div class="adm-modal-foot">
                         <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
                         <button type="submit" class="adm-btn adm-btn-gold" id="btn-confirm-booking">
-                            <i class="bi bi-check-circle"></i> Xác nhận đặt phòng
+                            <i class="bi bi-check-circle"></i> Lưu đơn đặt phòng
                         </button>
                     </div>
                 </form>

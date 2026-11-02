@@ -723,8 +723,8 @@ public class MobileOperationsApiController {
                     string(payload.get("reason")), "Lý do nhận phòng trễ", 300));
             order.setLateArrivalAt(new Date());
             order.setLateArrivalApprovedBy(claims.userId());
-            order.setAutoCancelTime(null);
-            return ok("Đã ghi nhận khách nhận phòng trễ", bookingOrderRepository.save(order));
+            order.setAutoCancelTime(endOfCheckInDay(order.getExpectedIn()));
+            return ok("Đã dời lịch tự động hủy đến 23:59 ngày nhận phòng", bookingOrderRepository.save(order));
         });
     }
 
@@ -1077,6 +1077,18 @@ public class MobileOperationsApiController {
         } catch (DateTimeParseException ex) {
             throw new IllegalArgumentException("Ngày phải có định dạng yyyy-MM-dd");
         }
+    }
+
+    private Date endOfCheckInDay(Date expectedIn) {
+        if (expectedIn == null) return null;
+        java.util.Calendar calendar = java.util.Calendar.getInstance(
+                java.util.TimeZone.getTimeZone("Asia/Ho_Chi_Minh"));
+        calendar.setTime(expectedIn);
+        calendar.set(java.util.Calendar.HOUR_OF_DAY, 23);
+        calendar.set(java.util.Calendar.MINUTE, 59);
+        calendar.set(java.util.Calendar.SECOND, 59);
+        calendar.set(java.util.Calendar.MILLISECOND, 999);
+        return calendar.getTime();
     }
 
     private String csv(Object value) {

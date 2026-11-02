@@ -126,6 +126,7 @@
                             <th class="col-center">Mức rủi ro</th>
                             <th class="col-center">Xác suất không đến</th>
                             <th class="col-center">Tự động hủy lúc</th>
+                            <th class="col-center">Xử lý liên hệ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -217,6 +218,21 @@
                                     </div>
                                 </th:block>
                                 <span th:if="${item.order.autoCancelTime == null}" class="text-muted">—</span>
+                            </td>
+                            <td class="col-center" style="min-width:190px;">
+                                <form th:if="${!item.order.lateArrivalApproved}"
+                                    th:action="@{/receptionist/ai-no-show/late-arrival}" method="post"
+                                    onsubmit="return confirm('Khách đã liên hệ báo đến trễ? Lịch hủy 14:00/18:00 sẽ được dời đến 23:59 ngày nhận phòng.');">
+                                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <input type="hidden" name="bookingId" th:value="${item.order.id}">
+                                    <input type="hidden" name="reason" value="Khách đã liên hệ lễ tân và báo sẽ đến trễ">
+                                    <button type="submit" class="adm-btn adm-btn-outline" style="padding:8px 11px;white-space:nowrap;">
+                                        <i class="bi bi-telephone-check"></i> Dời hủy đến 23:59
+                                    </button>
+                                </form>
+                                <span th:if="${item.order.lateArrivalApproved}" class="text-muted" style="font-size:12px;">
+                                    Đã dời lịch đến 23:59
+                                </span>
                             </td>
                         </tr>
                     </tbody>
