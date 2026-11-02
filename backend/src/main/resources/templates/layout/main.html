@@ -27,7 +27,16 @@
     <!-- ── Top ticker ── -->
     <div class="top-ticker">
         <div class="ticker-track">
-            <span><i class="fa-solid fa-bolt"></i> Ưu đãi hôm nay — tiết kiệm đến 20% cho khách đặt sớm</span>
+            <th:block th:if="${publicPromotionMessages != null and !#lists.isEmpty(publicPromotionMessages)}">
+                <span th:each="message : ${publicPromotionMessages}">
+                    <i class="fa-solid fa-bolt"></i>
+                    <strong>Ưu đãi đang áp dụng:</strong>
+                    <th:block th:text="${message}">Khuyến mãi</th:block>
+                </span>
+            </th:block>
+            <span th:if="${publicPromotionMessages == null or #lists.isEmpty(publicPromotionMessages)}">
+                <i class="fa-solid fa-bolt"></i> Theo dõi các chương trình ưu đãi mới tại May Hotel
+            </span>
             <span><i class="fa-solid fa-wand-magic-sparkles"></i> Phòng sạch đẹp, tiện nghi đầy đủ, hỗ trợ 24/7</span>
             <span><i class="fa-solid fa-umbrella-beach"></i> Trải nghiệm lưu trú đẳng cấp tại May Hotel</span>
             <span><i class="fa-solid fa-bell-concierge"></i> Lễ tân thân thiện — thanh toán tiện lợi</span>

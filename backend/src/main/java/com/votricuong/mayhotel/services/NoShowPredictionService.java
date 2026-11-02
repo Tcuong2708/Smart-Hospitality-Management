@@ -125,6 +125,9 @@ public class NoShowPredictionService {
         boolean hasDeposit = invoices != null && invoices.stream().anyMatch(invoice ->
                 Boolean.TRUE.equals(invoice.getIsPaid())
                         || OnlineBookingPolicy.DEPOSIT_PAID.equalsIgnoreCase(invoice.getDepositStatus())
+                        || (invoice.getDepositPaidAmount() != null && invoice.getDepositPaidAmount() > 0)
+                        || "DEPOSITED".equalsIgnoreCase(invoice.getPaymentStage())
+                        || "PAID".equalsIgnoreCase(invoice.getPaymentStage())
                         || "Paid".equalsIgnoreCase(invoice.getInvoiceStatus()));
 
         Map<String, Object> data = new LinkedHashMap<>();

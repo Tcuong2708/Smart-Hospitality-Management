@@ -5,9 +5,11 @@ import com.votricuong.mayhotel.documents.BookingOrder;
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.documents.Customer;
 import com.votricuong.mayhotel.documents.RiskAlert;
+import com.votricuong.mayhotel.documents.Invoice;
 import com.votricuong.mayhotel.repositories.BookingOrderRepository;
 import com.votricuong.mayhotel.repositories.CustomerRepository;
 import com.votricuong.mayhotel.repositories.RiskAlertRepository;
+import com.votricuong.mayhotel.repositories.InvoiceRepository;
 import com.votricuong.mayhotel.services.NoShowPredictionService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,6 +42,9 @@ public class AiNoShowController extends BaseController {
     @Autowired
     private NoShowPredictionService noShowPredictionService;
 
+    @Autowired
+    private InvoiceRepository invoiceRepository;
+
     @GetMapping("/ai-no-show")
     public String index(Model model) {
         setPageTitle(model, "Trợ lý AI - Rủi ro khách không đến");
@@ -54,6 +59,10 @@ public class AiNoShowController extends BaseController {
                 map.put("statusLabel", statusLabel(order.getStatus()));
                 RiskAlert alert = riskAlertRepository.findFirstByBookingId(order.getId()).orElse(null);
                 map.put("riskAlert", alert);
+                PaymentSummary payment = paymentSummary(order.getId());
+                map.put("paymentLabel", payment.label());
+                map.put("paymentAmount", payment.amount());
+                map.put("paymentClass", payment.cssClass());
                 
                 String customerName = "Khách vãng lai";
                 String customerPhone = "";
@@ -153,4 +162,31 @@ public class AiNoShowController extends BaseController {
             default -> status;
         };
     }
+
+    private PaymentSummary paymentSummary(Long bookingId) {
+        if (bookingId == null) return new PaymentSummary("Chưa thanh toán", 0L, "adm-badge-neutral");
+        List<Invoice> invoices = invoiceRepository.findByBookingId(bookingId);
+        if (invoices == null || invoices.isEmpty()) {
+            return new PaymentSummary("Chưa thanh toán", 0L, "adm-badge-neutral");
+        }
+
+        boolean fullyPaid = invoices.stream().anyMatch(invoice -> Boolean.TRUE.equals(invoice.getIsPaid())
+                || "Paid".equalsIgnoreCase(invoice.getInvoiceStatus())
+                || "PAID".equalsIgnoreCase(invoice.getPaymentStage()));
+        long paidAmount = invoices.stream().mapToLong(invoice -> {
+            if (fullyPaid && invoice.getTotalAmount() != null) return Math.round(invoice.getTotalAmount());
+            return invoice.getDepositPaidAmount() == null ? 0L : invoice.getDepositPaidAmount();
+        }).sum();
+        if (fullyPaid) return new PaymentSummary("Đã thanh toán toàn bộ", paidAmount, "adm-badge-success");
+
+        boolean deposited = invoices.stream().anyMatch(invoice ->
+                (invoice.getDepositPaidAmount() != null && invoice.getDepositPaidAmount() > 0)
+                        || "PAID".equalsIgnoreCase(invoice.getDepositStatus())
+                        || "DEPOSITED".equalsIgnoreCase(invoice.getPaymentStage())
+                        || "Deposit Paid".equalsIgnoreCase(invoice.getInvoiceStatus()));
+        if (deposited) return new PaymentSummary("Đã thanh toán tiền cọc", paidAmount, "adm-badge-warning");
+        return new PaymentSummary("Chưa thanh toán", 0L, "adm-badge-neutral");
+    }
+
+    private record PaymentSummary(String label, long amount, String cssClass) {}
 }

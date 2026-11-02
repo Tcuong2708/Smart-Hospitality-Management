@@ -238,10 +238,14 @@
                             </div>
 
                             <div class="mh-detail-book-price">
+                                <del th:if="${publicPrice != null and publicPrice.discounted}"
+                                    th:text="${'VND ' + #numbers.formatDecimal(publicPrice.originalPerNight, 0, 'POINT', 0, 'COMMA')}">VND 500.000</del>
                                 <strong
-                                    th:text="${'VND ' + #numbers.formatDecimal(room.price, 0, 'POINT', 0, 'COMMA')}">VND
+                                    th:text="${'VND ' + #numbers.formatDecimal(publicPrice != null ? publicPrice.finalPerNight : room.price, 0, 'POINT', 0, 'COMMA')}">VND
                                     320.000</strong>
-                                <em>/ đêm — đã bao gồm thuế &amp; phí</em>
+                                <span class="mh-detail-book-promo" th:if="${publicPrice != null and publicPrice.discounted}"
+                                    th:text="${'Đã giảm ' + publicPrice.promotionName}">Đã giảm giá</span>
+                                <em>/ đêm — đã bao gồm thuế GTGT</em>
                             </div>
 
                             <!-- Features cho phòng trống -->

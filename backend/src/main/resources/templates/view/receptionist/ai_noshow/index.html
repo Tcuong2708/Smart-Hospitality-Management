@@ -44,10 +44,6 @@
         </div>
 
         <!-- Flash alerts -->
-        <div th:if="${success}" class="adm-alert adm-alert-success">
-            <i class="bi bi-check-circle-fill"></i>
-            <span th:text="${success}"></span>
-        </div>
         <div th:if="${error}" class="adm-alert adm-alert-danger">
             <i class="bi bi-exclamation-circle-fill"></i>
             <span th:text="${error}"></span>
@@ -93,19 +89,19 @@
                 <span class="adm-stat-kpi-icon"><i class="bi bi-check2-circle"></i></span>
                 <span class="adm-stat-kpi-label">Độ chính xác lớp không đến</span>
                 <strong class="adm-stat-kpi-value">87%</strong>
-                <span class="adm-stat-kpi-note">Precision lớp 1</span>
+                <span class="adm-stat-kpi-note">Tỷ lệ dự đoán không đến đúng</span>
             </div>
             <div class="adm-stat-kpi is-gold">
                 <span class="adm-stat-kpi-icon"><i class="bi bi-search"></i></span>
                 <span class="adm-stat-kpi-label">Độ bao phủ lớp không đến</span>
                 <strong class="adm-stat-kpi-value">77%</strong>
-                <span class="adm-stat-kpi-note">Recall lớp 1</span>
+                <span class="adm-stat-kpi-note">Tỷ lệ phát hiện đúng khách không đến</span>
             </div>
             <div class="adm-stat-kpi is-danger">
                 <span class="adm-stat-kpi-icon"><i class="bi bi-activity"></i></span>
                 <span class="adm-stat-kpi-label">Điểm F1 lớp không đến</span>
                 <strong class="adm-stat-kpi-value">82%</strong>
-                <span class="adm-stat-kpi-note">Cân bằng precision và recall</span>
+                <span class="adm-stat-kpi-note">Cân bằng độ chính xác và độ bao phủ</span>
             </div>
         </div>
 
@@ -126,6 +122,7 @@
                             <th>Mã phiếu</th>
                             <th>Khách hàng</th>
                             <th>Ngày nhận phòng</th>
+                            <th class="col-center">Thanh toán</th>
                             <th class="col-center">Mức rủi ro</th>
                             <th class="col-center">Xác suất không đến</th>
                             <th class="col-center">Tự động hủy lúc</th>
@@ -170,6 +167,13 @@
                                         <small class="text-muted" th:text="${item.statusLabel}">—</small>
                                     </div>
                                 </div>
+                            </td>
+
+                            <td class="col-center">
+                                <span class="adm-badge" th:classappend="${item.paymentClass}"
+                                    th:text="${item.paymentLabel}">Chưa thanh toán</span>
+                                <div th:if="${item.paymentAmount > 0}" class="text-muted" style="font-size:11.5px;margin-top:5px;"
+                                    th:text="${#numbers.formatDecimal(item.paymentAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</div>
                             </td>
 
                             <td class="col-center">

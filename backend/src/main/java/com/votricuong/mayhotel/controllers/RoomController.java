@@ -8,6 +8,8 @@ import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.services.BookingAvailabilityService;
+import com.votricuong.mayhotel.services.OnlineBookingPolicy;
+import com.votricuong.mayhotel.services.PromotionService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -32,13 +34,22 @@ public class RoomController extends BaseController {
     private final RoomTypeRepository roomTypeRepository;
     private final ReviewService reviewService;
     private final BookingAvailabilityService bookingAvailabilityService;
+    private final PromotionService promotionService;
 
     public RoomController(RoomRepository roomRepository, RoomTypeRepository roomTypeRepository,
-            ReviewService reviewService, BookingAvailabilityService bookingAvailabilityService) {
+            ReviewService reviewService, BookingAvailabilityService bookingAvailabilityService,
+            PromotionService promotionService) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
         this.reviewService = reviewService;
         this.bookingAvailabilityService = bookingAvailabilityService;
+        this.promotionService = promotionService;
+    }
+
+    public record PublicPrice(double originalAmount, double discountAmount, double taxableAmount,
+                              double taxAmount, double finalAmount, double originalPerNight,
+                              double finalPerNight, String promotionName) {
+        public boolean discounted() { return discountAmount > 0.0D; }
     }
 
     // ================================================================
@@ -184,14 +195,23 @@ public class RoomController extends BaseController {
             room.setStatus(Boolean.TRUE.equals(availabilityByType.get(room.getRoomTypeId()))
                     ? "Còn phòng"
                     : "Tạm hết phòng");
-            publicRoomsByType.putIfAbsent(room.getRoomTypeId(), room);
+            publicRoomsByType.merge(room.getRoomTypeId(), room, (current, candidate) ->
+                    value(candidate.getPrice()) < value(current.getPrice()) ? candidate : current);
         }
         List<Room> publicRooms = new ArrayList<>(publicRoomsByType.values());
+
+        int nights = Math.max(1, (int) java.time.temporal.ChronoUnit.DAYS.between(checkInDate, checkOutDate));
+        Map<Long, PublicPrice> pricingByType = new LinkedHashMap<>();
+        for (Room room : publicRooms) {
+            pricingByType.put(room.getRoomTypeId(), publicPrice(room.getPrice(), nights, totalGuests,
+                    requestedIn, room.getRoomTypeId()));
+        }
 
         // 5. Model
         model.addAttribute("rooms", publicRooms);
         model.addAttribute("roomTypes", roomTypes);
         model.addAttribute("ratingMap", snap.getByRoomType());
+        model.addAttribute("pricingByType", pricingByType);
 
         model.addAttribute("keyword", keyword);
         model.addAttribute("roomTypeId", roomTypeId);
@@ -240,15 +260,22 @@ public class RoomController extends BaseController {
                 int totalGuests = com.votricuong.mayhotel.services.OnlineBookingPolicy
                         .totalGuests(adults, children, infants);
                 int capacity = type.getMaxOccupancy() == null ? 2 : type.getMaxOccupancy();
-                boolean categoryAvailable = totalGuests <= capacity
-                        && !bookingAvailabilityService.findAvailableRooms(
-                                room.getRoomTypeId(), requestedIn, requestedOut).isEmpty();
+                List<Room> availableCategory = bookingAvailabilityService.findAvailableRooms(
+                        room.getRoomTypeId(), requestedIn, requestedOut);
+                boolean categoryAvailable = totalGuests <= capacity && !availableCategory.isEmpty();
+                double categoryPrice = availableCategory.stream().map(Room::getPrice)
+                        .filter(java.util.Objects::nonNull).mapToDouble(Double::doubleValue).min()
+                        .orElse(value(room.getPrice()));
+                room.setPrice(categoryPrice);
                 room.setStatus(categoryAvailable ? "Còn phòng" : "Tạm hết phòng");
                 model.addAttribute("checkin", in.toString());
                 model.addAttribute("checkout", out.toString());
                 model.addAttribute("adults", adults);
                 model.addAttribute("children", children);
                 model.addAttribute("infants", infants);
+                int nights = Math.max(1, (int) java.time.temporal.ChronoUnit.DAYS.between(in, out));
+                model.addAttribute("publicPrice", publicPrice(categoryPrice, nights, totalGuests,
+                        requestedIn, room.getRoomTypeId()));
             }
         }
 
@@ -278,6 +305,23 @@ public class RoomController extends BaseController {
                 || "Trống".equalsIgnoreCase(normalized)
                 || "Còn phòng".equalsIgnoreCase(normalized)
                 || "Phòng trống".equalsIgnoreCase(normalized);
+    }
+
+    private PublicPrice publicPrice(Double nightlyPrice, int nights, int guests, Date stayDate,
+                                    Long roomTypeId) {
+        double original = value(nightlyPrice) * Math.max(1, nights);
+        PromotionService.Quote quote = promotionService.bestQuote(original, 1, Math.max(1, guests),
+                Math.max(1, nights), new Date(), stayDate, roomTypeId, null);
+        OnlineBookingPolicy.PriceBreakdown price = OnlineBookingPolicy.priceBreakdown(
+                original, 0D, quote.discount(), 0D);
+        return new PublicPrice(price.subtotal(), price.discountAmount(), price.taxableAmount(),
+                price.taxAmount(), price.totalAmount(), original / Math.max(1, nights),
+                price.totalAmount() / Math.max(1, nights),
+                quote.promotion() == null ? null : quote.promotion().getName());
+    }
+
+    private static double value(Double amount) {
+        return amount == null || !Double.isFinite(amount) ? 0D : amount;
     }
 
     private String toPublicImageUrl(String imageUrl) {

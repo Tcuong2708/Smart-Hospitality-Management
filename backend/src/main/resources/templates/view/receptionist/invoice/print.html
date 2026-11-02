@@ -250,7 +250,20 @@
 
     .inv-total {
       text-align: right;
+      min-width: 285px;
     }
+
+    .inv-total-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 28px;
+      margin-bottom: 5px;
+      font-size: 12px;
+      color: var(--text-soft);
+    }
+
+    .inv-total-row strong { color: var(--navy); }
+    .inv-total-row.discount strong { color: #168348; }
 
     .inv-total-label {
       font-size: 11px;
@@ -299,7 +312,7 @@
     /* ---------- PRINT ---------- */
     @page {
       size: A4;
-      margin: 12mm;
+      margin: 8mm 10mm;
     }
 
     @media print {
@@ -318,7 +331,18 @@
         padding: 0;
         box-shadow: none;
         border-radius: 0;
+        font-size: 11px;
+        line-height: 1.35;
       }
+
+      .inv-header { padding-bottom: 12px; }
+      .inv-info { padding: 14px 0; gap: 22px; }
+      .inv-section { margin: 14px 0 8px; }
+      .inv-table thead th { padding: 7px 9px; }
+      .inv-table tbody td { padding: 8px 9px; }
+      .inv-total-wrap { margin-top: 14px; padding-top: 12px; break-inside: avoid; }
+      .inv-sign { margin-top: 18px; padding-top: 8px; break-inside: avoid; }
+      .inv-sign-space { height: 28px; }
 
       .inv-table thead th {
         background: #F5F6F8 !important;
@@ -449,11 +473,10 @@
           <td class="cell-name" th:text="${invoice.tenPhong}">Tên phòng</td>
           <td class="text-center">1</td>
           <td class="text-center" th:text="${soDem}">1</td>
-          <td class="text-right cell-price" th:text="${invoice.phong != null
-                            ? #numbers.formatDecimal(invoice.phong.price, 0, 'POINT', 0, 'COMMA') + ' đ'
-                            : '-'}">0 đ</td>
           <td class="text-right cell-price"
-            th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
+            th:text="${#numbers.formatDecimal(invoice.subtotal / soDem, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</td>
+          <td class="text-right cell-price"
+            th:text="${#numbers.formatDecimal(invoice.subtotal, 0, 'POINT', 0, 'COMMA')} + ' đ'">
             0 đ</td>
         </tr>
       </tbody>
@@ -465,6 +488,22 @@
         Cảm ơn quý khách đã tin tưởng chọn May Hotel Luxury!
       </div>
       <div class="inv-total">
+        <div class="inv-total-row">
+          <span>Tạm tính</span>
+          <strong th:text="${#numbers.formatDecimal(invoice.subtotal, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</strong>
+        </div>
+        <div class="inv-total-row discount" th:if="${invoice.discountAmount != null and invoice.discountAmount > 0}">
+          <span th:text="${invoice.promotionCode != null and !#strings.isEmpty(invoice.promotionCode) ? 'Khuyến mãi (' + invoice.promotionCode + ')' : 'Khuyến mãi và điểm'}">Khuyến mãi</span>
+          <strong th:text="'- ' + ${#numbers.formatDecimal(invoice.discountAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">- 0 đ</strong>
+        </div>
+        <div class="inv-total-row">
+          <span>Thành tiền trước thuế</span>
+          <strong th:text="${#numbers.formatDecimal(invoice.taxableAmount != null ? invoice.taxableAmount : invoice.subtotal - invoice.discountAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</strong>
+        </div>
+        <div class="inv-total-row">
+          <span>Thuế GTGT (10%)</span>
+          <strong th:text="${#numbers.formatDecimal(invoice.taxAmount, 0, 'POINT', 0, 'COMMA')} + ' đ'">0 đ</strong>
+        </div>
         <div class="inv-total-label">Tổng thanh toán</div>
         <div class="inv-total-value"
           th:text="${#numbers.formatDecimal(invoice.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">

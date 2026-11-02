@@ -61,6 +61,15 @@ public class PromotionService {
                 .toList();
     }
 
+    /** Chương trình công khai đang hiệu lực, dùng cho banner và giá bán đại trà. */
+    public List<Promotion> activePublicPromotions() {
+        return search(null, null, "ACTIVE").stream()
+                .filter(p -> p.getVisibility() == null || p.getVisibility().isBlank()
+                        || "PUBLIC".equalsIgnoreCase(p.getVisibility()))
+                .filter(p -> !"VOUCHER".equalsIgnoreCase(normalizedType(p)))
+                .toList();
+    }
+
     public Promotion save(Promotion promotion) {
         if (promotion.getName() != null) {
             promotion.setName(promotion.getName().trim());

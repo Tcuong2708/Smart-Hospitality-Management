@@ -3830,6 +3830,24 @@ textarea {
   line-height: 1.1;
 }
 
+.mh-room-row-price del,
+.mh-detail-book-price del {
+  display: block;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.mh-room-row-promo,
+.mh-detail-book-promo {
+  display: block;
+  color: #138a4b;
+  font-size: 12px;
+  font-weight: 700;
+  margin-top: 3px;
+}
+
 .mh-room-row-price em {
   font-style: normal;
   font-size: 11px;

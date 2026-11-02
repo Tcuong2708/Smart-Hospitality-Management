@@ -134,27 +134,18 @@
                                     th:text="${#numbers.formatDecimal(item.totalPrice, 0, 'POINT', 0, 'COMMA')} + ' đ'">
                                     0 đ
                                 </span>
+                                <small th:if="${item.discountAmount != null and item.discountAmount > 0}"
+                                    style="display:block;color:#138a4b;font-weight:700;margin-top:4px;"
+                                    th:text="${'Đã giảm ' + #numbers.formatDecimal(item.discountAmount, 0, 'POINT', 0, 'COMMA') + ' đ'}">
+                                    Đã giảm 0 đ
+                                </small>
                             </td>
 
                             <!-- Trạng thái -->
                             <td class="col-center">
-                                <span th:if="${item.invoiceStatus == 'Completed'}"
-                                    class="adm-badge adm-badge-success lg">
-                                    <span class="dot"></span> Đã trả phòng
-                                </span>
-                                <span th:if="${item.invoiceStatus == 'In Use'}" class="adm-badge adm-badge-info lg">
-                                    <span class="dot"></span> Đang lưu trú
-                                </span>
-                                <span th:if="${item.invoiceStatus == 'Reserved' or item.invoiceStatus == 'Pending'}"
-                                    class="adm-badge adm-badge-warning lg">
-                                    <span class="dot"></span> Đã đặt trước
-                                </span>
-                                <span th:if="${item.invoiceStatus != 'Completed'
-                                        and item.invoiceStatus != 'In Use'
-                                        and item.invoiceStatus != 'Reserved'
-                                        and item.invoiceStatus != 'Pending'}" class="adm-badge adm-badge-neutral lg">
+                                <span class="adm-badge lg" th:classappend="${item.statusClass}">
                                     <span class="dot"></span>
-                                    <span th:text="${item.invoiceStatus}">—</span>
+                                    <span th:text="${item.statusLabel}">—</span>
                                 </span>
                             </td>
 
@@ -197,7 +188,13 @@
                     'Completed': 'Đã trả phòng',
                     'In Use': 'Đang lưu trú',
                     'Reserved': 'Đã đặt trước',
-                    'Pending': 'Đã đặt trước'
+                    'Pending': 'Chờ thanh toán',
+                    'Cancelled': 'Đã hủy',
+                    'Canceled': 'Đã hủy',
+                    'Forfeited': 'Hủy no-show, không hoàn tiền',
+                    'Deposit Paid': 'Đã thanh toán tiền cọc',
+                    'Pay at Hotel': 'Thanh toán tại khách sạn',
+                    'Paid': 'Đã thanh toán'
                 };
 
                 var keyword = '';

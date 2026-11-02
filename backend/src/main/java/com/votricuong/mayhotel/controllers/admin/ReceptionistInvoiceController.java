@@ -52,8 +52,15 @@ public class ReceptionistInvoiceController extends BaseController {
         private Date ngayCheckIn;
         private Date ngayCheckOut;
         private Double totalPrice;
+        private Double subtotal;
+        private Double discountAmount;
+        private Double taxableAmount;
+        private Double taxAmount;
+        private String promotionCode;
         private String payMethod;
         private String invoiceStatus;
+        private String statusLabel;
+        private String statusClass;
         private Boolean isPaid;
         private Room phong;
         private Long soDem;
@@ -98,12 +105,48 @@ public class ReceptionistInvoiceController extends BaseController {
                 .ngayCheckIn(inv.getCheckInDate())
                 .ngayCheckOut(inv.getCheckOutDate())
                 .totalPrice(inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0)
+                .subtotal(inv.getSubtotal() != null ? inv.getSubtotal()
+                        : (inv.getTotalAmount() != null ? inv.getTotalAmount() : 0.0))
+                .discountAmount(inv.getDiscountAmount() != null ? inv.getDiscountAmount() : 0.0)
+                .taxableAmount(inv.getTaxableAmount() != null ? inv.getTaxableAmount() : null)
+                .taxAmount(inv.getTaxAmount() != null ? inv.getTaxAmount() : 0.0)
+                .promotionCode(inv.getPromotionCode())
                 .payMethod(inv.getPayMethod() != null ? inv.getPayMethod() : "Tiền mặt")
                 .invoiceStatus(inv.getInvoiceStatus() != null ? inv.getInvoiceStatus() : "Pending")
+                .statusLabel(statusLabel(inv))
+                .statusClass(statusClass(inv))
                 .isPaid(Boolean.TRUE.equals(inv.getIsPaid()))
                 .phong(rObj)
                 .soDem(soDem)
                 .build();
+    }
+
+    private String statusLabel(Invoice invoice) {
+        String status = invoice.getInvoiceStatus() == null ? "Pending" : invoice.getInvoiceStatus().trim();
+        if ("Cancelled".equalsIgnoreCase(status) || "Canceled".equalsIgnoreCase(status)) return "Đã hủy";
+        if ("Forfeited".equalsIgnoreCase(status)) return "Hủy do khách không đến, không hoàn tiền";
+        if ("Completed".equalsIgnoreCase(status)) return "Đã trả phòng";
+        if ("In Use".equalsIgnoreCase(status)) return "Đang lưu trú";
+        if ("Paid".equalsIgnoreCase(status) || "PAID".equalsIgnoreCase(invoice.getPaymentStage())
+                || Boolean.TRUE.equals(invoice.getIsPaid())) return "Đã thanh toán";
+        if ("Deposit Paid".equalsIgnoreCase(status)
+                || "DEPOSITED".equalsIgnoreCase(invoice.getPaymentStage())
+                || (invoice.getDepositPaidAmount() != null && invoice.getDepositPaidAmount() > 0)) {
+            return "Đã thanh toán tiền cọc";
+        }
+        if ("Reserved".equalsIgnoreCase(status)) return "Đã đặt trước";
+        if ("Pending".equalsIgnoreCase(status)) return "Chờ thanh toán";
+        if ("Pay at Hotel".equalsIgnoreCase(status)) return "Thanh toán tại khách sạn";
+        return status;
+    }
+
+    private String statusClass(Invoice invoice) {
+        String label = statusLabel(invoice);
+        if (label.startsWith("Đã trả") || label.equals("Đã thanh toán")) return "adm-badge-success";
+        if (label.startsWith("Đang lưu trú")) return "adm-badge-info";
+        if (label.startsWith("Đã hủy") || label.startsWith("Hủy do khách không đến")) return "adm-badge-danger";
+        if (label.startsWith("Đã thanh toán tiền cọc") || label.startsWith("Đã đặt")) return "adm-badge-warning";
+        return "adm-badge-neutral";
     }
 
     // 1. GET /: Hiển thị danh sách hóa đơn (TruyVanDanhSach / HienThiDanhSach)
