@@ -104,6 +104,10 @@ public class Invoice {
     @org.springframework.data.mongodb.core.mapping.Field("deposit_status")
     private String depositStatus;
 
+    /** PENDING, DEPOSITED hoặc PAID; lưu riêng để giao diện nhận biết giai đoạn thanh toán. */
+    @org.springframework.data.mongodb.core.mapping.Field("payment_stage")
+    private String paymentStage;
+
     @org.springframework.data.mongodb.core.mapping.Field("points_to_redeem")
     private Integer pointsToRedeem;
 

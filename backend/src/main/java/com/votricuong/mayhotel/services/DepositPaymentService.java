@@ -45,6 +45,7 @@ public class DepositPaymentService {
         current.setDepositPaidAt(new Date());
         current.setPayMethod(fullPayment ? "VNPAY_FULL" : "VNPAY_DEPOSIT");
         current.setInvoiceStatus(fullPayment ? "Paid" : "Deposit Paid");
+        current.setPaymentStage(fullPayment ? "PAID" : "DEPOSITED");
         current.setIsPaid(fullPayment);
         appendTransaction(current, transactionId, paidAmount, bankCode, "SUCCESS", responseCode, note);
         invoiceRepository.save(current);
@@ -71,6 +72,7 @@ public class DepositPaymentService {
         Invoice current = invoiceRepository.findById(invoice.getId()).orElse(invoice);
         if (OnlineBookingPolicy.DEPOSIT_PAID.equalsIgnoreCase(current.getDepositStatus())) return;
         current.setDepositStatus(OnlineBookingPolicy.DEPOSIT_FAILED);
+        current.setPaymentStage("PENDING");
         appendTransaction(current, transactionId, amount, bankCode, "FAILED", responseCode, note);
         invoiceRepository.save(current);
     }
