@@ -804,13 +804,13 @@
                 async function deletePromotion() {
                     if (!deletingId) return;
                     try {
-                        var res = await fetch('/manager/promotions/api/' + deletingId + '/disable', {
-                            method: 'POST',
+                        var res = await fetch('/manager/promotions/api/' + deletingId, {
+                            method: 'DELETE',
                             headers: csrfHeaders()
                         });
-                        if (!res.ok) throw new Error('Không thể vô hiệu hóa (HTTP ' + res.status + ').');
+                        if (!res.ok) throw new Error('Không thể xóa khuyến mãi (HTTP ' + res.status + ').');
                         AdmModal.close('deletePromoModal');
-                        if (typeof toast === 'function') toast('Đã vô hiệu hóa chương trình');
+                        if (typeof toast === 'function') toast('Đã xóa vĩnh viễn chương trình');
                         await loadData();
                     } catch (err) {
                         if (typeof toast === 'function') toast(err.message, 'danger');

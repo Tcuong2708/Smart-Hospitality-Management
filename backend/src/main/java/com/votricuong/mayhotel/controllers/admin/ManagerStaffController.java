@@ -128,21 +128,10 @@ public class ManagerStaffController extends BaseController {
         return "redirect:/manager/staff";
     }
 
-    @PostMapping("/{id}/status")
-    public String status(@org.springframework.web.bind.annotation.PathVariable Long id, RedirectAttributes redirect) {
-        try {
-            Staff staff = staffRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Không tìm thấy nhân viên"));
-            if (staff.getUserId() == null) throw new IllegalArgumentException("Nhân viên chưa có tài khoản liên kết");
-            userService.toggleStatus(staff.getUserId());
-            redirect.addFlashAttribute("success", "Đã cập nhật trạng thái tài khoản!");
-        } catch (Exception ex) { redirect.addFlashAttribute("error", ex.getMessage()); }
-        return "redirect:/manager/staff";
-    }
-
     @PostMapping("/{id}/delete")
     public String delete(@org.springframework.web.bind.annotation.PathVariable Long id, RedirectAttributes redirect) {
         try {
-            if (invoiceRepository.existsByStaffId(id)) throw new IllegalArgumentException("Nhân viên đã phát sinh hóa đơn; hãy khóa tài khoản thay vì xóa");
+            if (invoiceRepository.existsByStaffId(id)) throw new IllegalArgumentException("Không thể xóa nhân viên đã phát sinh hóa đơn.");
             staffService.deleteStaff(id);
             redirect.addFlashAttribute("success", "Xóa nhân viên thành công!");
         } catch (Exception ex) { redirect.addFlashAttribute("error", ex.getMessage()); }

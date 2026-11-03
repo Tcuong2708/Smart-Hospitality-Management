@@ -43,6 +43,7 @@ public class RoomTypeService {
         validate(roomTypeDetails, id);
         RoomType roomType = typeOpt.get();
         roomType.setName(roomTypeDetails.getName());
+        roomType.setDescription(roomTypeDetails.getDescription());
         roomType.setMaxOccupancy(roomTypeDetails.getMaxOccupancy());
         roomType.setImageUrl(roomTypeDetails.getImageUrl());
         roomType.setQuantity(roomTypeDetails.getQuantity());
@@ -63,6 +64,8 @@ public class RoomTypeService {
     private void validate(RoomType roomType, Long excludedId) {
         if (roomType == null) throw new IllegalArgumentException("Dữ liệu loại phòng không được để trống");
         roomType.setName(com.votricuong.mayhotel.utils.InputValidator.requiredText(roomType.getName(), "Tên loại phòng", 100));
+        roomType.setDescription(com.votricuong.mayhotel.utils.InputValidator.optionalText(
+                roomType.getDescription(), "Mô tả chi tiết", 2000));
         roomType.setMaxOccupancy(com.votricuong.mayhotel.utils.InputValidator.range(
                 roomType.getMaxOccupancy(), "Sức chứa", 1, 20));
         if (roomType.getQuantity() != null) {

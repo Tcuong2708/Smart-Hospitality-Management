@@ -2,6 +2,9 @@ package com.votricuong.mayhotel.controllers;
 
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.services.UserService;
+import com.votricuong.mayhotel.services.PermissionService;
+import com.votricuong.mayhotel.services.NotificationService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -14,9 +17,14 @@ import java.util.List;
 public class UserAdminController extends BaseController {
 
     private final UserService userService;
+    private final PermissionService permissionService;
+    private final NotificationService notificationService;
 
-    public UserAdminController(UserService userService) {
+    public UserAdminController(UserService userService, PermissionService permissionService,
+                               NotificationService notificationService) {
         this.userService = userService;
+        this.permissionService = permissionService;
+        this.notificationService = notificationService;
     }
 
     @GetMapping
@@ -37,8 +45,13 @@ public class UserAdminController extends BaseController {
     }
 
     @PostMapping("/create")
-    public String create(@ModelAttribute User user, RedirectAttributes ra) {
+    public String create(@ModelAttribute User user, RedirectAttributes ra, HttpSession session) {
         try {
+            User actor = (User) session.getAttribute("user");
+            if (user.getRoleId() != null && user.getRoleId() == 8L
+                    && (actor == null || actor.getRoleId() == null || actor.getRoleId() != 8L)) {
+                throw new IllegalArgumentException("Chỉ Super Admin được tạo tài khoản Super Admin");
+            }
             userService.createUser(user);
             ra.addFlashAttribute("success", "Thêm người dùng thành công!");
         } catch (Exception e) {
@@ -60,8 +73,13 @@ public class UserAdminController extends BaseController {
     }
 
     @PostMapping("/edit/{id}")
-    public String update(@PathVariable Long id, @ModelAttribute User userDetails, RedirectAttributes ra) {
+    public String update(@PathVariable Long id, @ModelAttribute User userDetails, RedirectAttributes ra, HttpSession session) {
         try {
+            User actor = (User) session.getAttribute("user");
+            User target = userService.getUserById(id).orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại"));
+            if (!canManage(actor, target)) throw new IllegalArgumentException("Bạn không được chỉnh sửa tài khoản này");
+            if (userDetails.getRoleId() != null && userDetails.getRoleId() == 8L && actor.getRoleId() != 8L)
+                throw new IllegalArgumentException("Chỉ Super Admin được cấp vai trò Super Admin");
             userService.updateUser(id, userDetails);
             ra.addFlashAttribute("success", "Cập nhật người dùng thành công!");
         } catch (Exception e) {
@@ -71,8 +89,11 @@ public class UserAdminController extends BaseController {
     }
 
     @RequestMapping(value = "/toggle-status/{id}", method = {RequestMethod.GET, RequestMethod.POST})
-    public String toggleStatus(@PathVariable Long id, RedirectAttributes ra) {
+    public String toggleStatus(@PathVariable Long id, RedirectAttributes ra, HttpSession session) {
         try {
+            User actor = (User) session.getAttribute("user");
+            User target = userService.getUserById(id).orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại"));
+            if (!canManage(actor, target)) throw new IllegalArgumentException("Bạn không được khóa tài khoản này");
             userService.toggleStatus(id);
             ra.addFlashAttribute("success", "Đã thay đổi trạng thái!");
         } catch (Exception e) {
@@ -82,13 +103,59 @@ public class UserAdminController extends BaseController {
     }
 
     @RequestMapping(value = "/delete/{id}", method = {RequestMethod.GET, RequestMethod.POST})
-    public String delete(@PathVariable Long id, RedirectAttributes ra) {
+    public String delete(@PathVariable Long id, RedirectAttributes ra, HttpSession session) {
         try {
+            User actor = (User) session.getAttribute("user");
+            User target = userService.getUserById(id).orElseThrow(() -> new IllegalArgumentException("Tài khoản không tồn tại"));
+            if (!canManage(actor, target)) throw new IllegalArgumentException("Bạn không được xóa tài khoản này");
             userService.deleteUser(id);
             ra.addFlashAttribute("success", "Xóa người dùng thành công!");
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
         }
         return "redirect:/admin/users";
+    }
+
+    @GetMapping("/{id}/permissions")
+    public String permissions(@PathVariable Long id, Model model, HttpSession session, RedirectAttributes redirect) {
+        User target = userService.getUserById(id).orElse(null);
+        User actor = (User) session.getAttribute("user");
+        if (target == null || actor == null) return "redirect:/admin/users";
+        if (!canManage(actor, target)) {
+            redirect.addFlashAttribute("error", "Bạn không được thay đổi quyền tài khoản này");
+            return "redirect:/admin/users";
+        }
+        setPageTitle(model, "Quyền ngoại lệ - " + target.getUsername());
+        model.addAttribute("targetUser", target);
+        model.addAttribute("permissions", permissionService.getPermissions());
+        model.addAttribute("rolePermissions", permissionService.getRolePermissionCodes(target.getRoleId()));
+        model.addAttribute("overrides", permissionService.getUserOverrides(target.getId()));
+        return render(model, "view/admin/user/permissions");
+    }
+
+    @PostMapping("/{id}/permissions")
+    public String updatePermission(@PathVariable Long id, @RequestParam String permission,
+                                   @RequestParam String effect, HttpSession session, RedirectAttributes redirect) {
+        User target = userService.getUserById(id).orElse(null);
+        User actor = (User) session.getAttribute("user");
+        if (target == null || actor == null || !canManage(actor, target)) {
+            redirect.addFlashAttribute("error", "Bạn không được thay đổi quyền tài khoản này");
+            return "redirect:/admin/users";
+        }
+        try {
+            permissionService.setUserOverride(actor.getId(), target, permission, effect);
+            notificationService.createForUser(target.getId(), "PERMISSION_CHANGED", "Quyền cá nhân đã thay đổi",
+                    "Quản trị viên " + actor.getUsername() + " đã cập nhật quyền truy cập của bạn.", "/");
+            redirect.addFlashAttribute("success", "Đã cập nhật quyền ngoại lệ");
+        } catch (Exception ex) {
+            redirect.addFlashAttribute("error", ex.getMessage());
+        }
+        return "redirect:/admin/users/" + id + "/permissions";
+    }
+
+    private boolean canManage(User actor, User target) {
+        if (target.getRoleId() != null && target.getRoleId() == 8L) return false;
+        return actor.getRoleId() != null && (actor.getRoleId() == 8L
+                || (actor.getRoleId() == 1L && target.getRoleId() != null && target.getRoleId() >= 2L));
     }
 }

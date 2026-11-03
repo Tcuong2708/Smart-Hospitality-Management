@@ -78,6 +78,7 @@ public class BackupController extends BaseController {
 
     private boolean isAdmin(HttpSession session) {
         Object value = session.getAttribute("user");
-        return value instanceof User user && Long.valueOf(1L).equals(user.getRoleId());
+        return value instanceof User user
+                && (Long.valueOf(1L).equals(user.getRoleId()) || Long.valueOf(8L).equals(user.getRoleId()));
     }
 }

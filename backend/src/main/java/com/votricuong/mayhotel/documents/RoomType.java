@@ -18,6 +18,9 @@ public class RoomType implements java.io.Serializable {
     private Long id;
     
     private String name;
+
+    /** Mô tả chi tiết dùng thống nhất ở trang quản lý và trang khách hàng. */
+    private String description;
     
     @org.springframework.data.mongodb.core.mapping.Field("max_occupancy")
     private Integer maxOccupancy;

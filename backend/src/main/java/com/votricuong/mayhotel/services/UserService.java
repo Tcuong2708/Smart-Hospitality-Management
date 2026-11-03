@@ -52,7 +52,7 @@ public class UserService {
                 user.getAddress(), "Địa chỉ", 300));
         user.setNationality(com.votricuong.mayhotel.utils.InputValidator.optionalText(
                 user.getNationality(), "Quốc tịch", 100));
-        if (user.getRoleId() == null || user.getRoleId() < 1 || user.getRoleId() > 7) {
+        if (user.getRoleId() == null || user.getRoleId() < 1 || user.getRoleId() > 8) {
             throw new IllegalArgumentException("Vai trò tài khoản không hợp lệ");
         }
         if (userRepository.findFirstByEmail(user.getEmail()).isPresent() || userRepository.findFirstByUsername(user.getUsername()).isPresent()) {
@@ -106,7 +106,7 @@ public class UserService {
             user.setStatus(status);
         }
         if (userDetails.getRoleId() != null) {
-            if (userDetails.getRoleId() < 1 || userDetails.getRoleId() > 7) {
+            if (userDetails.getRoleId() < 1 || userDetails.getRoleId() > 8) {
                 throw new IllegalArgumentException("Vai trò tài khoản không hợp lệ");
             }
             user.setRoleId(userDetails.getRoleId());

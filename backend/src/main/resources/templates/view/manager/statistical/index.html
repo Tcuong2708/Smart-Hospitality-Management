@@ -97,11 +97,11 @@
 
                 <article class="adm-stat-kpi is-gold">
                     <div class="adm-stat-kpi-icon"><i class="bi bi-receipt"></i></div>
-                    <span class="adm-stat-kpi-label">Booking / Hóa đơn</span>
+                    <span class="adm-stat-kpi-label">Đơn đặt phòng / Hóa đơn</span>
                     <strong class="adm-stat-kpi-value"
                         th:text="${report.bookingCount + ' / ' + report.paidInvoiceCount}"></strong>
                     <small class="adm-stat-kpi-note"
-                        th:text="'TB ' + ${#numbers.formatDecimal(report.averageInvoice,0,'POINT',0,'COMMA')} + ' đ/hóa đơn'"></small>
+                        th:text="'Trung bình ' + ${#numbers.formatDecimal(report.averageInvoice,0,'POINT',0,'COMMA')} + ' đ/hóa đơn'"></small>
                 </article>
             </div>
 
@@ -111,7 +111,7 @@
                     <header class="adm-stat-card-head">
                         <div>
                             <h2><i class="bi bi-graph-up-arrow"></i> Diễn biến doanh thu</h2>
-                            <p>Doanh thu thực nhận và số booking theo từng kỳ</p>
+                            <p>Doanh thu thực nhận và số đơn đặt phòng theo từng kỳ</p>
                         </div>
                     </header>
                     <div class="adm-stat-chart-wrap">
@@ -131,7 +131,7 @@
                             <span class="adm-stat-period-label" th:text="${bucket.label}"></span>
                             <strong class="adm-stat-period-revenue"
                                 th:text="${#numbers.formatDecimal(bucket.revenue,0,'POINT',0,'COMMA')} + ' đ'"></strong>
-                            <small class="adm-stat-period-count" th:text="${bucket.bookingCount} + ' booking'"></small>
+                            <small class="adm-stat-period-count" th:text="${bucket.bookingCount} + ' đơn đặt phòng'"></small>
                         </div>
                         <div th:if="${report.buckets.isEmpty()}" class="adm-empty" style="padding:32px 16px;">
                             <i class="bi bi-calendar-x"></i>
@@ -159,7 +159,7 @@
                         <thead>
                             <tr>
                                 <th>Mã HĐ</th>
-                                <th>Booking</th>
+                                <th>Mã đặt phòng</th>
                                 <th>Ngày</th>
                                 <th>Khách hàng</th>
                                 <th>Thanh toán</th>
@@ -446,7 +446,7 @@
                             },
                             {
                                 type: 'line',
-                                label: 'Booking',
+                                label: 'Đơn đặt phòng',
                                 data: bookings,
                                 borderColor: '#D4AF37',
                                 backgroundColor: '#D4AF37',

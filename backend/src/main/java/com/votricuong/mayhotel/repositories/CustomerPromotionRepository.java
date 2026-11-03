@@ -12,4 +12,5 @@ public interface CustomerPromotionRepository extends MongoRepository<CustomerPro
     boolean existsByPromotionIdAndCustomerId(Long promotionId, Long customerId);
     boolean existsByPromotionIdAndCustomerIdAndStatus(Long promotionId, Long customerId, String status);
     long countByPromotionId(Long promotionId);
+    void deleteByPromotionId(Long promotionId);
 }

@@ -88,6 +88,7 @@ public class StaffApiController {
 
     private boolean allowed(HttpSession session) {
         Object current = session == null ? null : session.getAttribute("user");
-        return current instanceof User user && (Long.valueOf(1L).equals(user.getRoleId()) || Long.valueOf(2L).equals(user.getRoleId()));
+        return current instanceof User user && (Long.valueOf(8L).equals(user.getRoleId())
+                || Long.valueOf(1L).equals(user.getRoleId()) || Long.valueOf(2L).equals(user.getRoleId()));
     }
 }

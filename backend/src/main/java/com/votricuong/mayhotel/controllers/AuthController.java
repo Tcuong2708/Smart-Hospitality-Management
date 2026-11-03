@@ -66,7 +66,9 @@ public class AuthController extends BaseController {
             session.setAttribute("user", user); // Lưu phiên làm việc
 
             if (user.getRoleId() != null) {
-                if (user.getRoleId() == 1L) {
+                if (user.getRoleId() == 8L) {
+                    return "redirect:/admin/roles";
+                } else if (user.getRoleId() == 1L) {
                     return "redirect:/admin/users";
                 } else if (user.getRoleId() == 2L) {
                     return "redirect:/manager/rooms";
@@ -217,7 +219,9 @@ public class AuthController extends BaseController {
             
             String redirect = "/";
             if (user.getRoleId() != null) {
-                if (user.getRoleId() == 1L) {
+                if (user.getRoleId() == 8L) {
+                    redirect = "/admin/roles";
+                } else if (user.getRoleId() == 1L) {
                     redirect = "/admin/users";
                 } else if (user.getRoleId() == 2L) {
                     redirect = "/manager/rooms";

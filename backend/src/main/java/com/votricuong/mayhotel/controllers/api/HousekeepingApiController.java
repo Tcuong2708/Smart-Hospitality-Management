@@ -96,7 +96,7 @@ public class HousekeepingApiController {
             java.util.function.Function<MobileTokenService.Claims, ResponseEntity<?>> action) {
         try {
             MobileTokenService.Claims claims = tokenService.verifyAuthorization(authorization);
-            if (claims.roleId() != 4L && !"HOUSEKEEPER".equalsIgnoreCase(claims.role())) {
+            if (claims.roleId() != 8L && claims.roleId() != 4L && !"HOUSEKEEPER".equalsIgnoreCase(claims.role())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(ApiResponse.error("Chức năng chỉ dành cho nhân viên buồng phòng"));
             }

@@ -112,6 +112,8 @@ public class ManagerCategoryController extends BaseController {
                     category.getName(), "Tên loại phòng", 100));
             category.setMaxOccupancy(com.votricuong.mayhotel.utils.InputValidator.range(
                     category.getMaxOccupancy(), "Sức chứa", 1, 20));
+            category.setDescription(com.votricuong.mayhotel.utils.InputValidator.optionalText(
+                    category.getDescription(), "Mô tả chi tiết", 2000));
             if (category.getQuantity() != null) {
                 com.votricuong.mayhotel.utils.InputValidator.range(category.getQuantity(), "Số lượng phòng", 0, 10000);
             }

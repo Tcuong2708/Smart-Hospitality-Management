@@ -14,7 +14,7 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "gift_vouchers")
+@Document(collection = "gift_voucher")
 public class GiftVoucher {
     
     @Id

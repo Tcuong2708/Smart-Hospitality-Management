@@ -41,18 +41,18 @@
             <article class="kpi kpi-primary"><span>Doanh thu thực nhận</span><strong th:text="${#numbers.formatDecimal(report.netRevenue,0,'COMMA',0,'POINT')} + ' đ'"></strong><small>Sau hoàn tiền</small></article>
             <article class="kpi"><span>Doanh thu gộp</span><strong th:text="${#numbers.formatDecimal(report.grossRevenue,0,'COMMA',0,'POINT')} + ' đ'"></strong><small>Tổng tiền đã thanh toán</small></article>
             <article class="kpi kpi-refund"><span>Tiền hoàn</span><strong th:text="${#numbers.formatDecimal(report.refundAmount,0,'COMMA',0,'POINT')} + ' đ'"></strong><small>Đã trừ khỏi thực nhận</small></article>
-            <article class="kpi kpi-booking"><span>Booking / Hóa đơn</span><strong th:text="${report.bookingCount + ' / ' + report.paidInvoiceCount}"></strong><small th:text="'TB ' + ${#numbers.formatDecimal(report.averageInvoice,0,'COMMA',0,'POINT')} + ' đ/hóa đơn'"></small></article>
+            <article class="kpi kpi-booking"><span>Đơn đặt phòng / Hóa đơn</span><strong th:text="${report.bookingCount + ' / ' + report.paidInvoiceCount}"></strong><small th:text="'Trung bình ' + ${#numbers.formatDecimal(report.averageInvoice,0,'COMMA',0,'POINT')} + ' đ/hóa đơn'"></small></article>
         </div>
 
         <div class="revenue-grid">
             <section class="report-card chart-card">
-                <header><div><h2><i class="bi bi-bar-chart-line"></i> Diễn biến doanh thu</h2><p>Doanh thu thực nhận và số booking theo kỳ</p></div></header>
+                <header><div><h2><i class="bi bi-bar-chart-line"></i> Diễn biến doanh thu</h2><p>Doanh thu thực nhận và số đơn đặt phòng theo kỳ</p></div></header>
                 <div class="chart-wrap"><canvas id="revenueChart"></canvas></div>
             </section>
             <section class="report-card period-card">
                 <header><div><h2><i class="bi bi-calendar3"></i> Chi tiết theo kỳ</h2><p>Tổng hợp từ bộ lọc hiện tại</p></div></header>
                 <div class="period-list">
-                    <div th:each="bucket : ${report.buckets}"><span th:text="${bucket.label}"></span><strong th:text="${#numbers.formatDecimal(bucket.revenue,0,'COMMA',0,'POINT')} + ' đ'"></strong><small th:text="${bucket.bookingCount} + ' booking'"></small></div>
+                    <div th:each="bucket : ${report.buckets}"><span th:text="${bucket.label}"></span><strong th:text="${#numbers.formatDecimal(bucket.revenue,0,'COMMA',0,'POINT')} + ' đ'"></strong><small th:text="${bucket.bookingCount} + ' đơn đặt phòng'"></small></div>
                 </div>
             </section>
         </div>
@@ -61,7 +61,7 @@
             <header><div><h2><i class="bi bi-receipt"></i> Hóa đơn đã thanh toán</h2><p th:text="${report.paidInvoiceCount} + ' hóa đơn trong khoảng đã chọn'"></p></div></header>
             <div class="table-responsive">
                 <table class="table align-middle mb-0">
-                    <thead><tr><th>Mã HĐ</th><th>Booking</th><th>Ngày</th><th>Khách hàng</th><th>Thanh toán</th><th class="text-end">Tổng tiền</th><th class="text-end">Hoàn</th><th class="text-end">Thực nhận</th></tr></thead>
+                    <thead><tr><th>Mã HĐ</th><th>Mã đặt phòng</th><th>Ngày</th><th>Khách hàng</th><th>Thanh toán</th><th class="text-end">Tổng tiền</th><th class="text-end">Hoàn</th><th class="text-end">Thực nhận</th></tr></thead>
                     <tbody>
                     <tr th:if="${report.invoices.isEmpty()}"><td colspan="8" class="empty-report"><i class="bi bi-inbox"></i><span>Không có hóa đơn trong khoảng thời gian này</span></td></tr>
                     <tr th:each="invoice : ${report.invoices}">
@@ -100,7 +100,7 @@
             const labels = (data.dataset.labels || '').split('|').filter(Boolean);
             new Chart(document.getElementById('revenueChart'), {data:{labels,datasets:[
                 {type:'bar',label:'Doanh thu (VNĐ)',data:(data.dataset.revenue||'').split('|').map(Number),backgroundColor:'rgba(15,41,66,.88)',borderRadius:6,yAxisID:'y'},
-                {type:'line',label:'Booking',data:(data.dataset.bookings||'').split('|').map(Number),borderColor:'#c9a609',backgroundColor:'#c9a609',borderWidth:3,tension:.25,yAxisID:'y1'}]},
+                {type:'line',label:'Đơn đặt phòng',data:(data.dataset.bookings||'').split('|').map(Number),borderColor:'#c9a609',backgroundColor:'#c9a609',borderWidth:3,tension:.25,yAxisID:'y1'}]},
                 options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},scales:{y:{beginAtZero:true,ticks:{callback:v=>new Intl.NumberFormat('vi-VN',{notation:'compact'}).format(v)+' đ'}},y1:{beginAtZero:true,position:'right',grid:{drawOnChartArea:false},ticks:{precision:0}}}}});
         })();
     </script>

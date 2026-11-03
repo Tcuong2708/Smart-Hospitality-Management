@@ -335,10 +335,20 @@ public class BookingController extends BaseController {
 
         model.addAttribute("chosenServices", chosenServices);
         model.addAttribute("totalDichVu", totalDichVu);
+        java.util.Date initialStayDate = currentBooking.getNgayNhan() == null ? new Date()
+                : java.util.Date.from(currentBooking.getNgayNhan().atStartOfDay(ZoneId.systemDefault()).toInstant());
+        com.votricuong.mayhotel.services.PromotionService.Quote initialPromotion = promotionService.bestQuote(
+                currentBooking.getThanhTien(), Math.max(1, currentBooking.getSoLuong()),
+                Math.max(1, currentBooking.getGuestCount()), (int) Math.max(1, currentBooking.getSoDem()),
+                new Date(), initialStayDate,
+                currentBooking.getLoaiPhong() == null ? null : currentBooking.getLoaiPhong().getMaLoai(), null);
         com.votricuong.mayhotel.services.OnlineBookingPolicy.PriceBreakdown initialPrice =
                 com.votricuong.mayhotel.services.OnlineBookingPolicy.priceBreakdown(
-                        currentBooking.getThanhTien(), totalDichVu, 0D, 0D);
+                        currentBooking.getThanhTien(), totalDichVu, initialPromotion.discount(), 0D);
         model.addAttribute("priceBreakdown", initialPrice);
+        model.addAttribute("promotionDiscount", initialPromotion.discount());
+        model.addAttribute("promotionName", initialPromotion.promotion() == null
+                ? null : initialPromotion.promotion().getName());
         model.addAttribute("finalTotal", initialPrice.totalAmount());
         model.addAttribute("depositAmount", initialPrice.depositAmount());
         

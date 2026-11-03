@@ -14,7 +14,7 @@ import java.util.Date;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-@Document(collection = "customer_promotions")
+@Document(collection = "gift_voucher")
 public class CustomerPromotion {
     @Id
     private Long id;

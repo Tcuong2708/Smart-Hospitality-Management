@@ -11,4 +11,8 @@ public interface NotificationRepository extends MongoRepository<Notification, Lo
     List<Notification> findByCustomerIdAndIsReadFalse(Long customerId);
     long countByCustomerIdAndIsReadFalse(Long customerId);
     Optional<Notification> findByIdAndCustomerId(Long id, Long customerId);
+    List<Notification> findTop10ByUserIdOrderByCreatedAtDesc(Long userId);
+    List<Notification> findByUserIdAndIsReadFalse(Long userId);
+    long countByUserIdAndIsReadFalse(Long userId);
+    Optional<Notification> findByIdAndUserId(Long id, Long userId);
 }

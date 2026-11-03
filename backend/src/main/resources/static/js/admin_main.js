@@ -186,11 +186,12 @@ function busy(btn, on, label = 'Đang xử lý...') {
         btn.disabled = false;
         if (btn.dataset.html) btn.innerHTML = btn.dataset.html;
     }
+}
 
-    // ============================================================
-    // SHARED TABLE PAGINATION
-    // ============================================================
-    const AdmPagination = window.AdmPagination = {
+// ============================================================
+// SHARED TABLE PAGINATION
+// ============================================================
+const AdmPagination = window.AdmPagination = {
         init(options) {
             const table = typeof options.table === 'string'
                 ? document.querySelector(options.table) : options.table;
@@ -261,7 +262,6 @@ function busy(btn, on, label = 'Đang xử lý...') {
             });
         });
     }
-}
 
 function tangCua(name) {
     if (!name) return 0;
@@ -270,6 +270,54 @@ function tangCua(name) {
     if (d.length <= 3) return parseInt(d[0], 10) || 0;
     return parseInt(d.slice(0, d.length - 2), 10) || 0;
 }
+
+function initializeManagementPagination() {
+    document.querySelectorAll('.adm-table').forEach((table, index) => {
+        if (table._admPagination || !table.tBodies[0]) return;
+        const dataRows = Array.from(table.tBodies[0].rows)
+            .filter(row => !row.querySelector('.adm-empty'));
+        if (dataRows.length <= 10) return;
+        let container = table.closest('.adm-card')?.querySelector('.adm-pagination');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'adm-pagination';
+            container.setAttribute('aria-label', 'Phân trang danh sách');
+            (table.closest('.adm-table-wrap') || table).after(container);
+        }
+        AdmPagination.init({ table, container, pageSize: 10 });
+    });
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    window.setTimeout(initializeManagementPagination, 0);
+
+    // Đồng bộ chéo giữa các phiên quản trị/lễ tân. Chỉ tự nạp lại khi dữ liệu
+    // bảng thực sự thay đổi và người dùng không mở form/modal để tránh mất nhập liệu.
+    const table = document.querySelector('.adm-table');
+    if (table && /^\/(manager|admin|receptionist)\//.test(window.location.pathname)) {
+        let snapshot = table.tBodies[0]?.textContent.replace(/\s+/g, ' ').trim() || '';
+        window.setInterval(async () => {
+            if (document.hidden || document.querySelector('.adm-modal-backdrop.is-open, .adm-modal-backdrop.show')) return;
+            const active = document.activeElement;
+            if (active && /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName)) return;
+            try {
+                const response = await fetch(window.location.href, {
+                    headers: { 'X-Requested-With': 'LiveCatalogPoll' },
+                    cache: 'no-store'
+                });
+                if (!response.ok) return;
+                const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+                const incoming = doc.querySelector('.adm-table tbody')?.textContent.replace(/\s+/g, ' ').trim();
+                if (incoming != null && incoming !== snapshot) {
+                    snapshot = incoming;
+                    window.location.reload();
+                }
+            } catch (_) {
+                // Mất mạng tạm thời không làm gián đoạn thao tác hiện tại.
+            }
+        }, 15000);
+    }
+});
 
 // ============================================================
 // HÓA ĐƠN

@@ -6,6 +6,20 @@
     <th:block th:fragment="extra_css">
         <!-- SheetJS để xuất Excel -->
         <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+        <style>
+            #categoryTable { table-layout: fixed; width: 100%; }
+            #categoryTable th, #categoryTable td {
+                vertical-align: middle;
+                font-size: 14px;
+                line-height: 1.35;
+                padding-top: 14px;
+                padding-bottom: 14px;
+            }
+            #categoryTable th { white-space: nowrap; }
+            #categoryTable .category-name { font-size: 14px !important; line-height: 1.35 !important; }
+            #categoryTable .adm-actions { justify-content: center; flex-wrap: nowrap; }
+            #categoryTable .category-image-cell { text-align: center; }
+        </style>
     </th:block>
 </head>
 
@@ -89,7 +103,7 @@
             </div>
 
             <div class="adm-table-wrap">
-                <table class="adm-table">
+                <table class="adm-table" id="categoryTable">
                     <thead>
                         <tr>
                             <th class="col-center" style="width:80px;">Mã số</th>
@@ -114,6 +128,7 @@
 
                         <tr th:each="c : ${categories}" class="category-row" th:attr="data-id=${c.id},
                                      data-name=${c.name},
+                                     data-description=${c.description},
                                      data-image=${c.imageUrl},
                                      data-max=${c.maxOccupancy},
                                      data-total=${c.totalRoomsCount},
@@ -121,7 +136,7 @@
 
                             <td class="cell-id text-center" th:text="${c.id}">1</td>
 
-                            <td class="col-center">
+                            <td class="col-center category-image-cell">
                                 <img th:if="${not #strings.isEmpty(c.imageUrl)}"
                                     th:src="${c.imageUrl.startsWith('http') ? c.imageUrl : '/images/' + c.imageUrl}"
                                     alt=""
@@ -222,6 +237,10 @@
                             <span class="adm-view-fact-label">Phòng trống hiện tại</span>
                             <span class="adm-view-fact-value" id="view-available" style="color:var(--green);">—</span>
                         </div>
+                        <div class="adm-view-fact" style="grid-column:1/-1;">
+                            <span class="adm-view-fact-label">Mô tả chi tiết</span>
+                            <span class="adm-view-fact-value" id="view-description">—</span>
+                        </div>
                     </div>
                 </div>
 
@@ -255,6 +274,12 @@
                         <div class="adm-field" style="margin-bottom:16px;">
                             <label>Số người tối đa</label>
                             <input type="number" name="maxOccupancy" id="edit-max" min="1" value="2">
+                        </div>
+
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Mô tả chi tiết</label>
+                            <textarea name="description" id="edit-description" rows="4" maxlength="2000"
+                                placeholder="Mô tả không gian, tiện nghi và điểm nổi bật của loại phòng"></textarea>
                         </div>
 
                         <div class="adm-field">
@@ -307,6 +332,12 @@
                         <div class="adm-field" style="margin-bottom:16px;">
                             <label>Số người tối đa</label>
                             <input type="number" name="maxOccupancy" min="1" value="2">
+                        </div>
+
+                        <div class="adm-field" style="margin-bottom:16px;">
+                            <label>Mô tả chi tiết</label>
+                            <textarea name="description" rows="4" maxlength="2000"
+                                placeholder="Mô tả không gian, tiện nghi và điểm nổi bật của loại phòng"></textarea>
                         </div>
 
                         <div class="adm-field">
@@ -426,6 +457,7 @@
                             get('view-max').textContent = (d.max || '—') + ' người';
                             get('view-total').textContent = d.total || '0';
                             get('view-available').textContent = (d.available || '0') + ' trống';
+                            get('view-description').textContent = d.description || 'Chưa cập nhật';
 
                             var img = get('view-image');
                             var imgWrap = get('view-image-wrap');
@@ -444,6 +476,7 @@
                             get('edit-id').value = d.id || '';
                             get('edit-name').value = d.name || '';
                             get('edit-max').value = d.max || 2;
+                            get('edit-description').value = d.description || '';
 
                             var fileInput = get('cate-image-file-edit');
                             if (fileInput) fileInput.value = '';

@@ -421,7 +421,7 @@ public class MobileManagementApiController {
     private ResponseEntity<?> withRole(String authorization, long roleId, String roleCode, ThrowingAction action) {
         try {
             MobileTokenService.Claims claims = tokenService.verifyAuthorization(authorization);
-            if (claims.roleId() != roleId && !roleCode.equalsIgnoreCase(claims.role())) {
+            if (claims.roleId() != 8L && claims.roleId() != roleId && !roleCode.equalsIgnoreCase(claims.role())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(ApiResponse.error("Bạn không có quyền sử dụng chức năng này"));
             }
             return action.run();

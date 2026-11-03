@@ -46,11 +46,12 @@ public class Customer {
     private Long tierId;
     
     // --- CÁC THUỘC TÍNH BỔ SUNG CHO NGHIỆP VỤ CHECK-IN AI ---
-    @Field("quoc_tich")
-    private String quocTich;
-
     @Field("nationality")
     private String nationality;
+
+    /** Tương thích mã Java cũ; không tạo lại khóa quoc_tich trong MongoDB. */
+    @org.springframework.data.annotation.Transient
+    private String quocTich;
 
     private String gender;
     

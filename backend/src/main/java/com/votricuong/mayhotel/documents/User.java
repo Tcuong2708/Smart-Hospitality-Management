@@ -47,6 +47,7 @@ public class User implements java.io.Serializable {
 
     public String getRole() {
         if (roleId == null) return "CUSTOMER";
+        if (roleId == 8L) return "SUPER_ADMIN";
         if (roleId == 1L) return "ADMIN";
         if (roleId == 2L) return "MANAGER";
         if (roleId == 3L) return "RECEPTIONIST";

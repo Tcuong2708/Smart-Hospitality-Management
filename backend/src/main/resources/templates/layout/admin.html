@@ -24,6 +24,14 @@
         .adm-alert[data-flash] {
             display: none !important;
         }
+        .adm-notification-wrap { position:relative; }
+        .adm-notification-panel { position:absolute; right:0; top:48px; width:360px; max-height:430px; overflow:auto; background:#fff; border:1px solid #e4e9ef; border-radius:14px; box-shadow:0 18px 45px rgba(15,41,66,.18); padding:12px; z-index:1000; display:none; }
+        .adm-notification-wrap.is-open .adm-notification-panel { display:block; }
+        .adm-notification-item { padding:11px; border-bottom:1px solid #eef1f4; }
+        .adm-notification-item.is-unread { background:#fff8df; }
+        .adm-notification-item strong,.adm-notification-item span { display:block; }
+        .adm-notification-item span { font-size:12px; color:#66758a; margin-top:4px; line-height:1.45; }
+        .adm-notification-count { position:absolute; top:-4px; right:-4px; background:#d92d20; color:#fff; min-width:18px; height:18px; border-radius:50%; font-size:10px; display:grid; place-items:center; }
     </style>
 
     <th:block th:if="${extra_css_template != null}">
@@ -48,17 +56,17 @@
             <nav class="adm-nav">
                 <!-- ================= NHÓM QUẢN TRỊ HỆ THỐNG (ADMIN) ================= -->
                 <div class="adm-nav-group"
-                    th:if="${session.user != null and (session.user.roleId == 1 or session.user.role == 'ADMIN')}">
+                    th:if="${session.user != null and (@permissionService.hasPermission(session.user, 'SYSTEM.USERS.VIEW') or @permissionService.hasPermission(session.user, 'SYSTEM.PERMISSIONS.VIEW') or @permissionService.hasPermission(session.user, 'SYSTEM.BACKUP.VIEW'))}">
                     <span class="adm-nav-label">Quản trị hệ thống</span>
-                    <a th:href="@{/admin/users}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'SYSTEM.USERS.VIEW')}" th:href="@{/admin/users}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/admin/users')} ? 'is-active'">
                         <i class="bi bi-people-fill"></i><span>Quản lý tài khoản</span>
                     </a>
-                    <a th:href="@{/admin/backup}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'SYSTEM.BACKUP.VIEW')}" th:href="@{/admin/backup}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/admin/backup')} ? 'is-active'">
                         <i class="bi bi-database-gear"></i><span>Sao lưu dữ liệu</span>
                     </a>
-                    <a th:href="@{/admin/roles}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'SYSTEM.PERMISSIONS.VIEW')}" th:href="@{/admin/roles}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/admin/roles')} ? 'is-active'">
                         <i class="bi bi-shield-lock-fill"></i><span>Phân quyền vai trò</span>
                     </a>
@@ -67,42 +75,42 @@
                 <!-- ================= NHÓM NGHIỆP VỤ QUẢN LÝ (MANAGER) ================= -->
                 <!-- FIX: session.user != null (tránh hiện menu khi chưa login) -->
                 <div class="adm-nav-group"
-                    th:if="${session.user != null and (session.user.roleId == 2 or session.user.role == 'MANAGER')}">
+                    th:if="${session.user != null and (@permissionService.hasPermission(session.user, 'MANAGER.ROOMS.VIEW') or @permissionService.hasPermission(session.user, 'MANAGER.ROOM_TYPES.VIEW') or @permissionService.hasPermission(session.user, 'MANAGER.SERVICES.VIEW'))}">
                     <span class="adm-nav-label">Nghiệp vụ Quản lý</span>
-                    <a th:href="@{/manager/rooms}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.ROOMS.VIEW')}" th:href="@{/manager/rooms}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/rooms')} ? 'is-active'">
                         <i class="bi bi-door-closed-fill"></i><span>Quản lý phòng</span>
                     </a>
-                    <a th:href="@{/manager/categories}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.ROOM_TYPES.VIEW')}" th:href="@{/manager/categories}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/categories')} ? 'is-active'">
                         <i class="bi bi-collection-fill"></i><span>Loại phòng</span>
                     </a>
-                    <a th:href="@{/manager/services}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.SERVICES.VIEW')}" th:href="@{/manager/services}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/services')} ? 'is-active'">
                         <i class="fa-solid fa-bell-concierge"></i><span>Dịch vụ</span>
                     </a>
-                    <a th:href="@{/manager/staff}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.STAFF.VIEW')}" th:href="@{/manager/staff}" class="adm-nav-item"
                         th:classappend="${currentPath != null and (#strings.startsWith(currentPath, '/manager/staff') or #strings.startsWith(currentPath, '/manager/staffs'))} ? 'is-active'">
                         <i class="bi bi-person-badge-fill"></i><span>Nhân viên</span>
                     </a>
-                    <a th:href="@{/manager/customers}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.CUSTOMERS.VIEW')}" th:href="@{/manager/customers}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/customers')} ? 'is-active'">
                         <i class="bi bi-person-hearts"></i><span>Khách hàng</span>
                     </a>
-                    <a th:href="@{/manager/reviews}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.REVIEWS.VIEW')}" th:href="@{/manager/reviews}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/reviews')} ? 'is-active'">
                         <i class="bi bi-star-fill"></i><span>Đánh giá</span>
                     </a>
-                    <a th:href="@{/manager/loyalty}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.LOYALTY.VIEW')}" th:href="@{/manager/loyalty}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/loyalty')} ? 'is-active'">
                         <i class="bi bi-award-fill"></i><span>Điểm & Hạng</span>
                     </a>
-                    <a th:href="@{/manager/promotions}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'MANAGER.PROMOTIONS.VIEW')}" th:href="@{/manager/promotions}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/promotions')} ? 'is-active'">
                         <i class="bi bi-ticket-perforated-fill"></i><span>Khuyến mãi</span>
                     </a>
                     <!-- Loại khuyến mãi chỉ bật khi PromotionTypeService/API đã được ghép tương thích. -->
-                    <a th:href="@{/manager/statistical}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'REPORT.REVENUE.VIEW')}" th:href="@{/manager/statistical}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/statistical')} ? 'is-active'">
                         <i class="bi bi-graph-up-arrow"></i><span>Thống kê doanh thu</span>
                     </a>
@@ -110,29 +118,29 @@
 
                 <!-- ================= NHÓM NGHIỆP VỤ LỄ TÂN (RECEPTIONIST) ================= -->
                 <div class="adm-nav-group"
-                    th:if="${session.user != null and (session.user.roleId == 3 or session.user.role == 'RECEPTIONIST')}">
+                    th:if="${session.user != null and (@permissionService.hasPermission(session.user, 'RECEPTION.ROOM_MAP.VIEW') or @permissionService.hasPermission(session.user, 'RECEPTION.CHECK_IN.VIEW') or @permissionService.hasPermission(session.user, 'RECEPTION.CHECK_OUT.VIEW'))}">
                     <span class="adm-nav-label">Nghiệp vụ lễ tân</span>
-                    <a th:href="@{/receptionist/room-map}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'RECEPTION.ROOM_MAP.VIEW')}" th:href="@{/receptionist/room-map}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/room-map')} ? 'is-active'">
                         <i class="bi bi-grid-3x3-gap"></i><span>Sơ đồ phòng</span>
                     </a>
-                    <a th:href="@{/receptionist/check-in}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'RECEPTION.CHECK_IN.VIEW')}" th:href="@{/receptionist/check-in}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/check-in')} ? 'is-active'">
                         <i class="bi bi-box-arrow-in-right"></i><span>Nhận phòng</span>
                     </a>
-                    <a th:href="@{/receptionist/check-out}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'RECEPTION.CHECK_OUT.VIEW')}" th:href="@{/receptionist/check-out}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/check-out')} ? 'is-active'">
                         <i class="bi bi-box-arrow-left"></i><span>Trả phòng</span>
                     </a>
-                    <a th:href="@{/receptionist/booking}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'RECEPTION.BOOKINGS.VIEW')}" th:href="@{/receptionist/booking}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/booking')} ? 'is-active'">
                         <i class="bi bi-journal-text"></i><span>Quản lý đặt phòng</span>
                     </a>
-                    <a th:href="@{/receptionist/invoices}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'RECEPTION.INVOICES.VIEW')}" th:href="@{/receptionist/invoices}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/invoices')} ? 'is-active'">
                         <i class="bi bi-receipt"></i><span>Hóa đơn</span>
                     </a>
-                    <a th:href="@{/receptionist/ai-no-show}" class="adm-nav-item"
+                    <a th:if="${@permissionService.hasPermission(session.user, 'RECEPTION.NO_SHOW.VIEW')}" th:href="@{/receptionist/ai-no-show}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/receptionist/ai-no-show')} ? 'is-active'">
                         <i class="bi bi-robot"></i><span>Dự đoán khách không đến</span>
                     </a>
@@ -140,7 +148,7 @@
 
                 <!-- ================= NHÓM NGHIỆP VỤ KẾ TOÁN (ACCOUNTANT) ================= -->
                 <div class="adm-nav-group"
-                    th:if="${session.user != null and (session.user.roleId == 7 or session.user.role == 'ACCOUNTANT')}">
+                    th:if="${session.user != null and session.user.roleId == 7}">
                     <span class="adm-nav-label">Nghiệp vụ kế toán</span>
                     <a th:href="@{/manager/statistical}" class="adm-nav-item"
                         th:classappend="${currentPath != null and #strings.startsWith(currentPath, '/manager/statistical')} ? 'is-active'">
@@ -161,7 +169,7 @@
                     <div class="adm-user-info">
                         <strong th:text="${session.user != null ? session.user.username : 'Admin'}">admin</strong>
                         <span
-                            th:text="${session.user != null and session.user.role != null ? session.user.role : 'Administrator'}">Administrator</span>
+                            th:text="${session.user != null and session.user.roleId == 8 ? 'QUẢN TRỊ CẤP CAO' : (session.user != null and session.user.role != null ? session.user.role : 'QUẢN TRỊ VIÊN')}">QUẢN TRỊ VIÊN</span>
                     </div>
                 </div>
             </div>
@@ -182,10 +190,29 @@
                 </div>
 
                 <div class="adm-topbar-actions">
-                    <button type="button" class="adm-icon-btn" aria-label="Thông báo">
-                        <i class="bi bi-bell"></i>
-                        <span class="adm-icon-btn-dot"></span>
-                    </button>
+                    <div class="adm-notification-wrap" id="staffNotificationWrap">
+                        <button type="button" class="adm-icon-btn" id="staffNotificationToggle" aria-label="Thông báo">
+                            <i class="bi bi-bell"></i>
+                            <span class="adm-notification-count" th:if="${staffUnreadCount != null and staffUnreadCount > 0}"
+                                th:text="${staffUnreadCount > 99 ? '99+' : staffUnreadCount}">1</span>
+                        </button>
+                        <div class="adm-notification-panel">
+                            <div class="d-flex align-items-center justify-content-between px-2 pb-2">
+                                <strong>Thông báo hệ thống</strong>
+                                <form th:if="${staffUnreadCount != null and staffUnreadCount > 0}" th:action="@{/account/staff-notifications/read-all}" method="post">
+                                    <input type="hidden" name="redirect" th:value="${currentPath}">
+                                    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                                    <button class="btn btn-link btn-sm p-0" type="submit">Đánh dấu đã đọc</button>
+                                </form>
+                            </div>
+                            <div th:if="${staffNotifications == null or #lists.isEmpty(staffNotifications)}" class="adm-empty py-3"><p>Chưa có thông báo.</p></div>
+                            <div th:each="notice : ${staffNotifications}" class="adm-notification-item"
+                                th:classappend="${notice.isRead != true} ? ' is-unread'">
+                                <strong th:text="${notice.title}">Thông báo</strong>
+                                <span th:text="${notice.message}">Nội dung</span>
+                            </div>
+                        </div>
+                    </div>
                     <form th:action="@{/account/logout}" method="post" class="adm-topbar-logout">
                         <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
                             th:value="${_csrf.token}">
@@ -228,6 +255,17 @@
             }
 
             ready(function () {
+                var notificationWrap = document.getElementById('staffNotificationWrap');
+                var notificationToggle = document.getElementById('staffNotificationToggle');
+                if (notificationWrap && notificationToggle) {
+                    notificationToggle.addEventListener('click', function (event) {
+                        event.stopPropagation();
+                        notificationWrap.classList.toggle('is-open');
+                    });
+                    document.addEventListener('click', function (event) {
+                        if (!notificationWrap.contains(event.target)) notificationWrap.classList.remove('is-open');
+                    });
+                }
                 if (typeof window.toast !== 'function') {
                     console.warn('[flash-toast] toast() not available — admin_main.js chưa load?');
                     return;

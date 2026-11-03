@@ -17,6 +17,13 @@ public abstract class BaseController {
     @ModelAttribute
     public void addCommonLayoutAttributes(HttpServletRequest request, Model model) {
         model.addAttribute("currentPath", request.getRequestURI());
+        if (request.getSession(false) != null) {
+            Object denied = request.getSession(false).getAttribute("error");
+            if (denied != null) {
+                model.addAttribute("error", denied);
+                request.getSession(false).removeAttribute("error");
+            }
+        }
     }
 
     protected void setPageTitle(Model model, String title) {

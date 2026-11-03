@@ -102,6 +102,6 @@ public class RoomMapRealtimeController {
         HttpSession session = request.getSession(false);
         User user = session == null ? null : (User) session.getAttribute("user");
         if (user == null || user.getRoleId() == null) return false;
-        return user.getRoleId() == 1L || user.getRoleId() == 2L || user.getRoleId() == 3L;
+        return user.getRoleId() == 8L || user.getRoleId() == 1L || user.getRoleId() == 2L || user.getRoleId() == 3L;
     }
 }

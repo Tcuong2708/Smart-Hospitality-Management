@@ -53,4 +53,32 @@ public class NotificationService {
         });
         repository.saveAll(unread);
     }
+
+    public Notification createForUser(Long userId, String type, String title, String message, String link) {
+        return create(null, userId, type, title, message, "bi-shield-exclamation", link);
+    }
+
+    public List<Notification> getLatestByUser(Long userId) {
+        return repository.findTop10ByUserIdOrderByCreatedAtDesc(userId);
+    }
+
+    public long countUnreadByUser(Long userId) {
+        return repository.countByUserIdAndIsReadFalse(userId);
+    }
+
+    public boolean markUserNotificationAsRead(Long notificationId, Long userId) {
+        return repository.findByIdAndUserId(notificationId, userId).map(item -> {
+            item.setIsRead(true);
+            item.setReadAt(new Date());
+            repository.save(item);
+            return true;
+        }).orElse(false);
+    }
+
+    public void markAllUserNotificationsAsRead(Long userId) {
+        List<Notification> unread = repository.findByUserIdAndIsReadFalse(userId);
+        Date now = new Date();
+        unread.forEach(item -> { item.setIsRead(true); item.setReadAt(now); });
+        repository.saveAll(unread);
+    }
 }

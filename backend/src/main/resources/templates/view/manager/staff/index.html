@@ -55,17 +55,6 @@
                 <div class="adm-loyalty-stat-suffix">Có thể đăng nhập</div>
             </div>
 
-            <div class="adm-loyalty-stat">
-                <div class="adm-loyalty-stat-head">
-                    <div class="adm-loyalty-stat-icon" style="background:var(--red-bg);color:var(--red);">
-                        <i class="bi bi-person-x-fill"></i>
-                    </div>
-                    <div class="adm-loyalty-stat-label">Tài khoản bị khóa</div>
-                </div>
-                <div style="font-family:var(--font-heading);font-size:32px;font-weight:700;color:var(--red);line-height:1.1;"
-                    th:text="${staffs != null ? #lists.size(staffs.?[status != 1]) : 0}">0</div>
-                <div class="adm-loyalty-stat-suffix">Không thể đăng nhập</div>
-            </div>
         </div>
 
         <!-- Card danh sách -->
@@ -145,17 +134,6 @@
                                     <button type="button" class="adm-action edit btn-edit" title="Sửa thông tin">
                                         <i class="bi bi-pencil"></i>
                                     </button>
-
-                                    <form th:action="@{/manager/staff/{id}/status(id=${nv.id})}" method="post"
-                                        style="display:inline;">
-                                        <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
-                                            th:value="${_csrf.token}">
-                                        <button type="submit" class="adm-action" title="Khóa/Mở khóa"
-                                            th:style="${nv.status == 1 ? 'color:var(--yellow);' : 'color:var(--green);'}">
-                                            <i class="bi"
-                                                th:classappend="${nv.status == 1 ? 'bi-lock-fill' : 'bi-unlock-fill'}"></i>
-                                        </button>
-                                    </form>
 
                                     <form th:action="@{/manager/staff/{id}/delete(id=${nv.id})}" method="post"
                                         style="display:inline;" onsubmit="return confirm('Xóa nhân viên này?');">

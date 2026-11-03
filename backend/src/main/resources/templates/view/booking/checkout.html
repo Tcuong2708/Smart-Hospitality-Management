@@ -397,6 +397,13 @@
                                                 đ</strong>
                                         </div>
 
+                                        <div class="mh-co-price-row mh-co-price-discount"
+                                            th:if="${promotionDiscount != null and promotionDiscount > 0}">
+                                            <span th:text="${promotionName != null ? 'Khuyến mãi: ' + promotionName : 'Khuyến mãi'}">Khuyến mãi</span>
+                                            <strong id="mhPromotionDiscount"
+                                                th:text="${'- ' + #numbers.formatDecimal(promotionDiscount, 0, 'POINT', 0, 'COMMA') + ' đ'}">- 0 đ</strong>
+                                        </div>
+
                                         <div class="mh-co-price-row">
                                             <span>Thuế GTGT (10%)</span>
                                             <strong id="mhSumTax" th:text="${priceBreakdown != null
@@ -486,6 +493,7 @@
                                             and currentBooking.loaiPhong.soNguoi != null
                                             ? currentBooking.loaiPhong.soNguoi : 2}]]*/ 2;
             window.MH_DICH_VU = /*[[${totalDichVu != null ? totalDichVu : 0}]]*/ 0;
+            window.MH_PUBLIC_PROMOTION_DISCOUNT = /*[[${promotionDiscount != null ? promotionDiscount : 0}]]*/ 0;
             window.MH_TAX_RATE = 0.10;
         </script>
 
@@ -503,7 +511,8 @@
                 var pointsInput = $('mhPointsToUse');
                 var voucherInput = $('mhVoucher');
                 var voucherMessage = $('mhVoucherMessage');
-                var voucherDiscount = 0;
+                var publicPromotionDiscount = Number(window.MH_PUBLIC_PROMOTION_DISCOUNT) || 0;
+                var voucherDiscount = publicPromotionDiscount;
                 var voucherTimer = null;
 
                 // Số khách
@@ -620,7 +629,7 @@
                 async function refreshVoucherQuote() {
                     if (!voucherInput) return;
                     var code = voucherInput.value.trim();
-                    voucherDiscount = 0;
+                    voucherDiscount = publicPromotionDiscount;
                     if (!code) {
                         if (voucherMessage) voucherMessage.style.display = 'none';
                         render();

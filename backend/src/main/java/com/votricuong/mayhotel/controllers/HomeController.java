@@ -26,12 +26,12 @@ import com.votricuong.mayhotel.documents.RoomType;
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.repositories.BookingDetailRepository;
 import com.votricuong.mayhotel.repositories.CustomerRepository;
-import com.votricuong.mayhotel.repositories.PromotionRepository;
 import com.votricuong.mayhotel.repositories.ReviewRepository;
 import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.repositories.ServiceRepository;
 import com.votricuong.mayhotel.services.ReviewService;
+import com.votricuong.mayhotel.services.PromotionService;
 
 import jakarta.servlet.http.HttpSession;
 import lombok.Data;
@@ -45,7 +45,7 @@ public class HomeController extends BaseController {
     private final ServiceRepository serviceRepository;
     private final ReviewRepository reviewRepository;
     private final CustomerRepository customerRepository;
-    private final PromotionRepository promotionRepository;
+    private final PromotionService promotionService;
     private final ReviewService reviewService;
 
     public HomeController(RoomRepository roomRepository,
@@ -54,7 +54,7 @@ public class HomeController extends BaseController {
             ServiceRepository serviceRepository,
             ReviewRepository reviewRepository,
             CustomerRepository customerRepository,
-            PromotionRepository promotionRepository,
+            PromotionService promotionService,
             ReviewService reviewService) {
         this.roomRepository = roomRepository;
         this.roomTypeRepository = roomTypeRepository;
@@ -62,7 +62,7 @@ public class HomeController extends BaseController {
         this.serviceRepository = serviceRepository;
         this.reviewRepository = reviewRepository;
         this.customerRepository = customerRepository;
-        this.promotionRepository = promotionRepository;
+        this.promotionService = promotionService;
         this.reviewService = reviewService;
     }
 
@@ -89,6 +89,9 @@ public class HomeController extends BaseController {
         private String trangThai;
         private String viewDirection;
         private String locationZone;
+        private Double diemDanhGia;
+        private Long soDanhGia;
+        private Long soLuotDat;
 
         public RoomTypeDTO() {
             this.phongs = new ArrayList<>();
@@ -104,6 +107,8 @@ public class HomeController extends BaseController {
         User user = (User) session.getAttribute("user");
         if (user != null && user.getRoleId() != null) {
             long roleId = user.getRoleId();
+            if (roleId == 8L)
+                return "redirect:/admin/roles";
             if (roleId == 1L)
                 return "redirect:/admin/users";
             if (roleId == 2L)
@@ -120,35 +125,65 @@ public class HomeController extends BaseController {
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
 
         List<BookingDetail> allDetails = bookingDetailRepository.findAll();
-        Map<Long, Long> roomBookingCounts = allDetails.stream()
-                .filter(d -> d.getRoomId() != null)
-                .collect(Collectors.groupingBy(BookingDetail::getRoomId, Collectors.counting()));
+        List<Review> publicReviews = reviewRepository.findAll().stream()
+                .filter(review -> review.getRating() != null
+                        && (review.getStatus() == null || "Hiện".equalsIgnoreCase(review.getStatus())))
+                .filter(review -> review.getRoomTypeIds() != null)
+                .toList();
+
+        Map<Long, Double> roomTypeRatings = publicReviews.stream()
+                .flatMap(review -> review.getRoomTypeIds().stream()
+                        .map(typeId -> Map.entry(typeId, review.getRating().doubleValue())))
+                .collect(Collectors.groupingBy(Map.Entry::getKey,
+                        Collectors.averagingDouble(Map.Entry::getValue)));
+
+        Map<Long, Long> roomTypeReviewCounts = publicReviews.stream()
+                .flatMap(review -> review.getRoomTypeIds().stream())
+                .collect(Collectors.groupingBy(typeId -> typeId, Collectors.counting()));
+
+        Map<Long, Room> roomById = allRooms.stream()
+                .filter(room -> room.getId() != null)
+                .collect(Collectors.toMap(Room::getId, room -> room, (first, ignored) -> first));
+        Map<Long, Long> roomTypeBookingCounts = allDetails.stream()
+                .map(BookingDetail::getRoomId)
+                .map(roomById::get)
+                .filter(room -> room != null && room.getRoomTypeId() != null)
+                .collect(Collectors.groupingBy(Room::getRoomTypeId, Collectors.counting()));
 
         List<RoomTypeDTO> danhSach = allRooms.stream()
                 .filter(r -> r.getRoomTypeId() != null)
                 .map(r -> toDTO(r, typeMap.get(r.getRoomTypeId())))
                 .collect(Collectors.toList());
 
-        danhSach.sort((a, b) -> {
-            long cA = roomBookingCounts.getOrDefault(a.getMaPhong(), 0L);
-            long cB = roomBookingCounts.getOrDefault(b.getMaPhong(), 0L);
-            if (cA != cB)
-                return Long.compare(cB, cA);
-            return Double.compare(
-                    b.getGiaPhong() != null ? b.getGiaPhong() : 0,
-                    a.getGiaPhong() != null ? a.getGiaPhong() : 0);
-        });
-
         // Giao diện khách hàng chỉ giới thiệu loại phòng; không lặp hoặc công khai số phòng vật lý.
-        List<RoomTypeDTO> phongNoiBat = new ArrayList<>(danhSach.stream()
+        List<RoomTypeDTO> uniqueTypes = new ArrayList<>(danhSach.stream()
                 .filter(dto -> dto.getMaLoai() != null)
                 .collect(Collectors.toMap(RoomTypeDTO::getMaLoai, dto -> dto, (first, ignored) -> first,
                         LinkedHashMap::new))
-                .values()).stream().limit(6).collect(Collectors.toList());
+                .values());
+        uniqueTypes.forEach(dto -> {
+            dto.setDiemDanhGia(roomTypeRatings.getOrDefault(dto.getMaLoai(), 0D) * 2D);
+            dto.setSoDanhGia(roomTypeReviewCounts.getOrDefault(dto.getMaLoai(), 0L));
+            dto.setSoLuotDat(roomTypeBookingCounts.getOrDefault(dto.getMaLoai(), 0L));
+        });
+
+        List<RoomTypeDTO> phongNoiBat = uniqueTypes.stream()
+                .filter(dto -> dto.getSoDanhGia() != null && dto.getSoDanhGia() > 0)
+                .sorted(Comparator.comparing(RoomTypeDTO::getDiemDanhGia).reversed()
+                        .thenComparing(RoomTypeDTO::getSoDanhGia, Comparator.reverseOrder())
+                        .thenComparing(RoomTypeDTO::getSoLuotDat, Comparator.reverseOrder()))
+                .limit(6)
+                .toList();
         model.addAttribute("phongNoiBat", phongNoiBat);
 
-        // ── 2. LOẠI PHÒNG ──
-        model.addAttribute("loaiPhong", roomTypeRepository.findAll());
+        List<RoomTypeDTO> loaiPhongPhoBien = uniqueTypes.stream()
+                .sorted(Comparator.comparing(RoomTypeDTO::getSoLuotDat).reversed()
+                        .thenComparing(RoomTypeDTO::getDiemDanhGia, Comparator.reverseOrder())
+                        .thenComparing(RoomTypeDTO::getTenLoaiPhong,
+                                Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)))
+                .limit(6)
+                .toList();
+        model.addAttribute("loaiPhongPhoBien", loaiPhongPhoBien);
 
         // ── 3. DỊCH VỤ ──
         model.addAttribute("dichVuNoiBat", serviceRepository.findAll());
@@ -177,33 +212,17 @@ public class HomeController extends BaseController {
                 .collect(Collectors.toList());
         model.addAttribute("danhGiaNoiBat", danhGiaNoiBat);
 
-        // ── 5. FLASH SALE (promotion đang chạy) ──
+        // Chỉ hiển thị khuyến mãi đại trà đang hiệu lực; không dùng chương trình
+        // sắp diễn ra, hết hạn, tạm ngưng hoặc voucher riêng làm dữ liệu thay thế.
         Date now = new Date();
-        Promotion flashSale = promotionRepository.findAll().stream()
-                .filter(p -> p.getStartDate() != null && p.getEndDate() != null)
-                .filter(p -> !now.before(p.getStartDate()) && !now.after(p.getEndDate()))
-                .max(Comparator.comparing(Promotion::getDiscountPercent,
-                        Comparator.nullsLast(Comparator.naturalOrder())))
-                .orElse(null);
-
-        // Nếu không có promotion active → lấy promotion sắp diễn ra
-        if (flashSale == null) {
-            flashSale = promotionRepository.findAll().stream()
-                    .filter(p -> p.getEndDate() != null && p.getEndDate().after(now))
-                    .min(Comparator.comparing(Promotion::getStartDate,
-                            Comparator.nullsLast(Comparator.naturalOrder())))
-                    .orElse(null);
-        }
-
-        // Nếu vẫn null → lấy promotion bất kỳ (demo)
-        if (flashSale == null) {
-            flashSale = promotionRepository.findAll().stream()
-                    .max(Comparator.comparing(Promotion::getDiscountPercent,
-                            Comparator.nullsLast(Comparator.naturalOrder())))
-                    .orElse(null);
-        }
-
-        model.addAttribute("flashSale", flashSale);
+        List<Promotion> flashSales = promotionService.activePublicPromotions().stream()
+                .sorted(Comparator.comparing(Promotion::getPriority,
+                                Comparator.nullsFirst(Comparator.reverseOrder()))
+                        .thenComparing(Promotion::getDiscountPercent,
+                                Comparator.nullsFirst(Comparator.reverseOrder())))
+                .toList();
+        model.addAttribute("flashSales", flashSales);
+        model.addAttribute("flashSale", flashSales.isEmpty() ? null : flashSales.get(0));
 
         // Đếm số phòng Trống (để hiển thị "chỉ còn X phòng")
         long soPhongTrong = allRooms.stream()
@@ -211,9 +230,9 @@ public class HomeController extends BaseController {
                 .count();
         model.addAttribute("soPhongTrong", soPhongTrong);
 
-        // Giây còn lại của flash sale
-        if (flashSale != null && flashSale.getEndDate() != null) {
-            long diff = flashSale.getEndDate().getTime() - now.getTime();
+        Promotion firstFlashSale = flashSales.isEmpty() ? null : flashSales.get(0);
+        if (firstFlashSale != null && firstFlashSale.getEndDate() != null) {
+            long diff = firstFlashSale.getEndDate().getTime() - now.getTime();
             model.addAttribute("flashSaleSeconds", Math.max(diff / 1000, 0));
         } else {
             model.addAttribute("flashSaleSeconds", 0);

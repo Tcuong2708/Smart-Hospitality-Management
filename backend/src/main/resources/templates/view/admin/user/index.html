@@ -161,6 +161,9 @@
                                 <span th:if="${roleId == 5}" class="adm-role role-customer">
                                     <i class="bi bi-person-fill"></i> Khách hàng
                                 </span>
+                                <span th:if="${roleId == 8}" class="adm-role role-admin">
+                                    <i class="bi bi-shield-fill-check"></i> Super Admin
+                                </span>
                             </td>
 
                             <td class="col-center">
@@ -174,6 +177,9 @@
 
                             <td class="col-center">
                                 <div class="adm-actions">
+                                    <a th:if="${roleId != 8 and (session.user.roleId == 8 or (session.user.roleId == 1 and roleId >= 2))}"
+                                        th:href="@{/admin/users/{id}/permissions(id=${u.id})}" class="adm-action view"
+                                        title="Quyền ngoại lệ"><i class="bi bi-shield-check"></i></a>
                                     <button type="button" class="adm-action edit" data-action="edit"
                                         title="Sửa thông tin / Phân quyền">
                                         <i class="bi bi-pencil"></i>
@@ -275,6 +281,7 @@
                                     <option value="5" data-role="CUSTOMER">Khách hàng</option>
                                     <option value="6" data-role="SERVICE_STAFF">Dịch vụ</option>
                                     <option value="7" data-role="ACCOUNTANT">Kế toán</option>
+                                    <option th:if="${session.user.roleId == 8}" value="8" data-role="SUPER_ADMIN">Super Admin</option>
                                 </select>
                             </div>
                             <div class="adm-field">

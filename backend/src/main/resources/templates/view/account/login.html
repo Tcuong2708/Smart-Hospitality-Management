@@ -55,13 +55,13 @@
                             th:value="${_csrf.token}" />
 
                         <div class="mh-field">
-                            <label for="username">Email hoặc Số điện thoại</label>
+                            <label for="username">Tên đăng nhập</label>
                             <div class="mh-field-input">
-                                <i class="fa-regular fa-envelope"></i>
+                                <i class="fa-regular fa-user"></i>
                                 <input id="username" type="text" name="username" required autofocus
-                                    placeholder="letan@email.com"
-                                    pattern="^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|0[0-9]{9})$"
-                                    title="Nhập email hoặc SĐT 10 số" />
+                                    placeholder="Nhập tên đăng nhập"
+                                    minlength="3" maxlength="100"
+                                    title="Nhập tên đăng nhập" />
                             </div>
                         </div>
 

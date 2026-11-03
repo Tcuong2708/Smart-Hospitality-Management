@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="vi" xmlns:th="http://www.thymeleaf.org">
+<body>
+<div th:fragment="body_content" class="manager-page-shell">
+    <div class="adm-page-head">
+        <div class="adm-page-head-text">
+            <span class="adm-page-eyebrow">QUẢN TRỊ HỆ THỐNG</span>
+            <h1 class="adm-page-title">Quyền ngoại lệ tài khoản</h1>
+            <p class="adm-page-sub">Tài khoản <strong th:text="${targetUser.username}">user</strong> kế thừa quyền vai trò; chỉ cấu hình ngoại lệ khi thật sự cần.</p>
+        </div>
+        <a th:href="@{/admin/users}" class="adm-btn adm-btn-outline"><i class="bi bi-arrow-left"></i> Quay lại</a>
+    </div>
+    <div class="adm-card">
+        <div class="adm-table-wrap">
+            <table class="adm-table">
+                <thead><tr><th>Chức năng</th><th>Phạm vi áp dụng</th><th>Quyền vai trò</th><th>Ngoại lệ tài khoản</th></tr></thead>
+                <tbody>
+                <tr th:each="p : ${permissions}">
+                    <td><strong th:text="${p.name}">Quyền</strong></td>
+                    <td><span th:text="${p.displayPath}">Phạm vi quyền</span></td>
+                    <td><span class="adm-badge" th:classappend="${rolePermissions.contains(p.code)} ? ' adm-badge-success' : ' adm-badge-neutral'"
+                        th:text="${rolePermissions.contains(p.code)} ? 'Được phép' : 'Không có'">Kế thừa</span></td>
+                    <td>
+                        <form method="post" th:action="@{/admin/users/{id}/permissions(id=${targetUser.id})}" class="d-flex gap-2">
+                            <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
+                            <input type="hidden" name="permission" th:value="${p.code}">
+                            <select name="effect" class="form-select form-select-sm">
+                                <option value="INHERIT" th:selected="${overrides[p.code] == null}">Theo vai trò</option>
+                                <option value="ALLOW" th:selected="${overrides[p.code] == 'ALLOW'}">Cho phép riêng</option>
+                                <option value="DENY" th:selected="${overrides[p.code] == 'DENY'}">Từ chối riêng</option>
+                            </select>
+                            <button class="adm-btn adm-btn-primary" type="submit">Lưu</button>
+                        </form>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+</body>
+</html>

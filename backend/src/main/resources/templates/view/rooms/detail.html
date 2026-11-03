@@ -123,9 +123,10 @@
                         <section class="mh-detail-card">
                             <h2><i class="fa-solid fa-book-open"></i> Mô tả phòng</h2>
                             <p
-                                th:text="${room.detail != null and !room.detail.isBlank() ? room.detail :
+                                th:text="${room.roomType != null and room.roomType.description != null and !room.roomType.description.isBlank() ? room.roomType.description :
+                                     (room.detail != null and !room.detail.isBlank() ? room.detail :
                                      (room.note != null and !room.note.isBlank() ? room.note :
-                                      'Phòng nghỉ tiện nghi, đầy đủ trang thiết bị, không gian ấm cúng mang đến trải nghiệm thoải mái cho quý khách.')}">
+                                      'Phòng nghỉ tiện nghi, đầy đủ trang thiết bị, không gian ấm cúng mang đến trải nghiệm thoải mái cho quý khách.'))}">
                                 Mô tả phòng...</p>
                         </section>
 

@@ -180,7 +180,7 @@ public class MobileApiController {
             Map<String, Object> data = new HashMap<>();
             data.put("id", user.getId());
             data.put("name", user.getFullName());
-            data.put("role", roleId == 1L ? 1 : roleId == 3L ? 2 : 3);
+            data.put("role", (roleId == 1L || roleId == 8L) ? 1 : roleId == 3L ? 2 : 3);
             data.put("roleId", roleId);
             data.put("roleCode", user.getRole());
             data.put("accessToken", mobileTokenService.issue(user));
@@ -1547,7 +1547,7 @@ public class MobileApiController {
         try {
             com.votricuong.mayhotel.services.MobileTokenService.Claims claims =
                     mobileTokenService.verifyAuthorization(authorization);
-            if (claims.roleId() != 6L && !"SERVICE_STAFF".equalsIgnoreCase(claims.role())) {
+            if (claims.roleId() != 8L && claims.roleId() != 6L && !"SERVICE_STAFF".equalsIgnoreCase(claims.role())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN)
                         .body(ApiResponse.error("Chức năng chỉ dành cho nhân viên dịch vụ"));
             }

@@ -2,7 +2,9 @@
 <html lang="vi" xmlns:th="http://www.thymeleaf.org">
 
 <head>
-    <th:block th:fragment="extra_css"></th:block>
+    <th:block th:fragment="extra_css">
+        <style>#loyaltyCustomerTable tr[hidden] { display: none !important; }</style>
+    </th:block>
 </head>
 
 <body>
@@ -181,7 +183,7 @@
                                 </td>
                             </tr>
 
-                            <tr id="loyaltyNoMatchRow" style="display:none;">
+                            <tr id="loyaltyNoMatchRow" hidden>
                                 <td colspan="5">
                                     <div class="adm-empty">
                                         <i class="bi bi-search"></i>
@@ -351,8 +353,7 @@
                         var hasFilter = (searchInput.value || '').trim().length > 0
                             || document.querySelectorAll('.filter-tier-cb:checked').length > 0;
                         if (noMatchRow) {
-                            noMatchRow.style.display =
-                                (filteredRows.length === 0 && hasFilter) ? '' : 'none';
+                            noMatchRow.hidden = !(filteredRows.length === 0 && hasFilter);
                         }
 
                         renderPagination(totalPages);

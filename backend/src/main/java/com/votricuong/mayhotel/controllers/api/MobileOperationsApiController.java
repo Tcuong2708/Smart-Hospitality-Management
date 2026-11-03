@@ -985,7 +985,7 @@ public class MobileOperationsApiController {
     private ResponseEntity<?> roleAction(String authorization, Set<Long> roleIds, RoleAction action) {
         try {
             MobileTokenService.Claims claims = tokenService.verifyAuthorization(authorization);
-            if (!roleIds.contains(claims.roleId())) return forbidden("Bạn không có quyền sử dụng chức năng này");
+            if (claims.roleId() != 8L && !roleIds.contains(claims.roleId())) return forbidden("Bạn không có quyền sử dụng chức năng này");
             return action.run(claims);
         } catch (SecurityException ex) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(ApiResponse.error(ex.getMessage()));

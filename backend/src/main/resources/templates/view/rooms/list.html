@@ -12,8 +12,8 @@
         <!-- ══════════ BANNER ══════════ -->
         <section class="mh-list-banner">
             <div class="container">
-                <h1>Khám phá không gian lưu trú</h1>
-                <p>Từ phòng tiêu chuẩn ấm cúng đến suite sang trọng — chọn không gian phù hợp cho hành trình của bạn.
+                <h1>Tận hưởng kỳ nghỉ trọn vẹn tại May Hotel</h1>
+                <p>Từ phòng nghỉ ấm cúng đến không gian sang trọng — chọn trải nghiệm nghỉ dưỡng phù hợp với bạn.
                 </p>
             </div>
         </section>
@@ -170,9 +170,10 @@
                                     <span>May Hotel</span>
                                 </p>
 
-                                <p class="mh-room-row-desc" th:text="${r.detail != null and !r.detail.isBlank() ? r.detail :
+                                <p class="mh-room-row-desc" th:text="${r.roomType != null and r.roomType.description != null and !r.roomType.description.isBlank() ? r.roomType.description :
+                                         (r.detail != null and !r.detail.isBlank() ? r.detail :
                                          (r.note != null and !r.note.isBlank() ? r.note :
-                                          'Phòng tiện nghi, đầy đủ tiện ích, không gian ấm cúng.')}">
+                                          'Phòng tiện nghi, đầy đủ tiện ích, không gian ấm cúng.'))}">
                                     Mô tả phòng...</p>
 
                                 <div class="mh-room-row-tags">

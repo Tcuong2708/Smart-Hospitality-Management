@@ -115,6 +115,8 @@ public class LoyaltyController extends BaseController {
     private boolean isManager(HttpSession session) {
         Object value = session.getAttribute("user");
         if (!(value instanceof User user)) return false;
-        return Long.valueOf(1L).equals(user.getRoleId()) || Long.valueOf(2L).equals(user.getRoleId());
+        return Long.valueOf(8L).equals(user.getRoleId())
+                || Long.valueOf(1L).equals(user.getRoleId())
+                || Long.valueOf(2L).equals(user.getRoleId());
     }
 }

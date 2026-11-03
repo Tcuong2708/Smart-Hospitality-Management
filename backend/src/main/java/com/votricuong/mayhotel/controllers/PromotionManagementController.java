@@ -95,6 +95,18 @@ public class PromotionManagementController extends BaseController {
         }
     }
 
+    @DeleteMapping("/api/{id}")
+    @ResponseBody
+    public ResponseEntity<?> deleteHard(@PathVariable Long id, HttpSession session) {
+        if (!isManager(session)) return ResponseEntity.status(403).body(Map.of("message", "Không có quyền."));
+        try {
+            promotionService.deleteHard(id);
+            return ResponseEntity.ok(Map.of("success", true));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
     @GetMapping("/api/customers")
     @ResponseBody
     public ResponseEntity<?> customers(@RequestParam(required = false) String q, HttpSession session) {
@@ -163,7 +175,9 @@ public class PromotionManagementController extends BaseController {
     private boolean isManager(HttpSession session) {
         Object value = session.getAttribute("user");
         if (!(value instanceof User user) || user.getRole() == null) return false;
-        return "ADMIN".equalsIgnoreCase(user.getRole()) || "MANAGER".equalsIgnoreCase(user.getRole())
+        return "SUPER_ADMIN".equalsIgnoreCase(user.getRole())
+                || "ADMIN".equalsIgnoreCase(user.getRole()) || "MANAGER".equalsIgnoreCase(user.getRole())
+                || Long.valueOf(8L).equals(user.getRoleId())
                 || Long.valueOf(1L).equals(user.getRoleId()) || Long.valueOf(2L).equals(user.getRoleId());
     }
 

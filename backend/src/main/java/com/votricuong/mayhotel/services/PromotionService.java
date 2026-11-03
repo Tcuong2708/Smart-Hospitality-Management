@@ -31,6 +31,7 @@ public class PromotionService {
     private final NotificationService notificationService;
     private static final SecureRandom RANDOM = new SecureRandom();
     private static final String CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
 
     public PromotionService(PromotionRepository promotionRepository, MongoTemplate mongoTemplate,
                             SequenceGeneratorService sequenceGeneratorService,
@@ -49,7 +50,10 @@ public class PromotionService {
 
     public List<Promotion> search(String query, String type, String status) {
         String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        Date now = new Date();
         return promotionRepository.findAll().stream()
+                // Trả trạng thái đúng ngay ở lần tải trang, không phải chờ lịch nền chạy.
+                .peek(p -> p.setStatus(effectiveStatus(p, now)))
                 .filter(p -> q.isEmpty()
                         || contains(p.getName(), q)
                         || contains(p.getCode(), q)
@@ -71,6 +75,9 @@ public class PromotionService {
     }
 
     public Promotion save(Promotion promotion) {
+        Promotion persisted = promotion.getId() == null
+                ? null
+                : promotionRepository.findById(promotion.getId()).orElse(null);
         if (promotion.getName() != null) {
             promotion.setName(promotion.getName().trim());
         }
@@ -80,16 +87,20 @@ public class PromotionService {
             promotion.setCode(promotion.getCode().trim().toUpperCase(Locale.ROOT));
         }
         validate(promotion);
-        boolean duplicateName = promotion.getId() == null
+        boolean nameChanged = persisted == null || persisted.getName() == null
+                || !persisted.getName().equalsIgnoreCase(promotion.getName());
+        boolean duplicateName = nameChanged && (promotion.getId() == null
                 ? promotionRepository.existsByNameIgnoreCase(promotion.getName())
-                : promotionRepository.existsByNameIgnoreCaseAndIdNot(promotion.getName(), promotion.getId());
+                : promotionRepository.existsByNameIgnoreCaseAndIdNot(promotion.getName(), promotion.getId()));
         if (duplicateName) {
             throw new IllegalArgumentException("Tên chương trình khuyến mãi đã tồn tại.");
         }
         if (promotion.getCode() != null && !promotion.getCode().isBlank()) {
-            boolean duplicateCode = promotion.getId() == null
+            boolean codeChanged = persisted == null || persisted.getCode() == null
+                    || !persisted.getCode().equalsIgnoreCase(promotion.getCode());
+            boolean duplicateCode = codeChanged && (promotion.getId() == null
                     ? promotionRepository.existsByCodeIgnoreCase(promotion.getCode())
-                    : promotionRepository.existsByCodeIgnoreCaseAndIdNot(promotion.getCode(), promotion.getId());
+                    : promotionRepository.existsByCodeIgnoreCaseAndIdNot(promotion.getCode(), promotion.getId()));
             if (duplicateCode) {
                 throw new IllegalArgumentException("Mã khuyến mãi đã tồn tại.");
             }
@@ -120,6 +131,7 @@ public class PromotionService {
             promotion.setVisibility(promotion.getVisibility().trim().toUpperCase(Locale.ROOT));
         }
         if (promotion.getAssignedCount() == null) promotion.setAssignedCount(0);
+        promotion.setStatus(effectiveStatus(promotion));
         return promotionRepository.save(promotion);
     }
 
@@ -142,6 +154,14 @@ public class PromotionService {
                 .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khuyến mãi."));
         promotion.setStatus("DISABLED");
         promotionRepository.save(promotion);
+    }
+
+    /** Xóa cứng chương trình và các phiếu quà tặng đã phát hành từ chương trình đó. */
+    public void deleteHard(Long id) {
+        Promotion promotion = promotionRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy khuyến mãi."));
+        customerPromotionRepository.deleteByPromotionId(id);
+        promotionRepository.delete(promotion);
     }
 
     public Optional<Promotion> findByCode(String code) {
@@ -171,7 +191,7 @@ public class PromotionService {
             Customer customer = customerRepository.findById(customerId).orElse(null);
             if (customer == null) continue;
             customerPromotionRepository.save(CustomerPromotion.builder()
-                    .id(sequenceGeneratorService.generateSequence("customer_promotions_sequence"))
+                    .id(sequenceGeneratorService.generateSequence("gift_voucher_sequence"))
                     .customerId(customerId).promotionId(promotionId).promotionCode(promotion.getCode())
                     .status("UNUSED").assignedAt(new Date()).build());
             notificationService.create(customerId, customer.getUserId(), "PROMOTION_GIFTED",
@@ -265,7 +285,7 @@ public class PromotionService {
         }
     }
 
-    @Scheduled(fixedDelay = 300000)
+    @Scheduled(cron = "0 * * * * *", zone = "Asia/Ho_Chi_Minh")
     public void refreshStatuses() {
         Date now = new Date();
         for (Promotion promotion : promotionRepository.findAll()) {
@@ -349,15 +369,19 @@ public class PromotionService {
     }
 
     private String effectiveStatus(Promotion p, Date now) {
+        // Tạm ngưng và bản nháp là quyết định thủ công, lịch không tự kích hoạt lại.
         if (p.getStatus() != null && "DISABLED".equalsIgnoreCase(p.getStatus())) return "DISABLED";
+        if (p.getStatus() != null && "DRAFT".equalsIgnoreCase(p.getStatus())) return "DRAFT";
         java.time.LocalDate today = toLocalDate(now);
         if (p.getStartDate() != null && today.isBefore(toLocalDate(p.getStartDate()))) return "SCHEDULED";
         if (p.getEndDate() != null && today.isAfter(toLocalDate(p.getEndDate()))) return "EXPIRED";
-        return p.getStatus() == null || p.getStatus().isBlank() ? "ACTIVE" : p.getStatus();
+        // Trong khoảng ngày áp dụng, trạng thái lịch luôn là đang diễn ra, kể cả trước đó
+        // bản ghi đã mang SCHEDULED hoặc EXPIRED vì quản lý vừa sửa lại thời gian.
+        return "ACTIVE";
     }
 
     private java.time.LocalDate toLocalDate(Date date) {
-        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        return date.toInstant().atZone(HOTEL_ZONE).toLocalDate();
     }
 
     private String normalizedType(Promotion p) {
@@ -374,7 +398,8 @@ public class PromotionService {
 
     private String formatDate(Date date) {
         if (date == null) return "không giới hạn";
-        return new java.text.SimpleDateFormat("dd/MM/yyyy").format(date);
+        return java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")
+                .format(date.toInstant().atZone(HOTEL_ZONE).toLocalDate());
     }
 
     private void validate(Promotion p) {
