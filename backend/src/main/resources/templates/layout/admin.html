@@ -240,7 +240,7 @@
 
     <div class="adm-sidebar-overlay" id="admSidebarOverlay"></div>
 
-    <script th:src="@{/js/admin_main.js}"></script>
+    <script th:src="@{/js/admin_main.js(v='20261103-1')}"></script>
     <th:block th:if="${extra_js_template != null}">
         <th:block th:replace="~{${extra_js_template} :: ${extra_js_fragment}}"></th:block>
     </th:block>

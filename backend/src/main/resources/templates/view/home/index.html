@@ -156,11 +156,11 @@
           <div class="mh-room-carousel" id="roomCarousel">
             <a th:each="p : ${phongNoiBat}" th:href="@{/rooms/detail/{id}(id=${p.maPhong})}" class="mh-room-card">
               <div class="mh-room-img">
-                <img th:src="${#strings.startsWith(p.hinhAnhHienThi, 'http')
+                <img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.card(#strings.startsWith(p.hinhAnhHienThi, 'http')
                               ? p.hinhAnhHienThi
                               : (#strings.startsWith(p.hinhAnhHienThi, '/')
                                  ? p.hinhAnhHienThi
-                                 : '/images/rooms/' + p.hinhAnhHienThi)}"
+                                 : '/images/rooms/' + p.hinhAnhHienThi))}"
                   th:alt="${p.tenLoaiPhong}">
                 <span class="mh-room-badge" th:text="${p.trangThai}">Còn phòng</span>
                 <span class="room-wishlist" role="link" tabindex="0" aria-label="Yêu thích"
@@ -234,7 +234,7 @@
             <a th:each="t : ${loaiPhongPhoBien}" th:href="@{/rooms(roomTypeId=${t.maLoai})}" class="mh-category-card"
               th:with="imgPath=${(t.hinhAnhHienThi != null and !t.hinhAnhHienThi.isBlank()) ? t.hinhAnhHienThi : 'default.jpg'}">
               <div class="mh-category-img">
-                <img th:src="${#strings.startsWith(imgPath, 'http') ? imgPath : (#strings.startsWith(imgPath, '/') ? imgPath : '/images/rooms/' + imgPath)}" th:alt="${t.tenLoaiPhong}">
+                <img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.card(#strings.startsWith(imgPath, 'http') ? imgPath : (#strings.startsWith(imgPath, '/') ? imgPath : '/images/rooms/' + imgPath))}" th:alt="${t.tenLoaiPhong}">
               </div>
               <div class="mh-category-info">
                 <span class="mh-category-tag"

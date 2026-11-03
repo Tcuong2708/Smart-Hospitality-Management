@@ -371,11 +371,6 @@
         document.getElementById('mhLbPrev').addEventListener('click', prev);
         document.getElementById('mhLbNext').addEventListener('click', next);
 
-        // Click vùng tối để đóng
-        box.addEventListener('click', (e) => {
-          if (e.target === box) close();
-        });
-
         // Phím tắt
         document.addEventListener('keydown', (e) => {
           if (!box.classList.contains('is-open')) return;

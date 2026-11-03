@@ -105,10 +105,6 @@ function roomCode(value) {
                 if (m) AdmModal.close(m);
             }
 
-            if (e.target.classList && e.target.classList.contains('adm-modal-backdrop')) {
-                AdmModal.close(e.target);
-            }
-
             var ddToggle = e.target.closest('[data-adm-dropdown]');
             if (ddToggle) {
                 var parent = ddToggle.closest('.adm-dropdown');
@@ -131,6 +127,13 @@ function roomCode(value) {
                     AdmModal.close(m);
                 });
             }
+        });
+
+        // Không đóng biểu mẫu khi người dùng nhấn, kéo rồi thả chuột ra nền mờ.
+        // Chỉ nút đóng/hủy rõ ràng hoặc phím Esc mới đóng modal.
+        document.querySelectorAll('.modal').forEach(function (modal) {
+            modal.setAttribute('data-bs-backdrop', 'static');
+            modal.setAttribute('data-bs-keyboard', 'true');
         });
     });
 })();

@@ -452,9 +452,6 @@
                 modal.querySelectorAll('[data-mh-modal-close]').forEach(function (el) {
                     el.addEventListener('click', function () { modal.classList.remove('open'); });
                 });
-                modal.addEventListener('click', function (e) {
-                    if (e.target === modal) modal.classList.remove('open');
-                });
             })();
         </script>
     </th:block>

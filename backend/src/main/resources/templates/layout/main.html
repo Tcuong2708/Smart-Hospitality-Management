@@ -17,7 +17,7 @@
         rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
         crossorigin="anonymous" referrerpolicy="no-referrer">
-    <link rel="stylesheet" th:href="@{/css/styles.css(v='20261029-3')}">
+    <link rel="stylesheet" th:href="@{/css/styles.css(v='20261103-1')}">
 
     <th:block layout:fragment="additional-css"></th:block>
 </head>
@@ -128,9 +128,9 @@
                     <img th:src="@{/images/logo-web.png}" alt="MAY HOTEL">
                     <p class="footer-tagline">Trọn vẹn trải nghiệm — lưu trú an tâm.</p>
                     <div class="footer-socials">
-                        <a href="#"><i class="fa-brands fa-facebook-f"></i></a>
-                        <a href="#"><i class="fa-brands fa-instagram"></i></a>
-                        <a href="#"><i class="fa-brands fa-tiktok"></i></a>
+                        <a href="#" aria-label="Facebook"><i class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
+                        <a href="#" aria-label="Instagram"><i class="fa-brands fa-instagram" aria-hidden="true"></i></a>
+                        <a href="#" aria-label="TikTok"><i class="fa-brands fa-tiktok" aria-hidden="true"></i></a>
                     </div>
                 </div>
                 <div class="footer-col">
@@ -198,7 +198,7 @@
     </form>
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script th:src="@{/js/main.js(v='20261029-3')}"></script>
+    <script th:src="@{/js/main.js(v='20261103-1')}"></script>
 
     <!-- Bell thông báo — fetch + poll -->
     <script th:if="${session.user != null}">

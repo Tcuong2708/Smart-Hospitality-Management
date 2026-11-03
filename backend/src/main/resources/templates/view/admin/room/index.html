@@ -132,7 +132,7 @@
                         <tr th:each="r : ${rooms}" class="room-row">
                             <td class="text-center fw-bold text-secondary" th:text="${r.id}"></td>
                             <td class="text-center">
-                                <img loading="lazy" th:src="${not #strings.isEmpty(r.imageUrl) ? (r.imageUrl.startsWith('http') ? r.imageUrl : '/images/' + r.imageUrl) : (r.roomType != null and not #strings.isEmpty(r.roomType.imageUrl) ? (r.roomType.imageUrl.startsWith('http') ? r.roomType.imageUrl : '/images/' + r.roomType.imageUrl) : 'https://via.placeholder.com/80x60?text=No+Image')}" alt="Room Image" class="rounded shadow-sm" style="width: 80px; height: 60px; object-fit: cover; border: 1px solid #ddd;">
+                                <img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.thumbnail(not #strings.isEmpty(r.imageUrl) ? (r.imageUrl.startsWith('http') ? r.imageUrl : '/images/' + r.imageUrl) : (r.roomType != null and not #strings.isEmpty(r.roomType.imageUrl) ? (r.roomType.imageUrl.startsWith('http') ? r.roomType.imageUrl : '/images/' + r.roomType.imageUrl) : 'https://via.placeholder.com/80x60?text=No+Image'), 160, 120)}" alt="Room Image" class="rounded shadow-sm" style="width: 80px; height: 60px; object-fit: cover; border: 1px solid #ddd;">
                             </td>
                             <td class="text-center fw-bold room-name" style="color: #0F2942;" th:text="${r.name}"></td>
                             <td class="text-center room-category">
@@ -192,7 +192,7 @@
                     <div class="modal-body p-4">
                         <div class="row">
                             <div class="col-md-5 text-center mb-3 mb-md-0">
-                                <img th:src="${not #strings.isEmpty(r.imageUrl) ? (r.imageUrl.startsWith('http') ? r.imageUrl : '/images/' + r.imageUrl) : (r.roomType != null and not #strings.isEmpty(r.roomType.imageUrl) ? (r.roomType.imageUrl.startsWith('http') ? r.roomType.imageUrl : '/images/' + r.roomType.imageUrl) : 'https://via.placeholder.com/400x300?text=No+Image')}" alt="Room" class="img-fluid rounded shadow-sm w-100" style="object-fit: cover; max-height: 250px;">
+                                <img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.thumbnail(not #strings.isEmpty(r.imageUrl) ? (r.imageUrl.startsWith('http') ? r.imageUrl : '/images/' + r.imageUrl) : (r.roomType != null and not #strings.isEmpty(r.roomType.imageUrl) ? (r.roomType.imageUrl.startsWith('http') ? r.roomType.imageUrl : '/images/' + r.roomType.imageUrl) : 'https://via.placeholder.com/400x300?text=No+Image'), 800, 500)}" alt="Room" class="img-fluid rounded shadow-sm w-100" style="object-fit: cover; max-height: 250px;">
                             </div>
                             <div class="col-md-7">
                                 <table class="table table-borderless">

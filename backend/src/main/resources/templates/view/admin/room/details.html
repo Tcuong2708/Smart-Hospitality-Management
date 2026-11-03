@@ -20,7 +20,7 @@
             <div class="card-body p-4 p-md-5">
                 <div class="row">
                     <div class="col-md-5 mb-4 mb-md-0 text-center">
-                        <img loading="lazy" th:src="${room.imageUrl != null and !room.imageUrl.isEmpty() ? room.imageUrl : (room.roomType != null ? room.roomType.imageUrl : '/images/room-placeholder.jpg')}" alt="Room Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; object-fit: cover; width: 100%;">
+                        <img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.thumbnail(room.imageUrl != null and !room.imageUrl.isEmpty() ? room.imageUrl : (room.roomType != null ? room.roomType.imageUrl : '/images/room-placeholder.jpg'), 960, 600)}" alt="Room Image" class="img-fluid rounded shadow-sm" style="max-height: 300px; object-fit: cover; width: 100%;">
                     </div>
                     <div class="col-md-7">
                         <h3 class="fw-bold mb-3" style="color: #0F2942;" th:text="${room.name}"></h3>

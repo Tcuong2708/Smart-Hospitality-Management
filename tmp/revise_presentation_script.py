@@ -5,7 +5,7 @@ from docx.enum.table import WD_TABLE_ALIGNMENT, WD_CELL_VERTICAL_ALIGNMENT
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 
-OUT = r"D:\Document\KhoaLuanCuNhan\Projects\Smart-Hospitality-Management\tmp\Kich_Ban_Thuyet_Trinh_Khoa_Luan.docx"
+OUT = r"D:\Document\KhoaLuanCuNhan\Projects\Smart-Hospitality-Management\tmp\Kich_Ban_Thuyet_Trinh_Khoa_Luan_v2.docx"
 NAVY, GOLD, PALE, WHITE, GRAY, BORDER = "12324A", "D9AE2B", "F3F6F8", "FFFFFF", "666666", "D9D9D9"
 
 doc = Document()
@@ -77,15 +77,15 @@ title.add_run("Kịch bản thuyết trình khóa luận tối đa 12 phút")
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
 r = p.add_run("Hệ thống quản lý khách sạn thông minh May Hotel"); r.bold = True; r.font.size = Pt(13); r.font.color.rgb = RGBColor.from_string(NAVY)
 p = doc.add_paragraph(); p.alignment = WD_ALIGN_PARAGRAPH.CENTER
-r = p.add_run("Thành viên 1 trình bày toàn bộ slide; thành viên 2 demo quản lý; thành viên 3 demo Web lễ tân và Mobile"); r.italic = True; r.font.color.rgb = RGBColor.from_string(GRAY)
+r = p.add_run("Thành viên 1 trình bày toàn bộ slide và đặt phòng trực tuyến; thành viên 3 tiếp nối nhận phòng; thành viên 2 demo quản lý"); r.italic = True; r.font.color.rgb = RGBColor.from_string(GRAY)
 
 doc.add_heading("Phân bổ thời gian", level=1)
 t = doc.add_table(rows=1, cols=5)
 for c, h in zip(t.rows[0].cells, ["Người trình bày", "Thời gian", "Phạm vi", "Trọng tâm", "Thời lượng"]): c.text = h
 rows = [
-    ["Thành viên 1", "00:00–03:55", "Toàn bộ 18 slide nội dung", "Bài toán, thiết kế, chức năng, kiểm thử, kết luận", "3 phút 55 giây"],
-    ["Thành viên 2", "03:55–07:40", "Demo quản lý", "Danh mục, khuyến mãi, phân quyền, thống kê", "3 phút 45 giây"],
-    ["Thành viên 3", "07:40–11:35", "Demo Web và Mobile", "Xác thực và nhận phòng", "3 phút 55 giây"],
+    ["Thành viên 1", "00:00–04:00", "Toàn bộ slide và đặt phòng", "Tổng quan, chức năng và đặt phòng trực tuyến", "4 phút"],
+    ["Thành viên 3", "04:00–07:55", "Demo Web và Mobile", "Tiếp nối đơn vừa tạo để xác thực, nhận phòng", "3 phút 55 giây"],
+    ["Thành viên 2", "07:55–11:35", "Demo quản lý", "Danh mục, khuyến mãi, phân quyền, thống kê", "3 phút 40 giây"],
     ["Dự phòng", "11:35–12:00", "Chuyển thiết bị", "Hoặc giới thiệu nhanh chức năng mở rộng", "25 giây"],
 ]
 for vals in rows:
@@ -95,8 +95,8 @@ format_table(t, [2.8, 2.6, 3.7, 5.3, 2.6])
 
 doc.add_heading("Nguyên tắc demo", level=1)
 bullet("Không demo đăng nhập, đăng xuất, đổi mật khẩu hoặc nhập lại dữ liệu dài; các tài khoản và dữ liệu mẫu phải mở sẵn.")
-bullet("Thành viên 1 trình bày liên tục toàn bộ slide, không chuyển người giữa phần lý thuyết.")
-bullet("Luồng đặt phòng trực tuyến được giới thiệu bằng slide và kết quả chuẩn bị sẵn; ưu tiên thời gian cho hai demo nghiệp vụ chính.")
+bullet("Thành viên 1 trình bày liên tục toàn bộ slide rồi demo một luồng đặt phòng trực tuyến ngắn gọn.")
+bullet("Đơn vừa được tạo ở phần đặt phòng phải là chính đơn mà thành viên 3 dùng để demo xác thực và nhận phòng.")
 bullet("Nếu VNPay, NFC hoặc AI chậm quá 10 giây, chuyển sang dữ liệu mẫu đã chuẩn bị và tiếp tục lời thoại.")
 
 doc.add_heading("Chuẩn bị trước khi báo cáo", level=1)
@@ -106,29 +106,31 @@ bullet("Web lễ tân mở sẵn Nhận phòng và Sơ đồ phòng; có một p
 bullet("Mobile mở đúng phiếu; chuẩn bị thẻ NFC mô phỏng, ảnh CCCD mẫu và một kết quả xác thực dự phòng.")
 
 doc.add_page_break()
-doc.add_heading("Thành viên 1 — Trình bày toàn bộ slide", level=1)
-time("00:00–00:20", "Slide 1 — Nội dung")
-speech("Kính thưa Hội đồng, nhóm trình bày hệ thống quản lý khách sạn thông minh May Hotel trên hai nền tảng Web và Mobile. Nội dung gồm khảo sát nghiệp vụ, phân tích thiết kế, các chức năng đã cài đặt, kiểm thử và kết luận.")
-time("00:20–00:40", "Slide 2 — Công nghệ")
-speech("Hệ thống sử dụng Spring Boot cho Backend, MongoDB Atlas cho dữ liệu, Thymeleaf cho Web, Flutter cho Mobile và Python cho các dịch vụ AI. Các nền tảng dùng chung API để đồng bộ nghiệp vụ.")
-time("00:40–00:55", "Slide 3 — Biểu mẫu khảo sát")
-speech("Nhóm số hóa các biểu mẫu thực tế như hóa đơn, danh mục dịch vụ, thông tin xuất hóa đơn và phiếu quà tặng; đây là cơ sở xây dựng cấu trúc dữ liệu và quy trình xử lý.")
-time("00:55–01:30", "Slide 4 đến 7 — Use case và thiết kế")
-speech("Các tác nhân chính gồm khách hàng, lễ tân, quản lý, kế toán, nhân viên dịch vụ và buồng phòng. Hệ thống bao quát đặt phòng, nhận và trả phòng, thanh toán, hóa đơn, quản lý danh mục, khuyến mãi, khách hàng thân thiết và báo cáo. Thiết kế được tổ chức theo lớp giao diện, điều khiển, nghiệp vụ và dữ liệu.")
-time("01:30–02:35", "Slide 8 đến 12 — Chức năng cốt lõi")
-speech("Khách hàng tra cứu phòng theo ngày và số người; kết quả chỉ công khai loại phòng còn khả dụng, không lộ số phòng vật lý. Luồng đặt phòng trực tuyến tính giá, thuế, khuyến mãi và yêu cầu đặt cọc 10 phần trăm qua VNPay. Khi nhận phòng, Mobile xác thực từng khách bằng khuôn mặt và NFC mô phỏng hoặc dữ liệu CCCD mẫu; Web lễ tân chọn phòng đúng loại và hoàn tất nhận phòng. Khối quản lý thực hiện quản lý phòng, loại phòng, dịch vụ, nhân viên, khách hàng, tài khoản, khuyến mãi và thống kê doanh thu.")
-time("02:35–03:05", "Slide 13 đến 15 — Kiểm thử")
-speech("Nhóm kiểm thử các luồng đặt phòng, thanh toán, nhận phòng, phân quyền, cập nhật trạng thái và dữ liệu không hợp lệ. Kết quả cho thấy các chức năng chính đáp ứng điều kiện nghiệp vụ và trả thông báo phù hợp khi có lỗi.")
-time("03:05–03:40", "Slide 16 — Kết luận và hướng phát triển")
-speech("Hệ thống đã hoàn thiện hai nền tảng dùng chung dữ liệu, số hóa các nghiệp vụ chính và bổ sung chatbot, dự đoán khách không đến cùng tự động hủy theo quy tắc. Hướng phát triển là nâng độ tin cậy khi đọc CCCD thật, tối ưu mô hình AI và mở rộng tự động hóa vận hành.")
-time("03:40–03:55", "Slide 17 và 18 — Tài liệu tham khảo, chuyển demo")
-speech("Các nguồn tham khảo được liệt kê trong báo cáo. Tiếp theo, nhóm trình bày hai phần demo chính: quản lý hệ thống và nhận phòng đồng bộ giữa Web với Mobile.")
+doc.add_heading("Thành viên 1 — Toàn bộ slide và đặt phòng trực tuyến", level=1)
+time("00:00–00:20", "Slide 1 đến 3 — Tổng quan, công nghệ và biểu mẫu")
+speech("Kính thưa Hội đồng, nhóm trình bày hệ thống May Hotel trên Web và Mobile. Backend dùng Spring Boot, dữ liệu MongoDB Atlas, Web dùng Thymeleaf, Mobile dùng Flutter và dịch vụ AI dùng Python. Các biểu mẫu thực tế là cơ sở xây dựng dữ liệu và nghiệp vụ.")
+time("00:20–00:55", "Slide 4 đến 7 — Use case và thiết kế")
+speech("Các tác nhân gồm khách hàng, lễ tân, quản lý, kế toán, nhân viên dịch vụ và buồng phòng. Hệ thống bao quát đặt, nhận, đổi và trả phòng; thanh toán, hóa đơn, danh mục, khuyến mãi, khách hàng thân thiết và báo cáo. Thiết kế tách lớp giao diện, điều khiển, nghiệp vụ và dữ liệu.")
+time("00:55–01:30", "Slide 8 đến 12 — Chức năng cốt lõi")
+speech("Khách tra cứu theo ngày và số người, đặt phòng và cọc qua VNPay. Khi nhận phòng, Mobile xác thực từng khách; Web lễ tân chọn đúng loại phòng và duyệt nhận phòng. Khối quản lý phụ trách danh mục, tài khoản, khuyến mãi và thống kê.")
+time("01:30–01:50", "Slide 13 đến 18 — Kiểm thử và kết luận")
+speech("Nhóm đã kiểm thử các luồng chính, dữ liệu không hợp lệ và phân quyền. Hệ thống hoàn thiện hai nền tảng dùng chung dữ liệu, đồng thời bổ sung chatbot và dự đoán khách không đến. Hướng phát triển là nâng độ tin cậy khi đọc CCCD thật và tối ưu AI.")
+time("01:50–03:50", "Demo vai trò khách hàng — Đặt phòng trực tuyến")
+demo([
+    "Chọn ngày nhận, ngày trả và số khách; nhấn Tìm phòng.",
+    "Chọn một loại phòng còn trống; kiểm tra giá, thuế và khuyến mãi.",
+    "Xác nhận thông tin và chọn đặt cọc 10% qua VNPay.",
+    "Mở kết quả đơn đã xác nhận; đọc mã đơn để thành viên 3 tiếp tục nhận phòng.",
+])
+speech("Hệ thống kiểm tra phòng theo đúng khoảng lưu trú, chỉ công khai loại phòng, tính giá tại Backend và chỉ xác nhận đơn sau phản hồi thanh toán hợp lệ.")
+time("03:50–04:00", "Chuyển trực tiếp sang nhận phòng")
+speech("Đơn vừa tạo đã chuyển sang danh sách chờ nhận phòng. Em xin chuyển cho thành viên tiếp theo xác thực khách và hoàn tất nhận phòng trên chính đơn này.")
 
 doc.add_page_break()
 doc.add_heading("Thành viên 2 — Demo khối quản lý", level=1)
-time("03:55–04:10", "Giới thiệu phạm vi")
+time("07:55–08:10", "Giới thiệu phạm vi")
 speech("Em trình bày vai trò quản lý với các chức năng danh mục, khuyến mãi, tài khoản, phân quyền và báo cáo. Các màn hình dùng chung nguyên tắc tìm kiếm, lọc, phân trang và kiểm tra dữ liệu đầu vào.")
-time("04:10–07:20", "Demo quản lý")
+time("08:10–11:15", "Demo quản lý")
 demo([
     "Mở Quản lý phòng, dùng bộ lọc và xem một bản ghi để chứng minh dữ liệu thực từ MongoDB Atlas.",
     "Mở Loại phòng hoặc Dịch vụ, giới thiệu một lần thao tác thêm, sửa, xóa và phân trang; không lặp lại toàn bộ CRUD.",
@@ -137,14 +139,14 @@ demo([
     "Mở Thống kê doanh thu, chọn khoảng thời gian và giới thiệu nút xuất báo cáo.",
 ])
 speech("Các ràng buộc được kiểm tra tại Backend. Khuyến mãi tự chuyển trạng thái theo thời gian; quyền truy cập không chỉ ẩn menu mà còn được kiểm tra tại API. Báo cáo tổng hợp theo khoảng ngày và hỗ trợ xuất phục vụ kế toán.")
-time("07:20–07:40", "Chuyển phần demo")
-speech("Sau khi dữ liệu đặt phòng được quản lý tập trung, em xin chuyển sang luồng vận hành nhận phòng và xác thực khách trên Mobile.")
+time("11:15–11:35", "Kết thúc")
+speech("Qua phần demo, dữ liệu từ khách hàng, lễ tân và quản lý được xử lý thống nhất trên cùng hệ thống. Nhóm xin trân trọng cảm ơn Hội đồng và sẵn sàng trả lời câu hỏi.")
 
 doc.add_page_break()
 doc.add_heading("Thành viên 3 — Demo nhận phòng trên Web và Mobile", level=1)
-time("07:40–08:00", "Giới thiệu nghiệp vụ")
+time("04:00–04:20", "Tiếp nhận đúng đơn vừa đặt")
 speech("Luồng nhận phòng gồm xác định phiếu đặt hôm nay, xác thực đủ số khách lưu trú, chọn phòng đúng loại đã đặt và duyệt nhận phòng. Mobile thực hiện xác thực; Web lễ tân theo dõi kết quả và hoàn tất nghiệp vụ.")
-time("08:00–10:55", "Demo đồng bộ Web và Mobile")
+time("04:20–07:15", "Demo đồng bộ Web và Mobile")
 demo([
     "Trên Web lễ tân, mở danh sách chờ nhận phòng và chọn phiếu đã chuẩn bị; chỉ ra số khách cần xác thực và loại phòng đã đặt.",
     "Trên Mobile, mở Nhận phòng thông minh, chụp khuôn mặt và quét NFC mô phỏng hoặc ảnh CCCD mẫu. Nếu có nhiều khách, xác thực lần lượt đến đủ số lượng.",
@@ -153,10 +155,10 @@ demo([
     "Mở Sơ đồ phòng để chứng minh phòng chuyển sang trạng thái Đang ở theo thời gian đã chọn.",
 ])
 speech("Backend ghi nhận kết quả của từng khách trong phiếu và chỉ cho duyệt khi đủ số người. Phòng phải đúng loại đã đặt và không bị trùng lịch lưu trú. Kết quả được đồng bộ về Web; trạng thái phòng thay đổi theo thời gian thực tế.")
-time("10:55–11:20", "Giới thiệu nhanh chức năng Mobile liên quan")
+time("07:15–07:40", "Giới thiệu nhanh chức năng Mobile liên quan")
 speech("Mobile còn hỗ trợ sinh trắc học, lịch sử đặt phòng và hóa đơn, đặt dịch vụ, cập nhật trạng thái buồng phòng, in hóa đơn nhiệt 58 mm và kiểm tra Root, mở khóa bộ nạp khởi động hoặc USB gỡ lỗi.")
-time("11:20–11:35", "Kết thúc")
-speech("Nhóm xin trân trọng cảm ơn Hội đồng đã lắng nghe và sẵn sàng trả lời câu hỏi.")
+time("07:40–07:55", "Chuyển sang khối quản lý")
+speech("Như vậy, một đơn được đi xuyên suốt từ khách đặt trực tuyến đến xác thực và nhận phòng. Em xin chuyển phần cuối cho thành viên 2 trình bày khối quản lý và báo cáo.")
 
 doc.add_heading("Nếu còn thời gian: chức năng ngoài đề cương", level=1)
 bullet("AI dự đoán khách không đến, lịch hủy tự động và ghi nhận khách báo đến trễ.")
@@ -194,6 +196,26 @@ for vals in fallbacks:
     cells = t.add_row().cells
     for c, v in zip(cells, vals): c.text = v
 format_table(t, [3.3, 5.3, 8.2])
+
+# Đưa phần nhận phòng lên ngay sau phần đặt phòng để luồng demo liền mạch:
+# Thành viên 1 -> Thành viên 3 -> Thành viên 2 -> phụ lục.
+body = doc._body._element
+children = list(body)
+heading2 = next(p._element for p in doc.paragraphs if p.text == "Thành viên 2 — Demo khối quản lý")
+heading3 = next(p._element for p in doc.paragraphs if p.text == "Thành viên 3 — Demo nhận phòng trên Web và Mobile")
+appendix = next(p._element for p in doc.paragraphs if p.text == "Nếu còn thời gian: chức năng ngoài đề cương")
+i2, i3, ia = children.index(heading2), children.index(heading3), children.index(appendix)
+start2 = i2 - 1
+start3 = i3 - 1
+starta = ia
+block2 = children[start2:start3]
+block3 = children[start3:starta]
+for element in block2 + block3:
+    body.remove(element)
+insert_at = start2
+for element in block3 + block2:
+    body.insert(insert_at, element)
+    insert_at += 1
 
 for section in doc.sections:
     p = section.footer.paragraphs[0]; p.alignment = WD_ALIGN_PARAGRAPH.CENTER

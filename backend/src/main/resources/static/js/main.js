@@ -567,3 +567,26 @@ document.addEventListener('DOMContentLoaded', () => {
     DatTrucTiep.init();
     Chatbot.init();
 });
+// Giữ nguyên biểu mẫu khi vô tình nhấn/kéo/thả chuột trên vùng nền mờ.
+// Các hộp thoại chỉ đóng bằng nút đóng/hủy rõ ràng hoặc phím Escape.
+(function initStaticModalBackdrop() {
+    function applyStaticBackdrop() {
+        document.querySelectorAll('.modal').forEach(function (modal) {
+            modal.setAttribute('data-bs-backdrop', 'static');
+            modal.setAttribute('data-bs-keyboard', 'true');
+        });
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', applyStaticBackdrop);
+    } else {
+        applyStaticBackdrop();
+    }
+
+    document.addEventListener('keydown', function (event) {
+        if (event.key !== 'Escape') return;
+        document.querySelectorAll('.mh-modal-backdrop.open').forEach(function (modal) {
+            modal.classList.remove('open');
+        });
+    });
+})();

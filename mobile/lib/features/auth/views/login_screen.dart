@@ -19,7 +19,7 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final LocalAuthentication _localAuth = LocalAuthentication();
   final AuthApiService _apiService = AuthApiService();
@@ -32,13 +32,13 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   void dispose() {
-    _emailController.dispose();
+    _usernameController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _handleLoginProcess() async {
-    String usernameInput = _emailController.text.trim();
+    String usernameInput = _usernameController.text.trim();
     String passwordInput = _passwordController.text.trim();
 
     if (usernameInput.isEmpty || passwordInput.isEmpty) {
@@ -46,13 +46,12 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    // Validation: Username must be email or phone (10 digits starting with 0)
-    final usernameRegex = RegExp(
-      r'^([a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}|0[0-9]{9})$',
-    );
-    if (!usernameRegex.hasMatch(usernameInput)) {
+    // Dùng cùng tên đăng nhập với web để thao tác nhanh và nhất quán.
+    if (usernameInput.length < 3 ||
+        usernameInput.length > 100 ||
+        RegExp(r'\s').hasMatch(usernameInput)) {
       _showCustomSnackBar(
-        "Vui lòng nhập đúng định dạng Email hoặc Số điện thoại",
+        "Tên đăng nhập phải từ 3 đến 100 ký tự và không chứa khoảng trắng",
         Colors.orange,
       );
       return;
@@ -335,9 +334,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   const SizedBox(height: 30),
                   _buildTextField(
                     context,
-                    hint: "Email hoặc Số điện thoại",
+                    hint: "Tên đăng nhập",
                     icon: Icons.person_outline,
-                    controller: _emailController,
+                    controller: _usernameController,
                   ),
                   SizedBox(height: Responsive.sp(context, 20)),
                   _buildTextField(

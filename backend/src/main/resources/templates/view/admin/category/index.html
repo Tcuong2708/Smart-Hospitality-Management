@@ -95,7 +95,7 @@
                             </tr>
                             <tr th:each="c : ${categories}" class="category-row">
                                 <td class="text-center fw-bold text-secondary" th:text="${c.id}"></td>
-                                <td class="text-center"><img th:src="${not #strings.isEmpty(c.imageUrl) ? (c.imageUrl.startsWith('http') ? c.imageUrl : '/images/' + c.imageUrl) : 'https://via.placeholder.com/96x58?text=Room'}" alt="Loại phòng" style="width:96px;height:58px;object-fit:cover;border-radius:8px"></td>
+                                <td class="text-center"><img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.thumbnail(not #strings.isEmpty(c.imageUrl) ? (c.imageUrl.startsWith('http') ? c.imageUrl : '/images/' + c.imageUrl) : 'https://via.placeholder.com/96x58?text=Room', 192, 116)}" alt="Loại phòng" style="width:96px;height:58px;object-fit:cover;border-radius:8px"></td>
                                 <td class="text-center fw-bold category-name" style="color: #0F2942;" th:text="${c.name}"></td>
                                 <td class="text-center"><span class="badge bg-light text-dark border" th:text="${c.maxOccupancy + ' người'}"></span></td>
                                 <td class="text-center fw-bold" th:text="${c.totalRoomsCount}"></td>

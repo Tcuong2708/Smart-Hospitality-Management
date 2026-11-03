@@ -146,6 +146,7 @@
 
     <!-- extra_js NGOÀI body_content -->
     <th:block th:fragment="extra_js">
+        <script th:src="@{/js/receptionist-live-refresh.js}"></script>
         <script>
             (function () {
                 'use strict';
@@ -169,6 +170,15 @@
                         });
 
                         if (countEl) countEl.textContent = visible;
+                    });
+                }
+
+                if (window.MayHotelLiveRefresh) {
+                    window.MayHotelLiveRefresh.start({
+                        container: '#checkout-table-body',
+                        count: '#checkoutCount',
+                        search: '#checkoutSearch',
+                        interval: 12000
                     });
                 }
             })();

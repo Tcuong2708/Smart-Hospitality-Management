@@ -32,8 +32,8 @@
                 <!-- Gallery -->
                 <div class="mh-room-gallery">
                     <div class="mh-room-gallery-main">
-                        <img loading="lazy"
-                            th:src="${!#strings.isEmpty(loaiPhong.imageUrl) ? (loaiPhong.imageUrl.startsWith('http') or loaiPhong.imageUrl.startsWith('/') ? loaiPhong.imageUrl : '/images/' + loaiPhong.imageUrl) : '/images/a1.jpg'}"
+                        <img loading="lazy" decoding="async"
+                            th:src="${@cloudinaryUrlUtil.card(!#strings.isEmpty(loaiPhong.imageUrl) ? (loaiPhong.imageUrl.startsWith('http') or loaiPhong.imageUrl.startsWith('/') ? loaiPhong.imageUrl : '/images/' + loaiPhong.imageUrl) : '/images/a1.jpg')}"
                             th:alt="${loaiPhong.name}">
                         <span class="mh-room-status-badge" th:if="${soPhongTrong > 0}">
                             <i class="fa-solid fa-circle-check"></i> Còn phòng

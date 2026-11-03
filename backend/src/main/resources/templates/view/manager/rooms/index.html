@@ -134,7 +134,7 @@
                             <td class="cell-id" th:text="${r.id}">1</td>
 
                             <td>
-                                <img th:if="${not #strings.isEmpty(r.imageUrl)}" th:src="${r.imageUrl}" class="cell-img"
+                                <img loading="lazy" decoding="async" th:if="${not #strings.isEmpty(r.imageUrl)}" th:src="${@cloudinaryUrlUtil.thumbnail(r.imageUrl, 160, 112)}" class="cell-img"
                                     alt="room" style="width:68px;height:48px;object-fit:cover;border-radius:6px;">
                                 <span th:if="${#strings.isEmpty(r.imageUrl)}"
                                     style="display:inline-flex;width:68px;height:48px;border-radius:6px;background:var(--bg);color:var(--muted);align-items:center;justify-content:center;font-size:18px;">

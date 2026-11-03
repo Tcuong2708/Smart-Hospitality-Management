@@ -370,6 +370,7 @@
 
     <!-- ==================== SCRIPT ==================== -->
     <th:block th:fragment="extra_js">
+        <script th:src="@{/js/receptionist-live-refresh.js}"></script>
 
         <!-- Thư viện OCR thật -->
         <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
@@ -884,6 +885,15 @@
                     document.addEventListener('DOMContentLoaded', init);
                 } else {
                     init();
+                }
+
+                if (window.MayHotelLiveRefresh) {
+                    window.MayHotelLiveRefresh.start({
+                        container: '#checkin-table-body',
+                        count: '#checkinCount',
+                        search: '#checkinSearch',
+                        interval: 12000
+                    });
                 }
             })();
         </script>
