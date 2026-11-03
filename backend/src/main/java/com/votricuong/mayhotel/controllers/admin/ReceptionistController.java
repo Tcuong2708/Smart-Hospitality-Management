@@ -21,6 +21,8 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.text.SimpleDateFormat;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -193,13 +195,20 @@ public class ReceptionistController extends BaseController {
     @GetMapping("/room-map")
     public String roomMapView(@RequestParam(value = "date", required = false)
                               @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate requestedDate,
+                              @RequestParam(value = "time", required = false)
+                              @DateTimeFormat(pattern = "HH:mm") LocalTime requestedTime,
                               Model model) {
         setPageTitle(model, "Sơ đồ phòng trực quan");
 
         LocalDate today = LocalDate.now(HOTEL_ZONE);
+        LocalTime now = LocalTime.now(HOTEL_ZONE).withSecond(0).withNano(0);
         LocalDate selectedDate = requestedDate == null ? today : requestedDate;
+        LocalTime selectedTime = requestedTime == null
+                ? (selectedDate.equals(today) ? now : LocalTime.NOON)
+                : requestedTime.withSecond(0).withNano(0);
+        LocalDateTime selectedAt = LocalDateTime.of(selectedDate, selectedTime);
         Map<Long, BookingAvailabilityService.RoomTimelineStatus> roomUsage =
-                bookingAvailabilityService.findRoomUsageOn(selectedDate);
+                bookingAvailabilityService.findRoomUsageAt(selectedAt);
 
         Map<Long, RoomType> typeMapFull = roomTypeRepository.findAll().stream()
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
@@ -254,7 +263,10 @@ public class ReceptionistController extends BaseController {
 
         model.addAttribute("rooms", roomMap);
         model.addAttribute("selectedDate", selectedDate);
+        model.addAttribute("selectedTime", selectedTime);
         model.addAttribute("selectedDateDisplay", selectedDate.format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+        model.addAttribute("selectedTimeDisplay", selectedTime.format(DateTimeFormatter.ofPattern("HH:mm")));
+        model.addAttribute("selectedAtDisplay", selectedAt.format(DateTimeFormatter.ofPattern("HH:mm 'ngày' dd-MM-yyyy")));
         model.addAttribute("today", today);
         model.addAttribute("isToday", selectedDate.equals(today));
 

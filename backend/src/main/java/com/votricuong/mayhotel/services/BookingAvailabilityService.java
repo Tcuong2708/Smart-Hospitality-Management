@@ -10,6 +10,7 @@ import com.votricuong.mayhotel.repositories.RoomRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.HashMap;
@@ -133,6 +134,33 @@ public class BookingAvailabilityService {
     }
 
     /**
+     * Trạng thái phòng tại đúng một thời điểm. Lịch dự kiến vẫn giữ phòng theo
+     * ngày lưu trú, còn khách đã nhận/trả phòng được xác định theo actual_in và
+     * actual_out để sơ đồ phản ánh đúng diễn biến trong ngày.
+     */
+    public Map<Long, RoomTimelineStatus> findRoomUsageAt(LocalDateTime selectedAt) {
+        if (selectedAt == null) {
+            throw new IllegalArgumentException("Thời điểm xem sơ đồ phòng không được để trống");
+        }
+        Date selectedInstant = Date.from(selectedAt.atZone(HOTEL_ZONE).toInstant());
+        LocalDate selectedDate = selectedAt.toLocalDate();
+        LocalDate today = LocalDate.now(HOTEL_ZONE);
+        Map<Long, RoomTimelineStatus> usageByRoom = new HashMap<>();
+
+        for (BookingOrder order : bookingOrderRepository.findAll()) {
+            if (order == null || order.getId() == null) continue;
+            for (BookingDetail detail : bookingDetailRepository.findByBookingId(order.getId())) {
+                if (detail == null || detail.getRoomId() == null) continue;
+                RoomTimelineStatus usage = usageForAt(order, detail, selectedInstant, selectedDate, today);
+                if (usage == null) continue;
+                usageByRoom.merge(detail.getRoomId(), usage,
+                        (current, candidate) -> current == RoomTimelineStatus.OCCUPIED ? current : candidate);
+            }
+        }
+        return usageByRoom;
+    }
+
+    /**
      * Tạo ảnh chụp trạng thái phòng tại một ngày cụ thể. Thứ tự ưu tiên này được
      * dùng chung cho sơ đồ phòng, quản lý phòng và thống kê phòng trống theo loại.
      */
@@ -205,6 +233,36 @@ public class BookingAvailabilityService {
             if (withinRecordedStay || activeOverstayToday) {
                 return RoomTimelineStatus.OCCUPIED;
             }
+        }
+
+        LocalDate expectedStart = toLocalDate(order.getExpectedIn());
+        LocalDate expectedEnd = toLocalDate(order.getExpectedOut());
+        if (blocksInventory(order) && containsDate(expectedStart, expectedEnd, selectedDate)) {
+            return RoomTimelineStatus.RESERVED;
+        }
+        return null;
+    }
+
+    private RoomTimelineStatus usageForAt(BookingOrder order,
+                                          BookingDetail detail,
+                                          Date selectedInstant,
+                                          LocalDate selectedDate,
+                                          LocalDate today) {
+        boolean hasActualStay = detail.getActualIn() != null;
+        boolean checkedIn = CHECKED_IN_BOOKING_STATUSES.contains(normalize(order.getStatus()));
+
+        if (hasActualStay || checkedIn) {
+            Date stayStart = hasActualStay ? detail.getActualIn() : order.getExpectedIn();
+            Date stayEnd = detail.getActualOut() != null ? detail.getActualOut() : order.getExpectedOut();
+            boolean withinRecordedStay = stayStart != null
+                    && !selectedInstant.before(stayStart)
+                    && (stayEnd == null || selectedInstant.before(stayEnd));
+            boolean activeOverstayToday = detail.getActualOut() == null
+                    && checkedIn
+                    && stayStart != null
+                    && !selectedInstant.before(stayStart)
+                    && selectedDate.equals(today);
+            if (withinRecordedStay || activeOverstayToday) return RoomTimelineStatus.OCCUPIED;
         }
 
         LocalDate expectedStart = toLocalDate(order.getExpectedIn());

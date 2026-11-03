@@ -32,6 +32,27 @@
             <!-- Toolbar filters -->
             <div class="adm-toolbar">
 
+                <form th:action="@{/receptionist/room-map}" method="get"
+                    style="display:flex;align-items:flex-end;gap:8px;flex-wrap:wrap;padding-right:14px;border-right:1px solid var(--border);">
+                    <div class="adm-field" style="min-width:150px;">
+                        <label for="roomMapDate" style="font-size:11px;">Ngày xem</label>
+                        <input id="roomMapDate" type="date" name="date" th:value="${selectedDate}" required
+                            style="height:42px;padding:0 10px;">
+                    </div>
+                    <div class="adm-field" style="min-width:115px;">
+                        <label for="roomMapTime" style="font-size:11px;">Giờ xem</label>
+                        <input id="roomMapTime" type="time" name="time" th:value="${selectedTime}" required
+                            style="height:42px;padding:0 10px;">
+                    </div>
+                    <button type="submit" class="adm-btn adm-btn-gold" style="height:42px;padding:0 15px;">
+                        <i class="bi bi-clock-history"></i> Xem
+                    </button>
+                    <a th:href="@{/receptionist/room-map}" class="adm-btn adm-btn-outline"
+                        style="height:42px;padding:0 12px;" title="Trở về thời điểm hiện tại">
+                        Hiện tại
+                    </a>
+                </form>
+
                 <div class="adm-dropdown">
                     <button type="button" class="adm-filter-btn" data-adm-dropdown id="btnFilterFloor">
                         <i class="bi bi-building"></i>
@@ -116,6 +137,12 @@
                     <i class="bi bi-door-closed" style="color:var(--gold-hover);"></i>
                     <strong id="roomCount">0</strong> phòng
                 </div>
+            </div>
+
+            <div style="padding:10px 28px;border-top:1px solid var(--border);background:var(--bg-cream);font-size:13px;color:var(--muted);">
+                <i class="bi bi-clock" style="color:var(--gold-hover);"></i>
+                Trạng thái phòng tại <strong style="color:var(--navy);" th:text="${selectedAtDisplay}">00:00 ngày 01-01-2026</strong>
+                <span th:if="${isToday}"> — dữ liệu hôm nay được đồng bộ theo trạng thái vận hành thực tế.</span>
             </div>
 
             <!-- Legend -->

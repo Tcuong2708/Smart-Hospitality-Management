@@ -212,7 +212,7 @@
                                         th:text="${#dates.format(item.order.autoCancelTime, 'HH:mm')}">--:--</strong>
                                     <div class="text-muted" style="font-size:11.5px;"
                                         th:text="${#dates.format(item.order.autoCancelTime, 'dd/MM/yyyy')}">—</div>
-                                    <div th:if="${item.order.lateArrivalApproved}" class="adm-badge adm-badge-warning"
+                                    <div th:if="${item.order.lateArrivalApproved == true}" class="adm-badge adm-badge-warning"
                                         style="margin-top:6px;white-space:nowrap;">
                                         Đã báo đến trễ
                                     </div>
@@ -220,7 +220,7 @@
                                 <span th:if="${item.order.autoCancelTime == null}" class="text-muted">—</span>
                             </td>
                             <td class="col-center" style="min-width:190px;">
-                                <form th:if="${!item.order.lateArrivalApproved}"
+                                <form th:if="${item.order.lateArrivalApproved != true}"
                                     th:action="@{/receptionist/ai-no-show/late-arrival}" method="post"
                                     onsubmit="return confirm('Khách đã liên hệ báo đến trễ? Lịch hủy 14:00/18:00 sẽ được dời đến 23:59 ngày nhận phòng.');">
                                     <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}">
@@ -230,7 +230,7 @@
                                         <i class="bi bi-telephone-check"></i> Dời hủy đến 23:59
                                     </button>
                                 </form>
-                                <span th:if="${item.order.lateArrivalApproved}" class="text-muted" style="font-size:12px;">
+                                <span th:if="${item.order.lateArrivalApproved == true}" class="text-muted" style="font-size:12px;">
                                     Đã dời lịch đến 23:59
                                 </span>
                             </td>
