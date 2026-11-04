@@ -22,10 +22,40 @@
 
             <!-- ══════════ SEARCH BAR ══════════ -->
             <form class="mh-list-search" th:action="@{/rooms}" method="get">
-                <div class="mh-list-search-field mh-list-search-field--keyword">
-                    <label><i class="fa-solid fa-magnifying-glass"></i> Từ khóa</label>
-                    <input type="text" name="keyword" th:value="${keyword}" placeholder="Tên loại phòng...">
-                </div>
+                <details class="mh-room-filter" data-room-filter>
+                    <summary>
+                        <span class="mh-room-filter-title"><i class="fa-solid fa-filter"></i> Bộ lọc phòng</span>
+                        <strong data-room-filter-summary>Tất cả loại phòng · Tất cả hướng</strong>
+                    </summary>
+                    <div class="mh-room-filter-panel">
+                        <fieldset>
+                            <legend>Loại phòng</legend>
+                            <label>
+                                <input type="radio" name="roomTypeId" value=""
+                                    th:checked="${roomTypeId == null}">
+                                <span>Tất cả loại phòng</span>
+                            </label>
+                            <label th:each="type : ${roomTypes}">
+                                <input type="radio" name="roomTypeId" th:value="${type.id}"
+                                    th:checked="${roomTypeId != null and roomTypeId == type.id}">
+                                <span th:text="${type.name}">Phòng tiêu chuẩn</span>
+                            </label>
+                        </fieldset>
+                        <fieldset>
+                            <legend>Hướng phòng</legend>
+                            <label>
+                                <input type="radio" name="direction" value=""
+                                    th:checked="${direction == null or direction.isEmpty()}">
+                                <span>Tất cả hướng</span>
+                            </label>
+                            <label th:each="item : ${directionOptions}">
+                                <input type="radio" name="direction" th:value="${item.value}"
+                                    th:checked="${direction == item.value}">
+                                <span th:text="${item.label}">Hướng biển</span>
+                            </label>
+                        </fieldset>
+                    </div>
+                </details>
 
                 <div class="mh-list-search-field">
                     <label><i class="fa-solid fa-calendar-check"></i> Nhận phòng</label>
@@ -69,8 +99,8 @@
                 <!-- ═══ SIDEBAR FILTER ═══ -->
                 <aside class="mh-list-sidebar">
                     <form class="mh-filter" th:action="@{/rooms}" method="get">
-                        <input type="hidden" name="keyword" th:value="${keyword}">
                         <input type="hidden" name="roomTypeId" th:value="${roomTypeId}">
+                        <input type="hidden" name="direction" th:value="${direction}">
                         <input type="hidden" name="checkin" th:value="${checkin}">
                         <input type="hidden" name="checkout" th:value="${checkout}">
                         <input type="hidden" name="adults" th:value="${adults}">
@@ -83,7 +113,7 @@
                         </header>
 
                         <div class="mh-filter-group">
-                            <h4>Ngân sách mỗi đêm</h4>
+                            <h4>Giá cuối cùng mỗi đêm</h4>
                             <label class="mh-radio">
                                 <input type="radio" name="priceRange" value="all"
                                     th:checked="${param.priceRange == null or param.priceRange[0] == 'all'}">
@@ -121,12 +151,10 @@
                     <header class="mh-list-head">
                         <div>
                             <h2>
-                                <span th:if="${keyword != null and !keyword.isBlank()}"
-                                    th:text="'Kết quả cho: ' + ${keyword}">Kết quả</span>
-                                <span th:if="${keyword == null or keyword.isBlank()}">Danh sách phòng nghỉ</span>
+                                <span>Danh sách phòng nghỉ</span>
                             </h2>
                             <p th:if="${rooms != null}">
-                                Tìm thấy <strong th:text="${#lists.size(rooms)}">0</strong> loại phòng phù hợp
+                                Tìm thấy <strong th:text="${totalResults}">0</strong> lựa chọn phù hợp
                             </p>
                         </div>
 
@@ -149,7 +177,7 @@
                     <div class="mh-room-list" th:if="${rooms != null and !#lists.isEmpty(rooms)}">
 
                         <a th:each="r : ${rooms}"
-                            th:href="@{/rooms/detail/{id}(id=${r.id},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants})}"
+                            th:href="@{/rooms/detail/{id}(id=${r.id},direction=${direction},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants})}"
                             class="mh-room-row">
 
                             <!-- Ảnh -->
@@ -166,8 +194,8 @@
                                     Phòng Deluxe</h3>
 
                                 <p class="mh-room-row-location">
-                                    <i class="fa-solid fa-location-dot"></i>
-                                    <span>May Hotel</span>
+                                    <i class="fa-regular fa-compass"></i>
+                                    <span th:text="${directionLabelsByRoom.get(r.id)}">Hướng thành phố</span>
                                 </p>
 
                                 <p class="mh-room-row-desc" th:text="${r.roomType != null and r.roomType.description != null and !r.roomType.description.isBlank() ? r.roomType.description :
@@ -209,7 +237,7 @@
                                 </div>
 
                                 <div class="mh-room-row-price"
-                                    th:with="p=${pricingByType != null ? pricingByType.get(r.roomTypeId) : null}">
+                                    th:with="p=${pricingByRoom != null ? pricingByRoom.get(r.id) : null}">
                                     <del th:if="${p != null and p.discounted}"
                                         th:text="${'VND ' + #numbers.formatDecimal(p.originalPerNight, 0, 'POINT', 0, 'COMMA')}">VND 500.000</del>
                                     <strong th:text="${'VND ' + #numbers.formatDecimal(p != null ? p.finalPerNight : r.price, 0, 'POINT', 0, 'COMMA')}">VND
@@ -226,6 +254,22 @@
                         </a>
                     </div>
 
+                    <nav class="mh-list-pagination" th:if="${totalPages > 1}" aria-label="Phân trang kết quả">
+                        <a th:classappend="${currentPage == 0} ? ' is-disabled'"
+                            th:href="@{/rooms(roomTypeId=${roomTypeId},direction=${direction},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants},priceRange=${priceRange},sortBy=${sortBy},page=${currentPage - 1},size=${pageSize})}">
+                            <i class="fa-solid fa-chevron-left"></i><span>Trước</span>
+                        </a>
+                        <span th:each="pageNumber : ${#numbers.sequence(0, totalPages - 1)}">
+                            <a th:classappend="${pageNumber == currentPage} ? ' is-active'"
+                                th:href="@{/rooms(roomTypeId=${roomTypeId},direction=${direction},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants},priceRange=${priceRange},sortBy=${sortBy},page=${pageNumber},size=${pageSize})}"
+                                th:text="${pageNumber + 1}">1</a>
+                        </span>
+                        <a th:classappend="${currentPage + 1 >= totalPages} ? ' is-disabled'"
+                            th:href="@{/rooms(roomTypeId=${roomTypeId},direction=${direction},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants},priceRange=${priceRange},sortBy=${sortBy},page=${currentPage + 1},size=${pageSize})}">
+                            <span>Sau</span><i class="fa-solid fa-chevron-right"></i>
+                        </a>
+                    </nav>
+
                     <div th:if="${rooms == null or #lists.isEmpty(rooms)}" class="mh-list-empty">
                         <i class="fa-solid fa-bed"></i>
                         <h3>Không tìm thấy phòng phù hợp</h3>
@@ -241,9 +285,28 @@
 
     <th:block layout:fragment="additional-scripts">
         <script>
+            (function initRoomFilters() {
+                document.querySelectorAll('[data-room-filter]').forEach(filter => {
+                    const summary = filter.querySelector('[data-room-filter-summary]');
+                    const update = () => {
+                        const type = filter.querySelector('input[name="roomTypeId"]:checked + span');
+                        const direction = filter.querySelector('input[name="direction"]:checked + span');
+                        if (summary) summary.textContent = `${type?.textContent || 'Tất cả loại phòng'} · ${direction?.textContent || 'Tất cả hướng'}`;
+                    };
+                    filter.addEventListener('change', update);
+                    update();
+                });
+                document.addEventListener('click', event => {
+                    document.querySelectorAll('[data-room-filter][open]').forEach(filter => {
+                        if (!filter.contains(event.target)) filter.removeAttribute('open');
+                    });
+                });
+            })();
+
             function applySort(val) {
                 const u = new URLSearchParams(window.location.search);
                 u.set('sortBy', val);
+                u.set('page', '0');
                 window.location.search = u.toString();
             }
         </script>

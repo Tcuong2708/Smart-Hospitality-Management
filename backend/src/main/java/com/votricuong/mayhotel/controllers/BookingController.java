@@ -95,6 +95,7 @@ public class BookingController extends BaseController {
     // 2. BOOK ROOM VIEW
     @GetMapping("/book")
     public String book(@RequestParam("maLoai") Long maLoai,
+                       @RequestParam(value = "direction", required = false) String direction,
                        @RequestParam(value = "checkin", required = false) String checkin,
                        @RequestParam(value = "checkout", required = false) String checkout,
                        @RequestParam(value = "adults", required = false, defaultValue = "1") Integer adults,
@@ -107,13 +108,18 @@ public class BookingController extends BaseController {
         }
         
         List<Room> allRooms = roomRepository.findAll();
+        String selectedDirection = normalizeDirection(direction);
+        List<Room> matchingRooms = allRooms.stream()
+                .filter(room -> room.getRoomTypeId() != null && room.getRoomTypeId().equals(maLoai))
+                .filter(room -> selectedDirection.isBlank()
+                        || selectedDirection.equals(normalizeDirection(room.getViewDirection())))
+                .toList();
         
         com.votricuong.mayhotel.documents.RoomType type = roomTypeRepository.findById(maLoai).orElse(null);
         
-        HomeController.RoomTypeDTO loai = allRooms.stream()
-            .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
+        HomeController.RoomTypeDTO loai = matchingRooms.stream()
             .findFirst()
-            .map(r -> toBookingRoomType(r, type, allRooms))
+            .map(r -> toBookingRoomType(r, type, matchingRooms))
             .orElse(null);
 
         if (loai == null) {
@@ -124,7 +130,10 @@ public class BookingController extends BaseController {
         LocalDate checkOutDate = checkout == null || checkout.isBlank() ? checkInDate.plusDays(1) : LocalDate.parse(checkout);
         Date requestedIn = Date.from(checkInDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
         Date requestedOut = Date.from(checkOutDate.atStartOfDay(ZoneId.of("Asia/Ho_Chi_Minh")).toInstant());
-        long phongTrong = bookingAvailabilityService.findAvailableRooms(maLoai, requestedIn, requestedOut).size();
+        long phongTrong = bookingAvailabilityService.findAvailableRooms(maLoai, requestedIn, requestedOut).stream()
+                .filter(room -> selectedDirection.isBlank()
+                        || selectedDirection.equals(normalizeDirection(room.getViewDirection())))
+                .count();
 
         if (phongTrong == 0) {
             redirectAttributes.addFlashAttribute("error", "Rất tiếc, loại phòng này hiện tại đã hết phòng trống!");
@@ -140,6 +149,7 @@ public class BookingController extends BaseController {
         model.addAttribute("adults", adults);
         model.addAttribute("children", children);
         model.addAttribute("infants", infants);
+        model.addAttribute("direction", selectedDirection);
 
         setExtraCSS(model, "view/booking/booking :: extra_css");
         return "view/booking/booking";
@@ -148,6 +158,7 @@ public class BookingController extends BaseController {
     // 3. XỬ LÝ NHẤN "ĐẶT NGAY" -> ĐẨY SANG CHECKOUT
     @PostMapping("/checkout")
     public String startCheckout(@RequestParam("maLoai") Long maLoai,
+                            @RequestParam(value = "direction", required = false) String direction,
                             @RequestParam("soLuong") int soLuong,
                             @RequestParam(value = "guestCount", required = false) Integer legacyGuestCount,
                             @RequestParam(value = "adultCount", required = false) Integer adultCount,
@@ -170,32 +181,40 @@ public class BookingController extends BaseController {
             com.votricuong.mayhotel.utils.InputValidator.range(guestCount, "Số khách lưu trú", 1, 100);
         } catch (IllegalArgumentException ex) {
             redirectAttributes.addFlashAttribute("error", ex.getMessage());
-            return "redirect:/booking/book?maLoai=" + maLoai;
+            return bookingBookRedirect(maLoai, direction);
         }
 
         List<Room> allRooms = roomRepository.findAll();
         Date requestedIn = Date.from(ngayNhan.atStartOfDay(ZoneId.systemDefault()).toInstant());
         Date requestedOut = Date.from(ngayTra.atStartOfDay(ZoneId.systemDefault()).toInstant());
-        long phongTrong = bookingAvailabilityService.findAvailableRooms(maLoai, requestedIn, requestedOut).size();
+        String selectedDirection = normalizeDirection(direction);
+        List<Room> matchingRooms = allRooms.stream()
+                .filter(room -> room.getRoomTypeId() != null && room.getRoomTypeId().equals(maLoai))
+                .filter(room -> selectedDirection.isBlank()
+                        || selectedDirection.equals(normalizeDirection(room.getViewDirection())))
+                .toList();
+        long phongTrong = bookingAvailabilityService.findAvailableRooms(maLoai, requestedIn, requestedOut).stream()
+                .filter(room -> selectedDirection.isBlank()
+                        || selectedDirection.equals(normalizeDirection(room.getViewDirection())))
+                .count();
 
         if (soLuong > phongTrong) {
             redirectAttributes.addFlashAttribute("error", "Chỉ còn " + phongTrong + " phòng trống. Vui lòng chọn lại số lượng.");
-            return "redirect:/booking/book?maLoai=" + maLoai;
+            return bookingBookRedirect(maLoai, selectedDirection);
         }
 
         com.votricuong.mayhotel.documents.RoomType type = roomTypeRepository.findById(maLoai).orElse(null);
 
-        HomeController.RoomTypeDTO loai = allRooms.stream()
-            .filter(r -> r.getRoomTypeId() != null && r.getRoomTypeId().equals(maLoai))
+        HomeController.RoomTypeDTO loai = matchingRooms.stream()
             .findFirst()
-            .map(r -> toBookingRoomType(r, type, allRooms))
+            .map(r -> toBookingRoomType(r, type, matchingRooms))
             .orElse(null);
 
         if (loai != null) {
             int maxGuests = Math.max(1, loai.getSoNguoi() == null ? 2 : loai.getSoNguoi()) * soLuong;
             if (guestCount > maxGuests) {
                 redirectAttributes.addFlashAttribute("error", "Số khách vượt quá sức chứa tối đa " + maxGuests + " người của số phòng đã chọn.");
-                return "redirect:/booking/book?maLoai=" + maLoai;
+                return bookingBookRedirect(maLoai, selectedDirection);
             }
             BookingSession currentBooking = new BookingSession();
             currentBooking.setLoaiPhong(loai);
@@ -204,6 +223,7 @@ public class BookingController extends BaseController {
             currentBooking.setAdultCount(adults);
             currentBooking.setChildCount(children);
             currentBooking.setInfantCount(infants);
+            currentBooking.setDirection(selectedDirection);
             currentBooking.setNgayNhan(ngayNhan);
             currentBooking.setNgayTra(ngayTra);
 
@@ -296,6 +316,7 @@ public class BookingController extends BaseController {
 
             String bookingResult = startCheckout(
                     maLoai,
+                    null,
                     1,
                     1,
                     null,
@@ -454,6 +475,12 @@ public class BookingController extends BaseController {
             Date requestedOut = Date.from(currentBooking.getNgayTra().atStartOfDay(ZoneId.systemDefault()).toInstant());
             List<Room> danhSachPhongTrong = bookingAvailabilityService.findAvailableRooms(
                     maLoai, requestedIn, requestedOut);
+            if (currentBooking.getDirection() != null && !currentBooking.getDirection().isBlank()) {
+                String selectedDirection = normalizeDirection(currentBooking.getDirection());
+                danhSachPhongTrong = danhSachPhongTrong.stream()
+                        .filter(room -> selectedDirection.equals(normalizeDirection(room.getViewDirection())))
+                        .toList();
+            }
 
             if (danhSachPhongTrong.size() < soLuongDat) {
                 redirectAttributes.addFlashAttribute("error", "Ngày bạn chọn đã hết phòng! Vui lòng đổi ngày khác.");
@@ -1093,5 +1120,23 @@ public class BookingController extends BaseController {
                 .collect(Collectors.toList()));
         dto.setImageUrl(type != null && type.getImageUrl() != null ? type.getImageUrl() : "default.png");
         return dto;
+    }
+
+    private String bookingBookRedirect(Long roomTypeId, String direction) {
+        String redirect = "redirect:/booking/book?maLoai=" + roomTypeId;
+        String normalized = normalizeDirection(direction);
+        return normalized.isBlank() ? redirect : redirect + "&direction=" + normalized;
+    }
+
+    private String normalizeDirection(String direction) {
+        if (direction == null || direction.isBlank()) return "";
+        String value = java.text.Normalizer.normalize(direction, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toUpperCase(Locale.ROOT).replace('Đ', 'D').trim();
+        if (value.contains("BIEN") || value.equals("SEA")) return "SEA";
+        if (value.contains("THANH PHO") || value.equals("CITY")) return "CITY";
+        if (value.contains("NUI") || value.equals("MOUNTAIN")) return "MOUNTAIN";
+        if (value.contains("VUON") || value.equals("GARDEN")) return "GARDEN";
+        if (value.contains("HO") || value.equals("LAKE")) return "LAKE";
+        return value;
     }
 }

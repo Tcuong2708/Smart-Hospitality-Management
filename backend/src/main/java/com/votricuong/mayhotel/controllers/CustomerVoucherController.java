@@ -13,12 +13,15 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
 import java.util.Date;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Objects;
 
 @Controller
 @RequestMapping("/customer/vouchers")
 public class CustomerVoucherController extends BaseController {
+    private static final ZoneId HOTEL_ZONE = ZoneId.of("Asia/Ho_Chi_Minh");
     private final CustomerPromotionRepository assignments;
     private final PromotionRepository promotions;
     private final CustomerRepository customers;
@@ -35,9 +38,22 @@ public class CustomerVoucherController extends BaseController {
         Customer customer = currentCustomer(session);
         if (customer == null) return "redirect:/account/login";
         Date now = new Date();
-        List<Promotion> privateVouchers = assignments.findByCustomerIdAndStatus(customer.getId(), "UNUSED")
-                .stream().map(item -> promotions.findById(item.getPromotionId()).orElse(null))
-                .filter(Objects::nonNull).filter(item -> valid(item, now)).toList();
+        LinkedHashMap<Long, Promotion> privateVoucherMap = new LinkedHashMap<>();
+        assignments.findByCustomerIdAndStatus(customer.getId(), "UNUSED").forEach(assignment -> {
+            Promotion promotion = assignment.getPromotionId() == null
+                    ? null
+                    : promotions.findById(assignment.getPromotionId()).orElse(null);
+            // Dữ liệu cũ hoặc dữ liệu được nhập từ MongoDB có thể chỉ lưu mã khuyến mãi.
+            // Đối chiếu dự phòng theo mã để trang Ưu đãi luôn đồng bộ với thông báo đã gửi.
+            if (promotion == null && assignment.getPromotionCode() != null
+                    && !assignment.getPromotionCode().isBlank()) {
+                promotion = promotions.findByCodeIgnoreCase(assignment.getPromotionCode().trim()).orElse(null);
+            }
+            if (promotion != null && valid(promotion, now)) {
+                privateVoucherMap.putIfAbsent(promotion.getId(), promotion);
+            }
+        });
+        List<Promotion> privateVouchers = List.copyOf(privateVoucherMap.values());
         List<Promotion> publicVouchers = promotions.findAll().stream()
                 .filter(item -> !"PRIVATE".equalsIgnoreCase(item.getVisibility()))
                 .filter(item -> item.getCode() != null && !item.getCode().isBlank())
@@ -49,9 +65,16 @@ public class CustomerVoucherController extends BaseController {
     }
 
     private boolean valid(Promotion item, Date now) {
-        return "ACTIVE".equalsIgnoreCase(item.getStatus())
-                && (item.getStartDate() == null || !item.getStartDate().after(now))
-                && (item.getEndDate() == null || !item.getEndDate().before(now));
+        if ("DISABLED".equalsIgnoreCase(item.getStatus()) || "DRAFT".equalsIgnoreCase(item.getStatus())) {
+            return false;
+        }
+        LocalDate today = toLocalDate(now);
+        return (item.getStartDate() == null || !today.isBefore(toLocalDate(item.getStartDate())))
+                && (item.getEndDate() == null || !today.isAfter(toLocalDate(item.getEndDate())));
+    }
+
+    private LocalDate toLocalDate(Date value) {
+        return value.toInstant().atZone(HOTEL_ZONE).toLocalDate();
     }
 
     private Customer currentCustomer(HttpSession session) {

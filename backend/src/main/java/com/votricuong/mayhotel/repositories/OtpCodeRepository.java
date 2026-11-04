@@ -12,4 +12,5 @@ public interface OtpCodeRepository extends MongoRepository<OtpCode, String> {
     Optional<OtpCode> findByIdentifier(String identifier);
     Optional<OtpCode> findTopByIdentifierOrderByCreatedAtDesc(String identifier);
     void deleteByIdentifier(String identifier);
+    void deleteByIdentifierAndVerifiedAtIsNull(String identifier);
 }

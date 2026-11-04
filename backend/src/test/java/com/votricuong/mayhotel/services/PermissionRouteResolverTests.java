@@ -4,6 +4,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class PermissionRouteResolverTests {
 
@@ -25,6 +26,14 @@ class PermissionRouteResolverTests {
                 resolve("GET", "/api/v1/mobile/service-staff/tickets"));
         assertEquals("MOBILE.SERVICE.UPDATE",
                 resolve("PATCH", "/api/v1/mobile/service-staff/tickets/10/status"));
+    }
+
+    @Test
+    void customerBookingCheckoutIsNotMistakenForReceptionCheckout() {
+        assertNull(resolve("POST", "/booking/checkout"));
+        assertEquals("RECEPTION.CHECK_OUT.VIEW", resolve("GET", "/receptionist/check-out"));
+        assertEquals("RECEPTION.CHECK_OUT.UPDATE",
+                resolve("POST", "/receptionist/checkout-room/execute"));
     }
 
     private String resolve(String method, String uri) {

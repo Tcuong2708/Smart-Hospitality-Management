@@ -47,18 +47,18 @@ public class RoleAdminController extends BaseController {
         private String badgeClass;
     }
 
-    private record RoleMeta(String code, String badgeClass, String permissions) {}
+    private record RoleMeta(String code, String displayName, String badgeClass, String permissions) {}
     public record PermissionGroup(String module, String name, String platform) {}
     public record PermissionAction(String code, String name) {}
     private static final Map<Long, RoleMeta> ROLE_META = Map.of(
-            1L, new RoleMeta("QUẢN TRỊ VIÊN", "adm-badge-danger", "Quản lý hệ thống theo quyền được Quản trị cấp cao cấp"),
-            2L, new RoleMeta("QUẢN LÝ", "adm-badge-warning", "Quản lý nghiệp vụ khách sạn"),
-            3L, new RoleMeta("LỄ TÂN", "adm-badge-info", "Nghiệp vụ lễ tân"),
-            4L, new RoleMeta("BUỒNG PHÒNG", "adm-badge-neutral", "Cập nhật trạng thái buồng phòng trên ứng dụng di động"),
-            5L, new RoleMeta("KHÁCH HÀNG", "adm-badge-neutral", "Đặt phòng, điểm, phiếu ưu đãi và đánh giá"),
-            6L, new RoleMeta("NHÂN VIÊN DỊCH VỤ", "adm-badge-neutral", "Tiếp nhận và quản lý dịch vụ"),
-            7L, new RoleMeta("KẾ TOÁN", "adm-badge-success", "Báo cáo và đối soát doanh thu"),
-            8L, new RoleMeta("QUẢN TRỊ CẤP CAO", "adm-badge-danger", "Toàn quyền và quản lý phân quyền"));
+            1L, new RoleMeta("QUẢN TRỊ VIÊN", "Quản trị viên", "adm-badge-danger", "Quản lý hệ thống theo quyền được Quản trị cấp cao cấp"),
+            2L, new RoleMeta("QUẢN LÝ", "Quản lý", "adm-badge-warning", "Quản lý nghiệp vụ khách sạn"),
+            3L, new RoleMeta("LỄ TÂN", "Lễ tân", "adm-badge-info", "Nghiệp vụ lễ tân"),
+            4L, new RoleMeta("BUỒNG PHÒNG", "Nhân viên buồng phòng", "adm-badge-neutral", "Cập nhật trạng thái buồng phòng trên ứng dụng di động"),
+            5L, new RoleMeta("KHÁCH HÀNG", "Khách hàng", "adm-badge-neutral", "Đặt phòng, điểm, phiếu ưu đãi và đánh giá"),
+            6L, new RoleMeta("NHÂN VIÊN DỊCH VỤ", "Nhân viên dịch vụ", "adm-badge-neutral", "Tiếp nhận và quản lý dịch vụ"),
+            7L, new RoleMeta("KẾ TOÁN", "Kế toán", "adm-badge-success", "Báo cáo và đối soát doanh thu"),
+            8L, new RoleMeta("QUẢN TRỊ CẤP CAO", "Quản trị cấp cao", "adm-badge-danger", "Toàn quyền và quản lý phân quyền"));
 
     @GetMapping
     public String index(Model model, HttpSession session) {
@@ -69,8 +69,8 @@ public class RoleAdminController extends BaseController {
         List<RoleDTO> roleList = new ArrayList<>();
         for (Role role : roleRepository.findAll()) {
             RoleMeta meta = ROLE_META.getOrDefault(role.getId(),
-                    new RoleMeta("ROLE_" + role.getId(), "adm-badge-neutral", "Chưa xác định"));
-            roleList.add(RoleDTO.builder().id(role.getId()).code(meta.code()).name(role.getRoleName())
+                    new RoleMeta("VAI TRÒ " + role.getId(), role.getRoleName(), "adm-badge-neutral", "Chưa xác định"));
+            roleList.add(RoleDTO.builder().id(role.getId()).code(meta.code()).name(meta.displayName())
                     .description(role.getDescription()).permissions(meta.permissions())
                     .userCount(countMap.getOrDefault(role.getId(), 0L)).badgeClass(meta.badgeClass()).build());
         }

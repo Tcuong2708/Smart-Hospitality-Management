@@ -31,10 +31,21 @@ public class OtpCode {
     private User pendingUser;
     private Customer pendingCustomer;
 
-    // Tự động xóa sau 5 phút (300 giây)
-    @Indexed(expireAfterSeconds = 300)
+    // Thời điểm tạo yêu cầu OTP, phục vụ đối soát.
     private Date createdAt;
+
+    // MongoDB chỉ tự xóa bản ghi OTP đang chờ. Khi hoàn tất đăng ký, trường này
+    // được đặt về null để giữ lại lịch sử đối soát.
+    @Indexed(expireAfter = "0s")
+    private Date expiresAt;
 
     // Chỉ cho phép đăng ký sau khi mã đã được xác thực thành công.
     private Date verifiedAt;
+
+    private Date completedAt;
+    private String purpose;
+    private String status;
+    private Long userId;
+    private Long customerId;
+    private String source;
 }

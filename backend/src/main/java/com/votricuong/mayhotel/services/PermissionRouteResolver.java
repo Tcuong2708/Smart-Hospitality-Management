@@ -25,7 +25,10 @@ public class PermissionRouteResolver {
         if (uri.contains("/room-map")) return "RECEPTION.ROOM_MAP.VIEW";
         if (uri.contains("/check-in") || uri.contains("/assign-room") || uri.contains("manual-verification"))
             return "RECEPTION.CHECK_IN." + action;
-        if (uri.contains("/check-out") || uri.endsWith("/checkout")) return "RECEPTION.CHECK_OUT." + action;
+        if ((uri.startsWith("/receptionist/") || uri.startsWith("/api/v1/reception/"))
+                && (uri.contains("/check-out") || uri.contains("/checkout-room"))) {
+            return "RECEPTION.CHECK_OUT." + action;
+        }
         if (uri.contains("/invoices")) return "RECEPTION.INVOICES." + (uri.contains("/print") ? "PRINT" : action);
         if (uri.contains("/ai-no-show") || uri.contains("/no-show")) return "RECEPTION.NO_SHOW." + action;
         if (uri.startsWith("/receptionist/booking") || uri.contains("/reception/direct-bookings")

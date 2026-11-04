@@ -12,6 +12,7 @@ public class BookingSession implements java.io.Serializable {
     private int adultCount;
     private int childCount;
     private int infantCount;
+    private String direction;
     private LocalDate ngayNhan;
     private LocalDate ngayTra;
 

@@ -28,10 +28,30 @@
         <form class="mh-search" th:action="@{/rooms}" method="get">
           <div class="mh-search-accent"></div>
           <div class="mh-search-body">
-            <div class="mh-search-field mh-search-field--dest">
-              <label><i class="fa-solid fa-magnifying-glass"></i> Từ khóa</label>
-              <input type="text" name="keyword" placeholder="Tên phòng, loại phòng...">
-            </div>
+            <details class="mh-room-filter" data-room-filter>
+              <summary>
+                <span class="mh-room-filter-title"><i class="fa-solid fa-filter"></i> Bộ lọc phòng</span>
+                <strong data-room-filter-summary>Tất cả loại phòng · Tất cả hướng</strong>
+              </summary>
+              <div class="mh-room-filter-panel">
+                <fieldset>
+                  <legend>Loại phòng</legend>
+                  <label><input type="radio" name="roomTypeId" value="" checked><span>Tất cả loại phòng</span></label>
+                  <label th:each="type : ${roomTypes}">
+                    <input type="radio" name="roomTypeId" th:value="${type.id}">
+                    <span th:text="${type.name}">Phòng tiêu chuẩn</span>
+                  </label>
+                </fieldset>
+                <fieldset>
+                  <legend>Hướng phòng</legend>
+                  <label><input type="radio" name="direction" value="" checked><span>Tất cả hướng</span></label>
+                  <label th:each="item : ${directionOptions}">
+                    <input type="radio" name="direction" th:value="${item.value}">
+                    <span th:text="${item.label}">Hướng biển</span>
+                  </label>
+                </fieldset>
+              </div>
+            </details>
             <div class="mh-search-field">
               <label><i class="fa-solid fa-calendar-check"></i> Nhận phòng</label>
               <input type="date" name="checkin">
@@ -405,6 +425,24 @@
   <!-- ══════════ SCRIPTS ══════════ -->
   <th:block layout:fragment="additional-scripts">
     <script>
+
+      (function initRoomFilters() {
+        document.querySelectorAll('[data-room-filter]').forEach(filter => {
+          const summary = filter.querySelector('[data-room-filter-summary]');
+          const update = () => {
+            const type = filter.querySelector('input[name="roomTypeId"]:checked + span');
+            const direction = filter.querySelector('input[name="direction"]:checked + span');
+            if (summary) summary.textContent = `${type?.textContent || 'Tất cả loại phòng'} · ${direction?.textContent || 'Tất cả hướng'}`;
+          };
+          filter.addEventListener('change', update);
+          update();
+        });
+        document.addEventListener('click', event => {
+          document.querySelectorAll('[data-room-filter][open]').forEach(filter => {
+            if (!filter.contains(event.target)) filter.removeAttribute('open');
+          });
+        });
+      })();
 
       // Copy mã flash sale
       function copyFlashCode(btn) {

@@ -26,6 +26,7 @@ import java.util.Optional;
 public class AuthService {
 
     private static final SecureRandom OTP_RANDOM = new SecureRandom();
+    private static final long OTP_VALIDITY_MILLIS = 300_000L;
 
     private final UserRepository userRepository;
     private final OtpCodeRepository otpCodeRepository;
@@ -90,12 +91,18 @@ public class AuthService {
         // Tạo và lưu mã OTP
         String otp = generateOtpCode();
         
+        Date now = new Date();
+        otpCodeRepository.deleteByIdentifierAndVerifiedAtIsNull(newUser.getEmail());
         OtpCode otpCode = OtpCode.builder()
                 .identifier(newUser.getEmail())
                 .code(otp)
                 .pendingUser(newUser)
                 .pendingCustomer(newCustomer)
-                .createdAt(new Date())
+                .createdAt(now)
+                .expiresAt(new Date(now.getTime() + OTP_VALIDITY_MILLIS))
+                .purpose("REGISTER")
+                .status("PENDING")
+                .source("WEB")
                 .build();
         otpCodeRepository.save(otpCode);
 
@@ -109,7 +116,7 @@ public class AuthService {
     public User verifyIdentity(String email, String otpCode) throws Exception {
         Optional<OtpCode> optionalOtp = otpCodeRepository.findByIdentifierAndCode(email, otpCode);
         
-        if (optionalOtp.isEmpty()) {
+        if (optionalOtp.isEmpty() || isOtpExpired(optionalOtp.get())) {
             throw new Exception("Mã OTP không hợp lệ hoặc đã hết hạn.");
         }
 
@@ -126,14 +133,14 @@ public class AuthService {
 
         User savedUser = userRepository.save(pendingUser);
         
+        com.votricuong.mayhotel.documents.Customer savedCustomer = null;
         if (pendingCustomer != null) {
             pendingCustomer.setId(sequenceGeneratorService.generateSequence("customers_sequence"));
             pendingCustomer.setUserId(savedUser.getId());
-            customerRepository.save(pendingCustomer);
+            savedCustomer = customerRepository.save(pendingCustomer);
         }
-        
-        // Xóa mã OTP sau khi dùng
-        otpCodeRepository.delete(validOtp);
+
+        completeRegistrationAudit(validOtp, savedUser, savedCustomer, "WEB");
         
         return savedUser;
     }
@@ -151,14 +158,19 @@ public class AuthService {
         }
 
         String otp = generateOtpCode();
+        Date now = new Date();
         OtpCode resetCode = OtpCode.builder()
                 .identifier(identifier)
                 .code(otp)
                 .pendingUser(user)
                 .pendingCustomer(null)
-                .createdAt(new Date())
+                .createdAt(now)
+                .expiresAt(new Date(now.getTime() + OTP_VALIDITY_MILLIS))
+                .purpose("PASSWORD_RESET")
+                .status("PENDING")
+                .source("WEB")
                 .build();
-        otpCodeRepository.findByIdentifier(identifier).ifPresent(otpCodeRepository::delete);
+        otpCodeRepository.deleteByIdentifierAndVerifiedAtIsNull(identifier);
         otpCodeRepository.save(resetCode);
         try {
             emailService.sendOtpEmail(user.getEmail(), otp);
@@ -191,6 +203,56 @@ public class AuthService {
         user.setPassword(hashPassword(validatedPassword));
         userRepository.save(user);
         otpCodeRepository.delete(validOtp);
+    }
+
+    /** Lưu đối soát đăng ký nhưng loại bỏ OTP thật và mật khẩu. */
+    public void completeRegistrationAudit(OtpCode otpRecord, User savedUser,
+                                          com.votricuong.mayhotel.documents.Customer savedCustomer,
+                                          String source) {
+        if (otpRecord == null || savedUser == null) return;
+        Date now = new Date();
+        User safeUser = User.builder()
+                .id(savedUser.getId())
+                .username(savedUser.getUsername())
+                .email(savedUser.getEmail())
+                .phone(savedUser.getPhone())
+                .fullName(savedUser.getFullName())
+                .address(savedUser.getAddress())
+                .nationality(savedUser.getNationality())
+                .gender(savedUser.getGender())
+                .status(savedUser.getStatus())
+                .roleId(savedUser.getRoleId())
+                .build();
+        com.votricuong.mayhotel.documents.Customer safeCustomer = savedCustomer == null ? null
+                : com.votricuong.mayhotel.documents.Customer.builder()
+                .id(savedCustomer.getId())
+                .userId(savedCustomer.getUserId())
+                .fullName(savedCustomer.getFullName())
+                .phone(savedCustomer.getPhone())
+                .email(savedCustomer.getEmail())
+                .address(savedCustomer.getAddress())
+                .nationality(savedCustomer.getNationality())
+                .build();
+
+        otpRecord.setCode("******");
+        otpRecord.setPendingUser(safeUser);
+        otpRecord.setPendingCustomer(safeCustomer);
+        otpRecord.setVerifiedAt(otpRecord.getVerifiedAt() == null ? now : otpRecord.getVerifiedAt());
+        otpRecord.setCompletedAt(now);
+        otpRecord.setExpiresAt(null);
+        otpRecord.setPurpose("REGISTER");
+        otpRecord.setStatus("COMPLETED");
+        otpRecord.setUserId(savedUser.getId());
+        otpRecord.setCustomerId(savedCustomer == null ? null : savedCustomer.getId());
+        otpRecord.setSource(source == null || source.isBlank() ? "WEB" : source);
+        otpCodeRepository.save(otpRecord);
+    }
+
+    private boolean isOtpExpired(OtpCode otpCode) {
+        if (otpCode == null || otpCode.getCreatedAt() == null) return true;
+        Date expiresAt = otpCode.getExpiresAt();
+        return expiresAt != null ? expiresAt.before(new Date())
+                : otpCode.getCreatedAt().before(new Date(System.currentTimeMillis() - OTP_VALIDITY_MILLIS));
     }
 
     /**

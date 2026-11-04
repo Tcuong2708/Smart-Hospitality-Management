@@ -1,6 +1,7 @@
 package com.votricuong.mayhotel.controllers;
 
 import java.io.Serializable;
+import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -38,6 +39,8 @@ import lombok.Data;
 
 @Controller
 public class HomeController extends BaseController {
+
+    public record DirectionOption(String value, String label) {}
 
     private final RoomRepository roomRepository;
     private final RoomTypeRepository roomTypeRepository;
@@ -121,8 +124,16 @@ public class HomeController extends BaseController {
 
         // ── 1. PHÒNG NỔI BẬT ──
         List<Room> allRooms = roomRepository.findAll();
-        Map<Long, RoomType> typeMap = roomTypeRepository.findAll().stream()
+        List<RoomType> roomTypes = roomTypeRepository.findAll();
+        Map<Long, RoomType> typeMap = roomTypes.stream()
                 .collect(Collectors.toMap(RoomType::getId, t -> t));
+        Map<String, String> directionOptions = new LinkedHashMap<>();
+        allRooms.stream().map(Room::getViewDirection).map(this::normalizeDirection)
+                .filter(value -> !value.isBlank())
+                .forEach(value -> directionOptions.putIfAbsent(value, directionLabel(value)));
+        model.addAttribute("roomTypes", roomTypes);
+        model.addAttribute("directionOptions", directionOptions.entrySet().stream()
+                .map(entry -> new DirectionOption(entry.getKey(), entry.getValue())).toList());
 
         List<BookingDetail> allDetails = bookingDetailRepository.findAll();
         List<Review> publicReviews = reviewRepository.findAll().stream()
@@ -255,6 +266,32 @@ public class HomeController extends BaseController {
         }
 
         return "view/home/index";
+    }
+
+    private String normalizeDirection(String direction) {
+        if (direction == null || direction.isBlank()) return "";
+        String value = Normalizer.normalize(direction, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toUpperCase(Locale.ROOT)
+                .replace('Đ', 'D')
+                .trim();
+        if (value.contains("BIEN") || value.equals("SEA")) return "SEA";
+        if (value.contains("THANH PHO") || value.equals("CITY")) return "CITY";
+        if (value.contains("NUI") || value.equals("MOUNTAIN")) return "MOUNTAIN";
+        if (value.contains("VUON") || value.equals("GARDEN")) return "GARDEN";
+        if (value.contains("HO") || value.equals("LAKE")) return "LAKE";
+        return value;
+    }
+
+    private String directionLabel(String direction) {
+        return switch (normalizeDirection(direction)) {
+            case "SEA" -> "Hướng biển";
+            case "CITY" -> "Hướng thành phố";
+            case "MOUNTAIN" -> "Hướng núi";
+            case "GARDEN" -> "Hướng vườn";
+            case "LAKE" -> "Hướng hồ";
+            default -> direction == null || direction.isBlank() ? "Khác" : direction;
+        };
     }
 
     // ================================================================

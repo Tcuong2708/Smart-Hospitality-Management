@@ -5,6 +5,12 @@
     <th:block th:fragment="extra_css">
         <style>
             .permission-panel { margin-top: 24px; }
+            .permission-panel .adm-card-head h3 span {
+                font-family: var(--font-body, Arial, sans-serif);
+                letter-spacing: 0;
+                word-spacing: 0;
+                white-space: nowrap;
+            }
             .permission-role-tabs { display:flex; flex-wrap:wrap; gap:8px; padding:18px 20px; border-bottom:1px solid var(--adm-border); }
             .permission-role-tab { border:1px solid var(--adm-border); background:#fff; border-radius:10px; padding:9px 14px; font-weight:700; cursor:pointer; color:var(--navy); }
             .permission-role-tab.is-active { background:var(--navy); color:#fff; border-color:var(--navy); }
@@ -84,13 +90,12 @@
                             <th>Mô tả chức năng</th>
                             <th>Phạm vi quyền hạn</th>
                             <th class="col-center" style="width:130px;">Số người dùng</th>
-                            <th class="col-center" style="width:100px;">Thao tác</th>
                         </tr>
                     </thead>
                     <tbody id="roleTbody">
 
                         <tr th:if="${#lists.isEmpty(roles)}">
-                            <td colspan="7">
+                            <td colspan="6">
                                 <div class="adm-empty">
                                     <i class="bi bi-shield-lock"></i>
                                     <h4>Chưa có vai trò nào</h4>
@@ -128,12 +133,6 @@
                                 </span>
                             </td>
 
-                            <td class="col-center">
-                                <a th:href="@{/admin/users(role=${r.id})}" class="adm-action edit"
-                                    th:title="'Xem người dùng thuộc vai trò ' + ${r.name}">
-                                    <i class="bi bi-people"></i>
-                                </a>
-                            </td>
                         </tr>
 
                     </tbody>
@@ -144,7 +143,7 @@
 
         <div class="adm-card permission-panel">
             <div class="adm-card-head">
-                <div><h3><i class="bi bi-ui-checks-grid"></i> Ma trận quyền chức năng</h3>
+                <div><h3><i class="bi bi-ui-checks-grid"></i><span>Ma trận quyền chức năng</span></h3>
                     <p>Chọn vai trò, cấp hoặc thu hồi từng hành động rồi lưu thay đổi.</p></div>
             </div>
             <div class="permission-role-tabs">

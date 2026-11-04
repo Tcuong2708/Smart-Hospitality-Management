@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
+import java.util.Objects;
 
 @Controller
 @RequestMapping("/admin/users")
@@ -121,7 +122,7 @@ public class UserAdminController extends BaseController {
         User target = userService.getUserById(id).orElse(null);
         User actor = (User) session.getAttribute("user");
         if (target == null || actor == null) return "redirect:/admin/users";
-        if (!canManage(actor, target)) {
+        if (!canManage(actor, target) || Objects.equals(target.getRoleId(), 5L)) {
             redirect.addFlashAttribute("error", "Bạn không được thay đổi quyền tài khoản này");
             return "redirect:/admin/users";
         }
@@ -138,7 +139,8 @@ public class UserAdminController extends BaseController {
                                    @RequestParam String effect, HttpSession session, RedirectAttributes redirect) {
         User target = userService.getUserById(id).orElse(null);
         User actor = (User) session.getAttribute("user");
-        if (target == null || actor == null || !canManage(actor, target)) {
+        if (target == null || actor == null || !canManage(actor, target)
+                || Objects.equals(target.getRoleId(), 5L)) {
             redirect.addFlashAttribute("error", "Bạn không được thay đổi quyền tài khoản này");
             return "redirect:/admin/users";
         }

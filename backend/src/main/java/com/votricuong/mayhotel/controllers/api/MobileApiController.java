@@ -200,12 +200,17 @@ public class MobileApiController {
             if (userRepository.findFirstByEmail(email).isPresent()) {
                 return ResponseEntity.badRequest().body(Map.of("message", "Email đã được sử dụng."));
             }
-            otpCodeRepository.deleteByIdentifier(email);
+            otpCodeRepository.deleteByIdentifierAndVerifiedAtIsNull(email);
             String otp = String.format("%06d", new java.security.SecureRandom().nextInt(1_000_000));
+            Date now = new Date();
             OtpCode otpCode = new OtpCode();
             otpCode.setIdentifier(email);
             otpCode.setCode(otp);
-            otpCode.setCreatedAt(new Date());
+            otpCode.setCreatedAt(now);
+            otpCode.setExpiresAt(new Date(now.getTime() + 300_000L));
+            otpCode.setPurpose("REGISTER");
+            otpCode.setStatus("PENDING");
+            otpCode.setSource("MOBILE");
             otpCodeRepository.save(otpCode);
             emailService.sendOtpEmail(email, otp);
             return ResponseEntity.ok(Map.of("message", "Đã gửi OTP"));
@@ -224,6 +229,7 @@ public class MobileApiController {
         if (otpOpt.isPresent() && !isOtpExpired(otpOpt.get())) {
             OtpCode verified = otpOpt.get();
             verified.setVerifiedAt(new Date());
+            verified.setStatus("VERIFIED");
             otpCodeRepository.save(verified);
             return ResponseEntity.ok(Map.of("message", "OTP hợp lệ"));
         }
@@ -287,8 +293,8 @@ public class MobileApiController {
                     .nationality(nationality)
                     .points(0)
                     .build();
-            customerRepository.save(customer);
-            otpCodeRepository.delete(verifiedOtp);
+            Customer savedCustomer = customerRepository.save(customer);
+            authService.completeRegistrationAudit(verifiedOtp, savedUser, savedCustomer, "MOBILE");
             return ResponseEntity.ok(Map.of(
                     "message", "Đăng ký tài khoản thành công",
                     "userId", savedUser.getId(),

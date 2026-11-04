@@ -110,6 +110,7 @@
                         <form class="mh-booking-box" th:action="@{/booking/checkout}" method="post" id="mhBookingForm">
 
                             <input type="hidden" name="maLoai" th:value="${loaiPhong.maLoai}">
+                            <input type="hidden" name="direction" th:value="${direction}">
 
                             <div class="mh-booking-box-head">
                                 <small>Giá chỉ từ</small>

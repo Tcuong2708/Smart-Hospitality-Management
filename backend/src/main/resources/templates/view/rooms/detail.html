@@ -53,12 +53,7 @@
                     <div class="mh-detail-header-main">
                         <h1 th:text="${room.roomType != null ? room.roomType.name : 'Loại phòng'}">
                             Phòng Deluxe</h1>
-                        <p class="mh-detail-header-meta">
-                            <i class="fa-solid fa-location-dot"></i>
-                            <span>May Hotel</span>
-                            <span>·</span>
-                            <span>Xem trên bản đồ</span>
-                        </p>
+
                     </div>
 
                     <div class="mh-detail-header-rating">
@@ -240,11 +235,13 @@
 
                             <div class="mh-detail-book-price">
                                 <del th:if="${publicPrice != null and publicPrice.discounted}"
-                                    th:text="${'VND ' + #numbers.formatDecimal(publicPrice.originalPerNight, 0, 'POINT', 0, 'COMMA')}">VND 500.000</del>
+                                    th:text="${'VND ' + #numbers.formatDecimal(publicPrice.originalPerNight, 0, 'POINT', 0, 'COMMA')}">VND
+                                    500.000</del>
                                 <strong
                                     th:text="${'VND ' + #numbers.formatDecimal(publicPrice != null ? publicPrice.finalPerNight : room.price, 0, 'POINT', 0, 'COMMA')}">VND
                                     320.000</strong>
-                                <span class="mh-detail-book-promo" th:if="${publicPrice != null and publicPrice.discounted}"
+                                <span class="mh-detail-book-promo"
+                                    th:if="${publicPrice != null and publicPrice.discounted}"
                                     th:text="${'Đã giảm ' + publicPrice.promotionName}">Đã giảm giá</span>
                                 <em>/ đêm — đã bao gồm thuế GTGT</em>
                             </div>
@@ -280,7 +277,7 @@
 
                             <!-- Nút đặt — chỉ hiện khi phòng trống -->
                             <a th:if="${conTrong}"
-                                th:href="@{/booking/book(maLoai=${room.roomTypeId},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants})}"
+                                th:href="@{/booking/book(maLoai=${room.roomTypeId},direction=${direction},checkin=${checkin},checkout=${checkout},adults=${adults},children=${children},infants=${infants})}"
                                 class="mh-detail-book-btn">
                                 <i class="fa-solid fa-calendar-check"></i> Đặt phòng ngay
                             </a>

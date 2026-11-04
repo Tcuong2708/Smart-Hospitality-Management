@@ -10,6 +10,8 @@ import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
+
 /**
  * Tạo các chỉ mục phục vụ những luồng đọc thường xuyên trên MongoDB Atlas.
  * Mỗi chỉ mục có tên cố định nên thao tác này an toàn và không tạo bản sao
@@ -31,6 +33,12 @@ public class MongoIndexInitializer implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (!enabled) return;
+
+        migrateOtpTtlIndex();
+        ensure("otp_codes", new Index().on("expiresAt", Sort.Direction.ASC)
+                .expire(Duration.ZERO).named("idx_otp_pending_expiry"));
+        ensure("otp_codes", new Index().on("identifier", Sort.Direction.ASC)
+                .on("createdAt", Sort.Direction.DESC).named("idx_otp_identifier_created"));
 
         // Báo cáo doanh thu: lọc hóa đơn đã thanh toán trong khoảng thời gian.
         ensure("invoices", new Index().on("isPaid", Sort.Direction.ASC)
@@ -79,6 +87,27 @@ public class MongoIndexInitializer implements ApplicationRunner {
         } catch (RuntimeException ex) {
             // Không làm ứng dụng ngừng chạy nếu tài khoản Atlas chỉ có quyền đọc/ghi dữ liệu.
             log.warn("Không thể bảo đảm chỉ mục MongoDB cho collection {}: {}", collection, ex.getMessage());
+        }
+    }
+
+    /**
+     * Bản cũ đặt TTL trên createdAt nên cả lịch sử OTP đã dùng cũng biến mất sau
+     * 5 phút. Chuyển TTL sang expiresAt; bản ghi COMPLETED có expiresAt = null.
+     */
+    private void migrateOtpTtlIndex() {
+        try {
+            if (!mongoTemplate.collectionExists("otp_codes")) return;
+            for (org.bson.Document index : mongoTemplate.getCollection("otp_codes").listIndexes()) {
+                org.bson.Document keys = index.get("key", org.bson.Document.class);
+                if (keys != null && keys.containsKey("createdAt") && index.containsKey("expireAfterSeconds")) {
+                    String name = index.getString("name");
+                    if (name != null && !"_id_".equals(name)) {
+                        mongoTemplate.getCollection("otp_codes").dropIndex(name);
+                    }
+                }
+            }
+        } catch (RuntimeException ex) {
+            log.warn("Không thể chuyển chỉ mục TTL otp_codes: {}", ex.getMessage());
         }
     }
 }
