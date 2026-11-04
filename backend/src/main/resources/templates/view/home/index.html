@@ -87,7 +87,7 @@
           <div class="flash-deal-track">
           <article class="flash-deal-card single" th:each="sale, stat : ${flashSales}"
             th:classappend="${stat.first} ? ' active' : ''"
-            th:attr="data-flash-index=${stat.index},data-endtime=${sale.endDate}">
+            th:attr="data-flash-index=${stat.index},data-endtime=${sale.endDate != null ? #dates.format(sale.endDate, 'yyyy-MM-dd') + 'T23:59:59+07:00' : ''}">
           <div class="flash-deal-image">
             <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?w=1200" th:alt="${sale.name}">
             <span class="last-min-tag"><i class="fa-solid fa-clock"></i> Khuyến mãi phút cuối</span>
@@ -156,12 +156,10 @@
           <div class="mh-room-carousel" id="roomCarousel">
             <a th:each="p : ${phongNoiBat}" th:href="@{/rooms/detail/{id}(id=${p.maPhong})}" class="mh-room-card">
               <div class="mh-room-img">
-                <img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.card(#strings.startsWith(p.hinhAnhHienThi, 'http')
-                              ? p.hinhAnhHienThi
-                              : (#strings.startsWith(p.hinhAnhHienThi, '/')
-                                 ? p.hinhAnhHienThi
-                                 : '/images/rooms/' + p.hinhAnhHienThi))}"
-                  th:alt="${p.tenLoaiPhong}">
+                <img loading="lazy" decoding="async"
+                  th:src="${@cloudinaryUrlUtil.cardFromDatabase(p.hinhAnhHienThi)}"
+                  th:alt="${p.tenLoaiPhong}"
+                  onerror="this.onerror=null;this.src='/images/a1.jpg'">
                 <span class="mh-room-badge" th:text="${p.trangThai}">Còn phòng</span>
                 <span class="room-wishlist" role="link" tabindex="0" aria-label="Yêu thích"
                   onclick="event.preventDefault(); event.stopPropagation();">
@@ -231,10 +229,12 @@
           </button>
 
           <div class="mh-category-carousel" id="categoryCarousel">
-            <a th:each="t : ${loaiPhongPhoBien}" th:href="@{/rooms(roomTypeId=${t.maLoai})}" class="mh-category-card"
-              th:with="imgPath=${(t.hinhAnhHienThi != null and !t.hinhAnhHienThi.isBlank()) ? t.hinhAnhHienThi : 'default.jpg'}">
+            <a th:each="t : ${loaiPhongPhoBien}" th:href="@{/rooms(roomTypeId=${t.maLoai})}" class="mh-category-card">
               <div class="mh-category-img">
-                <img loading="lazy" decoding="async" th:src="${@cloudinaryUrlUtil.card(#strings.startsWith(imgPath, 'http') ? imgPath : (#strings.startsWith(imgPath, '/') ? imgPath : '/images/rooms/' + imgPath))}" th:alt="${t.tenLoaiPhong}">
+                <img loading="lazy" decoding="async"
+                  th:src="${@cloudinaryUrlUtil.cardFromDatabase(t.hinhAnhHienThi)}"
+                  th:alt="${t.tenLoaiPhong}"
+                  onerror="this.onerror=null;this.src='/images/a1.jpg'">
               </div>
               <div class="mh-category-info">
                 <span class="mh-category-tag"
@@ -424,11 +424,17 @@
       // Countdown flash sale
       function startFlashCountdown(card) {
         const endTime = Date.parse(card.dataset.endtime || '');
-        if (!Number.isFinite(endTime)) return;
         const hEl = card.querySelector('[data-countdown-hour]');
         const mEl = card.querySelector('[data-countdown-minute]');
         const sEl = card.querySelector('[data-countdown-second]');
         if (!hEl || !mEl || !sEl) return;
+
+        if (!Number.isFinite(endTime)) {
+          hEl.textContent = '--';
+          mEl.textContent = '--';
+          sEl.textContent = '--';
+          return;
+        }
 
         function update() {
           const remain = Math.max(0, Math.floor((endTime - Date.now()) / 1000));
@@ -440,7 +446,10 @@
           sEl.textContent = String(s).padStart(2, '0');
         }
         update();
-        setInterval(update, 1000);
+        const timer = window.setInterval(() => {
+          update();
+          if (Date.now() >= endTime) window.clearInterval(timer);
+        }, 1000);
       }
 
       (function initFlashDeals() {

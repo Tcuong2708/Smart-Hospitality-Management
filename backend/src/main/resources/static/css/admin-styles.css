@@ -972,6 +972,23 @@ textarea {
     text-align: center;
 }
 
+/* Giữ hai cột số lượng loại phòng tách biệt ở mọi độ rộng màn hình. */
+#categoryTable .category-total-column {
+    width: 108px;
+    min-width: 108px;
+    padding-left: 8px;
+    padding-right: 12px;
+    white-space: nowrap;
+}
+
+#categoryTable .category-available-column {
+    width: 126px;
+    min-width: 126px;
+    padding-left: 12px;
+    padding-right: 8px;
+    white-space: nowrap;
+}
+
 .adm-table .col-right {
     text-align: right;
 }

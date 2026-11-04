@@ -33,7 +33,11 @@ public class PermissionRouteResolver {
         if (uri.contains("/mobile/operations/reception/bookings") || uri.contains("/mobile/operations/reception/room-types")
                 || uri.contains("/mobile/operations/reception/available-rooms")) return "RECEPTION.BOOKINGS." + action;
         if (uri.contains("/mobile/housekeeping")) return "MOBILE.HOUSEKEEPING." + action;
-        if (uri.contains("/mobile/services") || uri.contains("service-staff")) return "MOBILE.SERVICE." + action;
+        if (uri.equals("/api/v1/mobile/services")
+                || uri.startsWith("/api/v1/mobile/services/order")) {
+            return "MOBILE.CUSTOMER_SERVICE." + action;
+        }
+        if (uri.contains("/mobile/service-staff")) return "MOBILE.SERVICE." + action;
         return null;
     }
 

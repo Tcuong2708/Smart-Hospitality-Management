@@ -118,6 +118,10 @@ class DeviceSecurityService {
       'TRUSTED_DEVICE_FINGERPRINTS',
     ),
     this.allowUsbDebuggingForDevelopment = false,
+    this.allowEmulatorForDemo = const bool.fromEnvironment(
+      'ALLOW_EMULATOR_FOR_DEMO',
+      defaultValue: true,
+    ),
     DeviceSecurityPlatform? currentPlatform,
   }) : _probe = probe ?? PlatformDeviceSecurityProbe(),
        _currentPlatform = currentPlatform ?? _detectPlatform();
@@ -128,6 +132,7 @@ class DeviceSecurityService {
   final DeviceSecurityProbe _probe;
   final String trustedDeviceFingerprints;
   final bool allowUsbDebuggingForDevelopment;
+  final bool allowEmulatorForDemo;
   final DeviceSecurityPlatform _currentPlatform;
 
   Future<DeviceSecurityResult> check() async {
@@ -192,10 +197,15 @@ class DeviceSecurityService {
               : '[Security] USB debugging accepted for this development build.',
         );
       }
-      if (!checks[2]) {
+      if (!checks[2] && !allowEmulatorForDemo) {
         return DeviceSecurityResult.blocked(
           DeviceSecurityIssue.emulator,
           deviceFingerprint: snapshot.deviceFingerprint,
+        );
+      }
+      if (!checks[2] && allowEmulatorForDemo) {
+        debugPrint(
+          '[Security] Emulator accepted temporarily for the demo build.',
         );
       }
       return isTrusted

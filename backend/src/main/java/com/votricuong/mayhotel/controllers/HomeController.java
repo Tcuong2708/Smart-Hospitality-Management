@@ -161,7 +161,14 @@ public class HomeController extends BaseController {
                 .collect(Collectors.toMap(RoomTypeDTO::getMaLoai, dto -> dto, (first, ignored) -> first,
                         LinkedHashMap::new))
                 .values());
+        Map<Long, List<Room>> roomsByType = allRooms.stream()
+                .filter(room -> room.getRoomTypeId() != null)
+                .collect(Collectors.groupingBy(Room::getRoomTypeId));
         uniqueTypes.forEach(dto -> {
+            dto.setHinhAnhHienThi(selectTypeImage(
+                    typeMap.get(dto.getMaLoai()),
+                    roomsByType.getOrDefault(dto.getMaLoai(), List.of())));
+            dto.setImageUrl(dto.getHinhAnhHienThi());
             dto.setDiemDanhGia(roomTypeRatings.getOrDefault(dto.getMaLoai(), 0D) * 2D);
             dto.setSoDanhGia(roomTypeReviewCounts.getOrDefault(dto.getMaLoai(), 0L));
             dto.setSoLuotDat(roomTypeBookingCounts.getOrDefault(dto.getMaLoai(), 0L));
@@ -212,8 +219,8 @@ public class HomeController extends BaseController {
                 .collect(Collectors.toList());
         model.addAttribute("danhGiaNoiBat", danhGiaNoiBat);
 
-        // Chỉ hiển thị khuyến mãi đại trà đang hiệu lực; không dùng chương trình
-        // sắp diễn ra, hết hạn, tạm ngưng hoặc voucher riêng làm dữ liệu thay thế.
+        // Hiển thị mọi khuyến mãi công khai đang hiệu lực. Voucher riêng tư vẫn
+        // không xuất hiện; voucher công khai được phép hiển thị để khách sao chép mã.
         Date now = new Date();
         List<Promotion> flashSales = promotionService.activePublicPromotions().stream()
                 .sorted(Comparator.comparing(Promotion::getPriority,
@@ -232,7 +239,16 @@ public class HomeController extends BaseController {
 
         Promotion firstFlashSale = flashSales.isEmpty() ? null : flashSales.get(0);
         if (firstFlashSale != null && firstFlashSale.getEndDate() != null) {
-            long diff = firstFlashSale.getEndDate().getTime() - now.getTime();
+            java.time.ZoneId hotelZone = java.time.ZoneId.of("Asia/Ho_Chi_Minh");
+            long inclusiveEnd = firstFlashSale.getEndDate().toInstant()
+                    .atZone(hotelZone)
+                    .toLocalDate()
+                    .plusDays(1)
+                    .atStartOfDay(hotelZone)
+                    .toInstant()
+                    .minusMillis(1)
+                    .toEpochMilli();
+            long diff = inclusiveEnd - now.getTime();
             model.addAttribute("flashSaleSeconds", Math.max(diff / 1000, 0));
         } else {
             model.addAttribute("flashSaleSeconds", 0);
@@ -329,6 +345,18 @@ public class HomeController extends BaseController {
     // ================================================================
     // HELPERS
     // ================================================================
+    private String selectTypeImage(RoomType type, List<Room> rooms) {
+        if (type != null && type.getImageUrl() != null && !type.getImageUrl().isBlank()) {
+            return type.getImageUrl().trim();
+        }
+        return rooms.stream()
+                .map(Room::getImageUrl)
+                .filter(image -> image != null && !image.isBlank())
+                .map(String::trim)
+                .findFirst()
+                .orElse("/images/a1.jpg");
+    }
+
     private RoomTypeDTO toDTO(Room r, RoomType t) {
         RoomTypeDTO dto = new RoomTypeDTO();
         dto.setMaPhong(r.getId());
@@ -337,10 +365,11 @@ public class HomeController extends BaseController {
         String typeName = (t != null && t.getName() != null) ? t.getName() : "Phòng";
         dto.setTenLoaiPhong(typeName);
 
-        String img = r.getImageUrl();
-        if (img == null || img.isBlank()) {
-            img = (t != null && t.getImageUrl() != null) ? t.getImageUrl() : "default.jpg";
-        }
+        // Trang chủ giới thiệu LOẠI PHÒNG nên ưu tiên ảnh đại diện của loại phòng.
+        // Chỉ dùng ảnh phòng vật lý làm dự phòng khi loại phòng chưa có ảnh.
+        String img = t != null ? t.getImageUrl() : null;
+        if (img == null || img.isBlank()) img = r.getImageUrl();
+        if (img == null || img.isBlank()) img = "/images/a1.jpg";
         dto.setHinhAnhHienThi(img);
 
         dto.setSucChua(t != null && t.getMaxOccupancy() != null ? t.getMaxOccupancy() : 2);

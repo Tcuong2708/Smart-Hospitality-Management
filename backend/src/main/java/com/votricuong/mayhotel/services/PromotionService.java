@@ -70,7 +70,6 @@ public class PromotionService {
         return search(null, null, "ACTIVE").stream()
                 .filter(p -> p.getVisibility() == null || p.getVisibility().isBlank()
                         || "PUBLIC".equalsIgnoreCase(p.getVisibility()))
-                .filter(p -> !"VOUCHER".equalsIgnoreCase(normalizedType(p)))
                 .toList();
     }
 

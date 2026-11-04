@@ -43,6 +43,7 @@ public class PermissionBootstrap implements ApplicationRunner {
         MODULES.put("RECEPTION.INVOICES", "Quản lý hóa đơn");
         MODULES.put("RECEPTION.NO_SHOW", "Dự đoán khách không đến");
         MODULES.put("MOBILE.HOUSEKEEPING", "Mobile buồng phòng");
+        MODULES.put("MOBILE.CUSTOMER_SERVICE", "Mobile khách hàng đặt dịch vụ");
         MODULES.put("MOBILE.SERVICE", "Mobile nhân viên dịch vụ");
     }
     private static final List<String> ACTIONS = List.of("VIEW", "CREATE", "UPDATE", "DELETE", "PRINT", "EXPORT");
@@ -65,6 +66,8 @@ public class PermissionBootstrap implements ApplicationRunner {
         roles.findById(8L).orElseGet(() -> roles.save(Role.builder().id(8L)
                 .roleName("Super Admin").description("Quản trị viên cấp cao có toàn quyền hệ thống").build()));
 
+        boolean initializeDefaultMatrix = rolePermissions.count() == 0;
+        Set<String> newlyCreatedPermissions = new LinkedHashSet<>();
         int order = 0;
         List<Permission> catalog = new ArrayList<>();
         for (Map.Entry<String, String> module : MODULES.entrySet()) {
@@ -76,22 +79,32 @@ public class PermissionBootstrap implements ApplicationRunner {
                         .platform(module.getKey().startsWith("MOBILE") ? "MOBILE" : "WEB")
                         .sortOrder(++order).build();
                 catalog.add(item);
-                if (!permissions.existsById(code)) permissions.save(item);
+                if (!permissions.existsById(code)) {
+                    permissions.save(item);
+                    newlyCreatedPermissions.add(code);
+                }
             }
         }
 
         // Chỉ seed ma trận mặc định lần đầu; các lần khởi động sau tuyệt đối không cấp lại quyền đã bị thu hồi.
-        if (rolePermissions.count() == 0) {
+        if (initializeDefaultMatrix) {
             for (Permission permission : catalog) {
                 grant(1L, permission.getCode());
                 if (permission.getCode().startsWith("MANAGER.") || permission.getCode().startsWith("REPORT.")) grant(2L, permission.getCode());
                 if (permission.getCode().startsWith("RECEPTION.")) grant(3L, permission.getCode());
                 if (permission.getCode().startsWith("MOBILE.HOUSEKEEPING")) grant(4L, permission.getCode());
+                if (permission.getCode().startsWith("MOBILE.CUSTOMER_SERVICE")) grant(5L, permission.getCode());
                 if (permission.getCode().startsWith("MOBILE.SERVICE")) grant(6L, permission.getCode());
                 if (permission.getCode().startsWith("REPORT.")
                         || permission.getCode().equals("RECEPTION.INVOICES.VIEW")
                         || permission.getCode().equals("RECEPTION.INVOICES.PRINT")) grant(7L, permission.getCode());
             }
+        } else {
+            // Nâng cấp CSDL đang chạy: chỉ cấp các quyền khách hàng vừa được tạo ở phiên bản này.
+            // Nếu Super Admin thu hồi về sau, permission đã tồn tại nên sẽ không bị tự cấp lại.
+            newlyCreatedPermissions.stream()
+                    .filter(code -> code.startsWith("MOBILE.CUSTOMER_SERVICE"))
+                    .forEach(code -> grant(5L, code));
         }
 
         promotePrimaryAdmin();

@@ -73,7 +73,7 @@ void main() {
       expect(result.issue, DeviceSecurityIssue.bootloaderUnlocked);
     });
 
-    test('untrusted emulator is blocked', () async {
+    test('untrusted emulator is blocked when demo mode is disabled', () async {
       final probe = _FakeSecurityProbe(
         fingerprint: otherDevice,
         realDevice: false,
@@ -82,9 +82,25 @@ void main() {
         probe: probe,
         currentPlatform: DeviceSecurityPlatform.android,
         trustedDeviceFingerprints: '$phoneOne,$phoneTwo',
+        allowEmulatorForDemo: false,
       ).check();
 
       expect(result.issue, DeviceSecurityIssue.emulator);
+    });
+
+    test('emulator is accepted temporarily in demo mode', () async {
+      final probe = _FakeSecurityProbe(
+        fingerprint: otherDevice,
+        realDevice: false,
+      );
+      final result = await DeviceSecurityService(
+        probe: probe,
+        currentPlatform: DeviceSecurityPlatform.android,
+        trustedDeviceFingerprints: '$phoneOne,$phoneTwo',
+        allowEmulatorForDemo: true,
+      ).check();
+
+      expect(result.isBlocked, isFalse);
     });
 
     test('untrusted phone with USB debugging is blocked', () async {

@@ -110,8 +110,8 @@
                             <th class="col-center" style="width:110px;">Hình ảnh</th>
                             <th>Tên loại phòng</th>
                             <th class="col-center" style="width:120px;">Sức chứa</th>
-                            <th class="col-center" style="width:110px;">Tổng phòng</th>
-                            <th class="col-center" style="width:130px;">Phòng trống</th>
+                            <th class="col-center category-total-column">Tổng phòng</th>
+                            <th class="col-center category-available-column">Phòng trống</th>
                             <th class="col-center" style="width:150px;">Thao tác</th>
                         </tr>
                     </thead>
@@ -165,12 +165,12 @@
                                 </span>
                             </td>
 
-                            <td class="col-center">
+                            <td class="col-center category-total-column">
                                 <strong style="font-size:15px;color:var(--navy);"
                                     th:text="${c.totalRoomsCount}">0</strong>
                             </td>
 
-                            <td class="col-center">
+                            <td class="col-center category-available-column">
                                 <span class="adm-badge adm-badge-success">
                                     <span class="dot"></span>
                                     <span th:text="${c.availableRoomsCount} + ' trống'">0 trống</span>

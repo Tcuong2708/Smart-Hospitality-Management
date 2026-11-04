@@ -771,10 +771,19 @@ textarea {
   box-shadow: 0 10px 28px rgba(15, 41, 66, .18);
   cursor: pointer;
   transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s ease, color .2s ease, transform .2s ease;
 }
 
-.flash-nav-prev { left: -24px; }
-.flash-nav-next { right: -24px; }
+.flash-nav:hover {
+  background: var(--navy);
+  color: var(--gold);
+}
+
+.flash-nav-prev { left: 14px; }
+.flash-nav-next { right: 14px; }
 
 .flash-deal-empty {
   min-height: 180px;
