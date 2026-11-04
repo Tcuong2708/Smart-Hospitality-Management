@@ -1,14 +1,15 @@
 package com.votricuong.mayhotel.documents;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import java.util.Date;
+
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.Date;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
 @Builder
@@ -36,7 +37,7 @@ public class OtpCode {
 
     // MongoDB chỉ tự xóa bản ghi OTP đang chờ. Khi hoàn tất đăng ký, trường này
     // được đặt về null để giữ lại lịch sử đối soát.
-    @Indexed(expireAfter = "0s")
+    @Indexed(name = "idx_otp_pending_expiry", expireAfter = "0s")
     private Date expiresAt;
 
     // Chỉ cho phép đăng ký sau khi mã đã được xác thực thành công.
