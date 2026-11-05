@@ -7,6 +7,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.Locale;
+import java.util.Set;
 
 public final class OnlineBookingPolicy {
 
@@ -100,5 +102,35 @@ public final class OnlineBookingPolicy {
         if (invoice == null) return 0L;
         if (invoice.getDepositRequiredAmount() != null) return invoice.getDepositRequiredAmount();
         return invoice.getTotalAmount() == null ? 0L : Math.round(invoice.getTotalAmount());
+    }
+
+    /**
+     * Checks whether reception may present this invoice for check-in. Paying at
+     * the hotel confirms the booking without collecting money online, while a
+     * VNPay invoice must remain hidden until its successful callback is saved.
+     */
+    public static boolean isConfirmedForCheckIn(Invoice invoice) {
+        if (invoice == null) return false;
+
+        String invoiceStatus = normalized(invoice.getInvoiceStatus());
+        String depositStatus = normalized(invoice.getDepositStatus());
+        boolean paymentRecorded = Set.of("reserved", "paid", "deposit paid")
+                .contains(invoiceStatus)
+                || DEPOSIT_PAID.equalsIgnoreCase(invoice.getDepositStatus())
+                || (invoice.getDepositPaidAmount() != null && invoice.getDepositPaidAmount() > 0L);
+        if (paymentRecorded) return true;
+
+        String payMethod = normalized(invoice.getPayMethod());
+        boolean payAtHotel = Set.of("pay_at_hotel", "pay at hotel", "cod", "cash", "tiền mặt")
+                .contains(payMethod);
+        boolean hotelPaymentConfirmed = Set.of("pay at hotel", "thanh toán tại khách sạn")
+                .contains(invoiceStatus);
+        boolean noOnlinePaymentRequired = depositStatus.isBlank()
+                || Set.of("not_required", "not required").contains(depositStatus);
+        return payAtHotel && hotelPaymentConfirmed && noOnlinePaymentRequired;
+    }
+
+    private static String normalized(String value) {
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 }

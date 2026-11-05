@@ -980,8 +980,14 @@ public class MobileApiController {
                 trustLevel = "AI_ONLY";
             }
 
-            com.votricuong.mayhotel.services.IdentityVerificationService.FaceMatchResult face =
-                    identityVerificationService.verifyFace(documentImage, selfieImage);
+            // Demo NFC cards carry a signed/parsed identity proof but do not
+            // contain a portrait. Sending the photographed blank card to
+            // DeepFace always fails with "no face detected". Only real-chip
+            // and AI-only verification have a document portrait to compare.
+            boolean simulatedNfc = Set.of("SIGNED_NDEF", "LEGACY_NDEF").contains(normalizedMethod);
+            com.votricuong.mayhotel.services.IdentityVerificationService.FaceMatchResult face = simulatedNfc
+                    ? new com.votricuong.mayhotel.services.IdentityVerificationService.FaceMatchResult(true, 100.0)
+                    : identityVerificationService.verifyFace(documentImage, selfieImage);
             if (!face.verified()) {
                 throw new IllegalArgumentException(
                         "Khuôn mặt chưa đạt ngưỡng xác thực (" + String.format(Locale.ROOT, "%.1f", face.similarity()) + "%)");

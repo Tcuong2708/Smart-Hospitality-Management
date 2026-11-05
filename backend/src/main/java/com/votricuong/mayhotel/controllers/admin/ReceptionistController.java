@@ -11,6 +11,7 @@ import com.votricuong.mayhotel.repositories.RoomRepository;
 import com.votricuong.mayhotel.repositories.RoomTypeRepository;
 import com.votricuong.mayhotel.services.BookingAvailabilityService;
 import com.votricuong.mayhotel.services.LoyaltyService;
+import com.votricuong.mayhotel.services.OnlineBookingPolicy;
 import lombok.Builder;
 import lombok.Data;
 import org.springframework.stereotype.Controller;
@@ -428,13 +429,7 @@ public class ReceptionistController extends BaseController {
             return false;
         }
 
-        String invoiceStatus = invoice.getInvoiceStatus() == null ? ""
-                : invoice.getInvoiceStatus().trim().toLowerCase(java.util.Locale.ROOT);
-        boolean confirmedInvoice = Set.of("reserved", "paid", "deposit paid")
-                .contains(invoiceStatus)
-                || "PAID".equalsIgnoreCase(invoice.getDepositStatus())
-                || java.util.Optional.ofNullable(invoice.getDepositPaidAmount()).orElse(0L) > 0L;
-        if (!confirmedInvoice) return false;
+        if (!OnlineBookingPolicy.isConfirmedForCheckIn(invoice)) return false;
 
         LocalDate today = LocalDate.now(HOTEL_ZONE);
         LocalDate arrival = order.getExpectedIn().toInstant().atZone(HOTEL_ZONE).toLocalDate();

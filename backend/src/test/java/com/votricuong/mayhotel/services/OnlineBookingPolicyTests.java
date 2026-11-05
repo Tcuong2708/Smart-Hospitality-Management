@@ -1,6 +1,7 @@
 package com.votricuong.mayhotel.services;
 
 import com.votricuong.mayhotel.documents.BookingOrder;
+import com.votricuong.mayhotel.documents.Invoice;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -47,5 +48,36 @@ class OnlineBookingPolicyTests {
         assertThat(discounted.taxableAmount()).isEqualTo(500_000L);
         assertThat(discounted.taxAmount()).isEqualTo(50_000L);
         assertThat(discounted.totalAmount()).isEqualTo(550_000L);
+    }
+
+    @Test
+    void payAtHotelBookingIsConfirmedForCheckInWithoutOnlinePayment() {
+        Invoice invoice = Invoice.builder()
+                .payMethod("PAY_AT_HOTEL")
+                .invoiceStatus("Pay at Hotel")
+                .depositStatus("NOT_REQUIRED")
+                .depositPaidAmount(0L)
+                .build();
+
+        assertThat(OnlineBookingPolicy.isConfirmedForCheckIn(invoice)).isTrue();
+    }
+
+    @Test
+    void pendingVnPayBookingWaitsForSuccessfulCallback() {
+        Invoice pending = Invoice.builder()
+                .payMethod("VNPAY_DEPOSIT")
+                .invoiceStatus("Awaiting Payment")
+                .depositStatus("PENDING")
+                .depositPaidAmount(0L)
+                .build();
+        Invoice paid = Invoice.builder()
+                .payMethod("VNPAY_DEPOSIT")
+                .invoiceStatus("Deposit Paid")
+                .depositStatus("PAID")
+                .depositPaidAmount(50_000L)
+                .build();
+
+        assertThat(OnlineBookingPolicy.isConfirmedForCheckIn(pending)).isFalse();
+        assertThat(OnlineBookingPolicy.isConfirmedForCheckIn(paid)).isTrue();
     }
 }

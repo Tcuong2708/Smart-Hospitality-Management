@@ -358,9 +358,14 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
         ),
       ),
     );
-    number.dispose();
-    dob.dispose();
-    expiry.dispose();
+    // showDialog completes before the pop transition has fully removed every
+    // EditableText dependency. Dispose on the next frame, after the dialog
+    // element tree has finished unmounting, to avoid `_dependents.isEmpty`.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      number.dispose();
+      dob.dispose();
+      expiry.dispose();
+    });
     return result;
   }
 

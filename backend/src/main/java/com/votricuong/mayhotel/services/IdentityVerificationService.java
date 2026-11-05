@@ -86,9 +86,15 @@ public class IdentityVerificationService {
     }
 
     public String imageFingerprint(MultipartFile image) {
+        if (image == null || image.isEmpty()) {
+            throw new IllegalArgumentException("Ảnh giấy tờ không được để trống");
+        }
         try {
             return fingerprint(Base64.getEncoder().encodeToString(
                     MessageDigest.getInstance("SHA-256").digest(image.getBytes())));
+        } catch (IllegalArgumentException | IllegalStateException exception) {
+            // Do not hide missing server configuration behind an image error.
+            throw exception;
         } catch (Exception exception) {
             throw new IllegalStateException("Không thể tạo dấu vân tay ảnh giấy tờ", exception);
         }
