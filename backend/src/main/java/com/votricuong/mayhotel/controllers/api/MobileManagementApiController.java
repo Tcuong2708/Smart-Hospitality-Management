@@ -383,13 +383,19 @@ public class MobileManagementApiController {
     public ResponseEntity<?> updateUser(@PathVariable Long id,
                                         @RequestHeader(value = "Authorization", required = false) String authorization,
                                         @RequestBody User user) {
-        return withRole(authorization, 1L, "ADMIN", () -> ok("Cập nhật tài khoản thành công", safeUser(userService.updateUser(id, user))));
+        return withRole(authorization, 1L, "ADMIN", () -> {
+            rejectProtectedSuperAdmin(id);
+            return ok("Cập nhật tài khoản thành công", safeUser(userService.updateUser(id, user)));
+        });
     }
 
     @PatchMapping("/admin/users/{id}/status")
     public ResponseEntity<?> toggleUser(@PathVariable Long id,
                                         @RequestHeader(value = "Authorization", required = false) String authorization) {
-        return withRole(authorization, 1L, "ADMIN", () -> ok("Đổi trạng thái tài khoản thành công", safeUser(userService.toggleStatus(id))));
+        return withRole(authorization, 1L, "ADMIN", () -> {
+            rejectProtectedSuperAdmin(id);
+            return ok("Đổi trạng thái tài khoản thành công", safeUser(userService.toggleStatus(id)));
+        });
     }
 
     @DeleteMapping("/admin/users/{id}")
@@ -398,9 +404,18 @@ public class MobileManagementApiController {
         return withRole(authorization, 1L, "ADMIN", () -> {
             MobileTokenService.Claims claims = tokenService.verifyAuthorization(authorization);
             if (claims.userId() == id) throw new IllegalArgumentException("Không thể xóa tài khoản đang đăng nhập");
+            rejectProtectedSuperAdmin(id);
             userService.deleteUser(id);
             return ok("Xóa tài khoản thành công", null);
         });
+    }
+
+    private void rejectProtectedSuperAdmin(Long id) {
+        User target = userService.getUserById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Không tìm thấy tài khoản"));
+        if (target.getRoleId() != null && target.getRoleId() == 8L) {
+            throw new IllegalArgumentException("Không được phép sửa, khóa hoặc xóa tài khoản Quản trị cấp cao");
+        }
     }
 
     @GetMapping("/admin/backup-status")

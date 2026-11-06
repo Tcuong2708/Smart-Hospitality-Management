@@ -257,8 +257,7 @@
                     <thead>
                         <tr>
                             <th style="width:70px;">Mã</th>
-                            <th style="width:140px;">Mã vai trò</th>
-                            <th style="width:200px;">Tên vai trò</th>
+                            <th style="width:220px;">Tên vai trò</th>
                             <th>Mô tả chức năng</th>
                             <th>Phạm vi quyền hạn</th>
                             <th class="col-center" style="width:130px;">Số người dùng</th>
@@ -267,7 +266,7 @@
                     <tbody id="roleTbody">
 
                         <tr th:if="${#lists.isEmpty(roles)}">
-                            <td colspan="6">
+                            <td colspan="5">
                                 <div class="adm-empty">
                                     <i class="bi bi-shield-lock"></i>
                                     <h4>Chưa có vai trò nào</h4>
@@ -282,11 +281,7 @@
 
                             <td>
                                 <span class="adm-role" th:classappend="${r.badgeClass}"
-                                    style="font-size:11.5px;padding:5px 10px;" th:text="${r.code}">ADMIN</span>
-                            </td>
-
-                            <td>
-                                <strong class="text-navy" th:text="${r.name}">Quản trị viên</strong>
+                                    style="font-size:11.5px;padding:5px 10px;" th:text="${r.name}">Quản trị viên</span>
                             </td>
 
                             <td class="text-muted" style="font-size:13px;line-height:1.55;" th:text="${r.description}">

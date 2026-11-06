@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../checkin/views/mobile_self_checkin_screen.dart';
 import '../../auth/views/login_screen.dart';
@@ -192,23 +193,23 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.accentGold,
+        iconTheme: const IconThemeData(color: AppColors.accentGold),
         title: Text(
-          "Phòng đã đặt & Danh mục",
+          'Đơn đặt phòng & tiện ích',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: Responsive.sp(context, 18),
-            color: colorScheme.onSurface,
+            color: AppColors.accentGold,
           ),
         ),
         centerTitle: true,
         elevation: 0.5,
-        backgroundColor: colorScheme.surface,
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDarkMode
-              ? Brightness.light
-              : Brightness.dark,
-          statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
+          statusBarColor: AppColors.primary,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
         ),
       ),
       body: RefreshIndicator(
@@ -269,7 +270,7 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
               ),
               const SizedBox(width: 8),
               Text(
-                "Danh mục tiện ích Khách hàng",
+                'Tiện ích dành cho khách hàng',
                 style: TextStyle(
                   fontSize: Responsive.sp(context, 15),
                   fontWeight: FontWeight.bold,
@@ -357,8 +358,8 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
               // DANH MỤC 3: TỰ NHẬN PHÒNG (NFC / AI)
               Expanded(
                 child: _buildCategoryCard(
-                  title: "Nhận Phòng NFC",
-                  subtitle: "Quét CCCD & Mở khóa",
+                  title: 'Nhận phòng thông minh',
+                  subtitle: 'NFC CCCD & khuôn mặt',
                   icon: Icons.nfc_rounded,
                   cardGradient: isDarkMode
                       ? [Colors.teal.shade900, Colors.teal.shade800]

@@ -10,6 +10,7 @@ import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/services/mrz_ocr_service.dart';
 import 'package:may_hotel_app/services/nfc_service.dart';
 import 'package:path_provider/path_provider.dart';
+import '../../../core/constants/app_colors.dart';
 
 class MobileSelfCheckinScreen extends StatefulWidget {
   const MobileSelfCheckinScreen({
@@ -529,7 +530,18 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     final needsDocumentPhoto =
         identity != null && identity.method != IdentityNfcMethod.realNfc;
     return Scaffold(
-      appBar: AppBar(title: const Text('Tự Nhận Phòng (AI)')),
+      appBar: AppBar(
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.accentGold,
+        iconTheme: const IconThemeData(color: AppColors.accentGold),
+        title: const Text(
+          'Nhận phòng thông minh',
+          style: TextStyle(
+            color: AppColors.accentGold,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
@@ -648,8 +660,8 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
     IdentityNfcMethod.realNfc => 'Bước 2: Đã đọc chip CCCD thật',
     IdentityNfcMethod.signedNdef => 'Bước 2: Đã đọc NDEF mô phỏng',
     IdentityNfcMethod.legacyNdef => 'Bước 2: Đã đọc thẻ NFC demo văn bản',
-    IdentityNfcMethod.aiOnly => 'Bước 2: Đã chọn AI-only',
-    null => 'Bước 2: Chọn NFC / AI fallback',
+    IdentityNfcMethod.aiOnly => 'Bước 2: Đã chọn xác thực AI dự phòng',
+    null => 'Bước 2: Quét NFC hoặc xác thực AI dự phòng',
   };
 
   Widget _photoBox({

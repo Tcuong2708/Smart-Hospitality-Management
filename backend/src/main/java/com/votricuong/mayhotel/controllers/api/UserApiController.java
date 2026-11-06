@@ -2,6 +2,8 @@ package com.votricuong.mayhotel.controllers.api;
 
 import com.votricuong.mayhotel.documents.User;
 import com.votricuong.mayhotel.services.UserService;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -88,8 +90,10 @@ public class UserApiController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User userDetails) {
+    public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody User userDetails, HttpSession session) {
         try {
+            ResponseEntity<?> denied = rejectProtectedSuperAdmin(id, session);
+            if (denied != null) return denied;
             User updatedUser = userService.updateUser(id, userDetails);
             return ResponseEntity.ok(updatedUser);
         } catch (Exception e) {
@@ -98,8 +102,10 @@ public class UserApiController {
     }
 
     @PatchMapping("/{id}/toggle-status")
-    public ResponseEntity<?> toggleStatus(@PathVariable Long id) {
+    public ResponseEntity<?> toggleStatus(@PathVariable Long id, HttpSession session) {
         try {
+            ResponseEntity<?> denied = rejectProtectedSuperAdmin(id, session);
+            if (denied != null) return denied;
             User updatedUser = userService.toggleStatus(id);
             return ResponseEntity.ok(updatedUser);
         } catch (Exception e) {
@@ -108,12 +114,27 @@ public class UserApiController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
+    public ResponseEntity<?> deleteUser(@PathVariable Long id, HttpSession session) {
         try {
+            ResponseEntity<?> denied = rejectProtectedSuperAdmin(id, session);
+            if (denied != null) return denied;
             userService.deleteUser(id);
             return ResponseEntity.ok("Xóa người dùng thành công");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
+    }
+
+    private ResponseEntity<?> rejectProtectedSuperAdmin(Long id, HttpSession session) {
+        User actor = (User) session.getAttribute("user");
+        User target = userService.getUserById(id).orElse(null);
+        if (actor == null || actor.getRoleId() == null || target == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Bạn không có quyền thực hiện thao tác này");
+        }
+        if (target.getRoleId() != null && target.getRoleId() == 8L) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Không được phép sửa, khóa hoặc xóa tài khoản Quản trị cấp cao");
+        }
+        return null;
     }
 }

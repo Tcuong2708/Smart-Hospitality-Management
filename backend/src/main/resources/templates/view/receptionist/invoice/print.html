@@ -335,13 +335,44 @@
         line-height: 1.35;
       }
 
-      .inv-header { padding-bottom: 12px; }
-      .inv-info { padding: 14px 0; gap: 22px; }
+      .inv-header {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-start !important;
+        padding-bottom: 12px;
+      }
+      .inv-meta { text-align: right !important; }
+      .inv-info {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+        padding: 14px 0;
+        gap: 22px;
+      }
+      .inv-info.right,
+      .inv-info.right h3 { text-align: right !important; }
       .inv-section { margin: 14px 0 8px; }
       .inv-table thead th { padding: 7px 9px; }
       .inv-table tbody td { padding: 8px 9px; }
       .inv-total-wrap { margin-top: 14px; padding-top: 12px; break-inside: avoid; }
-      .inv-sign { margin-top: 18px; padding-top: 8px; break-inside: avoid; }
+      .inv-total-wrap {
+        display: flex !important;
+        flex-direction: row !important;
+        justify-content: space-between !important;
+        align-items: flex-end !important;
+      }
+      .inv-thanks { max-width: 50% !important; }
+      .inv-total { text-align: right !important; }
+      .inv-sign {
+        display: grid !important;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+        gap: 48px !important;
+        width: 100% !important;
+        margin-top: 18px;
+        padding-top: 8px;
+        break-inside: avoid;
+      }
+      .inv-sign > div { min-width: 0; text-align: center !important; }
       .inv-sign-space { height: 28px; }
 
       .inv-table thead th {

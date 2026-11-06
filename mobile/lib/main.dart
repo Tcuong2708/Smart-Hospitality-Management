@@ -1,3 +1,6 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -5,7 +8,6 @@ import 'package:may_hotel_app/services/notification_service.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
 import 'package:may_hotel_app/services/device_security_service.dart';
 import 'package:may_hotel_app/services/language_service.dart';
-import 'dart:io';
 import 'core/constants/app_colors.dart';
 import 'features/home/views/main_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -27,39 +29,83 @@ void main() async {
     HttpOverrides.global = MyHttpOverrides();
   }
 
-  await NotificationService().initNotification();
   runApp(const MayHotelApp());
+
+  // Plugin thông báo là chức năng bổ trợ. Khởi tạo sau lần dựng giao diện
+  // đầu tiên để máy ảo không bị màn hình trắng nếu plugin phản hồi chậm.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(NotificationService().initNotification());
+  });
 }
 
-class MayHotelApp extends StatelessWidget {
-  const MayHotelApp({Key? key}) : super(key: key);
+class MayHotelApp extends StatefulWidget {
+  const MayHotelApp({super.key});
+
+  @override
+  State<MayHotelApp> createState() => _MayHotelAppState();
+}
+
+class _MayHotelAppState extends State<MayHotelApp> {
+  late final Future<String?> _securityCheck;
+
+  @override
+  void initState() {
+    super.initState();
+    _securityCheck = _checkSecurity();
+  }
 
   Future<String?> _checkSecurity() async {
-    final result = await DeviceSecurityService(
-      trustedDeviceFingerprints:
-          dotenv.env['TRUSTED_DEVICE_FINGERPRINTS']?.trim() ??
-          const String.fromEnvironment('TRUSTED_DEVICE_FINGERPRINTS'),
-      // Debug/profile dùng được qua cáp; release chỉ miễn USB debugging cho
-      // đúng fingerprint đã đăng ký. Root và bootloader vẫn luôn bị kiểm tra.
-      allowUsbDebuggingForDevelopment: !kReleaseMode,
-    ).check();
+    // TRUSTED_DEVICE_FINGERPRINTS nhận tối đa hai SHA-256, phân cách bằng dấu
+    // phẩy. Không dùng serial ADB (ví dụ RF8XB01P13T/RF8N32LPQCA) tại đây.
+    final trustedFingerprints =
+        dotenv.env['TRUSTED_DEVICE_FINGERPRINTS']?.trim() ??
+        const String.fromEnvironment('TRUSTED_DEVICE_FINGERPRINTS');
+
+    final result =
+        await DeviceSecurityService(
+          trustedDeviceFingerprints: trustedFingerprints,
+          // Bản phát triển dùng được qua cáp. Ở bản release, chỉ thiết bị có
+          // fingerprint trong danh sách trên được miễn kiểm tra USB debugging.
+          // Root và bootloader vẫn luôn bị kiểm tra trên mọi thiết bị.
+          allowUsbDebuggingForDevelopment: !kReleaseMode,
+        ).check().timeout(
+          const Duration(seconds: 10),
+          onTimeout: () => const DeviceSecurityResult.blocked(
+            DeviceSecurityIssue.verificationFailed,
+          ),
+        );
     return result.message;
   }
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<String?>(
-      future: _checkSecurity(),
+      future: _securityCheck,
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const MaterialApp(
             debugShowCheckedModeBanner: false,
-            home: Scaffold(body: Center(child: CircularProgressIndicator())),
+            home: Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    CircularProgressIndicator(),
+                    SizedBox(height: 16),
+                    Text('Đang kiểm tra an toàn thiết bị...'),
+                  ],
+                ),
+              ),
+            ),
           );
         }
 
         // Lấy thông điệp lỗi bảo mật (nếu có)
-        final String? warningMessage = snapshot.data;
+        final String? warningMessage = snapshot.hasError
+            ? const DeviceSecurityResult.blocked(
+                DeviceSecurityIssue.verificationFailed,
+              ).message
+            : snapshot.data;
 
         if (warningMessage != null) {
           return MaterialApp(

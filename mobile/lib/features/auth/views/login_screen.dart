@@ -316,13 +316,18 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    "May Hotel",
-                    style: TextStyle(
-                      fontSize: Responsive.sp(context, 35),
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.5,
-                      color: isDarkMode ? Colors.amber : colorScheme.primary,
+                  Image.asset(
+                    'assets/images/logo_web.png',
+                    width: Responsive.sp(context, 190),
+                    height: Responsive.sp(context, 64),
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, _, _) => Text(
+                      'May Hotel',
+                      style: TextStyle(
+                        fontSize: Responsive.sp(context, 35),
+                        fontWeight: FontWeight.bold,
+                        color: isDarkMode ? Colors.amber : colorScheme.primary,
+                      ),
                     ),
                   ),
                   Text(

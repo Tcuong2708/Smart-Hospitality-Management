@@ -156,7 +156,7 @@
                 </header>
 
                 <div class="adm-table-wrap">
-                    <table class="adm-table" id="invoiceTable">
+                    <table class="adm-table" id="invoiceTable" data-pagination="manual">
                         <thead>
                             <tr>
                                 <th>Mã HĐ</th>
@@ -339,7 +339,7 @@
                 // ─── Invoice search + pagination ─────────────
                 var table = document.getElementById('invoiceTable');
                 var tbody = table ? table.querySelector('tbody') : null;
-                //var paginationEl = document.getElementById('invoicePagination');
+                var paginationEl = document.getElementById('invoicePagination');
                 var searchInput = document.getElementById('invoiceSearch');
                 var allRows = tbody ? Array.from(tbody.querySelectorAll('tr.invoice-row')) : [];
                 var filtered = allRows.slice();

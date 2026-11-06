@@ -126,7 +126,7 @@
                                 <th>Loại</th>
                                 <th>Trạng thái</th>
                                 <th>Thời điểm</th>
-                                <th>Thông báo</th>
+                                <th>Chi tiết</th>
                                 <th class="col-center">Thao tác</th>
                             </tr>
                         </thead>
@@ -177,7 +177,11 @@
                                 </td>
 
                                 <td class="text-muted" th:text="${backup.backupDate}"></td>
-                                <td class="text-muted" th:text="${backup.message}"></td>
+                                <td class="text-muted">
+                                    <span th:if="${backup.message != null and !#strings.isEmpty(#strings.trim(backup.message))}"
+                                        th:text="${backup.message}"></span>
+                                    <span th:unless="${backup.message != null and !#strings.isEmpty(#strings.trim(backup.message))}">Không có cảnh báo.</span>
+                                </td>
 
                                 <td class="col-center">
                                     <form

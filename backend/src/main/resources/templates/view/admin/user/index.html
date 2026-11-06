@@ -180,18 +180,18 @@
                                     <a th:if="${roleId != 5 and roleId != 8 and (session.user.roleId == 8 or (session.user.roleId == 1 and roleId >= 2))}"
                                         th:href="@{/admin/users/{id}/permissions(id=${u.id})}" class="adm-action view"
                                         title="Quyền ngoại lệ"><i class="bi bi-shield-check"></i></a>
-                                    <button type="button" class="adm-action edit" data-action="edit"
+                                    <button th:if="${roleId != 8}" type="button" class="adm-action edit" data-action="edit"
                                         title="Sửa thông tin / Phân quyền">
                                         <i class="bi bi-pencil"></i>
                                     </button>
 
-                                    <button type="button" class="adm-action" data-action="toggle"
+                                    <button th:if="${roleId != 8}" type="button" class="adm-action" data-action="toggle"
                                         th:classappend="${!isActive} ? 'view' : 'delete'"
                                         th:title="${!isActive} ? 'Mở khóa tài khoản' : 'Khóa tài khoản'">
                                         <i th:class="${!isActive} ? 'bi bi-unlock-fill' : 'bi bi-lock-fill'"></i>
                                     </button>
 
-                                    <button type="button" class="adm-action delete" data-action="delete" title="Xóa">
+                                    <button th:if="${roleId != 8}" type="button" class="adm-action delete" data-action="delete" title="Xóa">
                                         <i class="bi bi-trash"></i>
                                     </button>
                                 </div>

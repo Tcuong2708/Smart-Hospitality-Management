@@ -276,7 +276,9 @@ function tangCua(name) {
 
 function initializeManagementPagination() {
     document.querySelectorAll('.adm-table').forEach((table, index) => {
-        if (table._admPagination || !table.tBodies[0]) return;
+        // Một số màn hình có tìm kiếm/phân trang riêng. Không tự gắn thêm
+        // bộ điều khiển thứ hai cho các bảng đã khai báo chế độ thủ công.
+        if (table.dataset.pagination === 'manual' || table._admPagination || !table.tBodies[0]) return;
         const dataRows = Array.from(table.tBodies[0].rows)
             .filter(row => !row.querySelector('.adm-empty'));
         if (dataRows.length <= 10) return;

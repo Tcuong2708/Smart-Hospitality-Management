@@ -62,10 +62,15 @@ public class UserAdminController extends BaseController {
     }
 
     @GetMapping("/edit/{id}")
-    public String editView(@PathVariable Long id, Model model, RedirectAttributes ra) {
+    public String editView(@PathVariable Long id, Model model, RedirectAttributes ra, HttpSession session) {
         User user = userService.getUserById(id).orElse(null);
         if (user == null) {
             ra.addFlashAttribute("error", "Không tìm thấy người dùng!");
+            return "redirect:/admin/users";
+        }
+        User actor = (User) session.getAttribute("user");
+        if (!canManage(actor, user)) {
+            ra.addFlashAttribute("error", "Bạn không được chỉnh sửa tài khoản này");
             return "redirect:/admin/users";
         }
         setPageTitle(model, "Chỉnh sửa Người dùng");
@@ -156,6 +161,7 @@ public class UserAdminController extends BaseController {
     }
 
     private boolean canManage(User actor, User target) {
+        if (actor == null || target == null || actor.getRoleId() == null) return false;
         if (target.getRoleId() != null && target.getRoleId() == 8L) return false;
         return actor.getRoleId() != null && (actor.getRoleId() == 8L
                 || (actor.getRoleId() == 1L && target.getRoleId() != null && target.getRoleId() >= 2L));

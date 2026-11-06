@@ -267,12 +267,19 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(height: 10),
                         _buildHeader(context, textColor, surfaceColor),
                         const SizedBox(height: 25),
-                        Text(
-                          "May Hotel",
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: textColor,
+                        Image.asset(
+                          'assets/images/logo_web.png',
+                          width: 165,
+                          height: 55,
+                          fit: BoxFit.contain,
+                          alignment: Alignment.centerLeft,
+                          errorBuilder: (_, _, _) => Text(
+                            'May Hotel',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: textColor,
+                            ),
                           ),
                         ),
                         const SizedBox(height: 15),

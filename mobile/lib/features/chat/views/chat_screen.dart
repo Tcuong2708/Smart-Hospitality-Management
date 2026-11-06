@@ -36,7 +36,8 @@ class _ChatScreenState extends State<ChatScreen> {
     _messages.add(
       ChatMessage(
         text:
-            "Xin chào! Tôi là May Bot - Trợ lý ảo của khách sạn. Bạn cần hỗ trợ thông tin gì ạ?",
+            'Xin chào! Tôi là trợ lý ảo AI của May Hotel. Tôi có thể giúp gì cho bạn?\n\n'
+            '(Ví dụ: "Giá phòng bao nhiêu", "Có hồ bơi không")',
         isUser: false,
         timestamp: DateTime.now(),
       ),
@@ -107,7 +108,7 @@ class _ChatScreenState extends State<ChatScreen> {
         elevation: 0,
         centerTitle: true,
         title: const Text(
-          "Trợ lý ảo May Bot",
+          'May Hotel Assistant',
           style: TextStyle(
             fontWeight: FontWeight.bold,
             color: AppColors.accentGold,
@@ -136,7 +137,7 @@ class _ChatScreenState extends State<ChatScreen> {
               child: Row(
                 children: [
                   Text(
-                    "May Bot đang suy nghĩ...",
+                    'Trợ lý May Hotel đang xử lý...',
                     style: const TextStyle(
                       color: AppColors.textSub,
                       fontSize: 13,

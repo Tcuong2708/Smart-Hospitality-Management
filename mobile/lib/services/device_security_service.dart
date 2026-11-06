@@ -56,8 +56,8 @@ class DeviceSecurityResult {
       'Ứng dụng phát hiện thiết bị đã bị root hoặc jailbreak. '
           'Để bảo đảm an toàn, ứng dụng sẽ không tiếp tục.',
     DeviceSecurityIssue.usbDebugging =>
-      'Ứng dụng phát hiện USB debugging đang được bật. '
-          'Vui lòng tắt USB debugging trước khi sử dụng ứng dụng.',
+      'Ứng dụng phát hiện chế độ gỡ lỗi USB đang được bật. '
+          'Vui lòng tắt chế độ gỡ lỗi USB trước khi sử dụng ứng dụng.',
     DeviceSecurityIssue.emulator =>
       'Ứng dụng phát hiện đang chạy trên máy ảo. '
           'Phiên bản này chỉ hỗ trợ thiết bị thật.',
@@ -135,13 +135,15 @@ class DeviceSecurityService {
   final bool allowEmulatorForDemo;
   final DeviceSecurityPlatform _currentPlatform;
 
+  static const Duration _probeTimeout = Duration(seconds: 5);
+
   Future<DeviceSecurityResult> check() async {
     if (_currentPlatform == DeviceSecurityPlatform.android) {
       return _checkAndroid();
     }
     if (_currentPlatform == DeviceSecurityPlatform.ios) {
       try {
-        return await _probe.isRootedOrJailbroken()
+        return await _probe.isRootedOrJailbroken().timeout(_probeTimeout)
             ? const DeviceSecurityResult.blocked(
                 DeviceSecurityIssue.rootedOrJailbroken,
               )
@@ -157,7 +159,7 @@ class DeviceSecurityService {
 
   Future<DeviceSecurityResult> _checkAndroid() async {
     try {
-      final snapshot = await _probe.getAndroidSnapshot();
+      final snapshot = await _probe.getAndroidSnapshot().timeout(_probeTimeout);
       if (kDebugMode) {
         debugPrint(
           '[Security] Device fingerprint: ${snapshot.deviceFingerprint}',
@@ -168,9 +170,9 @@ class DeviceSecurityService {
       final isTrusted = trusted.contains(snapshot.deviceFingerprint);
 
       final checks = await Future.wait<bool>([
-        _probe.isRootedOrJailbroken(),
-        _probe.isUsbDebuggingEnabled(),
-        _probe.isRealDevice(),
+        _probe.isRootedOrJailbroken().timeout(_probeTimeout),
+        _probe.isUsbDebuggingEnabled().timeout(_probeTimeout),
+        _probe.isRealDevice().timeout(_probeTimeout),
       ]);
       if (snapshot.isBootloaderUnlocked) {
         return DeviceSecurityResult.blocked(
