@@ -734,6 +734,9 @@ public class MobileApiController {
                 map.put("ngayTra", o.getExpectedOut() != null ? o.getExpectedOut().toInstant().toString() : null);
                 map.put("tongTien", tongTien);
                 map.put("trangThai", o.getStatus() != null ? o.getStatus() : "Chờ xác nhận");
+                map.put("lyDoHuy", o.getCancellationReason());
+                map.put("thoiGianHuy", o.getCancelledAt() != null
+                        ? o.getCancelledAt().toInstant().toString() : null);
                 map.put("isFaceVerified", Boolean.TRUE.equals(o.getIsFaceVerified()));
                 map.put("guestCount", effectiveGuestCount(o));
                 map.put("adultCount", o.getAdultCount() == null ? effectiveGuestCount(o) : o.getAdultCount());

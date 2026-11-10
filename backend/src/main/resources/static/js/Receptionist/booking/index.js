@@ -18,6 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${day}/${month}/${d.getFullYear()}`;
     };
 
+    const formatDateTime = (dateInput) => {
+        if (!dateInput) return '-';
+        const d = new Date(dateInput);
+        if (Number.isNaN(d.getTime())) return dateInput;
+        const day = String(d.getDate()).padStart(2, '0');
+        const month = String(d.getMonth() + 1).padStart(2, '0');
+        const hour = String(d.getHours()).padStart(2, '0');
+        const minute = String(d.getMinutes()).padStart(2, '0');
+        return `${day}/${month}/${d.getFullYear()} ${hour}:${minute}`;
+    };
+
     function getStatusClass(status) {
         const s = (status || '').toLowerCase();
         if (s.includes('đã nhận') || s.includes('in use') || s.includes('checked') || s.includes('đang ở') || s.includes('completed'))
@@ -233,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             document.getElementById('view-ai').innerHTML = `
                 ${factRowHtml('Rủi ro No-show', riskHtml)}
-                ${factRow('Tự động hủy lúc', data.autoCancelTime ? formatDate(data.autoCancelTime) : '—')}
+                ${factRow('Tự động hủy lúc', data.autoCancelTime ? formatDateTime(data.autoCancelTime) : '—')}
             `;
 
             const notesEl = document.getElementById('view-notes');
@@ -366,12 +377,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (!res.ok) throw new Error('HTTP ' + res.status);
 
                 const rooms = await res.json();
-                renderRoomOptions(roomSelect, rooms);
+                renderRoomOptions(roomSelect, filterRoomsByType(rooms));
 
             } catch (err) {
                 console.warn('[booking] API lỗi, fallback mockVacantRooms:', err);
                 const rooms = Array.isArray(window.mockVacantRooms) ? window.mockVacantRooms : [];
-                renderRoomOptions(roomSelect, rooms);
+                renderRoomOptions(roomSelect, filterRoomsByType(rooms));
+            }
+
+            function filterRoomsByType(rooms) {
+                const selectedTypeId = document.getElementById('db-room-type')?.value || '';
+                if (!selectedTypeId) return rooms;
+                return rooms.filter(room => String(room.roomTypeId || '') === selectedTypeId);
             }
 
             searchResults.style.display = '';
@@ -394,62 +411,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     /* =========================================================
-       MODAL: TRA CỨU KHÁCH CCCD
+       THÔNG TIN KHÁCH HÀNG
        ========================================================= */
-    const btnCheckCustomer = document.getElementById('btn-check-customer');
-    const inputCccd = document.getElementById('db-cccd');
     const inputFullname = document.getElementById('db-fullname');
     const inputPhone = document.getElementById('db-phone');
-
-    if (btnCheckCustomer) {
-        btnCheckCustomer.addEventListener('click', async () => {
-            const cccd = inputCccd.value.trim();
-            if (!cccd) {
-                if (typeof toast === 'function') toast('Vui lòng nhập CCCD', 'warning');
-                return;
-            }
-            try {
-                const res = await fetch(`/api/customer/by-cccd?cccd=${encodeURIComponent(cccd)}`);
-                const data = res.ok ? await res.json() : null;
-
-                if (data && data.fullName) {
-                    inputFullname.value = data.fullName;
-                    inputPhone.value = data.phone || '';
-                    if (typeof toast === 'function') toast('Đã tìm thấy khách hàng cũ');
-                } else {
-                    inputFullname.value = '';
-                    inputPhone.value = '';
-                    if (typeof toast === 'function') toast('Khách hàng mới — vui lòng nhập thông tin', 'info');
-                }
-            } catch (err) {
-                if (cccd === '0123456789' || cccd === '079099123456') {
-                    inputFullname.value = 'Nguyễn Văn Khách Cũ';
-                    inputPhone.value = '0901234567';
-                    if (typeof toast === 'function') toast('Đã tìm thấy khách hàng cũ (demo)');
-                } else {
-                    inputFullname.value = '';
-                    inputPhone.value = '';
-                    if (typeof toast === 'function') toast('Khách hàng mới — vui lòng nhập thông tin', 'info');
-                }
-            }
-        });
-    }
-
-    /* =========================================================
-       MODAL: NFC (demo)
-       ========================================================= */
-    const btnNfcScan = document.getElementById('btn-nfc-scan');
-    if (btnNfcScan) {
-        btnNfcScan.addEventListener('click', () => {
-            if (typeof toast === 'function') toast('Đang chờ thiết bị đọc NFC...', 'info');
-            setTimeout(() => {
-                inputCccd.value = '079099123456';
-                inputFullname.value = 'Nguyễn Văn Khách Cũ (NFC)';
-                inputPhone.value = '0901234567';
-                if (typeof toast === 'function') toast('Đã đọc thẻ CCCD thành công');
-            }, 800);
-        });
-    }
 
     /* =========================================================
        HELPER

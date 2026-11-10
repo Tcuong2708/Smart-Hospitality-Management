@@ -3,6 +3,7 @@ import 'package:flutter/services.dart'; // 🎯 BỔ SUNG: Điều phối màu s
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:may_hotel_app/features/profile/views/payment_method_screen.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/responsive.dart'; // 📐 Tối ưu kích thước co giãn màn hình
 
 class BookingScreen extends StatefulWidget {
@@ -105,24 +106,22 @@ class _BookingScreenState extends State<BookingScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       // 🎯 Đfont ĐỒNG BỘ APP BAR & THANH TRẠNG THÁI HỆ THỐNG
       appBar: AppBar(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: AppColors.primary,
         elevation: 0.5,
         centerTitle: true,
-        leading: BackButton(color: colorScheme.onSurface),
+        leading: const BackButton(color: AppColors.accentGold),
         title: Text(
           "Thông tin đặt phòng",
           style: TextStyle(
-            color: colorScheme.onSurface,
+            color: AppColors.accentGold,
             fontWeight: FontWeight.bold,
             fontSize: Responsive.sp(context, 18),
           ),
         ),
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDarkMode
-              ? Brightness.light
-              : Brightness.dark,
-          statusBarBrightness: isDarkMode ? Brightness.dark : Brightness.light,
+          statusBarColor: AppColors.primary,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
         ),
       ),
       body: SingleChildScrollView(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../services/hotel_api_provider.dart';
 import '../../../services/language_service.dart';
 import '../../../services/auth_state_service.dart';
@@ -137,6 +138,44 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
     );
   }
 
+  Widget _buildCounter(
+    BuildContext context, {
+    required int value,
+    required bool canDecrease,
+    required bool canIncrease,
+    required VoidCallback onDecrease,
+    required VoidCallback onIncrease,
+    required ColorScheme colorScheme,
+    required bool isDark,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: isDark ? Colors.grey.shade900 : Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(15),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.remove_circle_outline),
+            onPressed: canDecrease ? onDecrease : null,
+            color: colorScheme.primary,
+          ),
+          Text(
+            '$value',
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
+          IconButton(
+            icon: const Icon(Icons.add_circle_outline),
+            onPressed: canIncrease ? onIncrease : null,
+            color: colorScheme.primary,
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -146,21 +185,21 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
     return Scaffold(
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
-        backgroundColor: colorScheme.surface,
+        backgroundColor: AppColors.primary,
         elevation: 0.5,
         centerTitle: true,
         title: Text(
           "Tra cứu phòng trống",
           style: TextStyle(
-            color: colorScheme.onSurface,
+            color: AppColors.accentGold,
             fontWeight: FontWeight.bold,
             fontSize: 18,
           ),
         ),
         systemOverlayStyle: SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-          statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
+          statusBarColor: AppColors.primary,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
         ),
       ),
       body: Column(
@@ -273,54 +312,24 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                   ),
                 ),
                 const SizedBox(height: 15),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Em bé (0–5 tuổi)",
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: colorScheme.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      decoration: BoxDecoration(
-                        color: isDark
-                            ? Colors.grey.shade900
-                            : Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(15),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
-                            onPressed: _infants > 0
-                                ? () => setState(() => _infants--)
-                                : null,
-                            color: colorScheme.primary,
-                          ),
-                          Text(
-                            "$_infants",
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
-                            onPressed: (_adults + _children + _infants) < 10
-                                ? () => setState(() => _infants++)
-                                : null,
-                            color: colorScheme.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
+                Text(
+                  "Em bé (0–5 tuổi)",
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    color: colorScheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildCounter(
+                  context,
+                  value: _infants,
+                  canDecrease: _infants > 0,
+                  canIncrease: _adults + _children + _infants < 10,
+                  onDecrease: () => setState(() => _infants--),
+                  onIncrease: () => setState(() => _infants++),
+                  colorScheme: colorScheme,
+                  isDark: isDark,
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -382,7 +391,7 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            "Trẻ em",
+                            "Trẻ em (6–11 tuổi)",
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 14,
@@ -403,10 +412,9 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.remove_circle_outline),
-                                  onPressed: () {
-                                    if (_children > 0)
-                                      setState(() => _children--);
-                                  },
+                                  onPressed: _children > 0
+                                      ? () => setState(() => _children--)
+                                      : null,
                                   color: colorScheme.primary,
                                 ),
                                 Text(
@@ -418,10 +426,9 @@ class _SearchRoomScreenState extends State<SearchRoomScreen> {
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.add_circle_outline),
-                                  onPressed: () {
-                                    if (_children < 10)
-                                      setState(() => _children++);
-                                  },
+                                  onPressed: _adults + _children + _infants < 10
+                                      ? () => setState(() => _children++)
+                                      : null,
                                   color: colorScheme.primary,
                                 ),
                               ],

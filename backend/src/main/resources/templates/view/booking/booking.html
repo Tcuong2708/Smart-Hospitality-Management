@@ -88,7 +88,9 @@
 
                         <div class="mh-tab-content active" data-mh-content="desc">
                             <p style="font-size:14.5px;color:#454f5e;line-height:1.85;"
-                                th:text="${loaiPhong.phongs != null and !loaiPhong.phongs.isEmpty() ? loaiPhong.phongs[0].detail : ''}">
+                                th:text="${loaiPhong.description != null and !loaiPhong.description.isBlank() ? loaiPhong.description :
+                                    (loaiPhong.phongs != null and !loaiPhong.phongs.isEmpty() and loaiPhong.phongs[0].detail != null and !loaiPhong.phongs[0].detail.isBlank() ? loaiPhong.phongs[0].detail :
+                                    'Phòng nghỉ tiện nghi, đầy đủ trang thiết bị, không gian ấm cúng mang đến trải nghiệm thoải mái cho quý khách.')}">
                                 Mô tả dài
                             </p>
                         </div>

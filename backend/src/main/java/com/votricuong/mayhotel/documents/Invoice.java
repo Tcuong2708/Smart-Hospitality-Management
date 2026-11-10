@@ -83,6 +83,9 @@ public class Invoice {
     private Boolean isPaid;
     private Double surcharge;
 
+    @org.springframework.data.mongodb.core.mapping.Field("surcharge_note")
+    private String surchargeNote;
+
     @org.springframework.data.mongodb.core.mapping.Field("deposit_rate")
     private Double depositRate;
 

@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.time.LocalDate;
@@ -32,6 +33,7 @@ import java.util.stream.Collectors;
 import com.votricuong.mayhotel.documents.BookingDetail;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Calendar;
 import java.time.temporal.ChronoUnit;
@@ -135,13 +137,69 @@ public class ReceptionistBookingController extends BaseController {
         return render(model, "view/receptionist/booking/index");
     }
 
+    @GetMapping("/api/available-rooms")
+    @ResponseBody
+    public List<Map<String, Object>> availableRooms(
+            @RequestParam("checkin") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate checkin,
+            @RequestParam("checkout") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate checkout) {
+        com.votricuong.mayhotel.utils.InputValidator.stay(checkin, checkout);
+        Date expectedIn = Date.from(checkin.atStartOfDay(ZoneOffset.UTC).toInstant());
+        Date expectedOut = Date.from(checkout.atStartOfDay(ZoneOffset.UTC).toInstant());
+        return bookingAvailabilityService.findAvailableRooms(null, expectedIn, expectedOut).stream()
+                .map(room -> {
+                    Map<String, Object> result = new HashMap<>();
+                    result.put("id", room.getId());
+                    result.put("name", room.getName());
+                    result.put("price", room.getPrice());
+                    result.put("roomTypeId", room.getRoomTypeId());
+                    return result;
+                })
+                .collect(Collectors.toList());
+    }
+
+    @GetMapping("/detail/{id}")
+    @ResponseBody
+    public Map<String, Object> detail(@org.springframework.web.bind.annotation.PathVariable Long id) {
+        BookingOrder order = bookingOrderRepository.findById(id)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy đơn đặt phòng"));
+        Customer customer = order.getCustomerId() == null ? null
+                : customerRepository.findById(order.getCustomerId()).orElse(null);
+        BookingDetail detail = bookingDetailRepository.findByBookingId(id).stream().findFirst().orElse(null);
+        Room room = detail == null || detail.getRoomId() == null ? null
+                : roomRepository.findById(detail.getRoomId()).orElse(null);
+        com.votricuong.mayhotel.documents.RoomType roomType = room == null || room.getRoomTypeId() == null
+                ? null : roomTypeRepository.findById(room.getRoomTypeId()).orElse(null);
+        Invoice invoice = invoiceRepository.findByBookingId(id).stream().findFirst().orElse(null);
+
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", order.getId());
+        data.put("status", order.getStatus());
+        data.put("customerName", customer == null ? null : customer.getFullName());
+        data.put("customerPhone", customer == null ? null : customer.getPhone());
+        data.put("customerEmail", customer == null ? null : customer.getEmail());
+        data.put("customerPoints", customer == null ? null : customer.getPoints());
+        data.put("roomName", room == null ? null : room.getName());
+        data.put("roomTypeName", roomType == null ? null : roomType.getName());
+        data.put("expectedIn", order.getExpectedIn());
+        data.put("expectedOut", order.getExpectedOut());
+        data.put("guestCount", order.getGuestCount());
+        data.put("roomPrice", room == null ? null : room.getPrice());
+        data.put("totalAmount", invoice == null ? null : invoice.getTotalAmount());
+        data.put("isPaid", invoice != null && Boolean.TRUE.equals(invoice.getIsPaid()));
+        data.put("notes", order.getNotes());
+        data.put("noShowRiskPercentage", order.getNoShowRiskPercentage());
+        data.put("noShowRiskLevel", order.getNoShowRiskLevel());
+        data.put("autoCancelTime", order.getAutoCancelTime());
+        return data;
+    }
+
     @PostMapping("/checkout")
     public synchronized String checkout(
             @RequestParam(value = "roomId", required = false) Long roomId,
             @RequestParam("guestName") String guestName,
             @RequestParam("phone") String phone,
             @RequestParam(value = "guestCount", defaultValue = "1") Integer guestCount,
-            @RequestParam(value = "checkInNow", defaultValue = "false") boolean checkInNow,
             @RequestParam("ngayNhan") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate ngayNhan,
             @RequestParam("ngayTra") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate ngayTra,
             RedirectAttributes ra) {
@@ -155,10 +213,6 @@ public class ReceptionistBookingController extends BaseController {
             Date expectedIn = Date.from(ngayNhan.atStartOfDay(ZoneOffset.UTC).toInstant());
             Date expectedOut = Date.from(ngayTra.atStartOfDay(ZoneOffset.UTC).toInstant());
             bookingAvailabilityService.validateStay(expectedIn, expectedOut);
-            if (checkInNow && !LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh")).equals(ngayNhan)) {
-                throw new IllegalArgumentException("Đơn nhận phòng ngay phải có ngày nhận phòng là hôm nay");
-            }
-
             Room room = null;
             if (roomId != null) {
                 Optional<Room> roomOpt = roomRepository.findById(roomId);
@@ -201,18 +255,13 @@ public class ReceptionistBookingController extends BaseController {
             order.setExpectedIn(expectedIn);
             order.setExpectedOut(expectedOut);
             
-            order.setStatus(checkInNow ? "Đã nhận phòng" : "Pending");
+            order.setStatus("Pending");
             order.setBookingSource("RECEPTION");
             order.setGuestCount(guestCount);
-            order.setRiskAnalysisStatus(checkInNow ? "NOT_APPLICABLE" : "PENDING");
-            order.setAutoCancelTime(checkInNow ? null : calculateAutoCancelTime(order));
-            if (checkInNow) {
-                order.setIsFaceVerified(true);
-                order.setVerifiedGuestCount(guestCount);
-                order.setIdentityVerificationMethod("RECEPTION_MANUAL");
-                order.setIdentityVerificationReason("Khách đặt trực tiếp và được lễ tân xác thực tại quầy");
-                order.setIdentityVerifiedAt(new Date());
-            }
+            order.setRiskAnalysisStatus("PENDING");
+            order.setVerifiedGuestCount(0);
+            order.setIsFaceVerified(false);
+            order.setGuestVerifications(new ArrayList<>());
             bookingOrderRepository.save(order);
 
             // Booking Detail
@@ -222,9 +271,6 @@ public class ReceptionistBookingController extends BaseController {
             if (room != null) {
                 bd.setRoomId(room.getId());
                 bd.setUnitPrice(room.getPrice());
-            }
-            if (checkInNow) {
-                bd.setActualIn(new Date());
             }
             bookingDetailRepository.save(bd);
 
@@ -247,26 +293,20 @@ public class ReceptionistBookingController extends BaseController {
                                 unitPrice * nights, 0D, 0D, 0D);
                 com.votricuong.mayhotel.services.OnlineBookingPolicy.applyPriceSnapshot(invoice, price);
             }
-            invoice.setInvoiceStatus(checkInNow ? "In Use" : "Reserved");
+            invoice.setInvoiceStatus("Reserved");
             invoice.setIsPaid(false);
             invoice.setSurcharge(0.0);
             invoiceRepository.save(invoice);
-            if (checkInNow) {
-                roomStatusService.markOccupiedForStay(room.getId(), null,
-                        "Nhận phòng ngay từ đơn trực tiếp #" + order.getId());
-            } else {
-                noShowPredictionService.analyzeAndSave(order.getId());
-            }
+            noShowPredictionService.analyzeAndSave(order.getId());
 
-            ra.addFlashAttribute("success", checkInNow
-                    ? "Đã tạo đơn và nhận phòng ngay cho khách " + guestName
-                    : "Tạo đơn đặt phòng thành công cho khách " + guestName);
+            ra.addFlashAttribute("success",
+                    "Tạo đơn đặt phòng thành công. Khách cần qua trang nhận phòng để xác thực trước khi check-in.");
 
         } catch (Exception e) {
             ra.addFlashAttribute("error", "Lỗi: " + e.getMessage());
         }
 
-        return "redirect:/receptionist/booking";
+        return "redirect:/receptionist/check-in";
     }
 
     private Date calculateAutoCancelTime(BookingOrder order) {

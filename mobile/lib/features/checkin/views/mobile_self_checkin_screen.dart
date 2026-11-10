@@ -2,12 +2,12 @@ import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:may_hotel_app/features/auth/views/login_screen.dart';
 import 'package:may_hotel_app/services/auth_state_service.dart';
 import 'package:may_hotel_app/services/hotel_api_client.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
-import 'package:may_hotel_app/services/mrz_ocr_service.dart';
 import 'package:may_hotel_app/services/nfc_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../../../core/constants/app_colors.dart';
@@ -27,6 +27,31 @@ class MobileSelfCheckinScreen extends StatefulWidget {
   @override
   State<MobileSelfCheckinScreen> createState() =>
       _MobileSelfCheckinScreenState();
+}
+
+class DateOfBirthInputFormatter extends TextInputFormatter {
+  const DateOfBirthInputFormatter();
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    final digits = newValue.text.replaceAll(RegExp(r'\D'), '');
+    final limited = digits.length > 8 ? digits.substring(0, 8) : digits;
+    final buffer = StringBuffer();
+
+    for (var index = 0; index < limited.length; index++) {
+      if (index == 2 || index == 4) buffer.write('/');
+      buffer.write(limited[index]);
+    }
+
+    final formatted = buffer.toString();
+    return TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
+  }
 }
 
 class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
@@ -169,28 +194,19 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
   }
 
   Future<void> _scanRealCccd() async {
+    final access = await _requestAccessData(null);
+    if (access == null || !mounted) return;
+
     setState(() {
       _isProcessing = true;
-      _statusMessage = 'Chụp mặt sau CCCD để nhận dạng MRZ...';
+      _statusMessage = 'Giữ CCCD thật ổn định tại vị trí NFC để đọc dữ liệu...';
     });
-    File? backImage;
     try {
-      final photo = await _picker.pickImage(
-        source: ImageSource.camera,
-        preferredCameraDevice: CameraDevice.rear,
-        imageQuality: 90,
-        maxWidth: 2000,
-      );
-      if (photo == null) return;
-      backImage = File(photo.path);
-      final detected = await MrzOcrService.extract(backImage);
-      if (!mounted) return;
-      final access = await _requestAccessData(detected);
-      if (access == null) return;
-      setState(() {
-        _statusMessage = 'Giữ CCCD ổn định tại vị trí NFC để đọc DG1/DG2...';
-      });
       final result = await NfcService.readRealCccd(access);
+      final faceBytes = result.faceImageBytes;
+      if (faceBytes == null || faceBytes.isEmpty) {
+        throw StateError('Chip không có dữ liệu ảnh chân dung DG2.');
+      }
       final directory = await getTemporaryDirectory();
       final faceExtension = result.faceImageMimeType == 'image/jp2'
           ? 'jp2'
@@ -198,39 +214,25 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
       final face = File(
         '${directory.path}${Platform.pathSeparator}mayhotel-chip-face-${widget.bookingId}-$_currentGuestIndex.$faceExtension',
       );
-      await face.writeAsBytes(result.faceImageBytes!, flush: true);
+      await face.writeAsBytes(faceBytes, flush: true);
       await _deleteChipFace();
       if (!mounted) return;
       setState(() {
         _chipFaceFile = face;
         _identityResult = result;
         _documentFront = null;
-        final last4 = (result.identityValue ?? '').length >= 4
-            ? (result.identityValue ?? '').substring(
-                (result.identityValue ?? '').length - 4,
-              )
-            : '----';
-        final holder = result.fullName?.trim().isNotEmpty == true
-            ? result.fullName!.trim()
-            : 'Chủ thẻ';
-        _statusMessage = result.sodRead
-            ? 'Đã đọc chip cục bộ: $holder ••••$last4; có DG1, DG2 và EF.SOD. EF.SOD chưa được đối chiếu chuỗi CSCA/C06.'
-            : 'Đã đọc chip cục bộ: $holder ••••$last4; có DG1/DG2 nhưng chưa đọc được EF.SOD.';
+        _statusMessage =
+            'Đã đọc CCCD thật thành công. Đã nhận dữ liệu DG1/DG2 để xác thực.';
       });
     } catch (error) {
       if (mounted) {
-        _showMessage('Không đọc được chip thật: $error');
-        setState(() {
-          _statusMessage =
-              'Đọc chip thật thất bại. Chọn NDEF mô phỏng hoặc AI-only.';
-        });
+        _showMessage('Không mô phỏng được đọc chip: $error');
+        setState(
+          () =>
+              _statusMessage = 'Mô phỏng đọc chip thất bại. Vui lòng thử lại.',
+        );
       }
     } finally {
-      if (backImage != null) {
-        try {
-          await backImage.delete();
-        } catch (_) {}
-      }
       if (mounted) setState(() => _isProcessing = false);
     }
   }
@@ -306,17 +308,23 @@ class _MobileSelfCheckinScreenState extends State<MobileSelfCheckinScreen> {
                 TextField(
                   controller: dob,
                   keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateOfBirthInputFormatter()],
+                  maxLength: 10,
                   decoration: const InputDecoration(
                     labelText: 'Ngày sinh',
                     hintText: 'dd/MM/yyyy',
+                    counterText: '',
                   ),
                 ),
                 TextField(
                   controller: expiry,
                   keyboardType: TextInputType.datetime,
+                  inputFormatters: const [DateOfBirthInputFormatter()],
+                  maxLength: 10,
                   decoration: const InputDecoration(
                     labelText: 'Ngày hết hạn',
                     hintText: 'dd/MM/yyyy',
+                    counterText: '',
                   ),
                 ),
                 if (error != null) ...[

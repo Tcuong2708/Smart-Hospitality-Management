@@ -465,6 +465,8 @@ public class ReceptionistController extends BaseController {
     @PostMapping("/checkout-room/execute")
     public String executeCheckOut(@RequestParam("maHD") Long maHD,
                                   @RequestParam("phuThu") Double phuThu,
+                                  @RequestParam(value = "loaiPhuThu", required = false) String loaiPhuThu,
+                                  @RequestParam(value = "ghiChuPhuThu", required = false) String ghiChuPhuThu,
                                   RedirectAttributes redirectAttributes) {
         try {
             Invoice invoice = invoiceRepository.findById(maHD)
@@ -472,8 +474,16 @@ public class ReceptionistController extends BaseController {
 
             Double currentTotal = invoice.getTotalAmount() != null ? invoice.getTotalAmount() : 0.0;
             if (phuThu == null) phuThu = 0.0;
+            if (phuThu < 0) {
+                throw new IllegalArgumentException("Phụ thu không được nhỏ hơn 0.");
+            }
+            String surchargeNote = java.util.stream.Stream.of(loaiPhuThu, ghiChuPhuThu)
+                    .filter(value -> value != null && !value.isBlank())
+                    .map(String::trim)
+                    .collect(Collectors.joining(" — "));
             
             invoice.setSurcharge(phuThu);
+            invoice.setSurchargeNote(surchargeNote.isBlank() ? null : surchargeNote);
             invoice.setTotalAmount(currentTotal + phuThu);
             invoice.setInvoiceStatus("Completed");
             invoice.setIsPaid(true);

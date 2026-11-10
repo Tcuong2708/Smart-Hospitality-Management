@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
+import '../../../core/constants/app_colors.dart';
 
 class ServiceOrderScreen extends StatefulWidget {
   final int bookingId;
@@ -274,8 +275,8 @@ class _ServiceOrderScreenState extends State<ServiceOrderScreen> {
       backgroundColor: theme.scaffoldBackgroundColor,
       appBar: AppBar(
         title: const Text("Đặt Dịch Vụ Khách Sạn"),
-        backgroundColor: colorScheme.surface,
-        foregroundColor: colorScheme.onSurface,
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.accentGold,
         elevation: 0.5,
       ),
       bottomNavigationBar: _buildCartBar(colorScheme),

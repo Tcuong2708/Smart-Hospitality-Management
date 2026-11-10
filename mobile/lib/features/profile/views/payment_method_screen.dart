@@ -1,8 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:may_hotel_app/services/hotel_api_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/constants/app_colors.dart';
 
 class PaymentMethodScreen extends StatefulWidget {
   final int bookingId;
@@ -47,6 +49,7 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           !await launchUrl(uri, mode: LaunchMode.externalApplication)) {
         throw Exception('Không thể mở cổng VNPay');
       }
+      if (mounted) setState(() => _processing = false);
       _startPolling();
     } catch (error) {
       _message('Không thể tạo giao dịch VNPay: $error');
@@ -65,12 +68,19 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
   }
 
   Future<void> _pollStatus() async {
+    if (_processing) return;
+    if (widget.invoiceId <= 0) {
+      _message('Không có mã hóa đơn cọc để kiểm tra thanh toán.');
+      return;
+    }
+    if (mounted) setState(() => _processing = true);
     try {
       final result = await _api.getDepositStatus(widget.invoiceId);
       if (!mounted) return;
       final status = result['depositStatus']?.toString() ?? 'PENDING';
       setState(() => _status = status);
-      if (result['confirmed'] == true) {
+      if (result['confirmed'] == true ||
+          result['depositStatus']?.toString().toUpperCase() == 'PAID') {
         _pollTimer?.cancel();
         await showDialog<void>(
           context: context,
@@ -95,8 +105,10 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         _pollTimer?.cancel();
         _message('Đã hết 15 phút giữ chỗ. Vui lòng tạo lại đơn đặt phòng.');
       }
-    } catch (_) {
-      // Mất mạng tạm thời không được coi là thanh toán thất bại; lần poll sau sẽ thử lại.
+    } catch (error) {
+      _message('Không thể kiểm tra thanh toán. Vui lòng thử lại: $error');
+    } finally {
+      if (mounted) setState(() => _processing = false);
     }
   }
 
@@ -122,7 +134,16 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
         ? widget.remainingAmount
         : widget.totalAmount - deposit;
     return Scaffold(
-      appBar: AppBar(title: const Text('Đặt cọc phòng')),
+      appBar: AppBar(
+        title: const Text('Đặt cọc phòng'),
+        backgroundColor: AppColors.primary,
+        foregroundColor: AppColors.accentGold,
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: AppColors.primary,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -175,8 +196,13 @@ class _PaymentMethodScreenState extends State<PaymentMethodScreen> {
           ),
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: _pollStatus,
-            icon: const Icon(Icons.refresh),
+            onPressed: _processing ? null : _pollStatus,
+            icon: _processing
+                ? const SizedBox.square(
+                    dimension: 18,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
             label: const Text('Tôi đã thanh toán – kiểm tra lại'),
           ),
         ],

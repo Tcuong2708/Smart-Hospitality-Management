@@ -172,11 +172,18 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
   }
 
   bool _isHistoricalStatus(String status) {
+    return _isCompletedStayStatus(status) || _isCanceledStatus(status);
+  }
+
+  bool _isCanceledStatus(String status) {
     final normalized = status.trim().toLowerCase();
-    return _isCompletedStayStatus(status) ||
-        normalized == 'đã hủy' ||
+    return normalized == 'đã hủy' ||
+        normalized == 'hủy' ||
         normalized == 'cancelled' ||
-        normalized == 'canceled';
+        normalized == 'canceled' ||
+        normalized.contains('đã hủy') ||
+        normalized.contains('cancelled') ||
+        normalized.contains('canceled');
   }
 
   int get _historyBookingCount => _bookedRooms.where((item) {
@@ -707,7 +714,9 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     String trangThai = item['trangThai']?.toString() ?? 'Chờ xác nhận';
     final bool daThanhToan = item['daThanhToan'] == true;
     final bool isFaceVerified = item['isFaceVerified'] == true;
-    if (isFaceVerified && !_isActiveStayStatus(trangThai)) {
+    if (isFaceVerified &&
+        !_isActiveStayStatus(trangThai) &&
+        !_isCanceledStatus(trangThai)) {
       trangThai = 'Đã xác thực - chờ lễ tân gán phòng';
     }
 
@@ -894,6 +903,13 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                 'Trạng thái',
                 paid ? 'Đã thanh toán' : 'Chưa thanh toán',
               ),
+              if ((item['trangThai']?.toString() ?? '').isNotEmpty)
+                _invoiceRow(
+                  'Trạng thái đặt phòng',
+                  _displayStatus(item['trangThai']),
+                ),
+              if ((item['lyDoHuy']?.toString() ?? '').trim().isNotEmpty)
+                _invoiceRow('Lý do hủy', item['lyDoHuy'].toString()),
               if ((item['phuongThucThanhToan']?.toString() ?? '').isNotEmpty)
                 _invoiceRow(
                   'Phương thức',
@@ -1083,7 +1099,8 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
                 controller: reason,
                 maxLength: 300,
                 decoration: const InputDecoration(
-                  labelText: 'Lý do hủy (không bắt buộc)',
+                  labelText: 'Lý do hủy *',
+                  hintText: 'Vui lòng cho biết lý do hủy',
                   border: OutlineInputBorder(),
                 ),
               ),
@@ -1095,7 +1112,15 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
               child: const Text('Quay lại'),
             ),
             FilledButton(
-              onPressed: () => Navigator.pop(dialogContext, true),
+              onPressed: () {
+                if (reason.text.trim().isEmpty) {
+                  ScaffoldMessenger.of(dialogContext).showSnackBar(
+                    const SnackBar(content: Text('Vui lòng nhập lý do hủy.')),
+                  );
+                  return;
+                }
+                Navigator.pop(dialogContext, true);
+              },
               child: const Text('Xác nhận hủy'),
             ),
           ],
@@ -1115,6 +1140,15 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
       if (!mounted) return;
       _showOperationError(error);
     }
+  }
+
+  String _displayStatus(dynamic value) {
+    final status = value?.toString().trim() ?? '';
+    if (_isCanceledStatus(status)) return 'Đã hủy';
+    if (_isActiveStayStatus(status)) return 'Đang ở';
+    if (_isCompletedStayStatus(status)) return 'Đã trả phòng';
+    if (_isAwaitingCheckInStatus(status)) return 'Chờ nhận phòng';
+    return status.isEmpty ? 'Chờ xử lý' : status;
   }
 
   Future<void> _showReviewDialog(dynamic item) async {
@@ -1190,9 +1224,12 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
   }
 
   void _showOperationError(Object error) {
+    final message = error is StateError
+        ? error.message
+        : 'Vui lòng thử lại hoặc tải lại danh sách đặt phòng.';
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Không thể thực hiện: $error'),
+        content: Text('Không thể thực hiện: $message'),
         backgroundColor: Colors.redAccent,
       ),
     );
@@ -1244,7 +1281,11 @@ class _BookedRoomsScreenState extends State<BookedRoomsScreen>
     Color textColor;
     String displayStatus = status;
 
-    if (_isActiveStayStatus(status)) {
+    if (_isCanceledStatus(status)) {
+      cardColor = Colors.red.withOpacity(0.14);
+      textColor = isDarkMode ? Colors.redAccent.shade100 : Colors.red.shade700;
+      displayStatus = "Đã hủy";
+    } else if (_isActiveStayStatus(status)) {
       cardColor = Colors.blue.withOpacity(0.15);
       textColor = isDarkMode ? Colors.lightBlueAccent : Colors.blue.shade700;
       displayStatus = "Đang ở";

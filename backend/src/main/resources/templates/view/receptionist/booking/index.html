@@ -113,9 +113,9 @@
                                         <label>Loại phòng</label>
                                         <select id="db-room-type">
                                             <option value="">Tất cả loại phòng</option>
-                                            <option value="Standard">Standard</option>
-                                            <option value="Deluxe">Deluxe</option>
-                                            <option value="Suite">Suite</option>
+                                            <option th:each="type : ${roomTypes}"
+                                                th:value="${type.id}"
+                                                th:text="${type.name}">Loại phòng</option>
                                         </select>
                                     </div>
                                 </div>
@@ -143,23 +143,6 @@
                             </div>
                             <div class="adm-booking-step-body">
 
-                                <div class="adm-cccd-row">
-                                    <div class="adm-field">
-                                        <label>CCCD / Passport <span class="req">*</span></label>
-                                        <input type="text" id="db-cccd"
-                                            placeholder="Nhập CCCD để tự động điền thông tin khách cũ">
-                                    </div>
-                                    <div class="adm-cccd-actions">
-                                        <button type="button" class="adm-btn adm-btn-outline" id="btn-check-customer">
-                                            <i class="bi bi-search"></i> Tra cứu
-                                        </button>
-                                        <button type="button" class="adm-btn adm-btn-primary" id="btn-nfc-scan"
-                                            title="Quét CCCD qua NFC">
-                                            <i class="bi bi-wifi"></i> NFC
-                                        </button>
-                                    </div>
-                                </div>
-
                                 <div class="adm-form-row">
                                     <div class="adm-field">
                                         <label>Họ và tên <span class="req">*</span></label>
@@ -181,13 +164,10 @@
                                     <div class="adm-field"></div>
                                 </div>
 
-                                <label style="margin-top:16px;display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border:1px solid var(--border);border-radius:10px;background:var(--bg-cream);cursor:pointer;">
-                                    <input type="checkbox" name="checkInNow" value="true" checked style="width:18px;height:18px;margin-top:2px;">
-                                    <span style="display:flex;flex-direction:column;gap:4px;">
-                                        <strong>Nhận phòng ngay</strong>
-                                        <small style="color:var(--muted);">Áp dụng cho khách đặt trực tiếp tại quầy hôm nay; phòng sẽ chuyển sang trạng thái đang ở.</small>
-                                    </span>
-                                </label>
+                                <div class="adm-alert adm-alert-info" style="margin-top:16px;">
+                                    <i class="bi bi-shield-check"></i>
+                                    <span>Đơn đặt trực tiếp vẫn phải qua trang nhận phòng để xác thực CCCD/khuôn mặt như đơn online và chatbot.</span>
+                                </div>
 
                             </div>
                         </div>

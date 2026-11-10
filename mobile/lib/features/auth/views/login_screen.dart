@@ -26,9 +26,51 @@ class _LoginScreenState extends State<LoginScreen> {
   static const FlutterSecureStorage _secureStorage = FlutterSecureStorage();
   static const String _biometricUsernameKey = 'biometric_username';
   static const String _biometricPasswordKey = 'biometric_password';
+  static const String _rememberLoginKey = 'remember_login';
+  static const String _rememberedUsernameKey = 'remembered_username';
+  static const String _rememberedPasswordKey = 'remembered_password';
 
   bool _isPasswordObscured = true;
   bool _isLoading = false;
+  bool _rememberLogin = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRememberedLogin();
+  }
+
+  Future<void> _loadRememberedLogin() async {
+    final prefs = await SharedPreferences.getInstance();
+    final rememberLogin = prefs.getBool(_rememberLoginKey) ?? false;
+    if (!rememberLogin) return;
+
+    final username = await _secureStorage.read(key: _rememberedUsernameKey);
+    final password = await _secureStorage.read(key: _rememberedPasswordKey);
+    if (!mounted || username == null || password == null) return;
+
+    final rememberedUsername = username;
+    final rememberedPassword = password;
+
+    setState(() {
+      _rememberLogin = true;
+      _usernameController.text = rememberedUsername;
+      _passwordController.text = rememberedPassword;
+    });
+  }
+
+  Future<void> _saveRememberedLogin(String username, String password) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_rememberLoginKey, _rememberLogin);
+
+    if (_rememberLogin) {
+      await _secureStorage.write(key: _rememberedUsernameKey, value: username);
+      await _secureStorage.write(key: _rememberedPasswordKey, value: password);
+    } else {
+      await _secureStorage.delete(key: _rememberedUsernameKey);
+      await _secureStorage.delete(key: _rememberedPasswordKey);
+    }
+  }
 
   @override
   void dispose() {
@@ -85,6 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
           key: _biometricPasswordKey,
           value: passwordInput,
         );
+        await _saveRememberedLogin(usernameInput, passwordInput);
 
         final userId = int.tryParse(loginResult['id']?.toString() ?? '');
         AuthStateService().login(role, username, userId: userId);
@@ -351,27 +394,58 @@ class _LoginScreenState extends State<LoginScreen> {
                     isPassword: true,
                     controller: _passwordController,
                   ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => const ForgotPasswordScreen(),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Checkbox(
+                            value: _rememberLogin,
+                            activeColor: isDarkMode
+                                ? Colors.amber
+                                : colorScheme.primary,
+                            onChanged: _isLoading
+                                ? null
+                                : (value) {
+                                    setState(
+                                      () => _rememberLogin = value ?? false,
+                                    );
+                                  },
                           ),
-                        );
-                      },
-                      child: Text(
-                        "Quên mật khẩu?",
-                        style: TextStyle(
-                          color: isDarkMode
-                              ? Colors.amber
-                              : colorScheme.primary,
-                          fontWeight: FontWeight.bold,
+                          Text(
+                            "Ghi nhớ đăng nhập",
+                            style: TextStyle(
+                              color: colorScheme.onSurface.withValues(
+                                alpha: 0.75,
+                              ),
+                              fontSize: Responsive.sp(context, 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  const ForgotPasswordScreen(),
+                            ),
+                          );
+                        },
+                        child: Text(
+                          "Quên mật khẩu?",
+                          style: TextStyle(
+                            color: isDarkMode
+                                ? Colors.amber
+                                : colorScheme.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: Responsive.sp(context, 12),
+                          ),
                         ),
                       ),
-                    ),
+                    ],
                   ),
                   SizedBox(height: Responsive.sp(context, 10)),
                   Row(

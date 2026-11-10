@@ -186,11 +186,25 @@ class HotelApiProvider {
       if (response.statusCode == 200) {
         return response.data['data'] ?? [];
       }
+
       return [];
     } catch (e) {
       _handleError("Lỗi bốc lịch sử phòng đặt", e);
       rethrow;
     }
+  }
+
+  Future<List<dynamic>> getUserNotifications() async {
+    final response = await _dio.get('/api/v1/mobile/permissions/notifications');
+    final data = response.data;
+    if (data is Map && data['data'] is List) {
+      return List<dynamic>.from(data['data'] as List);
+    }
+    return <dynamic>[];
+  }
+
+  Future<void> markAllUserNotificationsAsRead() async {
+    await _dio.post('/api/v1/mobile/permissions/notifications/read-all');
   }
 
   Future<bool> postCheckIn({

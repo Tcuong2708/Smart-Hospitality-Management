@@ -4,6 +4,34 @@
 <head>
     <meta charset="UTF-8">
     <th:block th:fragment="extra_css"></th:block>
+    <style>
+        .adm-checkout-form {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            flex-wrap: nowrap;
+        }
+
+        .adm-surcharge-input {
+            display: inline-flex;
+            align-items: center;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            position: absolute;
+        }
+
+        .adm-surcharge-input input {
+            position: absolute;
+        }
+
+        @media (max-width: 900px) {
+            .adm-checkout-form {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
 </head>
 
 <body>
@@ -116,16 +144,20 @@
 
                             <td class="col-center">
                                 <form th:action="@{/receptionist/checkout-room/execute}" method="post"
-                                    class="adm-checkout-form">
+                                    class="adm-checkout-form" th:id="'checkout-form-' + ${item.id}">
                                     <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}"
                                         th:value="${_csrf.token}">
                                     <input type="hidden" name="maHD" th:value="${item.id}">
 
-                                    <div class="adm-surcharge-input">
-                                        <input type="number" name="phuThu" value="0" min="0" step="10000"
-                                            placeholder="0" required>
-                                        <span class="unit">đ</span>
-                                    </div>
+                                    <input type="hidden" name="phuThu" value="0">
+                                    <input type="hidden" name="loaiPhuThu">
+                                    <input type="hidden" name="ghiChuPhuThu">
+
+                                    <button type="button" class="adm-btn adm-btn-outline adm-surcharge-toggle"
+                                        th:attr="data-form-id='checkout-form-' + ${item.id}"
+                                        data-adm-open="surchargeModal">
+                                        <i class="bi bi-plus-circle"></i> Thêm phụ thu
+                                    </button>
 
                                     <button type="submit" class="adm-btn adm-btn-gold"
                                         onclick="return confirm('Xác nhận thu phụ thu, cập nhật ngày ở thực tế và giải phóng phòng về trạng thái TRỐNG?')">
@@ -137,6 +169,49 @@
 
                     </tbody>
                 </table>
+            </div>
+        </div>
+
+        <div class="adm-modal-backdrop" id="surchargeModal">
+            <div class="adm-modal" style="max-width:620px;">
+                <div class="adm-modal-head">
+                    <h3><i class="bi bi-receipt"></i> Thêm phụ thu</h3>
+                    <button type="button" class="adm-modal-close" data-adm-close>
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+                <div class="adm-modal-body">
+                    <div class="adm-form-row">
+                        <div class="adm-field">
+                            <label>Loại phụ thu <span class="req">*</span></label>
+                            <select id="surchargeType">
+                                <option value="">Chọn loại phụ thu</option>
+                                <option value="Nước ngọt/đồ uống">Nước ngọt/đồ uống</option>
+                                <option value="Dịch vụ ngoài danh mục">Dịch vụ ngoài danh mục</option>
+                                <option value="Thiệt hại vật chất">Thiệt hại vật chất</option>
+                                <option value="Khác">Khác</option>
+                            </select>
+                        </div>
+                        <div class="adm-field">
+                            <label>Số tiền (VNĐ) <span class="req">*</span></label>
+                            <input type="number" id="surchargeAmount" min="0" step="10000" value="0">
+                        </div>
+                    </div>
+                    <div class="adm-form-row full">
+                        <div class="adm-field">
+                            <label>Ghi chú chi tiết</label>
+                            <textarea id="surchargeNote" rows="3"
+                                placeholder="Ví dụ: 2 lon nước ngọt, vỡ ly, hỏng đèn..."></textarea>
+                            <small>Khoản phụ thu sẽ được cộng vào tổng hóa đơn khi trả phòng.</small>
+                        </div>
+                    </div>
+                </div>
+                <div class="adm-modal-foot">
+                    <button type="button" class="adm-btn adm-btn-outline" data-adm-close>Hủy</button>
+                    <button type="button" class="adm-btn adm-btn-gold" id="saveSurcharge">
+                        <i class="bi bi-check-lg"></i> Lưu phụ thu
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -172,6 +247,45 @@
                         if (countEl) countEl.textContent = visible;
                     });
                 }
+
+                var activeCheckoutForm = null;
+                var surchargeModal = document.getElementById('surchargeModal');
+                var surchargeType = document.getElementById('surchargeType');
+                var surchargeAmount = document.getElementById('surchargeAmount');
+                var surchargeNote = document.getElementById('surchargeNote');
+
+                document.querySelectorAll('.adm-surcharge-toggle').forEach(function (button) {
+                    button.addEventListener('click', function () {
+                        activeCheckoutForm = document.getElementById(this.getAttribute('data-form-id'));
+                        surchargeType.value = activeCheckoutForm.querySelector('[name="loaiPhuThu"]').value || '';
+                        surchargeAmount.value = activeCheckoutForm.querySelector('[name="phuThu"]').value || '0';
+                        surchargeNote.value = activeCheckoutForm.querySelector('[name="ghiChuPhuThu"]').value || '';
+                    });
+                });
+
+                document.getElementById('saveSurcharge').addEventListener('click', function () {
+                    if (!activeCheckoutForm) return;
+                    if (!surchargeType.value) {
+                        surchargeType.focus();
+                        return;
+                    }
+
+                    var amount = Number(surchargeAmount.value);
+                    if (!Number.isFinite(amount) || amount < 0) {
+                        surchargeAmount.focus();
+                        return;
+                    }
+
+                    activeCheckoutForm.querySelector('[name="loaiPhuThu"]').value = surchargeType.value;
+                    activeCheckoutForm.querySelector('[name="phuThu"]').value = String(amount);
+                    activeCheckoutForm.querySelector('[name="ghiChuPhuThu"]').value = surchargeNote.value.trim();
+
+                    var button = activeCheckoutForm.querySelector('.adm-surcharge-toggle');
+                    button.innerHTML = amount > 0
+                        ? '<i class="bi bi-pencil-square"></i> Sửa phụ thu'
+                        : '<i class="bi bi-plus-circle"></i> Thêm phụ thu';
+                    AdmModal.close(surchargeModal);
+                });
 
                 if (window.MayHotelLiveRefresh) {
                     window.MayHotelLiveRefresh.start({

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart'; // Thêm để kiểm tra kIsWeb
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
+import '../../../core/constants/app_colors.dart';
 import '../../../core/utils/responsive.dart';
 import '../../../../main.dart';
 import 'package:may_hotel_app/features/auth/services/auth_api_service.dart';
@@ -274,13 +275,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             return Scaffold(
               backgroundColor: theme.scaffoldBackgroundColor,
               appBar: AppBar(
-                backgroundColor: colorScheme.surface,
+                backgroundColor: AppColors.primary,
                 elevation: 0.5,
-                leading: BackButton(color: textColor),
+                leading: const BackButton(color: AppColors.accentGold),
                 title: Text(
                   langService.translate('settings'),
                   style: TextStyle(
-                    color: textColor,
+                    color: AppColors.accentGold,
                     fontWeight: FontWeight.bold,
                     fontSize: Responsive.sp(context, 20),
                   ),

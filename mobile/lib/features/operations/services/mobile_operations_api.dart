@@ -202,8 +202,22 @@ class MobileOperationsApi {
     String path,
     Map<String, dynamic> data,
   ) async {
-    final response = await _dio.post(path, data: data);
+    final response = await _dio.post(
+      path,
+      data: data,
+      options: Options(
+        validateStatus: (status) => status != null && status < 500,
+      ),
+    );
     final envelope = Map<String, dynamic>.from(response.data as Map);
+    if (response.statusCode != null && response.statusCode! >= 300) {
+      final message = envelope['message']?.toString().trim();
+      throw StateError(
+        message == null || message.isEmpty
+            ? 'Yêu cầu không thể thực hiện (${response.statusCode}).'
+            : message,
+      );
+    }
     return Map<String, dynamic>.from(envelope['data'] as Map? ?? const {});
   }
 

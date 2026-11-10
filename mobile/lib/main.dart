@@ -254,10 +254,20 @@ class _MayHotelAppState extends State<MayHotelApp> {
         onSurface: isDark ? Colors.white : AppColors.primary,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: isDark ? const Color(0xFF050B14) : AppColors.primary,
+        backgroundColor: AppColors.primary,
         foregroundColor: AppColors.accentGold,
         elevation: 0,
         centerTitle: true,
+        titleTextStyle: TextStyle(
+          color: AppColors.accentGold,
+          fontSize: 20,
+          fontWeight: FontWeight.w700,
+        ),
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          statusBarColor: AppColors.primary,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,

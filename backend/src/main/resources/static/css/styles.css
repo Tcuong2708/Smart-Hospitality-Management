@@ -6374,10 +6374,10 @@ textarea {
 
 .mh-notif-list {
   background: #fff;
-  border: 1px solid var(--border);
-  border-radius: 16px;
+  border: 1px solid rgba(15, 41, 66, .12);
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: 0 4px 16px rgba(15, 41, 66, .04);
+  box-shadow: 0 12px 30px rgba(15, 41, 66, .08);
 }
 
 .mh-notif-head {
@@ -6385,8 +6385,9 @@ textarea {
   justify-content: space-between;
   align-items: center;
   gap: 14px;
-  padding: 18px 24px;
-  border-bottom: 1px solid var(--border);
+  padding: 20px 24px;
+  background: linear-gradient(110deg, var(--navy) 0%, #173d61 72%, var(--navy-soft) 100%);
+  border-bottom: 3px solid var(--gold);
   flex-wrap: wrap;
 }
 
@@ -6394,7 +6395,7 @@ textarea {
   font-family: var(--font-heading);
   font-size: 19px;
   font-weight: 700;
-  color: var(--navy);
+  color: #fff;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -6412,8 +6413,9 @@ textarea {
   border-radius: 999px;
   font-size: 12.5px;
   font-weight: 700;
-  background: var(--gold-soft);
-  color: var(--gold-hover);
+  background: rgba(255, 255, 255, .13);
+  color: var(--gold);
+  border: 1px solid rgba(212, 175, 55, .4);
 }
 
 .mh-notif-btn-outline {
@@ -6421,19 +6423,19 @@ textarea {
   align-items: center;
   gap: 8px;
   padding: 9px 16px;
-  background: #fff;
-  border: 1.5px solid var(--border);
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, .55);
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
-  color: var(--navy);
+  color: #fff;
   cursor: pointer;
   transition: all .18s ease;
 }
 
 .mh-notif-btn-outline:hover:not(:disabled) {
-  border-color: var(--navy);
-  background: var(--bg-cream);
+  border-color: var(--gold);
+  background: rgba(212, 175, 55, .18);
 }
 
 .mh-notif-btn-outline:disabled {
@@ -6456,7 +6458,8 @@ textarea {
 }
 
 .mh-notif-item.unread {
-  background: linear-gradient(90deg, rgba(212, 175, 55, .05), transparent);
+  background: linear-gradient(90deg, rgba(212, 175, 55, .13), rgba(212, 175, 55, .025));
+  box-shadow: inset 4px 0 0 var(--gold);
 }
 
 .mh-notif-item.unread:hover {
@@ -6471,8 +6474,8 @@ textarea {
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: var(--gold-soft);
-  color: var(--gold-hover);
+  background: var(--navy);
+  color: var(--gold);
   display: inline-flex;
   align-items: center;
   justify-content: center;

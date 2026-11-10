@@ -10,6 +10,7 @@ import 'package:may_hotel_app/services/room_search_cache.dart';
 import '../../auth/views/login_screen.dart';
 import '../widgets/room_card.dart';
 import 'booking_screen.dart';
+import '../../notifications/views/notifications_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -584,7 +585,12 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         IconButton(
-          onPressed: () {},
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+            );
+          },
           icon: Icon(
             Icons.notifications_none_outlined,
             size: 28,
