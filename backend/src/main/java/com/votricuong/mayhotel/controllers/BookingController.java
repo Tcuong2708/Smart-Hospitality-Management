@@ -1113,6 +1113,11 @@ public class BookingController extends BaseController {
         HomeController.RoomTypeDTO dto = new HomeController.RoomTypeDTO();
         dto.setMaLoai(sample.getRoomTypeId());
         dto.setName(type != null && type.getName() != null ? type.getName() : "Phòng Tiêu Chuẩn");
+        String typeDescription = type == null ? null : type.getDescription();
+        String roomDescription = sample.getDetail();
+        dto.setDescription(typeDescription != null && !typeDescription.isBlank()
+                ? typeDescription
+                : roomDescription);
         dto.setSoNguoi(type != null && type.getMaxOccupancy() != null ? type.getMaxOccupancy() : 2);
         dto.setPrice(sample.getPrice());
         dto.setPhongs(allRooms.stream()

@@ -74,6 +74,7 @@ public class HomeController extends BaseController {
         // Field cũ
         private Long maLoai;
         private String name;
+        private String description;
         private Integer soNguoi;
         private Double price;
         private List<Room> phongs;
