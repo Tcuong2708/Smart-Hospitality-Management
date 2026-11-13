@@ -16,6 +16,7 @@ jobs:
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.PORT }}
+          command_timeout: 20m
           script: |
             # 1. Kéo code mới nhất về repo
             cd ~/smarthotel/source-backend
